@@ -465,7 +465,6 @@ namespace CRUDA.Classes
                 result.AppendLine($"THROW 51000, @ErrorMessage, 1");
                 result.AppendLine($"END");
             }
-
             if ((value = valueMinimum = ToString(column["Minimum"])) == string.Empty)
                 if ((value = valueMinimum = ToString(domain["Minimum"])) == string.Empty)
                     value = valueMinimum = ToString(type["Minimum"]);
