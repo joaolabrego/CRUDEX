@@ -1,0 +1,79 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>6d2b2f40-ad3b-41f8-b3ec-38b8a1ccc336</UserSecretsId>
+    <Platforms>AnyCPU</Platforms>
+    <StartupObject>CRUDA_LIB.Program</StartupObject>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="StaticFiles\TypeScripts\**" />
+    <Content Remove="StaticFiles\TypeScripts\**" />
+    <EmbeddedResource Remove="StaticFiles\TypeScripts\**" />
+    <None Remove="StaticFiles\TypeScripts\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Classes\ConfigSQL.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="db\Scripts\config.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="db\Scripts\ColumnsValidCreate.sql" />
+    <None Remove="db\Scripts\TablesCreate1.sql" />
+    <None Remove="StaticFiles\Classes\TColumn.mjs" />
+    <None Remove="StaticFiles\Classes\TConfig.mjs" />
+    <None Remove="StaticFiles\Classes\TCrypto.mjs" />
+    <None Remove="StaticFiles\Classes\TDatabase.mjs" />
+    <None Remove="StaticFiles\Classes\TDialog.mjs" />
+    <None Remove="StaticFiles\Classes\TForm.mjs" />
+    <None Remove="StaticFiles\Classes\TBrowse.mjs" />
+    <None Remove="StaticFiles\Classes\TLogin.mjs" />
+    <None Remove="StaticFiles\Classes\TMenu.mjs" />
+    <None Remove="StaticFiles\Classes\TScreen.mjs" />
+    <None Remove="StaticFiles\Classes\TSystem.mjs" />
+    <None Remove="StaticFiles\Classes\TTable.mjs" />
+    <None Remove="StaticFiles\Classes\TType.mjs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\Styles\3th\normalize.css" />
+    <Content Include="Assets\Styles\dialog.css" />
+    <Content Include="Assets\Styles\form.css" />
+    <Content Include="Assets\Styles\browse.css" />
+    <Content Include="Assets\Styles\login.css" />
+    <Content Include="Assets\Styles\main.css" />
+    <Content Include="Assets\Styles\menu.css" />
+    <Content Include="Assets\Styles\screen.css" />
+    <Content Include="Assets\Images\alert.png" />
+    <Content Include="Assets\Images\cancel.png" />
+    <Content Include="Assets\Images\confirm.png" />
+    <Content Include="Assets\Images\daycoval.jpg" />
+    <Content Include="Assets\Images\delete.png" />
+    <Content Include="Assets\Images\edit.png" />
+    <Content Include="Assets\Images\error.png" />
+    <Content Include="Assets\Images\exclamation.png" />
+    <Content Include="Assets\Images\exit.png" />
+    <Content Include="Assets\Images\favicon.png" />
+    <Content Include="Assets\Images\filter.png" />
+    <Content Include="Assets\Images\insert.png" />
+    <Content Include="Assets\Images\question.png" />
+    <Content Include="Assets\Images\zoom.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="NPOI" Version="2.7.1" />
+    <PackageReference Include="System.Collections" Version="4.3.0" />
+    <PackageReference Include="System.Data.OleDb" Version="8.0.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+  </ItemGroup>
+
+</Project>

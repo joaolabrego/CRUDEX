@@ -1,0 +1,32 @@
+.dialog {
+    text-align: center;
+    margin: auto;
+    padding: 1vmin;
+    background-color: var(--background-color-control);
+}
+
+.dialog>img {
+    width: 10vmin;
+}
+
+.dialog>p {
+    margin: 2ch 5ch;
+    word-wrap: break-word;
+}
+
+.dialog button {
+    text-transform: uppercase;
+    outline: 0;
+    background: var(--background-color-control);
+    width: 15vmin;
+    height: var(--control-height);
+    border: 0;
+    font-size: inherit;
+    padding: 1vmin;
+    background-color: var(--background-color);
+    font-weight: inherit;
+    cursor: pointer;
+    border-radius: 2vmin;
+    margin-top: 3vmin;
+    margin-right: 2vmin;
+}

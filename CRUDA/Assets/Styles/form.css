@@ -1,0 +1,46 @@
+.form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.form fieldset {
+    border: none;
+    color: black;
+    font-size: 2vmin;
+    margin: 2vmin;
+    text-align: center;
+}
+
+.form input {
+    height: 2.5vmin;
+}
+
+.buttonsBar {
+    text-align: center;
+}
+
+.buttonsBar .button {
+    margin-top: 1vmin;
+    margin-bottom: 1vmin;
+    margin-right: 5vmin;
+    width: 20vmin;
+    height: 3.5vmin;
+    font-size: 2vmin;
+    background: var(--background-color-control);
+    background-position: left;
+    background-repeat: no-repeat;
+    background-size: 15%;
+}
+
+.buttonsBar .button:hover {
+    background: var(--background-color-focus);
+    background-repeat: no-repeat;
+    background-size: 15%;
+}
+
+.buttonsBar .button:active {
+    background: var(--background-color-active);
+    background-repeat: no-repeat;
+    background-size: 15%;
+}
