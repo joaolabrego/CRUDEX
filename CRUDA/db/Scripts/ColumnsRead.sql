@@ -7,13 +7,15 @@ GO
 IF(SELECT object_id('ColumnsRead', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[ColumnsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[ColumnsRead](@Parameters VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[ColumnsRead](@Parameters VARCHAR(MAX) OUTPUT) AS BEGIN
 
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @ErrorMessage VARCHAR(255)= 'Stored Procedure ColumnsDelete: '
+		BEGIN TRANSACTION
+
+		DECLARE @ErrorMessage VARCHAR(255)= 'Stored Procedure ColumnsRead: '
 				,@Login VARCHAR(MAX)
 
 		IF ISJSON(@Parameters) = 0 BEGIN
@@ -333,10 +335,15 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@Parameters VARCHAR(MAX)) AS BEGIN
 			ORDER BY [Id]
 				OFFSET @OffSet ROWS
 				FETCH NEXT @LimitRows ROWS ONLY
+		
+		COMMIT
 
-		RETURN @RowCount
+		RETURN 0
 	END TRY
 	BEGIN CATCH
+
+		ROLLBACK
+
 		THROW
 	END CATCH
 END

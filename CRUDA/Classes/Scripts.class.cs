@@ -45,14 +45,12 @@ namespace CRUDA.Classes
                 stream.Write(GetCreateTableScript(table, columns, indexes, indexkeys, domains, types));
                 if (ToString(table["ProcedureCreate"]) != string.Empty)
                     stream.Write(GetCreateScript(table, tables, columns, domains, types, categories, indexes, indexkeys));
-                //if (ToString(table["FunctionValid"]) != string.Empty)
-                //    stream.Write(GetValidScript(table, columns, domains, types, categories, indexes, indexkeys));
                 if (ToString(table["ProcedureUpdate"]) != string.Empty)
-                    stream.Write(GetUpdateScript(table, columns, domains, types, categories, indexes, indexkeys));
+                    stream.Write(GetUpdateScript(table, tables, columns, domains, types, categories, indexes, indexkeys));
                 if (ToString(table["ProcedureDelete"]) != string.Empty)
-                    stream.Write(GetDeleteScript(table, columns, domains, types, categories));
+                    stream.Write(GetDeleteScript(table, tables, columns, domains, types, categories, indexes, indexkeys));
                 if (ToString(table["ProcedureRead"]) != string.Empty)
-                    stream.Write(GetReadScript(system, database, table, columns, domains, types, categories));
+                    stream.Write(GetReadScript(table, tables, columns, domains, types, categories, indexes, indexkeys));
             }
             stream.Write(GetCreateReferencesScript(tables, columns));
             foreach (var table in tables)
@@ -304,9 +302,13 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static string GetScriptParameters(string procedureName)
+        private static string GetScriptParameters(string procedureName, string actionName)
         {
             var result = new StringBuilder();
+            var actionDescription = (actionName == Actions.CREATE ? "inclusão" : 
+                                     actionName == Actions.UPDATE ? "alteração" : 
+                                     actionName == Actions.DELETE ? "exclusão" : 
+                                     "consulta");
 
             result.AppendLine($"/**********************************************************************************");
             result.AppendLine($"Criar procedure {procedureName}");
@@ -319,6 +321,7 @@ namespace CRUDA.Classes
             result.AppendLine($"BEGIN TRY");
             result.AppendLine($"SET NOCOUNT ON");
             result.AppendLine($"SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
+            result.AppendLine($"BEGIN TRANSACTION");
             result.AppendLine($"DECLARE @ErrorMessage VARCHAR(255)");
             result.AppendLine($"IF ISJSON(@Parameters) = 0 BEGIN");
             result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';");
@@ -351,8 +354,8 @@ namespace CRUDA.Classes
             result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';");
             result.AppendLine($"THROW 51000, @ErrorMessage, 1");
             result.AppendLine($"END");
-            result.AppendLine($"IF @Action <> 'create' BEGIN");
-            result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Operação não é de inclusão.';");
+            result.AppendLine($"IF @Action <> '{actionName}' BEGIN");
+            result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Operação não é de {actionDescription}.';");
             result.AppendLine($"THROW 51000, @ErrorMessage, 1");
             result.AppendLine($"END");
             result.AppendLine($"IF @IsConfirmed IS NOT NULL BEGIN");
@@ -401,6 +404,16 @@ namespace CRUDA.Classes
             result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';");
             result.AppendLine($"THROW 51000, @ErrorMessage, 1");
             result.AppendLine($"END");
+            if (actionName == Actions.READ)
+            {
+                result.AppendLine($"DECLARE @PageNumber INT --OUT");
+                result.AppendLine($",@LimitRows BIGINT --OUT");
+                result.AppendLine($",@MaxPage INT --OUT");
+                result.AppendLine($",@PaddingGridLastPage BIT --OUT");
+                result.AppendLine($",@RowCount BIGINT");
+                result.AppendLine($",@LoginId BIGINT");
+                result.AppendLine($",@OffSet INT");
+            }
 
             return result.ToString();
         }
@@ -449,7 +462,7 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static string GetScriptValidation(TDataRow type, TDataRow domain, TDataRow column)
+        private static string GetScriptValidations(TDataRow type, TDataRow domain, TDataRow column)
         {
             var result = new StringBuilder();
             var columnName = ToString(column["Name"]);
@@ -506,22 +519,15 @@ namespace CRUDA.Classes
         {
             var result = new StringBuilder();
             var referencedTable = tables.First(table => table["Id"] == column["ReferenceTableId"]);
-            var listPrimarykeys = columns.Where(column => column["TableId"] == referencedTable["Id"] &&
-                                                          ToBoolean(column["IsPrimarykey"]));
+            var primarykey = columns.First(column => column["TableId"] == referencedTable["Id"] && ToBoolean(column["IsPrimarykey"]));
 
-            if (listPrimarykeys.Any())
+            if (primarykey != null)
             {
-                var and = string.Empty;
-
                 result.Append($"IF ");
                 if (!ToBoolean(column["IsRequired"]))
                     result.Append($"@W_{column["Name"]} IS NOT NULL AND ");
                 result.Append($"NOT EXISTS(SELECT 1 FROM [dbo].[{referencedTable["Name"]}] WHERE ");
-                foreach (var primarykey in listPrimarykeys)
-                {
-                    result.Append($"{and}[{primarykey["Name"]}] = @W_{column["Name"]}");
-                    and = "AND ";
-                }
+                result.Append($"[{primarykey["Name"]}] = @W_{column["Name"]}");
                 result.AppendLine($") BEGIN");
                 result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} " +
                                   $"não existe em {referencedTable["Name"]}';");
@@ -531,39 +537,60 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static string GetScriptIndexValidations(TDataRow table, TDataTable indexes, TDataTable indexkeys)
+        private static string GetScriptPrimarykeyValidation(TDataRow table, TDataTable columns, bool isCreateAction = false)
+        {
+            var result = new StringBuilder();
+            var primarykey = columns.First(column => column["TableId"] == table["Id"] && ToBoolean(column["IsPrimarykey"]));
+
+            if (primarykey != null)
+            {
+                if (isCreateAction)
+                {
+                    result.Append($"IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE ");
+                    result.Append($"[{primarykey["Name"]}] = @W_{primarykey["Name"]}");
+                    result.AppendLine($") BEGIN");
+                    result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela {table["Name"]}.';");
+                }
+                else
+                {
+                    result.Append($"IF NOT EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE ");
+                    result.Append($"[{primarykey["Name"]}] = @W_{primarykey["Name"]}");
+                    result.AppendLine($") BEGIN");
+                    result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela {table["Name"]}.';");
+                }
+                result.AppendLine($"THROW 51000, @ErrorMessage, 1");
+                result.AppendLine($"END");
+            }
+
+            return result.ToString();
+        }
+        private static string GetScriptIndexValidations(TDataRow table, TDataTable columns, TDataTable indexes, TDataTable indexkeys)
         {
             var result = new StringBuilder();
             var listIndexes = indexes.Where(index => index["TableId"] == table["Id"]);
-            /*
-                    IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
-                        SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Columns.';
-                        THROW 51000, @ErrorMessage, 1
-                    END
 
-            */
             if (listIndexes.Any())
             {
                 foreach (var index in listIndexes)
                 {
-                    //var listIndexkeys = indexkeys.Where(indexkey => indexkey["IndexId"] == index["Id"]);
+                    var listIndexkeys = indexkeys.Where(indexkey => indexkey["IndexId"] == index["Id"]);
+                    var and = string.Empty;
 
-                    //var and = "";
+                    result.Append($"IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE ");
+                    foreach (var Indexkey in listIndexkeys)
+                    {
+                        var column = columns.First(column => column["Id"] == Indexkey["ColumnId"]);
 
-                    //result.Append($"IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE ");
-                    //foreach (var Indexkey in listIndexkeys)
-                    //{
-                    //    var column = listColumns.First(c => ToDouble(c["Id"]) == ToDouble(Indexkey["ColumnId"]));
-
-                    //    sqlValids += $"{and}[{column["Name"]}] = @W_{column["Name"]}\r\n";
-                    //    and = " AND ";
-                    //}
-                    //sqlValids += $") BEGIN\r\n";
-                    //sqlValids += $"SET @ErrorMessage = @ErrorMessage + 'Chave única de índice {index["Name"]} já existe.';\r\n";
-                    //sqlValids += $"THROW 51000, @ErrorMessage, 1\r\n";
-                    //sqlValids += $"END\r\n";
+                        result.Append($"{and}[{column["Name"]}] = @W_{column["Name"]}");
+                        and = " AND ";
+                    }
+                    result.AppendLine($") BEGIN");
+                    result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Chave única do índice {index["Name"]} já existe.';");
+                    result.AppendLine($"THROW 51000, @ErrorMessage, 1");
+                    result.AppendLine($"END");
                 }
             }
+
             return result.ToString();
         }
         private static string GetCreateScript(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
@@ -578,15 +605,13 @@ namespace CRUDA.Classes
                 var sqlValues = new StringBuilder();
                 var sqlValidations = new StringBuilder();
                 var comma = string.Empty;
+                var commaColumnsValues = string.Empty;
                 var validation = string.Empty;
 
-                result.Append(GetScriptParameters(table["ProcedureCreate"]));
+                result.Append(GetScriptParameters(table["ProcedureCreate"], Actions.CREATE));
                 result.Append($"DECLARE ");
                 foreach (var column in listColumns)
                 {
-                    var primaryTable = tables.First(table => table["Id"] == column["TableId"]);
-                    var primaryKey = columns.First(column => ToBoolean(column["IsPrimarykey"]));
-
                     if (!ToBoolean(column["IsAutoIncrement"]))
                     {
                         var domain = domains.First(domain => domain["Id"] == column["DomainId"]);
@@ -595,7 +620,7 @@ namespace CRUDA.Classes
                         var typeName = GetDataType(type, domain);
                         var columnName = column["Name"];
                         
-                        validation = GetScriptValidation(type, domain, column);
+                        validation = GetScriptValidations(type, domain, column);
                         if (validation != string.Empty)
                             sqlValidations.Append(validation);
                         result.AppendLine($"{comma}@W_{columnName} {typeName} = CAST(JSON_VALUE(@ActualRecord, '$.{columnName}') AS {typeName})");
@@ -605,26 +630,31 @@ namespace CRUDA.Classes
                             if (validation != string.Empty)
                                 sqlValidations.AppendLine(validation.ToString());
                         }
+                        if (!ToBoolean(column["IsAutoIncrement"]))
+                        {
+                            sqlColumns.AppendLine($"{commaColumnsValues}[{columnName}]");
+                            sqlValues.AppendLine($"{commaColumnsValues}@W_{columnName}");
+                            commaColumnsValues = ",";
+                        }
                         comma = ",";
                     }
                 }
+                sqlColumns.AppendLine(",[CreatedAt]");
+                sqlColumns.AppendLine(",[CreatedBy]");
+                sqlValues.AppendLine(",GETDATE()");
+                sqlValues.AppendLine(",@UserName");
+                validation = GetScriptPrimarykeyValidation(table, columns, true);
+                if (validation != string.Empty)
+                    sqlValidations.Append(validation);
+                validation = GetScriptIndexValidations(table, columns, indexes, indexkeys);
+                if (validation != string.Empty)
+                    sqlValidations.Append(validation);
                 if (sqlValidations.Length > 0)
                     result.Append(sqlValidations);
-                sqlColumns.AppendLine($"{comma}[CreatedBy]");
-                sqlValues.AppendLine($"{comma}@UserName");
-                comma = ",";
-                sqlColumns.AppendLine($"{comma}[CreatedAt]");
-                sqlValues.AppendLine($"{comma}GETDATE()");
-
-
-                result.AppendLine($"({sqlColumns})");
+                result.AppendLine($"INSERT INTO [dbo].[{table["Name"]}] ({sqlColumns})");
                 result.AppendLine($"VALUES ({sqlValues})");
-                result.AppendLine($"UPDATE[dbo].[Operations]");
-                result.AppendLine($"SET[IsConfirmed] = 1,");
-                result.AppendLine($"[UpdatedAt] = GETDATE(),");
-                result.AppendLine($"[UpdatedBy] = @UserName");
-                result.AppendLine($"WHERE[Id] = @OperationId");
-                result.AppendLine($"RETURN @@ROWCOUNT");
+                result.AppendLine($"UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId");
+                result.AppendLine($"RETURN 1");
                 result.AppendLine($"END TRY");
                 result.AppendLine($"BEGIN CATCH");
                 result.AppendLine($"THROW");
@@ -635,350 +665,236 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static string GetUpdateScript(TDataRow table, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable Indexkeys)
+        private static string GetUpdateScript(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
         {
             var result = new StringBuilder();
             var listColumns = columns.Where(column => column["TableId"] == table["Id"]);
 
             if (listColumns.Any())
             {
-                var sqlDeclare = new StringBuilder();
-                var sqlValids = new StringBuilder();
-                var sqlColumns = new StringBuilder();
-                var where = new StringBuilder();
-                var commaColumns = string.Empty;
-                var commaDeclare = string.Empty;
-                var typeName = string.Empty;
+                var sqlAssignments = new StringBuilder();
+                var sqlValidations = new StringBuilder();
+                var sqlWhere = new StringBuilder();
+                var comma = string.Empty;
+                var commaAssignments = string.Empty;
                 var and = string.Empty;
-                var listIndexes = indexes.Where(index => index["TableId"] == table["Id"] & ToBoolean(index["IsUnique"]));
+                var validation = string.Empty;
 
-                result.AppendLine($"/**********************************************************************************");
-                result.AppendLine($"Criar procedure {table["ProcedureUpdate"]}");
-                result.AppendLine($"**********************************************************************************/");
-                result.AppendLine($"IF(SELECT object_id('{table["ProcedureUpdate"]}', 'P')) IS NULL");
-                result.AppendLine($"EXEC('CREATE PROCEDURE [dbo].[{table["ProcedureUpdate"]}] AS PRINT 1')");
-                result.AppendLine($"GO");
-                result.AppendLine($"ALTER PROCEDURE[dbo].[{table["ProcedureUpdate"]}](");
-                result.AppendLine($"@TransactionId BIGINT");
-                sqlDeclare.AppendLine($"DECLARE ");
+                result.Append(GetScriptParameters(table["ProcedureUpdate"], Actions.UPDATE));
+                result.Append($"DECLARE ");
                 foreach (var column in listColumns)
                 {
-                    if (!ToBoolean(column["IsAutoIncrement"]))
-                    {
-                        var domain = domains.First(domain => domain["Id"] == column["DomainId"]);
-                        var type = types.First(type => type["Id"] == domain["TypeId"]);
-                        var category = categories.First(category => category["Id"] == type["CategoryId"]);
+                    var domain = domains.First(domain => domain["Id"] == column["DomainId"]);
+                    var type = types.First(type => type["Id"] == domain["TypeId"]);
+                    var category = categories.First(category => category["Id"] == type["CategoryId"]);
+                    var typeName = GetDataType(type, domain);
+                    var columnName = column["Name"];
 
-                        typeName = GetDataType(type, domain);
-                        if (ToBoolean(column["IsPrimarykey"]))
-                        {
-                            where.AppendLine($"{and}{column["Name"]} = @W_{column["Name"]}");
-                            and = " AND ";
-                        }
-                        else
-                        {
-                            sqlColumns.AppendLine($"{commaColumns}[{column["Name"]}] = @W_{column["Name"]}");
-                            commaColumns = ",";
-                        }
-                        if (ToBoolean(column["IsRequired"]))
-                        {
-                            sqlValids.AppendLine($"IF @W_{column["Name"]} IS NULL BEGIN");
-                            sqlValids.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Valor de @{column["Name"]} é requerido.';");
-                            sqlValids.AppendLine($"THROW 51000, @ErrorMessage, 1");
-                            sqlValids.AppendLine($"END");
-                        }
-                        sqlValids.AppendLine(GetValidRange(type, domain, column));
-                        sqlDeclare.AppendLine($"{commaDeclare}@W_{column["Name"]} {typeName} = CAST(JSON_VALUE(@Record, '$.{column["Name"]}') AS {typeName})");
-                        commaDeclare = ",";
+                    validation = GetScriptValidations(type, domain, column);
+                    if (validation != string.Empty)
+                        sqlValidations.Append(validation);
+                    result.AppendLine($"{comma}@W_{columnName} {typeName} = CAST(JSON_VALUE(@ActualRecord, '$.{columnName}') AS {typeName})");
+                    comma = ",";
+                    if (column["ReferenceTableId"] != null)
+                    {
+                        validation = GetScriptReferenceValidations(column, tables, columns);
+                        if (validation != string.Empty)
+                            sqlValidations.AppendLine(validation.ToString());
+                    }
+                    if (ToBoolean(column["IsPrimarykey"]))
+                    {
+                        sqlWhere.AppendLine($"{and}[{columnName}] = @W_{columnName}");
+                        and = "AND ";
+                    }
+                    else if (!ToBoolean(column["IsAutoIncrement"]))
+                    {
+                        sqlAssignments.AppendLine($"{commaAssignments}[{columnName}] = @W_{columnName}");
+                        commaAssignments = ",";
                     }
                 }
-                sqlColumns.AppendLine($"{commaColumns}[UpdatedAt] = GETDATE()");
-                if (where.Length > 0)
-                {
-                    sqlValids.AppendLine($"IF NOT EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE {where}) BEGIN");
-                    sqlValids.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela {table["Name"]}.';");
-                    sqlValids.AppendLine($"THROW 51000, @ErrorMessage, 1");
-                    sqlValids.AppendLine($"END");
-                }
-                if (listIndexes.Any())
-                {
-                    foreach (var index in listIndexes)
-                    {
-                        var listIndexkeys = Indexkeys.Where(indexkey => indexkey["IndexId"] == index["Id"]);
-
-                        sqlValids.AppendLine($"IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE NOT ({where}) ");
-                        foreach (var Indexkey in listIndexkeys)
-                        {
-                            var column = listColumns.First(column => column["Id"] == Indexkey["ColumnId"]);
-
-                            sqlValids.AppendLine($"AND [{column["Name"]}] = @W_{column["Name"]}");
-                        }
-                        sqlValids.AppendLine($") BEGIN");
-                        sqlValids.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Chave única de índice {index["Name"]} já existe.';");
-                        sqlValids.AppendLine($"THROW 51000, @ErrorMessage, 1");
-                        sqlValids.AppendLine($"END");
-                    }
-                }
-                result.AppendLine($") AS BEGIN");
-                result.AppendLine(GetTransaction(Models.Actions.UPDATE));
-                result.AppendLine($"BEGIN TRY");
-                result.AppendLine($"SET NOCOUNT ON");
-                result.AppendLine($"SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
-                result.AppendLine($"{sqlDeclare}");
-                result.AppendLine($"{sqlValids}");
-                result.AppendLine($"UPDATE [dbo].[{table["Name"]}] SET\r\n{sqlColumns}");
-                result.AppendLine($"WHERE \r\n{where}");
-                result.AppendLine($"RETURN @@ROWCOUNT");
+                if (sqlWhere.Length == 0)
+                    throw new Exception("Tabela não possui chave-primária.");
+                if (sqlAssignments.Length == 0)
+                    throw new Exception("Tabela não possui colunas atualizáveis.");
+                sqlAssignments.AppendLine(",[UpdatedAt] = GETDATE()");
+                sqlAssignments.AppendLine(",[UpdatedBy] = @UserName");
+                validation = GetScriptPrimarykeyValidation(table, columns);
+                if (validation != string.Empty)
+                    sqlValidations.Append(validation);
+                validation = GetScriptIndexValidations(table, columns, indexes, indexkeys);
+                if (validation != string.Empty)
+                    sqlValidations.Append(validation);
+                if (sqlValidations.Length > 0)
+                    result.Append(sqlValidations);
+                result.AppendLine($"UPDATE [dbo].[{table["Name"]}]");
+                result.Append($"SET {sqlAssignments}");
+                result.Append($"WHERE {sqlWhere}");
+                result.AppendLine($"UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId");
+                result.AppendLine($"RETURN 1");
                 result.AppendLine($"END TRY");
-                result.AppendLine("BEGIN CATCH");
-                result.AppendLine("THROW");
-                result.AppendLine("END CATCH");
-                result.AppendLine("END");
+                result.AppendLine($"BEGIN CATCH");
+                result.AppendLine($"THROW");
+                result.AppendLine($"END CATCH");
+                result.AppendLine($"END");
                 result.AppendLine("GO");
             }
 
             return result.ToString();
         }
-        private static string GetDeleteScript(TDataRow table, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories)
+        private static string GetDeleteScript(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
         {
             var result = new StringBuilder();
             var listColumns = columns.Where(column => column["TableId"] == table["Id"] && ToBoolean(column["IsPrimarykey"]));
 
             if (listColumns.Any())
             {
-                var sqlDeclare = new StringBuilder();
-                var sqlValids = new StringBuilder();
-                var where = new StringBuilder();
-                var typeName = string.Empty;
+                var sqlWhere = new StringBuilder();
+                var sqlValidations = new StringBuilder();
+                var comma = string.Empty;
                 var and = string.Empty;
+                var validation = string.Empty;
 
-                result.AppendLine($"/**********************************************************************************");
-                result.AppendLine($"Criar procedure {table["ProcedureDelete"]}");
-                result.AppendLine($"**********************************************************************************/");
-                result.AppendLine($"IF(SELECT object_id('{table["ProcedureDelete"]}', 'P')) IS NULL");
-                result.AppendLine($"EXEC('CREATE PROCEDURE [dbo].[{table["ProcedureDelete"]}] AS PRINT 1')");
-                result.AppendLine($"GO");
-                result.AppendLine($"ALTER PROCEDURE[dbo].[{table["ProcedureDelete"]}](");
-                result.AppendLine($"@UserName VARCHAR(25)\r\n,@Record VARCHAR(MAX)");
-                sqlDeclare.AppendLine($"DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure {table["ProcedureDelete"]}: '");
+                result.Append(GetScriptParameters(table["ProcedureDelete"], Actions.DELETE));
+                result.Append($"DECLARE ");
                 foreach (var column in listColumns)
                 {
                     var domain = domains.First(domain => domain["Id"] == column["DomainId"]);
                     var type = types.First(type => type["Id"] == domain["TypeId"]);
                     var category = categories.First(category => category["Id"] == type["CategoryId"]);
+                    var typeName = GetDataType(type, domain);
+                    var columnName = column["Name"];
 
-                    typeName = GetDataType(type, domain);
-                    sqlDeclare.AppendLine($",\r\n@W_{column["Name"]} {typeName} = CAST(JSON_VALUE(@Record, '$.{column["Name"]}') AS {typeName})");
-                    where.AppendLine($"{and}{column["Name"]} = @W_{column["Name"]}");
-                    and = " AND ";
-                    sqlValids.AppendLine($"IF @W_{column["Name"]} IS NULL BEGIN");
-                    sqlValids.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Valor de @{column["Name"]} é requerido.';");
-                    sqlValids.AppendLine($"THROW 51000, @ErrorMessage, 1");
-                    sqlValids.AppendLine($"END");
-                    sqlValids.AppendLine(GetValidRange(type, domain, column));
+                    validation = GetScriptValidations(type, domain, column);
+                    if (validation != string.Empty)
+                        sqlValidations.Append(validation);
+                    result.AppendLine($"{comma}@W_{columnName} {typeName} = CAST(JSON_VALUE(@ActualRecord, '$.{columnName}') AS {typeName})");
+                    comma = ",";
+                    sqlWhere.AppendLine($"{and}[{columnName}] = @W_{columnName}");
+                    and = "AND ";
                 }
-                sqlValids.AppendLine($"IF NOT EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE {where}) BEGIN");
-                sqlValids.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela {table["Name"]}.';");
-                sqlValids.AppendLine($"THROW 51000, @ErrorMessage, 1");
-                sqlValids.AppendLine($"END");
-                result.AppendLine($") AS BEGIN");
-                result.AppendLine($"BEGIN TRY");
-                result.AppendLine($"SET NOCOUNT ON");
-                result.AppendLine($"SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
-                result.AppendLine($"{sqlDeclare}");
-                result.AppendLine($"{sqlValids}");
+                if (sqlValidations.Length > 0)
+                    sqlValidations.Append(sqlValidations);
+                validation = GetScriptPrimarykeyValidation(table, columns);
+                if (validation != string.Empty)
+                    sqlValidations.Append(validation);
+                if (sqlValidations.Length > 0)
+                    result.Append(sqlValidations);
                 result.AppendLine($"DELETE FROM [dbo].[{table["Name"]}]");
-                result.AppendLine($"WHERE {where}");
-                result.AppendLine($"RETURN @@ROWCOUNT");
+                result.Append($"WHERE {sqlWhere}");
+                result.AppendLine($"UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId");
+                result.AppendLine($"RETURN 1");
                 result.AppendLine($"END TRY");
-                result.AppendLine("BEGIN CATCH");
-                result.AppendLine("THROW");
-                result.AppendLine("END CATCH");
-                result.AppendLine("END");
+                result.AppendLine($"BEGIN CATCH");
+                result.AppendLine($"THROW");
+                result.AppendLine($"END CATCH");
+                result.AppendLine($"END");
                 result.AppendLine("GO");
             }
 
             return result.ToString();
         }
-        private static string GetReadScript(TDataRow system, TDataRow database, TDataRow table, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories)
+        private static string GetReadScript(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
         {
-            var sql = string.Empty;
+            var result = new StringBuilder();
             var listColumns = columns.Where(column => column["TableId"] == table["Id"]);
 
             if (listColumns.Any())
             {
-                string sqlDeclare = string.Empty,
-                    sqlValids = string.Empty,
-                    sqlColumns = string.Empty,
-                    sqlOrderBy = string.Empty,
-                    sqlIndexTmp = string.Empty,
-                    commaOrderBy = string.Empty,
-                    sqlCreateTmp = string.Empty,
-                    parameters = string.Empty,
-                    typeName = string.Empty,
-                    whereTab = string.Empty,
-                    andWhereTab = string.Empty,
-                    sqlDeleteTab = string.Empty,
-                    sqlInsertTab = string.Empty,
-                    comma = string.Empty,
-                    sqlUpdateTab = string.Empty,
-                    whereUpdateTab = string.Empty;
-                dynamic valueMinimum,
-                    valueMaximum,
-                    value;
+                var sqlColumns = new StringBuilder();
+                var sqlWhere = new StringBuilder();
+                var sqlValidations = new StringBuilder();
+                var sqlOperations = new StringBuilder();
+                var sqlIndexOperations = new StringBuilder();
+                var sqlInnerJoinOperations = new StringBuilder();
+                var sqlInsertOperations = new StringBuilder();
+                var comma = string.Empty;
+                var andWhere = string.Empty;
+                var andInnerJoin = string.Empty;
+                var validation = string.Empty;
 
-                sql += $"/**********************************************************************************\r\n";
-                sql += $"Criar procedure {table["ProcedureRead"]}\r\n";
-                sql += $"**********************************************************************************/\r\n";
-                sql += $"IF(SELECT object_id('{table["ProcedureRead"]}', 'P')) IS NULL\r\n";
-                sql += $"EXEC('CREATE PROCEDURE [dbo].[{table["ProcedureRead"]}] AS PRINT 1')\r\n";
-                sql += $"GO\r\n";
-                sql += $"ALTER PROCEDURE[dbo].[{table["ProcedureRead"]}](\r\n";
-
-                sqlDeclare += $"DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure {table["ProcedureRead"]}: ',\r\n";
-                sqlDeclare += $"@ROWCOUNT BIGINT,\r\n";
-                sqlDeclare += $"@LoginId BIGINT,\r\n";
-                sqlDeclare += $"@TableId BIGINT";
-
-                if (ToBoolean(table["IsPaged"]))
-                {
-                    sqlDeclare += $",\r\n@offset INT";
-                    parameters += $"@PageNumber INT OUT,\r\n";
-                    parameters += $"@LimitRows BIGINT OUT,\r\n";
-                    parameters += $"@MaxPage INT OUT,\r\n";
-                    parameters += $"@PaddingGridLastPage BIT OUT,\r\n";
-                }
-                parameters += "@UserName VARCHAR(25),\r\n";
-                parameters += $"@Record VARCHAR(MAX)";
-                sqlCreateTmp += $"SELECT [Action] AS [_]";
-                sqlDeleteTab += $"DELETE [tab] FROM [dbo].[#tab] [tab] WHERE EXISTS(SELECT 1 FROM [dbo].[#tmp] [tmp] WHERE [tmp].[_] = 'delete' ";
-                sqlInsertTab += $"INSERT [dbo].[#tab] SELECT ";
-                sqlUpdateTab += $"UPDATE [tab] SET";
-                whereUpdateTab += $"[tmp].[_] = 'update' ";
+                result.Append(GetScriptParameters(table["ProcedureRead"], Actions.READ));
+                result.Append($"DECLARE ");
+                sqlOperations.AppendLine("SELECT [Action] AS [_]");
+                sqlInsertOperations.Append($"INSERT [dbo].[#{table["Name"]}] SELECT ");
                 foreach (var column in listColumns)
                 {
                     var domain = domains.First(domain => domain["Id"] == column["DomainId"]);
                     var type = types.First(type => type["Id"] == domain["TypeId"]);
                     var category = categories.First(category => category["Id"] == type["CategoryId"]);
+                    var typeName = GetDataType(type, domain);
+                    var columnName = column["Name"];
 
-                    typeName = GetDataType(type, domain);
+                    validation = GetScriptValidations(type, domain, column);
+                    if (validation != string.Empty)
+                        sqlValidations.Append(validation);
+                    result.AppendLine($"{comma}@W_{columnName} {typeName} = CAST(JSON_VALUE(@ActualRecord, '$.{columnName}') AS {typeName})");
+                    if (column["ReferenceTableId"] != null)
+                    {
+                        validation = GetScriptReferenceValidations(column, tables, columns);
+                        if (validation != string.Empty)
+                            sqlValidations.AppendLine(validation.ToString());
+                    }
+                    sqlColumns.AppendLine($"{comma}[{columnName}]");
+                    sqlOperations.AppendLine($",CAST(JSON_VALUE([ActualRecord], '{columnName}') AS {typeName}) AS [{columnName}]");
+                    sqlInsertOperations.AppendLine($"{comma}[{columnName}]");
                     if (ToBoolean(column["IsPrimarykey"]))
                     {
-                        sqlOrderBy += $"{commaOrderBy}[tab].[{column["Name"]}]";
-                        sqlIndexTmp += $"{commaOrderBy}[{column["Name"]}]";
-                        commaOrderBy = ", ";
-                        sqlDeleteTab += $"\r\nAND [tmp].[{column["Name"]}] = [tab].[{column["Name"]}]";
-                        whereUpdateTab += $"\r\nAND [tmp].[{column["Name"]}] = [tab].[{column["Name"]}]";
+                        if (sqlIndexOperations.Length == 0)
+                            sqlIndexOperations.Append($"CREATE INDEX [#IDX_Operations] ON [dbo].[#Operations]([_]");
+                        sqlIndexOperations.Append($", [{columnName}]");
+                        if (sqlInnerJoinOperations.Length == 0)
+                            sqlInnerJoinOperations.Append($"INNER JOIN [dbo].[#{table["Name"]}] [{table["Name"]}] ON ");
+                        sqlInnerJoinOperations.Append($"[{table["Name"]}].[{columnName}] = [Operations].[{columnName}]");
                     }
                     if (ToBoolean(column["IsFilterable"]))
                     {
-                        if (ToDouble(column["IsRequired"]) == 1)
-                            whereTab += $"{andWhereTab}[tab].[{column["Name"]}] = ISNULL(@W_{column["Name"]}, [tab].[{column["Name"]}])\r\n";
+                        if (ToBoolean(column["IsRequired"]))
+                            sqlWhere.AppendLine($"{andWhere}[{columnName}] = ISNULL(@W_{columnName}, [{columnName}])");
                         else
-                            whereTab += $"{andWhereTab}(@W_{column["Name"]} IS NULL OR [tab].[{column["Name"]}] = @W_{column["Name"]})\r\n";
-                        andWhereTab = "AND ";
-                        if ((value = valueMinimum = ToString(column["Minimum"])) == string.Empty)
-                            if (value = valueMinimum = ToString(domain["Minimum"]) == string.Empty)
-                                value = valueMinimum = ToString(type["Minimum"]);
-                        if (value != string.Empty)
-                        {
-                            value = value.Substring(value.IndexOf('\''), value.LastIndexOf('\'') - value.IndexOf('\'') + 1);
-                            sqlValids += $"IF @W_{column["Name"]} IS NOT NULL AND ";
-                            sqlValids += $"@W_{column["Name"]} < {valueMinimum} BEGIN\r\n";
-                            sqlValids += $"SET @ErrorMessage = @ErrorMessage + 'Valor de @{column["Name"]} deve ser maior que ou igual à '{value}'.';\r\n";
-                            sqlValids += $"THROW 51000, @ErrorMessage, 1\r\n";
-                            sqlValids += $"END\r\n";
-                        }
-                        if ((value = valueMaximum = ToString(column["Maximum"])) == string.Empty)
-                            if ((value = valueMaximum = ToString(domain["Maximum"])) == string.Empty)
-                                value = valueMaximum = ToString(type["Maximum"]);
-                            else
-                                value = valueMaximum = ToString(domain["Maximum"]);
-                        if (value != string.Empty)
-                        {
-                            value = value.Substring(value.IndexOf('\''), value.LastIndexOf('\'') - value.IndexOf('\'') + 1);
-                            sqlValids += $"IF @W_{column["Name"]} IS NOT NULL AND ";
-                            sqlValids += $"@W_{column["Name"]} > {valueMaximum.ToString()} BEGIN\r\n";
-                            sqlValids += $"SET @ErrorMessage = @ErrorMessage + 'Valor de @{column["Name"]} deve ser menor que ou igual à '{value}'.';\r\n";
-                            sqlValids += $"THROW 51000, @ErrorMessage, 1\r\n";
-                            sqlValids += $"END\r\n";
-                        }
-                        sqlDeclare += $",\r\n@W_{column["Name"]} {typeName} = CAST(JSON_VALUE(@Record, '$.{column["Name"]}') AS {typeName})";
+                            sqlWhere.AppendLine($"{andWhere}(@W_{columnName} IS NULL OR [{columnName}] = @W_{columnName})");
+                        andWhere = "AND ";
                     }
-                    sqlColumns += $"\r\n{comma}[tab].[{column["Name"]}]";
-                    sqlCreateTmp += $"\r\n,CAST(JSON_VALUE([Record], '$.{column["Name"]}') AS {typeName}) AS [{column["Name"]}]";
-                    sqlInsertTab += $"\r\n{comma}[{column["Name"]}]";
-                    sqlUpdateTab += $"\r\n{comma}[tab].[{column["Name"]}] = [tmp].[{column["Name"]}]";
                     comma = ",";
                 }
-                sqlDeleteTab += $")";
-                sqlInsertTab += $"\r\nFROM [dbo].[#tmp]\r\nWHERE [_] = 'create'";
-                sqlUpdateTab += $"\r\nFROM [dbo].[#tab] [tab], [dbo].[#tmp] [tmp]\r\nWHERE {whereUpdateTab}";
-                sqlCreateTmp += $"\r\nINTO [dbo].[#tmp]";
-                sqlCreateTmp += $"\r\nFROM [dbo].[Transactions]";
-                sqlCreateTmp += $"\r\nWHERE [LoginId] = @LoginId";
-                sqlCreateTmp += $"\r\nAND [TableId] = @TableId";
-                sqlCreateTmp += $"\r\nAND [IsConfirmed] IS NULL";
-                sql += $"{parameters}) AS BEGIN\r\n";
-                sql += $"BEGIN TRY\r\n";
-                sql += $"{sqlDeclare}\r\n";
-                sql += $"SET NOCOUNT ON\r\n";
-                sql += $"SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n";
-                sql += $"{sqlValids}";
-                sql += $"SELECT @LoginId = [LoginId],\r\n";
-                sql += $"@TableId = [TableId],\r\n";
-                sql += $"@ErrorMessage = [ErrorMessage]\r\n";
-                sql += $"FROM [dbo].[TransactionsActions]('{system["Name"]}', '{database["Name"]}', '{table["Name"]}', @UserName, '{Models.Actions.CREATE}')\r\n";
-                sql += $"IF @ErrorMessage IS NOT NULL\r\n";
-                sql += $"THROW 51000, @ErrorMessage, 1\r\n";
-                sql += $"{sqlCreateTmp}\r\n";
-                sql += $"SELECT {sqlColumns}\r\n";
-                sql += $"INTO[dbo].[#tab]\r\n";
-                sql += $"FROM[dbo].[{table["Name"]}] [tab]\r\n";
-                sql += $"WHERE {whereTab}";
-                sql += $"ORDER BY {sqlOrderBy}\r\n";
-                sql += $"SET @ROWCOUNT = @@ROWCOUNT\r\n";
-                sql += $"{sqlDeleteTab}\r\n";
-                sql += $"SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT\r\n";
-                sql += $"{sqlInsertTab}\r\n";
-                sql += $"SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT\r\n";
-                sql += $"{sqlUpdateTab}\r\n";
-                if (ToBoolean(table["IsPaged"]))
-                {
-                    sql += $"IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n";
-                    sql += $"SET @offset = 0\r\n";
-                    sql += $"SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END\r\n";
-                    sql += $"SET @PageNumber = 1\r\n";
-                    sql += $"SET @MaxPage = 1\r\n";
-                    sql += $"END ELSE BEGIN\r\n";
-                    sql += $"SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END\r\n";
-                    sql += $"IF ABS(@PageNumber) > @MaxPage\r\n";
-                    sql += $"SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END\r\n";
-                    sql += $"IF @PageNumber < 0\r\n";
-                    sql += $"SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1\r\n";
-                    sql += $"SET @offset = (@PageNumber - 1) * @LimitRows\r\n";
-                    sql += $"IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT\r\n";
-                    sql += $"SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END\r\n";
-                    sql += $"END\r\n";
-                };
-                sql += $"SELECT 'Record{table["Alias"]}' AS [ClassName],{sqlColumns}\r\n";
-                sql += $"FROM[dbo].[#tab] [tab]\r\n";
-                sql += $"ORDER BY {sqlOrderBy}\r\n";
-                if (ToBoolean(table["IsPaged"]))
-                {
-                    sql += $"OFFSET @offset ROWS\r\n";
-                    sql += $"FETCH NEXT @LimitRows ROWS ONLY\r\n";
-                }
-                sql += $"RETURN @ROWCOUNT\r\n";
-                sql += $"END TRY\r\n";
-                sql += "BEGIN CATCH\r\n";
-                sql += "THROW\r\n";
-                sql += "END CATCH\r\n";
-                sql += $"END\r\n";
-                sql += $"GO\r\n";
+                sqlOperations.AppendLine($"INTO [dbo].[#Operations]");
+                sqlOperations.AppendLine($"FROM [dbo].[Operations]");
+                sqlOperations.AppendLine($"WHERE [TransactionId] = @TransactionId");
+                sqlOperations.AppendLine($"AND [TableId] = @TableId");
+                sqlOperations.AppendLine($"AND [IsConfirmed] IS NULL");
+                sqlInsertOperations.AppendLine($"FROM [dbo].[#Operations]");
+                sqlInsertOperations.AppendLine($"WHERE [_] = '{Actions.CREATE}'");
+                sqlInsertOperations.AppendLine($"SET @RowCount = @RowCount + @@ROWCOUNT");
+                if (sqlIndexOperations.Length == 0)
+                    throw new Exception("Tabela não contém chave-primária.");
+                sqlOperations.AppendLine($"{sqlIndexOperations})");
+                validation = GetScriptIndexValidations(table, columns, indexes, indexkeys);
+                if (validation != string.Empty)
+                    sqlValidations.Append(validation);
+                if (sqlValidations.Length > 0)
+                    result.Append(sqlValidations);
+                result.Append(sqlOperations);
+                result.Append($"SELECT {sqlColumns}");
+                result.AppendLine($"INTO[dbo].[#{table["Name"]}]");
+                result.AppendLine($"FROM [dbo].[{table["Name"]}]");
+                result.Append($"WHERE {sqlWhere}");
+                result.AppendLine("SET @RowCount = @@ROWCOUNT");
+                result.AppendLine($"DELETE [{table["Name"]}]");
+                result.AppendLine($"FROM [dbo].[#Operations] [Operations]");
+                result.AppendLine($"INNER JOIN [dbo].[#{table["Name"]}] [{table["Name"]}] ON [{table["Name"]}].[Id] = [Operations].[Id]");
+                result.AppendLine($"WHERE [Operations].[_] = '{Actions.DELETE}'");
+                result.AppendLine("SET @RowCount = @RowCount - @@ROWCOUNT");
+                result.Append(sqlInsertOperations);
+                result.AppendLine($"UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId");
+                result.AppendLine($"RETURN 1");
+                result.AppendLine($"END TRY");
+                result.AppendLine($"BEGIN CATCH");
+                result.AppendLine($"THROW");
+                result.AppendLine($"END CATCH");
+                result.AppendLine($"END");
+                result.AppendLine("GO");
             }
 
-            return sql;
+            return result.ToString();
         }
         private static string GetDmlScript(TDataRow table, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable datatable)
         {

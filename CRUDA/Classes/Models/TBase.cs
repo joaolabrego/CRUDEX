@@ -1,9 +1,4 @@
-﻿using CRUDA_LIB;
-using NPOI.SS.Formula.Functions;
-using System.Data;
-using System.Diagnostics.CodeAnalysis;
-
-namespace CRUDA.Classes.Models
+﻿namespace CRUDA.Classes.Models
 {
     public abstract class TBase
     {
