@@ -9,7 +9,6 @@ using TDataTable = System.Collections.Generic.List<System.Collections.Generic.Di
 using TDataSet = System.Collections.Generic.Dictionary<string,
                  System.Collections.Generic.List<System.Collections.Generic.Dictionary<string, dynamic?>>>;
 using CRUDA.Classes.Models;
-using Microsoft.Extensions.Primitives;
 
 namespace CRUDA.Classes
 {
@@ -413,51 +412,6 @@ namespace CRUDA.Classes
                 result.AppendLine($",@RowCount BIGINT");
                 result.AppendLine($",@LoginId BIGINT");
                 result.AppendLine($",@OffSet INT");
-            }
-
-            return result.ToString();
-        }
-        private static string GetValidRange(TDataRow type, TDataRow domain, TDataRow column)
-        {
-            var result = new StringBuilder();
-            var value = string.Empty;
-            var valueMinimum = string.Empty;
-            var valueMaximum = string.Empty;
-
-            if ((value = valueMinimum = ToString(column["Minimum"])) == string.Empty)
-                if ((value = valueMinimum = ToString(domain["Minimum"])) == string.Empty)
-                    value = valueMinimum = ToString(type["Minimum"]);
-            if (value != string.Empty)
-            {
-                var position = value.IndexOf('\'');
-
-                value = value.Substring(position, value.LastIndexOf('\'') - position + 1);
-                result.AppendLine($"IF ");
-                if (!ToBoolean(column["IsRequired"]))
-                    result.AppendLine($"@W_{column["Name"]} IS NOT NULL AND ");
-                result.AppendLine($"@W_{column["Name"]} < {valueMinimum} BEGIN");
-                result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Valor de @{column["Name"]} " +
-                                  $"deve ser maior que ou igual à '{value}'.';");
-                result.AppendLine($"THROW 51000, @ErrorMessage, 1");
-                result.AppendLine($"END");
-            }
-            if ((value = valueMaximum = ToString(column["Maximum"])) == string.Empty)
-                if ((value = valueMaximum = ToString(domain["Maximum"])) == string.Empty)
-                    value = valueMaximum = ToString(type["Maximum"]);
-
-            if (value != string.Empty)
-            {
-                var position = value.IndexOf('\'');
-
-                value = value.Substring(position, value.LastIndexOf('\'') - position + 1);
-                result.AppendLine($"IF ");
-                if (!ToBoolean(column["IsRequired"]))
-                    result.AppendLine($"@W_{column["Name"]} IS NOT NULL AND ");
-                result.AppendLine($"@W_{column["Name"]} > {valueMaximum} BEGIN");
-                result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Valor de @{column["Name"]} " +
-                                  $"deve ser menor que ou igual à '{value}'.';\r\n");
-                result.AppendLine($"THROW 51000, @ErrorMessage, 1");
-                result.AppendLine($"END");
             }
 
             return result.ToString();
@@ -960,72 +914,12 @@ namespace CRUDA.Classes
 
             return result;
         }
-        private static string GetTransaction(string action)
-        {
-            return $"DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure ' + (SELECT OBJECT_NAME(@@PROCID)) + ': '\r\n" +
-                   $",@UserName VARCHAR(25)\r\n" +
-                   $",@Record VARCHAR(MAX)\r\n" +
-                   $"SELECT @UserName = [UserName]\r\n" +
-                   $",@Record = [Record]\r\n" +
-                   $",@ErrorMessage = ISNULL([ErrorMessage], @ErrorMessage)\r\n" +
-                   $"FROM [dbo].[TransactionsRead](@TransactionId, '{action}')\r\n " +
-                   $"IF @ErrorMessage IS NULL\r\n" +
-                   $"THROW 51000, @ErrorMessage, 1\r\n";
-        }
-        private static string GetValidRangeFuntion(TDataRow type, TDataRow domain, TDataRow column)
-        {
-            var result = new StringBuilder();
-            var value = string.Empty;
-            var valueMinimum = string.Empty;
-            var valueMaximum = string.Empty;
-
-            if ((value = valueMinimum = ToString(column["Minimum"])) == string.Empty)
-                if ((value = valueMinimum = ToString(domain["Minimum"])) == string.Empty)
-                    value = valueMinimum = ToString(type["Minimum"]);
-            if (value != string.Empty)
-            {
-                var position = value.IndexOf('\'');
-
-                value = value.Substring(position, value.LastIndexOf('\'') - position + 1);
-                result.AppendLine($"ELSE IF ");
-                if (!ToBoolean(column["IsRequired"]))
-                    result.AppendLine($"@W_{column["Name"]} IS NOT NULL AND ");
-                result.AppendLine($"@W_{column["Name"]} < {valueMinimum}\r\n");
-                result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Valor de @{column["Name"]} " +
-                                  $"deve ser maior que ou igual à '{value}'.';");
-            }
-            if ((value = valueMaximum = ToString(column["Maximum"])) == string.Empty)
-                if ((value = valueMaximum = ToString(domain["Maximum"])) == string.Empty)
-                    value = valueMaximum = ToString(type["Maximum"]);
-
-            if (value != string.Empty)
-            {
-                var position = value.IndexOf('\'');
-
-                value = value.Substring(position, value.LastIndexOf('\'') - position + 1);
-                result.AppendLine($"ELSE IF ");
-                if (!ToBoolean(column["IsRequired"]))
-                    result.AppendLine($"@W_{column["Name"]} IS NOT NULL AND ");
-                result.AppendLine($"@W_{column["Name"]} > {valueMaximum}");
-                result.AppendLine($"SET @ErrorMessage = @ErrorMessage + 'Valor de @{column["Name"]} " +
-                                  $"deve ser menor que ou igual à '{value}'.';");
-            }
-
-            return result.ToString();
-        }
         private static bool ToBoolean(object? value)
         {
             if (value == DBNull.Value || value == null)
                 return false;
 
             return Convert.ToBoolean(value);
-        }
-        private static bool IsDouble(object? value)
-        {
-            if (value == DBNull.Value || value == null)
-                return false;
-
-            return value.GetType() == typeof(double);
         }
         private static double ToDouble(object? value)
         {
@@ -1038,13 +932,6 @@ namespace CRUDA.Classes
                 return 0.0;
 
             return Convert.ToDouble(value);
-        }
-        private static bool IsString(object? value)
-        {
-            if (value == DBNull.Value || value == null)
-                return false;
-
-            return value.GetType() == typeof(string);
         }
         private static string ToString(object? value)
         {
