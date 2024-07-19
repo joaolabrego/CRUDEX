@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using CRUDA.Classes;
 using CRUDA.Classes.Models;
 
 namespace CRUDA_LIB
@@ -21,7 +22,7 @@ namespace CRUDA_LIB
             app.MapGet("/", (HttpResponse response) =>
             {
                 response.Headers.ContentType = "text/html;";
-                //Scripts.GetScript("cruda");
+                Scripts.GenerateScript("cruda", "cruda");
                 response.WriteAsync(Config.GetHTML("cruda", "Nome do sistema é requerido na URL."), Encoding.UTF8);
             });
             app.MapGet("/{systemName}", (HttpResponse response, string systemName) =>
