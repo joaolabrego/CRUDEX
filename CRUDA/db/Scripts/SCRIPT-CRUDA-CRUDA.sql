@@ -791,7 +791,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
--- EXEC [dbo].[Login] 'cruda','labrego','diva','authenticate'
+-- EXEC [dbo].[P_Login] 'cruda','labrego','diva','authenticate'
 IF(SELECT object_id('[dbo].[P_Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[P_Login] AS PRINT 1')
 GO
@@ -803,6 +803,10 @@ BEGIN
 
 		DECLARE @ErrorMessage VARCHAR(256)
 
+		IF @@TRANCOUNT = 0 BEGIN
+			BEGIN TRANSACTION P_Login
+		END ELSE
+			SAVE TRANSACTION P_Login
 		IF ISJSON(@Login) = 1 BEGIN
 			SET @ErrorMessage = 'Parâmetro Login não está no formato JSON.';
 			THROW 51000, @ErrorMessage, 1
@@ -908,22 +912,22 @@ BEGIN
 					[UpdatedAt] = GETDATE(),
 					[UpdatedBy] = @UserName
 				WHERE [Id] = @LoginId
-			GOTO EXIT_LOGIN
+		END ELSE BEGIN
+			UPDATE [dbo].[Users] 
+				SET [RetryLogins] = 0
+				WHERE [Id] = @UserId
+			SELECT [Id]
+				  ,[Name]
+				  ,[FullName]
+				FROM [dbo].[Users] 
+				WHERE [Id] = @UserId
 		END
-		UPDATE [dbo].[Users] 
-			SET [RetryLogins] = 0
-			WHERE [Id] = @UserId
-		SELECT [Id]
-			  ,[Name]
-			  ,[FullName]
-			FROM [dbo].[Users] 
-			WHERE [Id] = @UserId
-		
-		EXIT_LOGIN:
+		COMMIT TRANSACTION P_Login
 
 		RETURN @LoginId
 	END TRY
 	BEGIN CATCH
+		ROLLBACK TRANSACTION P_Login;
 		THROW
 	END CATCH
 END

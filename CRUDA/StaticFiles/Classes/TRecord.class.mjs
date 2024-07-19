@@ -3,7 +3,7 @@
 import TField from "./TField.class.mjs"
 
 export default class TRecord {
-    #ClassName = string.Empty
+    #ClassName = ""
     #Fields = []
     #RecordSet = null
     constructor(recordSet, rowRecord) {

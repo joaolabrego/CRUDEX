@@ -46,13 +46,13 @@ namespace CRUDA_LIB
                 },
             });
 
-            return Execute(Settings.ConnectionString(), Settings.Get("CONFIG_PROCEDURE"), parameters);
+            return Execute(Settings.ConnecionString(), Settings.Get("CONFIG_PROCEDURE"), parameters);
         }
         public static SQLResult Execute(string systemName, string databaseName, string tableName, string action, Dictionary? parameters = null)
         {
-            var config = new Config(systemName, databaseName, tableName);
-            var databaseRow = config.Data.Databases.Rows[0];
-            var tableRow = config.Data.Tables.Rows[0];
+            var config = GetConfig(systemName, databaseName, tableName);
+            var databaseRow = config.Tables[1].Rows[0];
+            var tableRow = config.Tables[2].Rows[0];
             var connectionString = $"Password={databaseRow["Password"]};Persist Security Info=True;User ID={databaseRow["Logon"]};" +
                                    $"Initial Catalog={databaseRow["Alias"]};Data Source={databaseRow["ServerName"]}";
             var procedureName = action switch

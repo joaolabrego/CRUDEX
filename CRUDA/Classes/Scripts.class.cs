@@ -231,7 +231,7 @@ namespace CRUDA.Classes
                 result.AppendLine($",[UpdatedBy] varchar(25) NULL)");
             }
             if (columnsPrimaryKey.Length > 0)
-                result.AppendLine($"ALTER TABLE [dbo].[{table["Name"]}] ADD CONSTRAINT PK_{table["Name"]} " + 
+                result.AppendLine($"ALTER TABLE [dbo].[{table["Name"]}] ADD CONSTRAINT PK_{table["Name"]} " +
                                   $"PRIMARY KEY CLUSTERED ({columnsPrimaryKey})");
             if (listIndexes.Any())
             {
@@ -304,9 +304,9 @@ namespace CRUDA.Classes
         private static string GetScriptParameters(string procedureName, string actionName)
         {
             var result = new StringBuilder();
-            var actionDescription = (actionName == Actions.CREATE ? "inclusão" : 
-                                     actionName == Actions.UPDATE ? "alteração" : 
-                                     actionName == Actions.DELETE ? "exclusão" : 
+            var actionDescription = (actionName == Actions.CREATE ? "inclusão" :
+                                     actionName == Actions.UPDATE ? "alteração" :
+                                     actionName == Actions.DELETE ? "exclusão" :
                                      "consulta");
 
             result.AppendLine($"/**********************************************************************************");
@@ -551,7 +551,7 @@ namespace CRUDA.Classes
         {
             var result = new StringBuilder();
             var listColumns = columns.Where(column => column["TableId"] == table["Id"]);
-            
+
 
             if (listColumns.Any())
             {
@@ -573,7 +573,7 @@ namespace CRUDA.Classes
                         var category = categories.First(category => category["Id"] == type["CategoryId"]);
                         var typeName = GetDataType(type, domain);
                         var columnName = column["Name"];
-                        
+
                         validation = GetScriptValidations(type, domain, column);
                         if (validation != string.Empty)
                             sqlValidations.Append(validation);
@@ -984,10 +984,10 @@ namespace CRUDA.Classes
 
                             if (columnName.StartsWith('#'))
                                 continue;
-                            if (cell == null) 
+                            if (cell == null)
                             {
                                 dr.Add(columnName, null);
-                                continue; 
+                                continue;
                             }
                             dr.Add(columnName, cell.CellType switch
                             {

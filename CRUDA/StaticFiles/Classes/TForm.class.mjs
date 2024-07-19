@@ -6,13 +6,13 @@ import TScreen from "./TScreen.class.mjs"
 export default class TForm {
     #Grid = null
 
-    #Action = string.Empty
-    #ReturnAction = string.Empty
-    static #Style = string.Empty
+    #Action = ""
+    #ReturnAction = ""
+    static #Style = ""
     static #Images = {
-        Confirm: string.Empty,
-        Cancel: string.Empty,
-        Exit: string.Empty,
+        Confirm: "",
+        Cancel: "",
+        Exit: "",
     }
 
     #HTML = {
@@ -60,8 +60,8 @@ export default class TForm {
     }
 
     Renderize() {
-        let title = string.Empty
-        let message = string.Empty
+        let title = ""
+        let message = ""
 
         switch (this.#Action) {
             case TActions.CREATE:

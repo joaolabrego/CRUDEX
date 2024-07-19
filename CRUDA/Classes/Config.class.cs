@@ -2,8 +2,6 @@
 using Newtonsoft.Json;
 using System.Data;
 using Dictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
-using NPOI.SS.Formula.Functions;
-using System.Dynamic;
 
 namespace CRUDA_LIB
 {
@@ -123,10 +121,6 @@ namespace CRUDA_LIB
                 result[item.Key] = ToDictionary(item.Value);
 
             return result;
-        }
-        public static dynamic? GetValue(Dictionary dictionary, string propertyName)
-        {
-            return dictionary.TryGetValue(propertyName, out dynamic? value) ? value : null;
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿"use strict"
 
 export default class TField {
-    #Name = string.Empty
+    #Name = ""
     #Value = null
     #Record = null
     constructor(record, name, value) {

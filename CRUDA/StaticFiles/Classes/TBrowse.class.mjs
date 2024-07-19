@@ -25,21 +25,21 @@ export default class TBrowse {
         SelectedRow: null,
     }
 
-    static #Style = string.Empty
+    static #Style = ""
     static #Images = {
-        Insert: string.Empty,
-        Edit: string.Empty,
-        Filter: string.Empty,
-        Delete: string.Empty,
-        Query: string.Empty,
-        Exit: string.Empty,
+        Insert: "",
+        Edit: "",
+        Filter: "",
+        Delete: "",
+        Query: "",
+        Exit: "",
     }
 
     constructor(table) {
         if (table.ClassName !== "TTable")
             throw new Error("Argumento table não é do tipo TTable.")
         this.#HTML.Container = document.createElement("table")
-        this.#HTML.Container.className = "browse box"
+        this.#HTML.Container.className = "grid box"
 
         let style = document.createElement("style")
         style.innerText = TBrowse.#Style
@@ -62,7 +62,7 @@ export default class TBrowse {
             throw new Error("Argumento styles não é do tipo Styles.")
         if (images.ClassName !== "Images")
             throw new Error("Argumento images não é do tipo Images.")
-        this.#Style = styles.Browse
+        this.#Style = styles.Grid
         this.#Images.Delete = images.Delete
         this.#Images.Query = images.Query
         this.#Images.Edit = images.Edit
@@ -98,7 +98,7 @@ export default class TBrowse {
                 TScreen.Main = this.#HTML.Container
             })
             .catch(error => {
-                TScreen.ShowError(error.Message, error.Action || `browse/${this.#Table.Database.Name}/${this.#Table.Name}`)
+                TScreen.ShowError(error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
             })
         globalThis.$ = new Proxy(this.#Table, {
             get: (target, key) => {

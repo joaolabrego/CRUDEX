@@ -5,15 +5,15 @@ import TSystem from "./TSystem.class.mjs"
 export default class TDomain {
 	#Id = 0
 	#TypeId = 0
-	#MaskId = string.Empty
-	#Name = string.Empty
+	#MaskId = ""
+	#Name = ""
 	#Length = 0
 	#Decimals = 0
-	#ValidValues = string.Empty
-	#Default = string.Empty
-	#Minimum = string.Empty
-	#Maximum = string.Empty
-	#Codification = string.Empty
+	#ValidValues = ""
+	#Default = ""
+	#Minimum = ""
+	#Maximum = ""
+	#Codification = ""
 
 	#Type = null
 

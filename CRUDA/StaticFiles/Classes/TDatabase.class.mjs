@@ -2,10 +2,10 @@
 
 export default class TDatabase {
     #Id = 0
-    #Name = string.Empty
-    #Description = string.Empty
-    #Alias = string.Empty
-    #Folder = string.Empty
+    #Name = ""
+    #Description = ""
+    #Alias = ""
+    #Folder = ""
 
     #Tables = []
     constructor(rowDatabase) {

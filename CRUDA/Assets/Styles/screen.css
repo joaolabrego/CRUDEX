@@ -9,9 +9,8 @@
 
 .main {
     height: var(--main-height);
+    overflow: auto;
     opacity: var(--opacity-screen);
-    overflow-x: auto;
-    overflow-y: auto;
 }
 
 .footer {

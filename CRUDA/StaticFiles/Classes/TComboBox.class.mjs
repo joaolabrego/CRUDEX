@@ -52,7 +52,7 @@ export default class TComboBox {
     }
 
     static Show(type, message, confirmAction = null, cancelAction = null, timeout = null) {
-        TSystem.Message = string.Empty
+        TSystem.Message = ""
         this.#HTML.Message.innerText = message
         this.#HTML.Confirm.onclick = () => {
             clearTimeout(this.#Timer)

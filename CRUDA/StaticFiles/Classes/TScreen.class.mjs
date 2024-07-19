@@ -6,9 +6,9 @@ import TLogin from "./TLogin.class.mjs"
 import TSystem from "./TSystem.class.mjs"
 
 export default class TScreen {
-    static #LastMessage = string.Empty
-    static #Message = string.Empty
-    static #BackgroundImage = string.Empty
+    static #LastMessage = ""
+    static #Message = ""
+    static #BackgroundImage = ""
     static #BlinkMessage = false
     static #Timeout = null
     static #HTML = {
@@ -79,7 +79,7 @@ export default class TScreen {
     static Renderize() {
         document.body.innerHTML = null
         document.body.appendChild(this.#HTML.Container)
-        this.Message = string.Empty
+        this.Message = ""
         this.#Update()
     }
 
@@ -95,7 +95,7 @@ export default class TScreen {
             this.#HTML.Time.innerText = localtime
 
         if (this.#BlinkMessage && this.#HTML.Message.innerText)
-            this.#HTML.Message.innerText = string.Empty
+            this.#HTML.Message.innerText = ""
         else if (this.#HTML.Message.innerText.toUpperCase() !== this.#Message.toUpperCase())
             this.#HTML.Message.innerText = this.#Message
 
@@ -137,7 +137,7 @@ export default class TScreen {
      */
     static set Message(value) {
         this.#Message = this.#HTML.Message.innerText = value
-        this.#HTML.Message.className = this.#HTML.Message.className.replace(/ errorMessage/g, string.Empty)
+        this.#HTML.Message.className = this.#HTML.Message.className.replace(/ errorMessage/g, "")
         this.#BlinkMessage = false
     }
     /**

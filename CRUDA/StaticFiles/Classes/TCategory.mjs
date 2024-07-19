@@ -1,8 +1,8 @@
 export default class TCategory {
 	#Id = 0
-	#Name = string.Empty
-	#HtmlInputType = string.Empty
-	#HtmlInputAlign = string.Empty
+	#Name = ""
+	#HtmlInputType = ""
+	#HtmlInputAlign = ""
 	#AskEncrypted = false
 	#AskMask = false
 	#AskListable = false

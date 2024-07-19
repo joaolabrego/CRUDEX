@@ -22,18 +22,18 @@ export default class TMaskEdit {
         this.#minutesMask +
         this.#secondsMask
 
-    static formatValueInput(input, masks, options = string.Empty, validatorFunction = null) {
+    static formatValueInput(input, masks, options = "", validatorFunction = null) {
         let cursorPosition = input.selectionStart,
             endOfText = input.selectionStart === input.value.length
 
         input.value = this.formatValue(input.value, masks, options)
-        input.style.backgroundColor = validatorFunction && !validatorFunction() ? "red" : string.Empty
+        input.style.backgroundColor = validatorFunction && !validatorFunction() ? "red" : ""
         input.selectionStart = input.selectionEnd = endOfText ? input.value.length : cursorPosition
     }
 
-    static formatValue(value, masks, options = string.Empty) {
-        let result = string.Empty,
-            mask = string.Empty
+    static formatValue(value, masks, options = "") {
+        let result = "",
+            mask = ""
 
         if (Array.isArray(masks))
             for (let i = 0; i < masks.length; i++) {
@@ -44,9 +44,9 @@ export default class TMaskEdit {
         else
             mask = masks
 
-        let rawMask = mask.replace(new RegExp(`[^${this.#allMasks}]`, "g"), string.Empty)
+        let rawMask = mask.replace(new RegExp(`[^${this.#allMasks}]`, "g"), "")
 
-        value = value.replace(/[^0-9A-Za-z]/g, string.Empty)
+        value = value.replace(/[^0-9A-Za-z]/g, "")
         if (options.indexOf("upper") > -1)
             value = value.toUpperCase()
         else if (options.indexOf("lower") > -1)
@@ -217,7 +217,7 @@ export default class TMaskEdit {
         let length = precision - scale,
             groups = Math.trunc(length / 3),
             remaindigits = length % 3,
-            mask = string.Empty
+            mask = ""
 
         if (groups) {
             mask = "###" + (TConfig.ThousandSeparator + "###").repeat(groups - 1)
@@ -240,8 +240,8 @@ export default class TMaskEdit {
 
     static formatDecimal(value, precision, scale) {
         let decimalswithcomma = 0,
-            signal = string.Empty,
-            mask = string.Empty,
+            signal = "",
+            mask = "",
             groups = Math.trunc((precision - scale) / 3),
             remaindigits = (precision - scale) % 3,
             floatingpoint = -1
@@ -259,19 +259,19 @@ export default class TMaskEdit {
         }
         decimalswithcomma = floatingpoint === -1 ? 0 : mask.length - floatingpoint
         if (value[0] === TConfig.minusSignal) {
-            signal = value.at(-1) === TConfig.minusSignal ? string.Empty : TConfig.minusSignal
+            signal = value.at(-1) === TConfig.minusSignal ? "" : TConfig.minusSignal
             value = value.slice(1)
         }
         else
-            signal = value.at(-1) === TConfig.minusSignal ? TConfig.minusSignal : string.Empty
-        value = value.slice(0, mask.length).split(string.Empty).reverse().join(string.Empty)
-        mask = mask.split(string.Empty).reverse().join(string.Empty)
+            signal = value.at(-1) === TConfig.minusSignal ? TConfig.minusSignal : ""
+        value = value.slice(0, mask.length).split("").reverse().join("")
+        mask = mask.split("").reverse().join("")
 
-        let result = this.formatValue(value.replace(/\D/g, string.Empty), mask)
+        let result = this.formatValue(value.replace(/\D/g, ""), mask)
 
-        result = result.split(string.Empty).reverse().join(string.Empty)
+        result = result.split("").reverse().join("")
         if (result.length > decimalswithcomma + 1)
-            result = result.replace(/^0/g, string.Empty)
+            result = result.replace(/^0/g, "")
         else if (result.length < decimalswithcomma)
             result = "0," + "0".repeat(decimalswithcomma - result.length - 1) + result
         if (this.toFloat(result) > 0) {
@@ -279,16 +279,16 @@ export default class TMaskEdit {
             this.toFloat(result)
         }
         else
-            result = string.Empty
+            result = ""
 
         return result
     }
 
     static toFloat(value) {
         value = value.trim()
-        if (value === string.Empty)
+        if (value === "")
             return 0
-        value = value.replaceAll(TConfig.ThousandSeparator, string.Empty)
+        value = value.replaceAll(TConfig.ThousandSeparator, "")
             .replace(TConfig.DecimalSeparator, ".")
             .replace(/[^.0-9-]/g)
 
@@ -296,7 +296,7 @@ export default class TMaskEdit {
     }
 
     static toDate(value) {
-        value = value.replace(/\D/g, string.Empty)
+        value = value.replace(/\D/g, "")
 
         let day = Number(value.slice(0, 2)),
             month = Number(value.slice(2, 4)),
@@ -306,7 +306,7 @@ export default class TMaskEdit {
     }
 
     static toDateTime(value) {
-        value = value.replace(/\D/g, string.Empty)
+        value = value.replace(/\D/g, "")
 
         let day = Number(value.slice(0, 2)),
             month = Number(value.slice(2, 4)),
@@ -319,7 +319,7 @@ export default class TMaskEdit {
     }
 
     static toTime(value) {
-        value = value.replace(/\D/g, string.Empty)
+        value = value.replace(/\D/g, "")
 
         let hours = Number(value.slice(0, 2)),
             minutes = Number(value.slice(2, 4)),
@@ -364,7 +364,7 @@ export default class TMaskEdit {
     }
 
     static validateCpfCnpj(input) {
-        let value = input.value.replace(/[^0-9]/g, string.Empty)
+        let value = input.value.replace(/[^0-9]/g, "")
 
         if (value.length === 8)
             return true
@@ -391,7 +391,7 @@ export default class TMaskEdit {
     }
 
     static validateStateRegistration(input) {
-        let value = input.value.replace(/[^0-9]/g, string.Empty)
+        let value = input.value.replace(/[^0-9]/g, "")
 
         if (value.length === 12)
             return this.checkDigit(value, {
@@ -408,7 +408,7 @@ export default class TMaskEdit {
     }
 
     static validateRG(input) {
-        let value = input.value.replace(/[^0-9A-Z]/g, string.Empty)
+        let value = input.value.replace(/[^0-9A-Z]/g, "")
 
         if (value.length === 9)
             return this.checkDigit(value, {
@@ -424,7 +424,7 @@ export default class TMaskEdit {
     }
 
     static validateCreditCard(input) {
-        let value = input.value.replace(/[^0-9]/g, string.Empty)
+        let value = input.value.replace(/[^0-9]/g, "")
 
         if (value.length === 16)
             return this.checkDigit(value, {

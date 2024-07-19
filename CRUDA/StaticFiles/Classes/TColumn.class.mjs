@@ -8,10 +8,10 @@ export default class TColumn {
     #Sequence = 0
     #DomainId = 0
     #ReferenceTableId = 0
-    #Name = string.Empty
-    #Description = string.Empty
-    #Title = string.Empty
-    #Caption = string.Empty
+    #Name = ""
+    #Description = ""
+    #Title = ""
+    #Caption = ""
     #Default = null
     #Minimum = null
     #Maximum = null
@@ -62,7 +62,7 @@ export default class TColumn {
         this.#Domain = TSystem.GetDomain(rowColumn.DomainId)
     }
     IsEmpty(value = this.#Value) {
-        return value === null || value === undefined || String(value).trim() === string.Empty
+        return value === null || value === undefined || String(value).trim() === ""
     }
     #GeTBrowseCheckBox(value) {
         let control = document.createElement("input")

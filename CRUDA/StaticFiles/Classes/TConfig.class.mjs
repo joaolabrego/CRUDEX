@@ -6,10 +6,10 @@ import TScreen from "./TScreen.class.mjs"
 import TSystem from "./TSystem.class.mjs"
 
 export default class TConfig {
-    static #Locale = string.Empty
-    static #DecimalSeparator = string.Empty
-    static #ThousandSeparator = string.Empty
-    static #MinusSignal = string.Empty
+    static #Locale = ""
+    static #DecimalSeparator = ""
+    static #ThousandSeparator = ""
+    static #MinusSignal = ""
     static #IdleTimeInMinutesLimit = 0
     static #Timer = null
 
@@ -20,7 +20,7 @@ export default class TConfig {
             }
         if (action !== TActions.CONFIG) {
             headers.Login = JSON.stringify({
-                LoginId: TLogin.LoginId,
+                LogId: TLogin.LogId,
                 UserName: TLogin.UserName,
                 Password: TLogin.Password,
                 Action: `${TActions.LOGIN};${TActions.LOGOUT}`.search(action) === -1 ? TActions.AUTHENTICATE : action,
@@ -51,8 +51,8 @@ export default class TConfig {
             resetTimer()
         else
             clearTimeout(this.#Timer)
-        window.onload = window.onmousemove = window.onmousedown = window.ontouchstart = window.onclick =
-            window.onbeforeinput = activate ? resetTimer : null
+        window.onload = window.onmousemove = window.onmousedown = window.ontouchstart = window.onclick = window.onbeforeinput =
+            activate ? resetTimer : null
     }
     static get Locale() {
         if (this.#Locale)
@@ -64,22 +64,22 @@ export default class TConfig {
         if (this.#DecimalSeparator)
             return this.#DecimalSeparator
 
-        return this.#DecimalSeparator = (0.1).toLocaleString(this.Locale).replace(/\d/g, string.Empty)
+        return this.#DecimalSeparator = (0.1).toLocaleString(this.Locale).replace(/\d/g, "")
     }
     static get ThousandSeparator() {
         if (this.#ThousandSeparator)
             return this.#ThousandSeparator
 
-        return this.#ThousandSeparator = (1000).toLocaleString(this.Locale).replace(/\d/g, string.Empty)
+        return this.#ThousandSeparator = (1000).toLocaleString(this.Locale).replace(/\d/g, "")
     }
     static get MinusSignal() {
         if (this.#MinusSignal)
             return this.#MinusSignal
 
-        return this.#MinusSignal = (-1).toLocaleString(this.Locale).replace(/\d/g, string.Empty)
+        return this.#MinusSignal = (-1).toLocaleString(this.Locale).replace(/\d/g, "")
     }
     static GetScripts(databaseAlias = "cruda", withDDL = true) {
-        let script = string.Empty
+        let script = ""
 
         this.GetAPI(TActions.CONFIG)
             .then(config => {
@@ -119,7 +119,7 @@ export default class TConfig {
     }
 
     static #GetDatabaseScript(database) {
-        let sql = string.Empty
+        let sql = ""
 
         sql = sql + `USE[master]\n`
         sql = sql + `GO\n`
@@ -206,7 +206,7 @@ export default class TConfig {
         return sql
     }
     static #GetTableScript(database, table, columns, domains, types) {
-        let sql = string.Empty
+        let sql = ""
 
         if (columns.length && table.ProcedureCreate) {
             let primarykeys = columns.filter(column => column.IsPrimarykey)
@@ -239,7 +239,7 @@ export default class TConfig {
                 sql += ",\n"
             })
             if (primarykeys.length) {
-                let comma = string.Empty
+                let comma = ""
 
                 sql += `CONSTRAINT [PK_${table.Name}] PRIMARY KEY CLUSTERED (\n`
                 primarykeys.forEach(column => {
@@ -255,7 +255,7 @@ export default class TConfig {
         return sql
     }
     static #GetCreateScript(database, table, columns, domains, types) {
-        let sql = string.Empty
+        let sql = ""
 
         if (columns.length && table.ProcedureCreate) {
             let values = "VALUES (",
@@ -272,7 +272,7 @@ export default class TConfig {
             sql += `GO\n`
             sql += `ALTER PROCEDURE [dbo].[${table.ProcedureCreate}](\n`
 
-            let comma = string.Empty
+            let comma = ""
 
             columns.forEach(column => {
                 if (!column.IsAutoincrement) {
@@ -307,10 +307,10 @@ export default class TConfig {
         return sql
     }
     static #GetReadScript(database, table, columns, domains, types) {
-        let sql = string.Empty
+        let sql = ""
 
         if (columns.length && table.ProcedureRead) {
-            let where = string.Empty,
+            let where = "",
                 listColumns = `'${table.Name}' AS [ClassName]`
 
             sql += `USE [${database.Alias}]\n`
@@ -328,7 +328,7 @@ export default class TConfig {
             sql += `,@MaxPage INT OUT\n`
             sql += `,@PaddingGridLastPage BIT OUT\n`
 
-            let and = string.Empty
+            let and = ""
 
             columns.forEach(column => {
                 if (column.IsFilterable) {
@@ -386,12 +386,12 @@ export default class TConfig {
         return sql
     }
     static #GetListScript(database, table, columns) {
-        let sql = string.Empty
+        let sql = ""
         let referencedColumns = columns.filter(column => column.IsReferenced)
 
         if (columns.length && table.ProcedureList && referencedColumns.length) {
             let listColumns = `'LIST_${table.Name}' AS [ClassName]`,
-                orders = string.Empty
+                orders = ""
 
             sql += `USE [${database.Alias}]\n`
             sql += `GO\n`
@@ -404,7 +404,7 @@ export default class TConfig {
             sql += `GO\n`
             sql += `ALTER PROCEDURE [dbo].[${table.ProcedureList}]\n`
 
-            let ordersComma = string.Empty
+            let ordersComma = ""
 
             columns.filter(column => column.IsPrimarykey)
                 .forEach(column => listColumns += `\n,[${column.Name}] AS [${table.Alias}_${column.Name}]\n`)
@@ -426,7 +426,7 @@ export default class TConfig {
         return sql
     }
     static #GetUpdateScript(database, table, columns, domains, types) {
-        let sql = string.Empty
+        let sql = ""
 
         if (columns.length && table.ProcedureUpdate) {
             let assignments = "SET ",
@@ -443,9 +443,9 @@ export default class TConfig {
             sql += `GO\n`
             sql += `ALTER PROCEDURE[dbo].[${table.ProcedureUpdate}](\n`
 
-            let parametersComma = string.Empty,
-                assignmentsComma = string.Empty,
-                and = string.Empty
+            let parametersComma = "",
+                assignmentsComma = "",
+                and = ""
 
             columns.forEach(column => {
                 let domain = domains.find(domain => domain.Id === column.DomainId),
@@ -482,7 +482,7 @@ export default class TConfig {
         return sql
     }
     static #GetDeleteScript(database, table, columns, domains, types) {
-        let sql = string.Empty
+        let sql = ""
 
         if (columns.length && table.procedureDelete) {
             let where = "WHERE "
@@ -498,8 +498,8 @@ export default class TConfig {
             sql += `GO\n`
             sql += `ALTER PROCEDURE[dbo].[${table.ProcedureDelete}](\n`
 
-            let comma = string.Empty,
-                and = string.Empty
+            let comma = "",
+                and = ""
             datacolumns.forEach(column => {
                 let domain = domains.find(domain => domain.Id === column.DomainId)
                 let type = types.find(type => type.Id === domain.TypeId)

@@ -3,7 +3,7 @@
 export default class TIndex {
     #Id = 0
     #TableId = 0
-    #Name = string.Empty
+    #Name = ""
     #IsUnique = false
     #Indexkeys = []
     #Table = null

@@ -1,5 +1,5 @@
 export default class TCrypto {
-    #CryptoKey = string.Empty
+    #CryptoKey = ""
     static #CRYPTOPREFIX = "encrypted"
     static #CHARSET = "0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz+*&%$#!?.:=@<>,;/[]{}()"
     static #DEFAULT_LENGTH = 100
@@ -13,7 +13,7 @@ export default class TCrypto {
         return this.#CHARSET.slice(position, position + 1)
     }
     static #GenerateCryptokey(length = this.#DEFAULT_LENGTH) {
-        let result = string.Empty
+        let result = ""
 
         for (let i = 0; i < length; i++) {
             result += this.#GetChar()
@@ -28,13 +28,13 @@ export default class TCrypto {
         const SPACE = " ".charCodeAt(0)
         let factor = -1,
             prefix = TCrypto.#CRYPTOPREFIX,
-            result = string.Empty,
+            result = "",
             encrypted = this.IsEncrypted(value)
 
         if (encrypted) {
             factor = 1
             value = value.slice(prefix.length)
-            prefix = string.Empty
+            prefix = ""
         }
         else {
             for (let i = 0; i < value.length; i++) {

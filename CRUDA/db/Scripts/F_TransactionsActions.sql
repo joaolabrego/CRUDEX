@@ -4,7 +4,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[F_TransactionsActions]', 'TF')) IS NOT NULL
+IF(SELECT object_id('[dbo].[F_TransactionsActions]', 'FN')) IS NOT NULL
 	DROP FUNCTION [dbo].[F_TransactionsActions]
 GO
 CREATE FUNCTION [dbo].[F_TransactionsActions](@SystemName VARCHAR(25),

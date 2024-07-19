@@ -96,10 +96,11 @@ export default class TLogin {
         this.#HTML.UserName.focus()
     }
     static Logout() {
-        if (this.#LogId)
+        if (this.#LogId){
             TConfig.GetAPI(TActions.LOGOUT)
-                .then(() => this.#LogId = null)
+                .then((result) => this.#LogId = result.ReturnValue)
                 .catch(error => TScreen.ShowError(error.Message, error.Action))
+        }
     }
     static set LogId(value) {
         this.#LogId = value

@@ -6,15 +6,15 @@ import TSystem from "./TSystem.class.mjs"
 
 export default class TTable {
     #Id = 0
-    #Name = string.Empty
-    #Alias = string.Empty
-    #Description = string.Empty
+    #Name = ""
+    #Alias = ""
+    #Description = ""
     #ParentTableId = 0
-    #ProcedureCreate = string.Empty
-    #ProcedureRead = string.Empty
-    #ProcedureUpdate = string.Empty
-    #ProcedureDelete = string.Empty
-    #ProcedureList = string.Empty
+    #ProcedureCreate = ""
+    #ProcedureRead = ""
+    #ProcedureUpdate = ""
+    #ProcedureDelete = ""
+    #ProcedureList = ""
     #IsPaged = false
     #LastId = 0
 

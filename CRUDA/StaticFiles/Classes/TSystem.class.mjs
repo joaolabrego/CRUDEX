@@ -18,11 +18,11 @@ import TActions from "./TActions.class.mjs"
 import TCategory from "./TCategory.mjs"
 import TMask from "./TMask.mjs"
 export default class TSystem {
-    static #Name = string.Empty
-    static #Description = string.Empty
-    static #ClientName = string.Empty
+    static #Name = ""
+    static #Description = ""
+    static #ClientName = ""
 
-    static #Action = string.Empty
+    static #Action = ""
     static #RowsPerPage = 0
     static #PaddingGridLastPage = false
     static #Types = []
@@ -174,11 +174,11 @@ export default class TSystem {
                 TConfig.SetIdleTime()
                 TMenu.Renderize()
                 break
-            case TActions.BROWSE:
+            case TActions.GRID:
                 new TBrowse(this.GetDatabase(newValue[1]).GetTable(newValue[2])).Renderize()
                 break
             case TActions.RELOAD:
-                document.location.reload()
+                document.location.reload(true)
                 break
             case TActions.EXIT:
                 TScreen.ShowQuestion(`Confirma retornar ao ${newValue[1]}?`, newValue[1], lastValue)

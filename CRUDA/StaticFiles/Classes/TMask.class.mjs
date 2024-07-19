@@ -2,8 +2,8 @@
 
 export default class TMask {
     #Id = 0
-	#Name = ""
-	#Mask = ""
+	#Name = string.Empty
+	#Mask = string.Empty
 
     constructor(rowMask){
         if (rowMask.ClassName !== "RecordMask")

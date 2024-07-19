@@ -4361,7 +4361,7 @@ CreatedAt, CreatedBy) VALUES (
 '10', 
 'Tipos', 
 'Cadastro de tipos', 
-'browse/cruda/Types', 
+'grid/cruda/Types', 
 '7', 
 GETDATE(), 'adm')
 GO
@@ -4379,7 +4379,7 @@ CreatedAt, CreatedBy) VALUES (
 '15', 
 'Usuários', 
 'Cadastro de Usuários', 
-'browse/cruda/Users', 
+'grid/cruda/Users', 
 '1', 
 GETDATE(), 'adm')
 GO
@@ -4397,7 +4397,7 @@ CreatedAt, CreatedBy) VALUES (
 '60', 
 'Tabelas', 
 'Cadastro de tabelas', 
-'browse/cruda/Tables', 
+'grid/cruda/Tables', 
 '1', 
 GETDATE(), 'adm')
 GO
@@ -4415,7 +4415,7 @@ CreatedAt, CreatedBy) VALUES (
 '35', 
 'Menus', 
 'Cadastro de menus', 
-'browse/cruda/Menus', 
+'grid/cruda/Menus', 
 '1', 
 GETDATE(), 'adm')
 GO
@@ -4433,7 +4433,7 @@ CreatedAt, CreatedBy) VALUES (
 '20', 
 'Sistemas', 
 'Cadastro de sistemas', 
-'browse/cruda/Systems', 
+'grid/cruda/Systems', 
 '3', 
 GETDATE(), 'adm')
 GO
@@ -4451,7 +4451,7 @@ CreatedAt, CreatedBy) VALUES (
 '25', 
 'Banco de Dados', 
 'Cadastro de bancos de dados', 
-'browse/cruda/Databases', 
+'grid/cruda/Databases', 
 '3', 
 GETDATE(), 'adm')
 GO
@@ -4469,7 +4469,7 @@ CreatedAt, CreatedBy) VALUES (
 '30', 
 'Colunas', 
 'Cadastro de colunas de tabelas', 
-'browse/cruda/Columns', 
+'grid/cruda/Columns', 
 '7', 
 GETDATE(), 'adm')
 GO
@@ -4505,7 +4505,7 @@ CreatedAt, CreatedBy) VALUES (
 '45', 
 'Sistemas x BD', 
 'Associação entre sistemas e bancos de dados', 
-'browse/cruda/SystemsDatabases', 
+'grid/cruda/SystemsDatabases', 
 '9', 
 GETDATE(), 'adm')
 GO
@@ -4523,7 +4523,7 @@ CreatedAt, CreatedBy) VALUES (
 '50', 
 'Usuários x Sistemas', 
 'Associação entre usuários e sistemas', 
-'browse/cruda/SystemsUsers', 
+'grid/cruda/SystemsUsers', 
 '9', 
 GETDATE(), 'adm')
 GO
@@ -16121,24 +16121,6 @@ GO
 Final da criação dos scripts
 **********************************************************************************/
 /**********************************************************************************
-Criar tabela Logins
-**********************************************************************************/
-IF (SELECT object_id('[dbo].[Logins]', 'U')) IS NOT NULL
-DROP TABLE [dbo].[Logins]
-CREATE TABLE [dbo].[Logins](
-[Id] bigint NOT NULL,
-[SystemId] bigint NOT NULL,
-[UserId] bigint NOT NULL,
-[PublicKey] varchar(256) NOT NULL,
-[Logged] bit NOT NULL,
-[CreatedAt] [datetime] NULL,
-[CreatedBy] [varchar](25) NULL,
-[UpdatedAt] [datetime] NULL,
-[UpdatedBy] [varchar](25) NULL)
-ALTER TABLE [dbo].[Logins] ADD CONSTRAINT PK_Logins PRIMARY KEY CLUSTERED ([Id])
-CREATE INDEX [UNQ_Logs_System_User_Logged] ON [dbo].[Logins]([SystemId] ASC,[UserId] ASC,[PublicKey] ASC)
-GO
-/**********************************************************************************
 Criar tabela Logs
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Logs]', 'U')) IS NOT NULL
@@ -16452,24 +16434,6 @@ GO
 /**********************************************************************************
 Inserir dados na tabela Transactions
 **********************************************************************************/
-/**********************************************************************************
-Criar tabela Operations
-**********************************************************************************/
-IF (SELECT object_id('[dbo].[Operations]', 'U')) IS NOT NULL
-DROP TABLE [dbo].[Operations]
-CREATE TABLE [dbo].[Operations](
-[Id] bigint NOT NULL,
-[TransactionId] bigint NOT NULL,
-[TableId] bigint NOT NULL,
-[Action] varchar(15) NOT NULL,
-[LastRecord] varchar(MAX) NULL,
-[ActualRecord] varchar(MAX) NOT NULL,
-[IsConfirmed] bit NULL,
-[CreatedAt] [datetime] NULL,
-[CreatedBy] [varchar](25) NULL,
-[UpdatedAt] [datetime] NULL,
-[UpdatedBy] [varchar](25) NULL)
-ALTER TABLE [dbo].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED ([Id])
 GO
 /**********************************************************************************
 Final da criação dos scripts

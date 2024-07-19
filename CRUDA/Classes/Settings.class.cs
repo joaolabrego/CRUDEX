@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.FileProviders;
-using NPOI.SS.Formula.Functions;
 using System.Globalization;
 
 namespace CRUDA_LIB
@@ -16,19 +15,14 @@ namespace CRUDA_LIB
                 new CultureInfo("pt-BR");
             app.UseStaticFiles(new StaticFileOptions
             {
-                FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, 
-                                                                     Get("DIRECTORY_STATIC_FILES"))),
+                FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "StaticFiles"))
             });
 
             return app;
         }
-        public static string ConnectionString(bool isOleDb = false)
+        public static string ConnecionString()
         {
-            var provider = (isOleDb ? $"Provider={ Get("DB_PROVIDER")};" : string.Empty);
-
-            return $"{provider}Password={Get("DB_PASSWORD")};Persist Security Info=True;" +
-                   $"User ID={Get("DB_LOGON")};Initial Catalog={Get("DB_ALIAS")};Data Source={Get("DB_SERVER")};" +
-                   $"Connect Timeout={Get("DB_TIMEOUT")};";
+            return $"Password={Get("DB_PASSWORD")};Persist Security Info=True;User ID={Get("DB_LOGON")};Initial Catalog={Get("DB_ALIAS")};Data Source={Get("DB_SERVER")}";
         }
         public static string Get(string key)
         {

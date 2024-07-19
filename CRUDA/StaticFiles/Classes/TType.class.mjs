@@ -5,9 +5,9 @@ import TSystem from "./TSystem.class.mjs"
 export default class TType {
     #Id = 0
     #CategoryId = 0
-    #Name = string.Empty
-    #Minimum = string.Empty
-    #Maximum = string.Empty
+    #Name = ""
+    #Minimum = ""
+    #Maximum = ""
     #AskLength = false
     #AskDecimals = false
     #AskPrimarykey = false

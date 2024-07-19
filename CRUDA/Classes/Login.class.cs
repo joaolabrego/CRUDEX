@@ -11,20 +11,21 @@ namespace CRUDA_LIB
             if (parameters != null && parameters.TryGetValue("Login", out dynamic? login))
             {
                 if (login == null)
-                    throw new Exception("Parâmetro Login não passado para SQLResult.Execute.");
+                    throw new Exception("Parâmetro Login não passado para Execute.");
                 else if (login.ContainsKey("UserName") && login.ContainsKey("Password") && login.ContainsKey("Action"))
-                    return SQLProcedure.Execute(Settings.ConnectionString(),
-                                                Settings.Get("LOGIN_PROCEDURE"),
-                                                Config.ToDictionary(new
-                                                {
-                                                    InputParams = new
-                                                    {
-                                                        SystemName = systemName,
-                                                        UserName = login["UserName"],
-                                                        Password = login["Password"],
-                                                        Action = login["Action"],
-                                                    }
-                                                }));
+                    return SQLProcedure.Execute(
+                        Settings.ConnecionString(),
+                        Settings.Get("LOGIN_PROCEDURE"),
+                        Config.ToDictionary(new
+                        {
+                            InputParams = new
+                            {
+                                SystemName = systemName,
+                                UserName = login["UserName"],
+                                Password = login["Password"],
+                                Action = login["Action"],
+                            }
+                        }));
                 else
                     throw new Exception("Parâmetro(s) UserName e/ou Password e/ou Action não definidos no parâmetro Login de Execute.");
             }
