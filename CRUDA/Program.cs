@@ -1,4 +1,3 @@
-using System.IO;
 using System.Text;
 using CRUDA.Classes;
 using CRUDA.Classes.Models;
@@ -13,10 +12,8 @@ namespace CRUDA_LIB
 
             app.Use(async (context, next) =>
             {
-                // Do work that can write to the Response.
                 Console.WriteLine("teste");
                 await next.Invoke();
-                // Do logging or other work that doesn't write to the Response.
             });
 
             app.MapGet("/", (HttpResponse response) =>
@@ -39,39 +36,15 @@ namespace CRUDA_LIB
             });
             app.MapPost($"/{{systemName}}/{Actions.CONFIG}", (HttpContext context, string systemName) =>
             {
-                context.Response.Headers.ContentType = "application/json";
-                try
-                {
-                    context.Response.WriteAsync(new Config(systemName, "all").ToString(), Encoding.UTF8);
-                }
-                catch (Exception ex)
-                {
-                    context.Response.WriteAsync(new Error(ex.Message).ToString(), Encoding.UTF8);
-                }
+                ExecuteRoute(context, systemName, Actions.CONFIG);
             });
             app.MapPost($"/{{systemName}}/{Actions.LOGIN}", (HttpContext context, string systemName, object body) =>
             {
-                context.Response.Headers.ContentType = "application/json";
-                try
-                {
-                    context.Response.WriteAsync(Login.Execute(systemName, Config.GetParameters(context.Request, body)).ToString(), Encoding.UTF8);
-                }
-                catch (Exception ex)
-                {
-                    context.Response.WriteAsync(new Error(ex.Message).ToString(), Encoding.UTF8);
-                }
+                ExecuteRoute(context, systemName, Actions.LOGIN);
             });
             app.MapPost($"/{{systemName}}/{Actions.LOGOUT}", (HttpContext context, string systemName, object body) =>
             {
-                context.Response.Headers.ContentType = "application/json";
-                try
-                {
-                    context.Response.WriteAsync(Login.Execute(systemName, Config.GetParameters(context.Request, body)).ToString(), Encoding.UTF8);
-                }
-                catch (Exception ex)
-                {
-                    context.Response.WriteAsync(new Error(ex.Message).ToString(), Encoding.UTF8);
-                }
+                ExecuteRoute(context, systemName, Actions.LOGOUT);
             });
             app.MapPost("/{systemName}/{databaseName}/{tableName}/{action}", (HttpContext context, string systemName, string databaseName, string tableName, string action, object body) =>
             {
@@ -97,6 +70,27 @@ namespace CRUDA_LIB
             });
 
             app.Run();
+        }
+        private static void ExecuteRoute(HttpContext context, string systemName, string action, object? body = null)
+        {
+            try
+            {
+                context.Response.Headers.ContentType = "application/json";
+                switch (action)
+                {
+                    case Actions.CONFIG:
+                        context.Response.WriteAsync(new Config(systemName, "all").ToString(), Encoding.UTF8);
+                        break;
+                    case Actions.LOGIN:
+                    case Actions.LOGOUT:
+                        context.Response.WriteAsync(Login.Execute(systemName, Config.GetParameters(context.Request, body ?? new { })).ToString(), Encoding.UTF8);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                context.Response.WriteAsync(new Error(ex.Message).ToString(), Encoding.UTF8);
+            }
         }
     }
 }

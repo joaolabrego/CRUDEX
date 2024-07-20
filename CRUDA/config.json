@@ -2,7 +2,7 @@
   "ClassName": "Config",
   "RowsPerPage": 16,
   "IdleTimeInMinutesLimit": 5,
-  "PaddingGridLastPage": true,
+  "PaddingBrowseLastPage": true,
   "Data": {
     "System": [
       {

@@ -27,7 +27,7 @@ export default class TRecordSet {
                 PageNumber: pageNumber,
                 LimitRows: TSystem.RowsPerPage,
                 MaxPage: 0,
-                PaddingGridLastPage: TSystem.PaddingGridLastPage,
+                PaddingBrowseLastPage: TSystem.PaddingBrowseLastPage,
             },
         }
         this.#Table.Columns.filter(column => column.IsFilterable)
@@ -52,7 +52,7 @@ export default class TRecordSet {
                 PageNumber: 0,
                 LimitRows: 0,
                 MaxPage: 0,
-                PaddingGridLastPage: false,
+                PaddingBrowseLastPage: false,
             },
         }
         let response = await TConfig.GetAPI(`${this.#Table.Database.Name}/${this.#Table.Name}/read`, parameters)

@@ -24,7 +24,7 @@ export default class TSystem {
 
     static #Action = ""
     static #RowsPerPage = 0
-    static #PaddingGridLastPage = false
+    static #PaddingBrowseLastPage = false
     static #Types = []
     static #Domains = []
     static #Databases = []
@@ -47,7 +47,7 @@ export default class TSystem {
                 this.#Description = config.Data.System[0].Description
                 this.#ClientName = config.Data.System[0].ClientName
                 this.#RowsPerPage = config.RowsPerPage
-                this.#PaddingGridLastPage = config.PaddingGridLastPage
+                this.#PaddingBrowseLastPage = config.PaddingBrowseLastPage
                 TConfig.IdleTimeInMinutesLimit = config.IdleTimeInMinutesLimit
                 TLogin.Initialize(config.Styles)
                 TDialog.Initialize(config.Styles, config.Images)
@@ -174,7 +174,7 @@ export default class TSystem {
                 TConfig.SetIdleTime()
                 TMenu.Renderize()
                 break
-            case TActions.GRID:
+            case TActions.BROWSE:
                 new TBrowse(this.GetDatabase(newValue[1]).GetTable(newValue[2])).Renderize()
                 break
             case TActions.RELOAD:
@@ -205,8 +205,8 @@ export default class TSystem {
     static get RowsPerPage() {
         return this.#RowsPerPage
     }
-    static get PaddingGridLastPage() {
-        return this.#PaddingGridLastPage
+    static get PaddingBrowseLastPage() {
+        return this.#PaddingBrowseLastPage
     }
     static get Types() {
         return this.#Types

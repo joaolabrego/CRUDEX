@@ -5,7 +5,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -198,7 +198,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordColumn' AS [ClassName],

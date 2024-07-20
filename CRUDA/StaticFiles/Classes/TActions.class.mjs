@@ -5,7 +5,7 @@
     static get LOGOUT() { return "logout" }
     static get AUTHENTICATE() { return "authenticate" }
     static get MENU() { return "menu" }
-    static get GRID() { return "browse" }
+    static get BROWSE() { return "browse" }
     static get RELOAD() { return "reload" }
     static get EXIT() { return "exit" }
     static get NONE() { return "none" }

@@ -88,7 +88,7 @@ export default class TTable {
                 PageNumber: pageNumber,
                 LimitRows: TSystem.RowsPerPage,
                 MaxPage: 0,
-                PaddingGridLastPage: TSystem.PaddingGridLastPage,
+                PaddingBrowseLastPage: TSystem.PaddingBrowseLastPage,
             },
         }
         this.#Columns.filter(column => column.IsFilterable)
@@ -116,7 +116,7 @@ export default class TTable {
                 PageNumber: 0,
                 LimitRows: 0,
                 MaxPage: 0,
-                PaddingGridLastPage: false,
+                PaddingBrowseLastPage: false,
             },
         }
         let response = await TConfig.GetAPI(`${this.#Database.Name}/${this.#Name}/read`, parameters)

@@ -63,11 +63,8 @@ namespace CRUDA_LIB
                 Actions.DELETE => tableRow["ProcedureDelete"].ToString(),
                 Actions.LIST => tableRow["ProcedureList"].ToString(),
                 Actions.GEN_ID => "Gen_Id",
-                _ => throw new ArgumentException($"Valor '{nameof(action)}' do argumento 'action' é inválido."),
+                _ => throw new Exception($"Ação inválida."),
             };
-
-            if (string.IsNullOrEmpty(procedureName))
-                throw new ArgumentException($"Procedure '{nameof(action)}' não configurada para a tabela '{tableName}' do banco-de-dados '{databaseName}'.");
 
             return Execute(connectionString, procedureName, parameters?["Parameters"]);
         }

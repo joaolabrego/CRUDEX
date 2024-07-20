@@ -956,6 +956,498 @@ ALTER TABLE [dbo].[Categories] ADD CONSTRAINT PK_Categories PRIMARY KEY CLUSTERE
 CREATE UNIQUE INDEX [UNQ_Categories_Name] ON [dbo].[Categories]([Name] ASC)
 GO
 /**********************************************************************************
+Criar procedure CategoriesCreate
+**********************************************************************************/
+IF(SELECT object_id('CategoriesCreate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[CategoriesCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[CategoriesCreate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'create' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de inclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+,@W_HtmlInputType varchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS varchar(10))
+,@W_HtmlInputAlign varchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS varchar(6))
+,@W_AskEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit)
+,@W_AskMask bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit)
+,@W_AskListable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskListable') AS bit)
+,@W_AskDefault bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDefault') AS bit)
+,@W_AskMinimum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMinimum') AS bit)
+,@W_AskMaximum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMaximum') AS bit)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS tinyint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('255' AS tinyint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''255''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_AskEncrypted IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskEncrypted é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_AskMask IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskMask é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_AskListable IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskListable é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_AskDefault IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskDefault é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_AskMinimum IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskMinimum é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_AskMaximum IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskMaximum é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Categories.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Categories_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+INSERT INTO [dbo].[Categories] ([Id]
+,[Name]
+,[HtmlInputType]
+,[HtmlInputAlign]
+,[AskEncrypted]
+,[AskMask]
+,[AskListable]
+,[AskDefault]
+,[AskMinimum]
+,[AskMaximum]
+,[CreatedAt]
+,[CreatedBy]
+)
+VALUES (@W_Id
+,@W_Name
+,@W_HtmlInputType
+,@W_HtmlInputAlign
+,@W_AskEncrypted
+,@W_AskMask
+,@W_AskListable
+,@W_AskDefault
+,@W_AskMinimum
+,@W_AskMaximum
+,GETDATE()
+,@UserName
+)
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure CategoriesUpdate
+**********************************************************************************/
+IF(SELECT object_id('CategoriesUpdate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[CategoriesUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[CategoriesUpdate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'update' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de alteração.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+,@W_HtmlInputType varchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS varchar(10))
+,@W_HtmlInputAlign varchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS varchar(6))
+,@W_AskEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit)
+,@W_AskMask bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit)
+,@W_AskListable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskListable') AS bit)
+,@W_AskDefault bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDefault') AS bit)
+,@W_AskMinimum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMinimum') AS bit)
+,@W_AskMaximum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMaximum') AS bit)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS tinyint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('255' AS tinyint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''255''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_AskEncrypted IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskEncrypted é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_AskMask IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskMask é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_AskListable IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskListable é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_AskDefault IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskDefault é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_AskMinimum IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskMinimum é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_AskMaximum IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskMaximum é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Categories.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Categories_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+UPDATE [dbo].[Categories]
+SET [Name] = @W_Name
+,[HtmlInputType] = @W_HtmlInputType
+,[HtmlInputAlign] = @W_HtmlInputAlign
+,[AskEncrypted] = @W_AskEncrypted
+,[AskMask] = @W_AskMask
+,[AskListable] = @W_AskListable
+,[AskDefault] = @W_AskDefault
+,[AskMinimum] = @W_AskMinimum
+,[AskMaximum] = @W_AskMaximum
+,[UpdatedAt] = GETDATE()
+,[UpdatedBy] = @UserName
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure CategoriesDelete
+**********************************************************************************/
+IF(SELECT object_id('CategoriesDelete', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[CategoriesDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[CategoriesDelete](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'delete' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de exclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS tinyint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('255' AS tinyint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''255''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS tinyint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('255' AS tinyint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''255''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Categories.';
+THROW 51000, @ErrorMessage, 1
+END
+DELETE FROM [dbo].[Categories]
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
 Criar procedure CategoriesRead
 **********************************************************************************/
 IF(SELECT object_id('CategoriesRead', 'P')) IS NULL
@@ -1052,7 +1544,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -1880,7 +2372,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -2588,7 +3080,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -3314,7 +3806,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -4032,7 +4524,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -4143,7 +4635,7 @@ CREATE TABLE [dbo].[Menus](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Menus] ADD CONSTRAINT PK_Menus PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Menus_System_Sequence] ON [dbo].[Menus]([SystemId] ASC,[Sequence] ASC)
+CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Sequence] ON [dbo].[Menus]([SystemId] ASC,[Sequence] ASC)
 GO
 /**********************************************************************************
 Criar procedure MenusCreate
@@ -4302,12 +4794,16 @@ IF @W_ParentMenuId IS NOT NULL AND @W_ParentMenuId > CAST('9007199254740990' AS 
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentMenuId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
+IF @W_ParentMenuId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_ParentMenuId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ParentMenuId não existe em Menus';
+THROW 51000, @ErrorMessage, 1
+END
 IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_Id) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Menus.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Menus_System_Sequence já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Menus_SystemId_Sequence já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 INSERT INTO [dbo].[Menus] ([Id]
@@ -4495,12 +4991,16 @@ IF @W_ParentMenuId IS NOT NULL AND @W_ParentMenuId > CAST('9007199254740990' AS 
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentMenuId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
+IF @W_ParentMenuId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_ParentMenuId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ParentMenuId não existe em Menus';
+THROW 51000, @ErrorMessage, 1
+END
 IF NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_Id) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Menus.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Menus_System_Sequence já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Menus_SystemId_Sequence já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 UPDATE [dbo].[Menus]
@@ -4751,7 +5251,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -4818,8 +5318,12 @@ IF @W_ParentMenuId IS NOT NULL AND @W_ParentMenuId > CAST('9007199254740990' AS 
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentMenuId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
+IF @W_ParentMenuId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_ParentMenuId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ParentMenuId não existe em Menus';
+THROW 51000, @ErrorMessage, 1
+END
 IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Menus_System_Sequence já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Menus_SystemId_Sequence já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 SELECT [Action] AS [_]
@@ -5460,7 +5964,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -5577,7 +6081,7 @@ CREATE TABLE [dbo].[SystemsUsers](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[SystemsUsers] ADD CONSTRAINT PK_SystemsUsers PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_SystemsUsers_System_User] ON [dbo].[SystemsUsers]([SystemId] ASC,[UserId] ASC)
+CREATE UNIQUE INDEX [UNQ_SystemsUsers_SystemId_UserId] ON [dbo].[SystemsUsers]([SystemId] ASC,[UserId] ASC)
 CREATE UNIQUE INDEX [UNQ_SystemsUsers_Description] ON [dbo].[SystemsUsers]([Description] ASC)
 GO
 /**********************************************************************************
@@ -5718,6 +6222,10 @@ IF @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de UserId não existe em Users';
+THROW 51000, @ErrorMessage, 1
+END
 IF @W_Description IS NULL BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
 THROW 51000, @ErrorMessage, 1
@@ -5727,7 +6235,7 @@ SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela System
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsUsers_System_User já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsUsers_SystemId_UserId já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Description] = @W_Description) BEGIN
@@ -5894,6 +6402,10 @@ IF @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de UserId não existe em Users';
+THROW 51000, @ErrorMessage, 1
+END
 IF @W_Description IS NULL BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
 THROW 51000, @ErrorMessage, 1
@@ -5903,7 +6415,7 @@ SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Syste
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsUsers_System_User já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsUsers_SystemId_UserId já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Description] = @W_Description) BEGIN
@@ -6155,7 +6667,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -6203,12 +6715,16 @@ IF @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de UserId não existe em Users';
+THROW 51000, @ErrorMessage, 1
+END
 IF @W_Description IS NULL BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsUsers_System_User já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsUsers_SystemId_UserId já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Description] = @W_Description) BEGIN
@@ -6862,7 +7378,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -6990,7 +7506,7 @@ CREATE TABLE [dbo].[SystemsDatabases](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[SystemsDatabases] ADD CONSTRAINT PK_SystemsDatabases PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_SystemsDatabases_System_Database] ON [dbo].[SystemsDatabases]([SystemId] ASC,[DatabaseId] ASC)
+CREATE UNIQUE INDEX [UNQ_SystemsDatabases_SystemId_DatabaseId] ON [dbo].[SystemsDatabases]([SystemId] ASC,[DatabaseId] ASC)
 CREATE UNIQUE INDEX [UNQ_SystemsDatabases_Description] ON [dbo].[SystemsDatabases]([Description] ASC)
 GO
 /**********************************************************************************
@@ -7144,7 +7660,7 @@ SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela System
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsDatabases_System_Database já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsDatabases_SystemId_DatabaseId já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Description] = @W_Description) BEGIN
@@ -7324,7 +7840,7 @@ SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Syste
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsDatabases_System_Database já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsDatabases_SystemId_DatabaseId já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Description] = @W_Description) BEGIN
@@ -7576,7 +8092,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -7633,7 +8149,7 @@ SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsDatabases_System_Database já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsDatabases_SystemId_DatabaseId já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Description] = @W_Description) BEGIN
@@ -7846,8 +8362,8 @@ IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId > CAST('9007199254740990' A
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentTableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF @W_ParentTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_ParentTableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId não existe em SystemsDatabases';
+IF @W_ParentTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ParentTableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId não existe em Tables';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_IsPaged IS NULL BEGIN
@@ -8054,8 +8570,8 @@ IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId > CAST('9007199254740990' A
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentTableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF @W_ParentTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_ParentTableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId não existe em SystemsDatabases';
+IF @W_ParentTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ParentTableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId não existe em Tables';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_IsPaged IS NULL BEGIN
@@ -8339,7 +8855,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -8387,8 +8903,8 @@ IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId > CAST('9007199254740990' A
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentTableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF @W_ParentTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_ParentTableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId não existe em SystemsDatabases';
+IF @W_ParentTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ParentTableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId não existe em Tables';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_IsPaged IS NULL BEGIN
@@ -8497,7 +9013,7 @@ CREATE TABLE [dbo].[DatabasesTables](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[DatabasesTables] ADD CONSTRAINT PK_DatabasesTables PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_DatabasesTables_Database_Table] ON [dbo].[DatabasesTables]([DatabaseId] ASC,[TableId] ASC)
+CREATE UNIQUE INDEX [UNQ_DatabasesTables_DatabaseId_TableId] ON [dbo].[DatabasesTables]([DatabaseId] ASC,[TableId] ASC)
 CREATE UNIQUE INDEX [UNQ_DatabasesTables_Description] ON [dbo].[DatabasesTables]([Description] ASC)
 GO
 /**********************************************************************************
@@ -8651,7 +9167,7 @@ SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Databa
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId AND [TableId] = @W_TableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_DatabasesTables_Database_Table já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_DatabasesTables_DatabaseId_TableId já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Description] = @W_Description) BEGIN
@@ -8831,7 +9347,7 @@ SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Datab
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId AND [TableId] = @W_TableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_DatabasesTables_Database_Table já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_DatabasesTables_DatabaseId_TableId já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Description] = @W_Description) BEGIN
@@ -9083,7 +9599,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -9140,7 +9656,7 @@ SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId AND [TableId] = @W_TableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_DatabasesTables_Database_Table já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_DatabasesTables_DatabaseId_TableId já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Description] = @W_Description) BEGIN
@@ -9204,6 +9720,7 @@ CREATE TABLE [dbo].[Columns](
 ,[Description] varchar(50) NOT NULL
 ,[Title] varchar(25) NOT NULL
 ,[Caption] varchar(25) NOT NULL
+,[ValidValues] varchar(MAX) NULL
 ,[Default] sql_variant NULL
 ,[Minimum] sql_variant NULL
 ,[Maximum] sql_variant NULL
@@ -9221,8 +9738,8 @@ CREATE TABLE [dbo].[Columns](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Columns] ADD CONSTRAINT PK_Columns PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Columns_Table_Name] ON [dbo].[Columns]([TableId] ASC,[Name] ASC)
-CREATE UNIQUE INDEX [UNQ_Columns_Table_Sequence] ON [dbo].[Columns]([TableId] ASC,[Sequence] ASC)
+CREATE UNIQUE INDEX [UNQ_Columns_TableId_Name] ON [dbo].[Columns]([TableId] ASC,[Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Columns_TableId_Sequence] ON [dbo].[Columns]([TableId] ASC,[Sequence] ASC)
 GO
 /**********************************************************************************
 Criar procedure ColumnsCreate
@@ -9327,6 +9844,7 @@ DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
 ,@W_Title varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
 ,@W_Caption varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
+,@W_ValidValues varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
 ,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
 ,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
 ,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
@@ -9363,8 +9881,8 @@ IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_TableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em SystemsDatabases';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_Sequence IS NULL BEGIN
@@ -9391,8 +9909,8 @@ IF @W_DomainId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @DomainId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_DomainId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId não existe em Types';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId não existe em Domains';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS bigint) BEGIN
@@ -9403,8 +9921,8 @@ IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('9007199254740
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ReferenceTableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF @W_ReferenceTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_ReferenceTableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId não existe em SystemsDatabases';
+IF @W_ReferenceTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ReferenceTableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId não existe em Tables';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_Name IS NULL BEGIN
@@ -9436,11 +9954,11 @@ SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Column
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_Table_Name já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_TableId_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_Table_Sequence já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_TableId_Sequence já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 INSERT INTO [dbo].[Columns] ([Id]
@@ -9452,6 +9970,7 @@ INSERT INTO [dbo].[Columns] ([Id]
 ,[Description]
 ,[Title]
 ,[Caption]
+,[ValidValues]
 ,[Default]
 ,[Minimum]
 ,[Maximum]
@@ -9476,6 +9995,7 @@ VALUES (@W_Id
 ,@W_Description
 ,@W_Title
 ,@W_Caption
+,@W_ValidValues
 ,@W_Default
 ,@W_Minimum
 ,@W_Maximum
@@ -9602,6 +10122,7 @@ DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
 ,@W_Title varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
 ,@W_Caption varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
+,@W_ValidValues varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
 ,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
 ,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
 ,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
@@ -9638,8 +10159,8 @@ IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_TableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em SystemsDatabases';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_Sequence IS NULL BEGIN
@@ -9666,8 +10187,8 @@ IF @W_DomainId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @DomainId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_DomainId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId não existe em Types';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId não existe em Domains';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS bigint) BEGIN
@@ -9678,8 +10199,8 @@ IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('9007199254740
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ReferenceTableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF @W_ReferenceTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_ReferenceTableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId não existe em SystemsDatabases';
+IF @W_ReferenceTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ReferenceTableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId não existe em Tables';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_Name IS NULL BEGIN
@@ -9711,11 +10232,11 @@ SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Colum
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_Table_Name já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_TableId_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_Table_Sequence já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_TableId_Sequence já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 UPDATE [dbo].[Columns]
@@ -9727,6 +10248,7 @@ SET [TableId] = @W_TableId
 ,[Description] = @W_Description
 ,[Title] = @W_Title
 ,[Caption] = @W_Caption
+,[ValidValues] = @W_ValidValues
 ,[Default] = @W_Default
 ,[Minimum] = @W_Minimum
 ,[Maximum] = @W_Maximum
@@ -9980,7 +10502,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -9993,6 +10515,7 @@ DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
 ,@W_Title varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
 ,@W_Caption varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
+,@W_ValidValues varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
 ,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
 ,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
 ,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
@@ -10029,8 +10552,8 @@ IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_TableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em SystemsDatabases';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_Sequence IS NULL BEGIN
@@ -10057,8 +10580,8 @@ IF @W_DomainId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @DomainId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_DomainId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId não existe em Types';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId não existe em Domains';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS bigint) BEGIN
@@ -10069,8 +10592,8 @@ IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('9007199254740
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ReferenceTableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF @W_ReferenceTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_ReferenceTableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId não existe em SystemsDatabases';
+IF @W_ReferenceTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ReferenceTableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId não existe em Tables';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_Name IS NULL BEGIN
@@ -10098,11 +10621,11 @@ SET @ErrorMessage = @ErrorMessage + 'Valor de IsCalculated é requerido.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_Table_Name já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_TableId_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_Table_Sequence já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_TableId_Sequence já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 SELECT [Action] AS [_]
@@ -10115,6 +10638,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([ActualRecord], 'Description') AS varchar(50)) AS [Description]
 ,CAST(JSON_VALUE([ActualRecord], 'Title') AS varchar(25)) AS [Title]
 ,CAST(JSON_VALUE([ActualRecord], 'Caption') AS varchar(25)) AS [Caption]
+,CAST(JSON_VALUE([ActualRecord], 'ValidValues') AS varchar(MAX)) AS [ValidValues]
 ,CAST(JSON_VALUE([ActualRecord], 'Default') AS sql_variant) AS [Default]
 ,CAST(JSON_VALUE([ActualRecord], 'Minimum') AS sql_variant) AS [Minimum]
 ,CAST(JSON_VALUE([ActualRecord], 'Maximum') AS sql_variant) AS [Maximum]
@@ -10142,6 +10666,7 @@ SELECT [Id]
 ,[Description]
 ,[Title]
 ,[Caption]
+,[ValidValues]
 ,[Default]
 ,[Minimum]
 ,[Maximum]
@@ -10184,6 +10709,7 @@ INSERT [dbo].[#Columns] SELECT [Id]
 ,[Description]
 ,[Title]
 ,[Caption]
+,[ValidValues]
 ,[Default]
 ,[Minimum]
 ,[Maximum]
@@ -10223,7 +10749,7 @@ CREATE TABLE [dbo].[Indexes](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Indexes] ADD CONSTRAINT PK_Indexes PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Indexes_Database_Name] ON [dbo].[Indexes]([DatabaseId] ASC,[Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Indexes_DatabaseId_Name] ON [dbo].[Indexes]([DatabaseId] ASC,[Name] ASC)
 GO
 /**********************************************************************************
 Criar procedure IndexesCreate
@@ -10348,8 +10874,8 @@ IF @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Id] = @W_DatabaseId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em SystemsUsers';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em Databases';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_TableId IS NULL BEGIN
@@ -10364,8 +10890,8 @@ IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_TableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em SystemsDatabases';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_Name IS NULL BEGIN
@@ -10381,7 +10907,7 @@ SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Indexe
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId AND [Name] = @W_Name) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexes_Database_Name já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexes_DatabaseId_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 INSERT INTO [dbo].[Indexes] ([Id]
@@ -10531,8 +11057,8 @@ IF @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Id] = @W_DatabaseId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em SystemsUsers';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em Databases';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_TableId IS NULL BEGIN
@@ -10547,8 +11073,8 @@ IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_TableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em SystemsDatabases';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_Name IS NULL BEGIN
@@ -10564,7 +11090,7 @@ SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Index
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId AND [Name] = @W_Name) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexes_Database_Name já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexes_DatabaseId_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 UPDATE [dbo].[Indexes]
@@ -10813,7 +11339,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -10846,8 +11372,8 @@ IF @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Id] = @W_DatabaseId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em SystemsUsers';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em Databases';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_TableId IS NULL BEGIN
@@ -10862,8 +11388,8 @@ IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_TableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em SystemsDatabases';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_Name IS NULL BEGIN
@@ -10875,7 +11401,7 @@ SET @ErrorMessage = @ErrorMessage + 'Valor de IsUnique é requerido.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId AND [Name] = @W_Name) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexes_Database_Name já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexes_DatabaseId_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 SELECT [Action] AS [_]
@@ -10939,8 +11465,8 @@ CREATE TABLE [dbo].[Indexkeys](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Indexkeys] ADD CONSTRAINT PK_Indexkeys PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Indexkeys_Index_Sequence] ON [dbo].[Indexkeys]([IndexId] ASC,[Sequence] ASC)
-CREATE UNIQUE INDEX [UNQ_Indexkeys_Index_Column] ON [dbo].[Indexkeys]([IndexId] ASC,[ColumnId] ASC)
+CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_Sequence] ON [dbo].[Indexkeys]([IndexId] ASC,[Sequence] ASC)
+CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_Column] ON [dbo].[Indexkeys]([IndexId] ASC,[ColumnId] ASC)
 GO
 /**********************************************************************************
 Criar procedure IndexkeysCreate
@@ -11065,8 +11591,8 @@ IF @W_IndexId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @IndexId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_IndexId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId não existe em DatabasesTables';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId não existe em Indexes';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_Sequence IS NULL BEGIN
@@ -11093,8 +11619,8 @@ IF @W_ColumnId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ColumnId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ColumnId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId não existe em Tables';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId não existe em Columns';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_IsDescending IS NULL BEGIN
@@ -11106,11 +11632,11 @@ SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Indexk
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_Index_Sequence já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_IndexId_Sequence já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_Index_Column já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_IndexId_Column já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 INSERT INTO [dbo].[Indexkeys] ([Id]
@@ -11260,8 +11786,8 @@ IF @W_IndexId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @IndexId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_IndexId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId não existe em DatabasesTables';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId não existe em Indexes';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_Sequence IS NULL BEGIN
@@ -11288,8 +11814,8 @@ IF @W_ColumnId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ColumnId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ColumnId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId não existe em Tables';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId não existe em Columns';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_IsDescending IS NULL BEGIN
@@ -11301,11 +11827,11 @@ SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Index
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_Index_Sequence já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_IndexId_Sequence já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_Index_Column já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_IndexId_Column já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 UPDATE [dbo].[Indexkeys]
@@ -11554,7 +12080,7 @@ END
 DECLARE @PageNumber INT --OUT
 ,@LimitRows BIGINT --OUT
 ,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
+,@PaddingBrowseLastPage BIT --OUT
 ,@RowCount BIGINT
 ,@LoginId BIGINT
 ,@OffSet INT
@@ -11587,8 +12113,8 @@ IF @W_IndexId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @IndexId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_IndexId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId não existe em DatabasesTables';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId não existe em Indexes';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_Sequence IS NULL BEGIN
@@ -11615,8 +12141,8 @@ IF @W_ColumnId > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ColumnId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ColumnId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId não existe em Tables';
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId não existe em Columns';
 THROW 51000, @ErrorMessage, 1
 END
 IF @W_IsDescending IS NULL BEGIN
@@ -11624,11 +12150,11 @@ SET @ErrorMessage = @ErrorMessage + 'Valor de IsDescending é requerido.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_Index_Sequence já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_IndexId_Sequence já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_Index_Column já existe.';
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_IndexId_Column já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 SELECT [Action] AS [_]
@@ -11686,590 +12212,13 @@ CREATE TABLE [dbo].[Logins](
 ,[SystemId] bigint NOT NULL
 ,[UserId] bigint NOT NULL
 ,[PublicKey] varchar(256) NOT NULL
-,[Logged] bit NOT NULL
+,[IsLogged] bit NOT NULL
 ,[CreatedAt] datetime NOT NULL
 ,[CreatedBy] varchar(25) NOT NULL
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Logins] ADD CONSTRAINT PK_Logins PRIMARY KEY CLUSTERED ([Id])
-CREATE INDEX [UNQ_Logs_System_User_Logged] ON [dbo].[Logins]([SystemId] ASC,[UserId] ASC,[PublicKey] ASC)
-GO
-/**********************************************************************************
-Criar procedure LoginsCreate
-**********************************************************************************/
-IF(SELECT object_id('LoginsCreate', 'P')) IS NULL
-EXEC('CREATE PROCEDURE [dbo].[LoginsCreate] AS PRINT 1')
-GO
-ALTER PROCEDURE[dbo].[LoginsCreate](@Parameters VARCHAR(MAX)) AS
-BEGIN
-BEGIN TRY
-SET NOCOUNT ON
-SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-BEGIN TRANSACTION
-DECLARE @ErrorMessage VARCHAR(255)
-IF ISJSON(@Parameters) = 0 BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
-THROW 51000, @ErrorMessage, 1
-END
-DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
-IF ISJSON(@Login) = 0 BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
-THROW 51000, @ErrorMessage, 1
-END
-EXEC [dbo].[P_Login] @Login
-DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
-,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
-,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
-,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
-,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
-,@TransactionId BIGINT
-,@TableId BIGINT
-,@Action VARCHAR(15)
-,@ActualRecord VARCHAR(MAX)
-,@IsConfirmed BIT
-SELECT @TransactionId = [TransactionId]
-,@TableId = [TableId]
-,@Action = [Action]
-,@ActualRecord = [ActualRecord]
-,@IsConfirmed = [IsConfirmed]
-FROM [dbo].[Operations]
-WHERE [Id] = @OperationId
-IF @@ROWCOUNT = 0 BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @Action <> 'create' BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Operação não é de inclusão.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @IsConfirmed IS NOT NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
-CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
-THROW 51000, @ErrorMessage, 1
-END
-IF (SELECT [Name]
-FROM [dbo].[Tables]
-WHERE [Id] = @TableId) <> @TableName BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
-THROW 51000, @ErrorMessage, 1
-END
-DECLARE @SystemId BIGINT
-,@DatabaseId BIGINT
-SELECT @SystemId = [SystemId]
-,@DatabaseId = [DatabaseId]
-,@IsConfirmed = [IsConfirmed]
-FROM [dbo].[Transactions]
-WHERE [Id] = @TransactionId
-IF @@ROWCOUNT = 0 BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @IsConfirmed IS NOT NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
-CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
-THROW 51000, @ErrorMessage, 1
-END
-IF (SELECT [Name]
-FROM [dbo].[Systems]
-WHERE [Id] = @SystemId) <> @SystemName BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
-THROW 51000, @ErrorMessage, 1
-END
-IF (SELECT [Name]
-FROM [dbo].[Databases]
-WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
-THROW 51000, @ErrorMessage, 1
-END
-IF NOT EXISTS(SELECT 1
-FROM [dbo].[DatabasesTables]
-WHERE [DatabaseId] = @DatabaseId
-AND [TableId] = @TableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
-THROW 51000, @ErrorMessage, 1
-END
-DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-,@W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
-,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
-,@W_PublicKey varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS varchar(256))
-,@W_Logged bit = CAST(JSON_VALUE(@ActualRecord, '$.Logged') AS bit)
-IF @W_Id IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_Id < CAST('1' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_SystemId IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_SystemId < CAST('1' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser maior que ou igual à ''1''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser menor que ou igual à ''9007199254740990''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_SystemId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId não existe em Domains';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_UserId IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de UserId é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_UserId < CAST('1' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser maior que ou igual à ''1''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser menor que ou igual à ''9007199254740990''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de UserId não existe em Users';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_PublicKey IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de PublicKey é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_PublicKey < CAST('1' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @PublicKey deve ser maior que ou igual à ''1''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_Logged IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de Logged é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF EXISTS(SELECT 1 FROM [dbo].[Logins] WHERE [Id] = @W_Id) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Logins.';
-THROW 51000, @ErrorMessage, 1
-END
-IF EXISTS(SELECT 1 FROM [dbo].[Logins] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId AND [PublicKey] = @W_PublicKey) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Logs_System_User_Logged já existe.';
-THROW 51000, @ErrorMessage, 1
-END
-INSERT INTO [dbo].[Logins] ([Id]
-,[SystemId]
-,[UserId]
-,[PublicKey]
-,[Logged]
-,[CreatedAt]
-,[CreatedBy]
-)
-VALUES (@W_Id
-,@W_SystemId
-,@W_UserId
-,@W_PublicKey
-,@W_Logged
-,GETDATE()
-,@UserName
-)
-UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
-RETURN 1
-END TRY
-BEGIN CATCH
-THROW
-END CATCH
-END
-GO
-/**********************************************************************************
-Criar procedure LoginsUpdate
-**********************************************************************************/
-IF(SELECT object_id('LoginsUpdate', 'P')) IS NULL
-EXEC('CREATE PROCEDURE [dbo].[LoginsUpdate] AS PRINT 1')
-GO
-ALTER PROCEDURE[dbo].[LoginsUpdate](@Parameters VARCHAR(MAX)) AS
-BEGIN
-BEGIN TRY
-SET NOCOUNT ON
-SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-BEGIN TRANSACTION
-DECLARE @ErrorMessage VARCHAR(255)
-IF ISJSON(@Parameters) = 0 BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
-THROW 51000, @ErrorMessage, 1
-END
-DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
-IF ISJSON(@Login) = 0 BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
-THROW 51000, @ErrorMessage, 1
-END
-EXEC [dbo].[P_Login] @Login
-DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
-,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
-,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
-,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
-,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
-,@TransactionId BIGINT
-,@TableId BIGINT
-,@Action VARCHAR(15)
-,@ActualRecord VARCHAR(MAX)
-,@IsConfirmed BIT
-SELECT @TransactionId = [TransactionId]
-,@TableId = [TableId]
-,@Action = [Action]
-,@ActualRecord = [ActualRecord]
-,@IsConfirmed = [IsConfirmed]
-FROM [dbo].[Operations]
-WHERE [Id] = @OperationId
-IF @@ROWCOUNT = 0 BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @Action <> 'update' BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Operação não é de alteração.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @IsConfirmed IS NOT NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
-CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
-THROW 51000, @ErrorMessage, 1
-END
-IF (SELECT [Name]
-FROM [dbo].[Tables]
-WHERE [Id] = @TableId) <> @TableName BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
-THROW 51000, @ErrorMessage, 1
-END
-DECLARE @SystemId BIGINT
-,@DatabaseId BIGINT
-SELECT @SystemId = [SystemId]
-,@DatabaseId = [DatabaseId]
-,@IsConfirmed = [IsConfirmed]
-FROM [dbo].[Transactions]
-WHERE [Id] = @TransactionId
-IF @@ROWCOUNT = 0 BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @IsConfirmed IS NOT NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
-CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
-THROW 51000, @ErrorMessage, 1
-END
-IF (SELECT [Name]
-FROM [dbo].[Systems]
-WHERE [Id] = @SystemId) <> @SystemName BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
-THROW 51000, @ErrorMessage, 1
-END
-IF (SELECT [Name]
-FROM [dbo].[Databases]
-WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
-THROW 51000, @ErrorMessage, 1
-END
-IF NOT EXISTS(SELECT 1
-FROM [dbo].[DatabasesTables]
-WHERE [DatabaseId] = @DatabaseId
-AND [TableId] = @TableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
-THROW 51000, @ErrorMessage, 1
-END
-DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-,@W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
-,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
-,@W_PublicKey varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS varchar(256))
-,@W_Logged bit = CAST(JSON_VALUE(@ActualRecord, '$.Logged') AS bit)
-IF @W_Id IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_Id < CAST('1' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_SystemId IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_SystemId < CAST('1' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser maior que ou igual à ''1''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser menor que ou igual à ''9007199254740990''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_SystemId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId não existe em Domains';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_UserId IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de UserId é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_UserId < CAST('1' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser maior que ou igual à ''1''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser menor que ou igual à ''9007199254740990''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de UserId não existe em Users';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_PublicKey IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de PublicKey é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_PublicKey < CAST('1' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @PublicKey deve ser maior que ou igual à ''1''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_Logged IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de Logged é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Logins] WHERE [Id] = @W_Id) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Logins.';
-THROW 51000, @ErrorMessage, 1
-END
-IF EXISTS(SELECT 1 FROM [dbo].[Logins] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId AND [PublicKey] = @W_PublicKey) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Logs_System_User_Logged já existe.';
-THROW 51000, @ErrorMessage, 1
-END
-UPDATE [dbo].[Logins]
-SET [SystemId] = @W_SystemId
-,[UserId] = @W_UserId
-,[PublicKey] = @W_PublicKey
-,[Logged] = @W_Logged
-,[UpdatedAt] = GETDATE()
-,[UpdatedBy] = @UserName
-WHERE [Id] = @W_Id
-UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
-RETURN 1
-END TRY
-BEGIN CATCH
-THROW
-END CATCH
-END
-GO
-/**********************************************************************************
-Criar procedure LoginsRead
-**********************************************************************************/
-IF(SELECT object_id('LoginsRead', 'P')) IS NULL
-EXEC('CREATE PROCEDURE [dbo].[LoginsRead] AS PRINT 1')
-GO
-ALTER PROCEDURE[dbo].[LoginsRead](@Parameters VARCHAR(MAX)) AS
-BEGIN
-BEGIN TRY
-SET NOCOUNT ON
-SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-BEGIN TRANSACTION
-DECLARE @ErrorMessage VARCHAR(255)
-IF ISJSON(@Parameters) = 0 BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
-THROW 51000, @ErrorMessage, 1
-END
-DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
-IF ISJSON(@Login) = 0 BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
-THROW 51000, @ErrorMessage, 1
-END
-EXEC [dbo].[P_Login] @Login
-DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
-,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
-,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
-,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
-,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
-,@TransactionId BIGINT
-,@TableId BIGINT
-,@Action VARCHAR(15)
-,@ActualRecord VARCHAR(MAX)
-,@IsConfirmed BIT
-SELECT @TransactionId = [TransactionId]
-,@TableId = [TableId]
-,@Action = [Action]
-,@ActualRecord = [ActualRecord]
-,@IsConfirmed = [IsConfirmed]
-FROM [dbo].[Operations]
-WHERE [Id] = @OperationId
-IF @@ROWCOUNT = 0 BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @Action <> 'read' BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Operação não é de consulta.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @IsConfirmed IS NOT NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
-CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
-THROW 51000, @ErrorMessage, 1
-END
-IF (SELECT [Name]
-FROM [dbo].[Tables]
-WHERE [Id] = @TableId) <> @TableName BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
-THROW 51000, @ErrorMessage, 1
-END
-DECLARE @SystemId BIGINT
-,@DatabaseId BIGINT
-SELECT @SystemId = [SystemId]
-,@DatabaseId = [DatabaseId]
-,@IsConfirmed = [IsConfirmed]
-FROM [dbo].[Transactions]
-WHERE [Id] = @TransactionId
-IF @@ROWCOUNT = 0 BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @IsConfirmed IS NOT NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
-CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
-THROW 51000, @ErrorMessage, 1
-END
-IF (SELECT [Name]
-FROM [dbo].[Systems]
-WHERE [Id] = @SystemId) <> @SystemName BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
-THROW 51000, @ErrorMessage, 1
-END
-IF (SELECT [Name]
-FROM [dbo].[Databases]
-WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
-THROW 51000, @ErrorMessage, 1
-END
-IF NOT EXISTS(SELECT 1
-FROM [dbo].[DatabasesTables]
-WHERE [DatabaseId] = @DatabaseId
-AND [TableId] = @TableId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
-THROW 51000, @ErrorMessage, 1
-END
-DECLARE @PageNumber INT --OUT
-,@LimitRows BIGINT --OUT
-,@MaxPage INT --OUT
-,@PaddingGridLastPage BIT --OUT
-,@RowCount BIGINT
-,@LoginId BIGINT
-,@OffSet INT
-DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-,@W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
-,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
-,@W_PublicKey varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS varchar(256))
-,@W_Logged bit = CAST(JSON_VALUE(@ActualRecord, '$.Logged') AS bit)
-IF @W_Id IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_Id < CAST('1' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_SystemId IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_SystemId < CAST('1' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser maior que ou igual à ''1''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser menor que ou igual à ''9007199254740990''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_SystemId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId não existe em Domains';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_UserId IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de UserId é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_UserId < CAST('1' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser maior que ou igual à ''1''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser menor que ou igual à ''9007199254740990''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de UserId não existe em Users';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_PublicKey IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de PublicKey é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_PublicKey < CAST('1' AS bigint) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de @PublicKey deve ser maior que ou igual à ''1''.';
-THROW 51000, @ErrorMessage, 1
-END
-IF @W_Logged IS NULL BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Valor de Logged é requerido.';
-THROW 51000, @ErrorMessage, 1
-END
-IF EXISTS(SELECT 1 FROM [dbo].[Logins] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId AND [PublicKey] = @W_PublicKey) BEGIN
-SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Logs_System_User_Logged já existe.';
-THROW 51000, @ErrorMessage, 1
-END
-SELECT [Action] AS [_]
-,CAST(JSON_VALUE([ActualRecord], 'Id') AS bigint) AS [Id]
-,CAST(JSON_VALUE([ActualRecord], 'SystemId') AS bigint) AS [SystemId]
-,CAST(JSON_VALUE([ActualRecord], 'UserId') AS bigint) AS [UserId]
-,CAST(JSON_VALUE([ActualRecord], 'PublicKey') AS varchar(256)) AS [PublicKey]
-,CAST(JSON_VALUE([ActualRecord], 'Logged') AS bit) AS [Logged]
-INTO [dbo].[#Operations]
-FROM [dbo].[Operations]
-WHERE [TransactionId] = @TransactionId
-AND [TableId] = @TableId
-AND [IsConfirmed] IS NULL
-CREATE INDEX [#IDX_Operations] ON [dbo].[#Operations]([_], [Id])
-SELECT [Id]
-,[SystemId]
-,[UserId]
-,[PublicKey]
-,[Logged]
-INTO[dbo].[#Logins]
-FROM [dbo].[Logins]
-WHERE [Id] = ISNULL(@W_Id, [Id])
-AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
-AND [UserId] = ISNULL(@W_UserId, [UserId])
-AND [Logged] = ISNULL(@W_Logged, [Logged])
-SET @RowCount = @@ROWCOUNT
-DELETE [Logins]
-FROM [dbo].[#Operations] [Operations]
-INNER JOIN [dbo].[#Logins] [Logins] ON [Logins].[Id] = [Operations].[Id]
-WHERE [Operations].[_] = 'delete'
-SET @RowCount = @RowCount - @@ROWCOUNT
-INSERT [dbo].[#Logins] SELECT [Id]
-,[SystemId]
-,[UserId]
-,[PublicKey]
-,[Logged]
-FROM [dbo].[#Operations]
-WHERE [_] = 'create'
-SET @RowCount = @RowCount + @@ROWCOUNT
-UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
-RETURN 1
-END TRY
-BEGIN CATCH
-THROW
-END CATCH
-END
+CREATE INDEX [UNQ_Logins_SystemId_UserId_IsLogged] ON [dbo].[Logins]([SystemId] ASC,[UserId] ASC,[IsLogged] ASC)
 GO
 /**********************************************************************************
 Criar tabela Transactions
@@ -12279,6 +12228,7 @@ DROP TABLE [dbo].[Transactions]
 CREATE TABLE [dbo].[Transactions](
 [Id] bigint NOT NULL
 ,[LoginId] bigint NOT NULL
+,[SystemId] bigint NOT NULL
 ,[DatabaseId] bigint NOT NULL
 ,[IsConfirmed] bit NULL
 ,[CreatedAt] datetime NOT NULL
@@ -12286,7 +12236,27 @@ CREATE TABLE [dbo].[Transactions](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED ([Id])
-CREATE INDEX [UNQ_Transactions_Log_Table_Primarykey] ON [dbo].[Transactions]([LoginId] ASC,[DatabaseId] ASC,[IsConfirmed] ASC)
+CREATE INDEX [UNQ_Transactions_LoginId_SystemId_DatabaseId] ON [dbo].[Transactions]([LoginId] ASC,[SystemId] ASC,[DatabaseId] ASC)
+GO
+/**********************************************************************************
+Criar tabela Operations
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Operations]', 'U')) IS NOT NULL
+DROP TABLE [dbo].[Operations]
+CREATE TABLE [dbo].[Operations](
+[Id] bigint NOT NULL
+,[TransactionId] bigint NOT NULL
+,[TableId] bigint NOT NULL
+,[Action] varchar(15) NOT NULL
+,[LastRecord] varchar(MAX) NULL
+,[ActualRecord] varchar(MAX) NOT NULL
+,[IsConfirmed] bit NULL
+,[CreatedAt] datetime NOT NULL
+,[CreatedBy] varchar(25) NOT NULL
+,[UpdatedAt] datetime NULL
+,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED ([Id])
+CREATE INDEX [UNQ_Operations_TransactionId_TableId_Action] ON [dbo].[Operations]([TransactionId] ASC,[TableId] ASC,[Action] ASC)
 GO
 /**********************************************************************************
 Criar referências de Types)
@@ -12325,6 +12295,13 @@ ALTER TABLE [dbo].[Menus] WITH CHECK ADD CONSTRAINT [FK_Menus_Systems] FOREIGN K
 GO
 ALTER TABLE [dbo].[Menus] CHECK CONSTRAINT [FK_Menus_Systems]
 GO
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Menus_Menus')
+ALTER TABLE [dbo].[Menus] DROP CONSTRAINT FK_Menus_Menus
+GO
+ALTER TABLE [dbo].[Menus] WITH CHECK ADD CONSTRAINT [FK_Menus_Menus] FOREIGN KEY([ParentMenuId]) REFERENCES [dbo].[Menus] ([Id])
+GO
+ALTER TABLE [dbo].[Menus] CHECK CONSTRAINT [FK_Menus_Menus]
+GO
 /**********************************************************************************
 Criar referências de SystemsUsers)
 **********************************************************************************/
@@ -12334,6 +12311,13 @@ GO
 ALTER TABLE [dbo].[SystemsUsers] WITH CHECK ADD CONSTRAINT [FK_SystemsUsers_Systems] FOREIGN KEY([SystemId]) REFERENCES [dbo].[Systems] ([Id])
 GO
 ALTER TABLE [dbo].[SystemsUsers] CHECK CONSTRAINT [FK_SystemsUsers_Systems]
+GO
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_SystemsUsers_Users')
+ALTER TABLE [dbo].[SystemsUsers] DROP CONSTRAINT FK_SystemsUsers_Users
+GO
+ALTER TABLE [dbo].[SystemsUsers] WITH CHECK ADD CONSTRAINT [FK_SystemsUsers_Users] FOREIGN KEY([UserId]) REFERENCES [dbo].[Users] ([Id])
+GO
+ALTER TABLE [dbo].[SystemsUsers] CHECK CONSTRAINT [FK_SystemsUsers_Users]
 GO
 /**********************************************************************************
 Criar referências de SystemsDatabases)
@@ -12355,12 +12339,12 @@ GO
 /**********************************************************************************
 Criar referências de Tables)
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Tables_SystemsDatabases')
-ALTER TABLE [dbo].[Tables] DROP CONSTRAINT FK_Tables_SystemsDatabases
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Tables_Tables')
+ALTER TABLE [dbo].[Tables] DROP CONSTRAINT FK_Tables_Tables
 GO
-ALTER TABLE [dbo].[Tables] WITH CHECK ADD CONSTRAINT [FK_Tables_SystemsDatabases] FOREIGN KEY([ParentTableId]) REFERENCES [dbo].[SystemsDatabases] ([Id])
+ALTER TABLE [dbo].[Tables] WITH CHECK ADD CONSTRAINT [FK_Tables_Tables] FOREIGN KEY([ParentTableId]) REFERENCES [dbo].[Tables] ([Id])
 GO
-ALTER TABLE [dbo].[Tables] CHECK CONSTRAINT [FK_Tables_SystemsDatabases]
+ALTER TABLE [dbo].[Tables] CHECK CONSTRAINT [FK_Tables_Tables]
 GO
 /**********************************************************************************
 Criar referências de DatabasesTables)
@@ -12382,70 +12366,70 @@ GO
 /**********************************************************************************
 Criar referências de Columns)
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Columns_SystemsDatabases')
-ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_SystemsDatabases
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Columns_Tables')
+ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_Tables
 GO
-ALTER TABLE [dbo].[Columns] WITH CHECK ADD CONSTRAINT [FK_Columns_SystemsDatabases] FOREIGN KEY([TableId]) REFERENCES [dbo].[SystemsDatabases] ([Id])
+ALTER TABLE [dbo].[Columns] WITH CHECK ADD CONSTRAINT [FK_Columns_Tables] FOREIGN KEY([TableId]) REFERENCES [dbo].[Tables] ([Id])
 GO
-ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_SystemsDatabases]
+ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_Tables]
 GO
-IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Columns_Types')
-ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_Types
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Columns_Domains')
+ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_Domains
 GO
-ALTER TABLE [dbo].[Columns] WITH CHECK ADD CONSTRAINT [FK_Columns_Types] FOREIGN KEY([DomainId]) REFERENCES [dbo].[Types] ([Id])
+ALTER TABLE [dbo].[Columns] WITH CHECK ADD CONSTRAINT [FK_Columns_Domains] FOREIGN KEY([DomainId]) REFERENCES [dbo].[Domains] ([Id])
 GO
-ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_Types]
+ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_Domains]
 GO
-IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Columns_SystemsDatabases')
-ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_SystemsDatabases
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Columns_Tables')
+ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_Tables
 GO
-ALTER TABLE [dbo].[Columns] WITH CHECK ADD CONSTRAINT [FK_Columns_SystemsDatabases] FOREIGN KEY([ReferenceTableId]) REFERENCES [dbo].[SystemsDatabases] ([Id])
+ALTER TABLE [dbo].[Columns] WITH CHECK ADD CONSTRAINT [FK_Columns_Tables] FOREIGN KEY([ReferenceTableId]) REFERENCES [dbo].[Tables] ([Id])
 GO
-ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_SystemsDatabases]
+ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_Tables]
 GO
 /**********************************************************************************
 Criar referências de Indexes)
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Indexes_SystemsUsers')
-ALTER TABLE [dbo].[Indexes] DROP CONSTRAINT FK_Indexes_SystemsUsers
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Indexes_Databases')
+ALTER TABLE [dbo].[Indexes] DROP CONSTRAINT FK_Indexes_Databases
 GO
-ALTER TABLE [dbo].[Indexes] WITH CHECK ADD CONSTRAINT [FK_Indexes_SystemsUsers] FOREIGN KEY([DatabaseId]) REFERENCES [dbo].[SystemsUsers] ([Id])
+ALTER TABLE [dbo].[Indexes] WITH CHECK ADD CONSTRAINT [FK_Indexes_Databases] FOREIGN KEY([DatabaseId]) REFERENCES [dbo].[Databases] ([Id])
 GO
-ALTER TABLE [dbo].[Indexes] CHECK CONSTRAINT [FK_Indexes_SystemsUsers]
+ALTER TABLE [dbo].[Indexes] CHECK CONSTRAINT [FK_Indexes_Databases]
 GO
-IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Indexes_SystemsDatabases')
-ALTER TABLE [dbo].[Indexes] DROP CONSTRAINT FK_Indexes_SystemsDatabases
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Indexes_Tables')
+ALTER TABLE [dbo].[Indexes] DROP CONSTRAINT FK_Indexes_Tables
 GO
-ALTER TABLE [dbo].[Indexes] WITH CHECK ADD CONSTRAINT [FK_Indexes_SystemsDatabases] FOREIGN KEY([TableId]) REFERENCES [dbo].[SystemsDatabases] ([Id])
+ALTER TABLE [dbo].[Indexes] WITH CHECK ADD CONSTRAINT [FK_Indexes_Tables] FOREIGN KEY([TableId]) REFERENCES [dbo].[Tables] ([Id])
 GO
-ALTER TABLE [dbo].[Indexes] CHECK CONSTRAINT [FK_Indexes_SystemsDatabases]
+ALTER TABLE [dbo].[Indexes] CHECK CONSTRAINT [FK_Indexes_Tables]
 GO
 /**********************************************************************************
 Criar referências de Indexkeys)
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Indexkeys_DatabasesTables')
-ALTER TABLE [dbo].[Indexkeys] DROP CONSTRAINT FK_Indexkeys_DatabasesTables
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Indexkeys_Indexes')
+ALTER TABLE [dbo].[Indexkeys] DROP CONSTRAINT FK_Indexkeys_Indexes
 GO
-ALTER TABLE [dbo].[Indexkeys] WITH CHECK ADD CONSTRAINT [FK_Indexkeys_DatabasesTables] FOREIGN KEY([IndexId]) REFERENCES [dbo].[DatabasesTables] ([Id])
+ALTER TABLE [dbo].[Indexkeys] WITH CHECK ADD CONSTRAINT [FK_Indexkeys_Indexes] FOREIGN KEY([IndexId]) REFERENCES [dbo].[Indexes] ([Id])
 GO
-ALTER TABLE [dbo].[Indexkeys] CHECK CONSTRAINT [FK_Indexkeys_DatabasesTables]
+ALTER TABLE [dbo].[Indexkeys] CHECK CONSTRAINT [FK_Indexkeys_Indexes]
 GO
-IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Indexkeys_Tables')
-ALTER TABLE [dbo].[Indexkeys] DROP CONSTRAINT FK_Indexkeys_Tables
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Indexkeys_Columns')
+ALTER TABLE [dbo].[Indexkeys] DROP CONSTRAINT FK_Indexkeys_Columns
 GO
-ALTER TABLE [dbo].[Indexkeys] WITH CHECK ADD CONSTRAINT [FK_Indexkeys_Tables] FOREIGN KEY([ColumnId]) REFERENCES [dbo].[Tables] ([Id])
+ALTER TABLE [dbo].[Indexkeys] WITH CHECK ADD CONSTRAINT [FK_Indexkeys_Columns] FOREIGN KEY([ColumnId]) REFERENCES [dbo].[Columns] ([Id])
 GO
-ALTER TABLE [dbo].[Indexkeys] CHECK CONSTRAINT [FK_Indexkeys_Tables]
+ALTER TABLE [dbo].[Indexkeys] CHECK CONSTRAINT [FK_Indexkeys_Columns]
 GO
 /**********************************************************************************
 Criar referências de Logins)
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Logins_Domains')
-ALTER TABLE [dbo].[Logins] DROP CONSTRAINT FK_Logins_Domains
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Logins_Systems')
+ALTER TABLE [dbo].[Logins] DROP CONSTRAINT FK_Logins_Systems
 GO
-ALTER TABLE [dbo].[Logins] WITH CHECK ADD CONSTRAINT [FK_Logins_Domains] FOREIGN KEY([SystemId]) REFERENCES [dbo].[Domains] ([Id])
+ALTER TABLE [dbo].[Logins] WITH CHECK ADD CONSTRAINT [FK_Logins_Systems] FOREIGN KEY([SystemId]) REFERENCES [dbo].[Systems] ([Id])
 GO
-ALTER TABLE [dbo].[Logins] CHECK CONSTRAINT [FK_Logins_Domains]
+ALTER TABLE [dbo].[Logins] CHECK CONSTRAINT [FK_Logins_Systems]
 GO
 IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Logins_Users')
 ALTER TABLE [dbo].[Logins] DROP CONSTRAINT FK_Logins_Users
@@ -12464,6 +12448,13 @@ ALTER TABLE [dbo].[Transactions] WITH CHECK ADD CONSTRAINT [FK_Transactions_Logi
 GO
 ALTER TABLE [dbo].[Transactions] CHECK CONSTRAINT [FK_Transactions_Logins]
 GO
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Transactions_Systems')
+ALTER TABLE [dbo].[Transactions] DROP CONSTRAINT FK_Transactions_Systems
+GO
+ALTER TABLE [dbo].[Transactions] WITH CHECK ADD CONSTRAINT [FK_Transactions_Systems] FOREIGN KEY([SystemId]) REFERENCES [dbo].[Systems] ([Id])
+GO
+ALTER TABLE [dbo].[Transactions] CHECK CONSTRAINT [FK_Transactions_Systems]
+GO
 IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Transactions_Databases')
 ALTER TABLE [dbo].[Transactions] DROP CONSTRAINT FK_Transactions_Databases
 GO
@@ -12480,6 +12471,13 @@ GO
 ALTER TABLE [dbo].[Operations] WITH CHECK ADD CONSTRAINT [FK_Operations_Transactions] FOREIGN KEY([TransactionId]) REFERENCES [dbo].[Transactions] ([Id])
 GO
 ALTER TABLE [dbo].[Operations] CHECK CONSTRAINT [FK_Operations_Transactions]
+GO
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Operations_Tables')
+ALTER TABLE [dbo].[Operations] DROP CONSTRAINT FK_Operations_Tables
+GO
+ALTER TABLE [dbo].[Operations] WITH CHECK ADD CONSTRAINT [FK_Operations_Tables] FOREIGN KEY([TableId]) REFERENCES [dbo].[Tables] ([Id])
+GO
+ALTER TABLE [dbo].[Operations] CHECK CONSTRAINT [FK_Operations_Tables]
 GO
 /**********************************************************************************
 Inserir dados na tabela Categories
@@ -14549,7 +14547,7 @@ NULL,
 'Codification', 
 '5', 
 NULL, 
-';JSON;JS;SQL', 
+'JSON;JS;SQL', 
 NULL, 
 NULL, 
 NULL, 
@@ -14605,7 +14603,35 @@ NULL,
 'HtmlInputAlign', 
 '6', 
 NULL, 
-';left;center;right', 
+'left;center;right', 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
+GETDATE(),
+'adm')
+GO
+INSERT INTO [dbo].[Domains] (
+[Id], 
+[TypeId], 
+[MaskId], 
+[Name], 
+[Length], 
+[Decimals], 
+[ValidValues], 
+[Default], 
+[Minimum], 
+[Maximum], 
+[Codification], 
+CreatedAt,
+CreatedBy) VALUES (
+'21', 
+'33', 
+NULL, 
+'Action', 
+'15', 
+NULL, 
+'create;read;update;delete;commit;rollback', 
 NULL, 
 NULL, 
 NULL, 
@@ -14670,10 +14696,10 @@ CreatedBy) VALUES (
 '2', 
 '1', 
 '10', 
-'Tipos', 
-'Cadastro de tipos', 
-'grid/cruda/Types', 
-'7', 
+'Usuários', 
+'Cadastro de Usuários', 
+'browse/cruda/Users', 
+'1', 
 GETDATE(),
 'adm')
 GO
@@ -14690,9 +14716,9 @@ CreatedBy) VALUES (
 '3', 
 '1', 
 '15', 
-'Usuários', 
-'Cadastro de Usuários', 
-'grid/cruda/Users', 
+'Tabelas', 
+'Cadastro de tabelas', 
+'browse/cruda/Tables', 
 '1', 
 GETDATE(),
 'adm')
@@ -14709,10 +14735,10 @@ CreatedAt,
 CreatedBy) VALUES (
 '4', 
 '1', 
-'60', 
-'Tabelas', 
-'Cadastro de tabelas', 
-'grid/cruda/Tables', 
+'20', 
+'Menus', 
+'Cadastro de menus', 
+'browse/cruda/Menus', 
 '1', 
 GETDATE(),
 'adm')
@@ -14729,11 +14755,11 @@ CreatedAt,
 CreatedBy) VALUES (
 '5', 
 '1', 
-'35', 
-'Menus', 
-'Cadastro de menus', 
-'grid/cruda/Menus', 
-'1', 
+'25', 
+'Sistemas', 
+'Cadastro de sistemas', 
+'browse/cruda/Systems', 
+'3', 
 GETDATE(),
 'adm')
 GO
@@ -14749,10 +14775,10 @@ CreatedAt,
 CreatedBy) VALUES (
 '6', 
 '1', 
-'20', 
-'Sistemas', 
-'Cadastro de sistemas', 
-'grid/cruda/Systems', 
+'30', 
+'Banco de Dados', 
+'Cadastro de bancos de dados', 
+'browse/cruda/Databases', 
 '3', 
 GETDATE(),
 'adm')
@@ -14769,11 +14795,11 @@ CreatedAt,
 CreatedBy) VALUES (
 '7', 
 '1', 
-'25', 
-'Banco de Dados', 
-'Cadastro de bancos de dados', 
-'grid/cruda/Databases', 
-'3', 
+'35', 
+'Colunas', 
+'Cadastro de colunas de tabelas', 
+'browse/cruda/Columns', 
+'7', 
 GETDATE(),
 'adm')
 GO
@@ -14789,10 +14815,10 @@ CreatedAt,
 CreatedBy) VALUES (
 '8', 
 '1', 
-'30', 
-'Colunas', 
-'Cadastro de colunas de tabelas', 
-'grid/cruda/Columns', 
+'40', 
+'Tipos', 
+'Cadastro de tipos', 
+'browse/cruda/Types', 
 '7', 
 GETDATE(),
 'adm')
@@ -14809,7 +14835,7 @@ CreatedAt,
 CreatedBy) VALUES (
 '9', 
 '1', 
-'40', 
+'45', 
 'Associações', 
 'Associações entre tabelas', 
 NULL, 
@@ -14829,10 +14855,10 @@ CreatedAt,
 CreatedBy) VALUES (
 '10', 
 '1', 
-'45', 
+'50', 
 'Sistemas x BD', 
 'Associação entre sistemas e bancos de dados', 
-'grid/cruda/SystemsDatabases', 
+'browse/cruda/SystemsDatabases', 
 '9', 
 GETDATE(),
 'adm')
@@ -14849,10 +14875,10 @@ CreatedAt,
 CreatedBy) VALUES (
 '11', 
 '1', 
-'50', 
+'55', 
 'Usuários x Sistemas', 
 'Associação entre usuários e sistemas', 
-'grid/cruda/SystemsUsers', 
+'browse/cruda/SystemsUsers', 
 '9', 
 GETDATE(),
 'adm')
@@ -14869,7 +14895,7 @@ CreatedAt,
 CreatedBy) VALUES (
 '12', 
 '1', 
-'55', 
+'60', 
 'Sair', 
 'Retornar ao login', 
 'exit/login', 
@@ -15021,11 +15047,11 @@ CreatedBy) VALUES (
 'Category', 
 'Categorias de tipos de dados', 
 NULL, 
-NULL, 
+'CategoriesCreate', 
 'CategoriesRead', 
-NULL, 
-NULL, 
-NULL, 
+'CategoriesUpdate', 
+'CategoriesDelete', 
+'CategoriesList', 
 '1', 
 '10', 
 GETDATE(),
@@ -15117,7 +15143,7 @@ NULL,
 'DomainsDelete', 
 'DomainsList', 
 '1', 
-'20', 
+'21', 
 GETDATE(),
 'adm')
 GO
@@ -15207,7 +15233,7 @@ NULL,
 'UsersDelete', 
 'UsersList', 
 '1', 
-'1', 
+'2', 
 GETDATE(),
 'adm')
 GO
@@ -15237,7 +15263,7 @@ CreatedBy) VALUES (
 'SystemsUsersDelete', 
 NULL, 
 '1', 
-'1', 
+'2', 
 GETDATE(),
 'adm')
 GO
@@ -15327,7 +15353,7 @@ CreatedBy) VALUES (
 'TablesDelete', 
 'TablesList', 
 '1', 
-'17', 
+'18', 
 GETDATE(),
 'adm')
 GO
@@ -15357,7 +15383,7 @@ CreatedBy) VALUES (
 'DatabasesDelete', 
 NULL, 
 '1', 
-'17', 
+'18', 
 GETDATE(),
 'adm')
 GO
@@ -15387,7 +15413,7 @@ CreatedBy) VALUES (
 'ColumnsDelete', 
 'ColumnsList', 
 '1', 
-'134', 
+'140', 
 GETDATE(),
 'adm')
 GO
@@ -15417,7 +15443,7 @@ CreatedBy) VALUES (
 'IndexesDelete', 
 'IndexesList', 
 '1', 
-'24', 
+'25', 
 GETDATE(),
 'adm')
 GO
@@ -15447,7 +15473,7 @@ CreatedBy) VALUES (
 'IndexkeysDelete', 
 NULL, 
 '1', 
-'37', 
+'40', 
 GETDATE(),
 'adm')
 GO
@@ -15471,9 +15497,9 @@ CreatedBy) VALUES (
 'Login', 
 'Logins de Acesso aos Sistemas', 
 NULL, 
-'LoginsCreate', 
-'LoginsRead', 
-'LoginsUpdate', 
+NULL, 
+NULL, 
+NULL, 
 NULL, 
 NULL, 
 '0', 
@@ -15500,7 +15526,7 @@ CreatedBy) VALUES (
 'Transactions', 
 'Transaction', 
 'Transações em Bancos-de-Dados', 
-NULL, 
+'16', 
 NULL, 
 NULL, 
 NULL, 
@@ -15783,6 +15809,20 @@ CreatedBy) VALUES (
 GETDATE(),
 'adm')
 GO
+INSERT INTO [dbo].[DatabasesTables] (
+[Id], 
+[DatabaseId], 
+[TableId], 
+[Description], 
+CreatedAt,
+CreatedBy) VALUES (
+'18', 
+'1', 
+'18', 
+'cruda x Operations', 
+GETDATE(),
+'adm')
+GO
 /**********************************************************************************
 Inserir dados na tabela Columns
 **********************************************************************************/
@@ -15797,6 +15837,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -15820,6 +15861,7 @@ NULL,
 'Id da categoria', 
 'Categoria', 
 'Categoria', 
+NULL, 
 NULL, 
 CAST('1' AS tinyint), 
 NULL, 
@@ -15845,6 +15887,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -15871,6 +15914,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -15893,6 +15937,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -15919,6 +15964,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -15941,6 +15987,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -15967,6 +16014,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -15989,6 +16037,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16017,6 +16066,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16037,6 +16087,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16065,6 +16116,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16085,6 +16137,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16113,6 +16166,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16133,6 +16187,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16161,6 +16216,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16181,6 +16237,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16209,6 +16266,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16229,6 +16287,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16257,6 +16316,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16277,6 +16337,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16300,6 +16361,7 @@ NULL,
 'ID do tipo', 
 'ID', 
 'ID', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -16325,6 +16387,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16351,6 +16414,7 @@ CreatedBy) VALUES (
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -16373,6 +16437,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16399,6 +16464,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -16421,6 +16487,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16449,6 +16516,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -16469,6 +16537,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16497,6 +16566,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -16517,6 +16587,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16545,6 +16616,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16565,6 +16637,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16593,6 +16666,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16613,6 +16687,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16641,6 +16716,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16661,6 +16737,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16689,6 +16766,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16709,6 +16787,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16737,6 +16816,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16757,6 +16837,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16785,6 +16866,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16805,6 +16887,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16833,6 +16916,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16853,6 +16937,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16881,6 +16966,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16901,6 +16987,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16929,6 +17016,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16949,6 +17037,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -16977,6 +17066,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 NULL, 
 '1', 
@@ -16997,6 +17087,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17023,6 +17114,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '1', 
 '0', 
 '1', 
@@ -17045,6 +17137,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17071,6 +17164,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -17093,6 +17187,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17119,6 +17214,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -17141,6 +17237,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17164,6 +17261,7 @@ NULL,
 'ID do domínio', 
 'ID', 
 'ID', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -17189,6 +17287,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17212,6 +17311,7 @@ CreatedBy) VALUES (
 'ID do tipo do domínio', 
 'Tipo', 
 'Tipo', 
+NULL, 
 NULL, 
 CAST('1' AS tinyint), 
 NULL, 
@@ -17237,6 +17337,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17263,6 +17364,7 @@ CreatedBy) VALUES (
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -17285,6 +17387,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17311,6 +17414,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -17333,6 +17437,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17356,6 +17461,7 @@ NULL,
 'Tamanho do domínio', 
 'Tamanho', 
 'Tamanho', 
+NULL, 
 NULL, 
 CAST('0' AS smallint), 
 NULL, 
@@ -17381,6 +17487,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17404,6 +17511,7 @@ NULL,
 'Decimais do domínio', 
 'Decimais', 
 'Decimais', 
+NULL, 
 NULL, 
 CAST('0' AS tinyint), 
 NULL, 
@@ -17429,6 +17537,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17457,6 +17566,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -17477,6 +17587,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17505,6 +17616,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 NULL, 
@@ -17525,6 +17637,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17553,6 +17666,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 NULL, 
@@ -17573,6 +17687,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17601,6 +17716,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 NULL, 
@@ -17621,6 +17737,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17649,6 +17766,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -17669,6 +17787,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17692,6 +17811,7 @@ NULL,
 'ID do sistema', 
 'ID', 
 'ID', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -17717,6 +17837,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17743,6 +17864,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -17765,6 +17887,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17791,6 +17914,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -17813,6 +17937,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17839,6 +17964,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -17861,6 +17987,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17884,6 +18011,7 @@ NULL,
 'Máximo de tentativas de logins', 
 'Máximo de logins', 
 'Máximo de logins', 
+NULL, 
 CAST('5' AS tinyint), 
 CAST('1' AS tinyint), 
 NULL, 
@@ -17909,6 +18037,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17933,6 +18062,7 @@ NULL,
 'ID', 
 'ID', 
 NULL, 
+NULL, 
 CAST('1' AS bigint), 
 NULL, 
 '1', 
@@ -17957,6 +18087,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -17981,6 +18112,7 @@ CreatedBy) VALUES (
 'Sistema', 
 'Sistema', 
 NULL, 
+NULL, 
 CAST('1' AS bigint), 
 NULL, 
 '0', 
@@ -18005,6 +18137,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18028,6 +18161,7 @@ NULL,
 'Sequência do menu', 
 'Sequência', 
 'Sequência', 
+NULL, 
 NULL, 
 CAST('1' AS smallint), 
 NULL, 
@@ -18053,6 +18187,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18079,6 +18214,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -18101,6 +18237,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18127,6 +18264,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -18149,6 +18287,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18175,6 +18314,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -18197,6 +18337,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18215,11 +18356,12 @@ CreatedBy) VALUES (
 '6', 
 '35', 
 '1', 
-NULL, 
+'6', 
 'ParentMenuId', 
 'ID do menu-pai', 
 'Menu-pai', 
 'Menu-pai', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -18245,6 +18387,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18269,6 +18412,7 @@ NULL,
 'ID', 
 'ID', 
 NULL, 
+NULL, 
 CAST('1' AS bigint), 
 NULL, 
 '1', 
@@ -18293,6 +18437,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18319,6 +18464,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -18341,6 +18487,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18367,6 +18514,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -18389,6 +18537,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18415,6 +18564,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -18437,6 +18587,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18460,6 +18611,7 @@ NULL,
 'Tentativas de login', 
 'Tentativas de login', 
 'Tentativas de login', 
+NULL, 
 CAST('0' AS tinyint), 
 CAST('0' AS tinyint), 
 NULL, 
@@ -18485,6 +18637,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18511,6 +18664,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -18533,6 +18687,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18557,6 +18712,7 @@ NULL,
 'Sistema', 
 'Sistema', 
 NULL, 
+NULL, 
 CAST('1' AS bigint), 
 NULL, 
 '1', 
@@ -18581,6 +18737,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18605,6 +18762,7 @@ CreatedBy) VALUES (
 'ID', 
 'ID', 
 NULL, 
+NULL, 
 CAST('1' AS bigint), 
 NULL, 
 '0', 
@@ -18629,6 +18787,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18647,11 +18806,12 @@ CreatedBy) VALUES (
 '8', 
 '15', 
 '1', 
-NULL, 
+'7', 
 'UserId', 
 'ID do usuário', 
 'Usuário', 
 'Usuário', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -18677,6 +18837,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18703,6 +18864,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -18725,6 +18887,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18748,6 +18911,7 @@ NULL,
 'ID do banco-de-dados', 
 'ID', 
 'ID', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -18773,6 +18937,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18799,6 +18964,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -18821,6 +18987,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18847,6 +19014,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -18869,6 +19037,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18895,6 +19064,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -18917,6 +19087,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18943,6 +19114,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -18965,6 +19137,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -18991,6 +19164,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -19013,6 +19187,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19036,6 +19211,7 @@ NULL,
 'Porta TCP/IP do banco-de-dados', 
 'Porta TCP/IP', 
 'Porta TCP/IP', 
+NULL, 
 NULL, 
 CAST('1' AS int), 
 NULL, 
@@ -19061,6 +19237,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19087,6 +19264,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -19109,6 +19287,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19135,6 +19314,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -19157,6 +19337,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19183,6 +19364,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -19205,6 +19387,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19229,6 +19412,7 @@ NULL,
 'ID', 
 'ID', 
 NULL, 
+NULL, 
 CAST('1' AS bigint), 
 NULL, 
 '1', 
@@ -19253,6 +19437,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19277,6 +19462,7 @@ CreatedBy) VALUES (
 'Sistema', 
 'Sistema', 
 NULL, 
+NULL, 
 CAST('1' AS bigint), 
 NULL, 
 '0', 
@@ -19301,6 +19487,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19325,6 +19512,7 @@ CreatedBy) VALUES (
 'Banco-de-dados', 
 'Banco-de-dados', 
 NULL, 
+NULL, 
 CAST('1' AS bigint), 
 NULL, 
 '0', 
@@ -19349,6 +19537,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19375,6 +19564,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -19397,6 +19587,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19420,6 +19611,7 @@ NULL,
 'ID da tabela', 
 'ID', 
 'ID', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -19445,6 +19637,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19471,6 +19664,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -19493,6 +19687,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19519,6 +19714,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -19541,6 +19737,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19567,6 +19764,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -19589,6 +19787,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19607,11 +19806,12 @@ CreatedBy) VALUES (
 '11', 
 '25', 
 '1', 
-'10', 
+'11', 
 'ParentTableId', 
 'ID tabela-pai', 
 'Tabela-pai', 
 'Tabela-pai', 
+NULL, 
 NULL, 
 NULL, 
 NULL, 
@@ -19637,6 +19837,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19663,6 +19864,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -19685,6 +19887,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19711,6 +19914,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -19733,6 +19937,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19759,6 +19964,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -19781,6 +19987,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19807,6 +20014,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -19829,6 +20037,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19855,6 +20064,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '0', 
@@ -19877,6 +20087,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19903,6 +20114,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -19925,6 +20137,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19948,6 +20161,7 @@ NULL,
 'Último Id', 
 'Último Id', 
 'Último Id', 
+NULL, 
 CAST('0' AS bigint), 
 CAST('0' AS bigint), 
 NULL, 
@@ -19973,6 +20187,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -19997,6 +20212,7 @@ NULL,
 'ID', 
 'ID', 
 NULL, 
+NULL, 
 CAST('1' AS bigint), 
 NULL, 
 '1', 
@@ -20021,6 +20237,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20045,6 +20262,7 @@ CreatedBy) VALUES (
 'Sistema', 
 'Sistema', 
 NULL, 
+NULL, 
 CAST('1' AS bigint), 
 NULL, 
 '0', 
@@ -20069,6 +20287,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20093,6 +20312,7 @@ CreatedBy) VALUES (
 'Banco-de-dados', 
 'Banco-de-dados', 
 NULL, 
+NULL, 
 CAST('1' AS bigint), 
 NULL, 
 '0', 
@@ -20117,6 +20337,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20143,6 +20364,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -20165,6 +20387,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20189,6 +20412,7 @@ NULL,
 'ID', 
 'ID', 
 NULL, 
+NULL, 
 CAST('1' AS bigint), 
 NULL, 
 '1', 
@@ -20213,6 +20437,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20231,11 +20456,12 @@ CreatedBy) VALUES (
 '13', 
 '10', 
 '1', 
-'10', 
+'11', 
 'TableId', 
 'Tabela', 
 'Tabela', 
 'Tabela', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -20261,6 +20487,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20284,6 +20511,7 @@ NULL,
 'Sequência', 
 'Sequência', 
 'Sequência', 
+NULL, 
 NULL, 
 CAST('1' AS smallint), 
 NULL, 
@@ -20309,6 +20537,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20327,11 +20556,12 @@ CreatedBy) VALUES (
 '13', 
 '20', 
 '1', 
-'2', 
+'4', 
 'DomainId', 
 'Domínio da coluna', 
 'Domínio', 
 'Domínio', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -20357,6 +20587,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20375,11 +20606,12 @@ CreatedBy) VALUES (
 '13', 
 '25', 
 '1', 
-'10', 
+'11', 
 'ReferenceTableId', 
 'Tabela-referência', 
 'Referência', 
 'Referência', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -20405,6 +20637,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20431,6 +20664,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -20453,6 +20687,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20479,6 +20714,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -20501,6 +20737,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20527,6 +20764,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -20549,6 +20787,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20575,6 +20814,7 @@ NULL,
 NULL, 
 NULL, 
 NULL, 
+NULL, 
 '0', 
 NULL, 
 '1', 
@@ -20597,6 +20837,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20614,23 +20855,24 @@ CreatedBy) VALUES (
 '101', 
 '13', 
 '50', 
-'17', 
+'12', 
 NULL, 
-'Default', 
-'Valor padrão da coluna', 
-'Padrão', 
-'Padrão', 
-NULL, 
+'ValidValues', 
+'Valores válidos', 
+'Valores válidos', 
+'Valores válidos', 
 NULL, 
 NULL, 
 NULL, 
 NULL, 
 '0', 
 NULL, 
+'0', 
 NULL, 
+'0', 
 '1', 
-'1', 
-NULL, 
+'0', 
+'0', 
 '0', 
 GETDATE(),
 'adm')
@@ -20645,6 +20887,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20664,10 +20907,11 @@ CreatedBy) VALUES (
 '55', 
 '17', 
 NULL, 
-'Minimum', 
-'Valor mínimo da coluna', 
-'Mínimo', 
-'Mínimo', 
+'Default', 
+'Valor padrão da coluna', 
+'Padrão', 
+'Padrão', 
+NULL, 
 NULL, 
 NULL, 
 NULL, 
@@ -20693,6 +20937,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20712,10 +20957,11 @@ CreatedBy) VALUES (
 '60', 
 '17', 
 NULL, 
-'Maximum', 
-'Valor máximo da coluna', 
-'Máximo', 
-'Máximo', 
+'Minimum', 
+'Valor mínimo da coluna', 
+'Mínimo', 
+'Mínimo', 
+NULL, 
 NULL, 
 NULL, 
 NULL, 
@@ -20741,6 +20987,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20758,12 +21005,13 @@ CreatedBy) VALUES (
 '104', 
 '13', 
 '65', 
-'6', 
+'17', 
 NULL, 
-'IsPrimarykey', 
-'Coluna é chave-primária?', 
-'É chave-primária?', 
-'É chave-primária?', 
+'Maximum', 
+'Valor máximo da coluna', 
+'Máximo', 
+'Máximo', 
+NULL, 
 NULL, 
 NULL, 
 NULL, 
@@ -20789,6 +21037,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20808,10 +21057,11 @@ CreatedBy) VALUES (
 '70', 
 '6', 
 NULL, 
-'IsAutoIncrement', 
-'Coluna é autoincremento?', 
-'É autoincremento?', 
-'É autoincremento?', 
+'IsPrimarykey', 
+'Coluna é chave-primária?', 
+'É chave-primária?', 
+'É chave-primária?', 
+NULL, 
 NULL, 
 NULL, 
 NULL, 
@@ -20819,7 +21069,7 @@ NULL,
 NULL, 
 '0', 
 NULL, 
-'1', 
+NULL, 
 '1', 
 '1', 
 NULL, 
@@ -20837,6 +21087,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20856,16 +21107,17 @@ CreatedBy) VALUES (
 '75', 
 '6', 
 NULL, 
-'IsRequired', 
-'Coluna é requerida?', 
-'É requerida?', 
-'É requerida?', 
+'IsAutoIncrement', 
+'Coluna é autoincremento?', 
+'É autoincremento?', 
+'É autoincremento?', 
 NULL, 
 NULL, 
 NULL, 
 NULL, 
 NULL, 
-'1', 
+NULL, 
+'0', 
 NULL, 
 '1', 
 '1', 
@@ -20885,6 +21137,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20904,16 +21157,17 @@ CreatedBy) VALUES (
 '80', 
 '6', 
 NULL, 
-'IsListable', 
-'Coluna é listável?', 
-'É listável?', 
-'É listável?', 
+'IsRequired', 
+'Coluna é requerida?', 
+'É requerida?', 
+'É requerida?', 
 NULL, 
 NULL, 
 NULL, 
 NULL, 
 NULL, 
-'0', 
+NULL, 
+'1', 
 NULL, 
 '1', 
 '1', 
@@ -20933,6 +21187,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -20952,10 +21207,11 @@ CreatedBy) VALUES (
 '85', 
 '6', 
 NULL, 
-'IsFilterable', 
-'Coluna é filtrável?', 
-'É filtrável?', 
-'É filtrável?', 
+'IsListable', 
+'Coluna é listável?', 
+'É listável?', 
+'É listável?', 
+NULL, 
 NULL, 
 NULL, 
 NULL, 
@@ -20981,6 +21237,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21000,10 +21257,11 @@ CreatedBy) VALUES (
 '90', 
 '6', 
 NULL, 
-'IsEditable', 
-'Coluna é editável?', 
-'É editável?', 
-'É editável?', 
+'IsFilterable', 
+'Coluna é filtrável?', 
+'É filtrável?', 
+'É filtrável?', 
+NULL, 
 NULL, 
 NULL, 
 NULL, 
@@ -21029,6 +21287,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21048,10 +21307,11 @@ CreatedBy) VALUES (
 '95', 
 '6', 
 NULL, 
-'IsBrowseable', 
-'Coluna é navegável?', 
-'É navegável?', 
-'É navegável?', 
+'IsEditable', 
+'Coluna é editável?', 
+'É editável?', 
+'É editável?', 
+NULL, 
 NULL, 
 NULL, 
 NULL, 
@@ -21077,6 +21337,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21096,10 +21357,11 @@ CreatedBy) VALUES (
 '100', 
 '6', 
 NULL, 
-'IsEncrypted', 
-'Coluna é encriptada?', 
-'É encriptada?', 
-'É encriptada?', 
+'IsBrowseable', 
+'Coluna é navegável?', 
+'É navegável?', 
+'É navegável?', 
+NULL, 
 NULL, 
 NULL, 
 NULL, 
@@ -21125,6 +21387,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21144,16 +21407,17 @@ CreatedBy) VALUES (
 '105', 
 '6', 
 NULL, 
-'IsCalculated', 
-'Coluna é calculada?', 
-'É calculada?', 
-'É calculada?', 
+'IsEncrypted', 
+'Coluna é encriptada?', 
+'É encriptada?', 
+'É encriptada?', 
 NULL, 
 NULL, 
 NULL, 
 NULL, 
 NULL, 
-'1', 
+NULL, 
+'0', 
 NULL, 
 '1', 
 '1', 
@@ -21173,6 +21437,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21188,24 +21453,25 @@ INSERT INTO [dbo].[Columns] (
 CreatedAt,
 CreatedBy) VALUES (
 '113', 
-'14', 
-'5', 
+'13', 
+'110', 
+'6', 
+NULL, 
+'IsCalculated', 
+'Coluna é calculada?', 
+'É calculada?', 
+'É calculada?', 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
 '1', 
 NULL, 
-'Id', 
-'ID do índice', 
-'ID', 
-'ID', 
-NULL, 
-CAST('1' AS bigint), 
-NULL, 
 '1', 
-'0', 
 '1', 
-NULL, 
 '1', 
-'0', 
-'0', 
 NULL, 
 '0', 
 GETDATE(),
@@ -21221,6 +21487,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21237,21 +21504,22 @@ CreatedAt,
 CreatedBy) VALUES (
 '114', 
 '14', 
-'10', 
+'5', 
 '1', 
-'8', 
-'DatabaseId', 
-'ID do banco-de-dados do índice', 
-'Banco-de-dados', 
-'Banco-de-dados', 
+NULL, 
+'Id', 
+'ID do índice', 
+'ID', 
+'ID', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
-'0', 
+'1', 
 '0', 
 '1', 
 NULL, 
-'0', 
+'1', 
 '0', 
 '0', 
 NULL, 
@@ -21269,6 +21537,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21285,13 +21554,14 @@ CreatedAt,
 CreatedBy) VALUES (
 '115', 
 '14', 
-'15', 
-'1', 
 '10', 
-'TableId', 
-'ID da tabela do índice', 
-'Tabela', 
-'Tabela', 
+'1', 
+'9', 
+'DatabaseId', 
+'ID do banco-de-dados do índice', 
+'Banco-de-dados', 
+'Banco-de-dados', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -21299,9 +21569,9 @@ NULL,
 '0', 
 '1', 
 NULL, 
-'1', 
-'1', 
-'1', 
+'0', 
+'0', 
+'0', 
 NULL, 
 '0', 
 GETDATE(),
@@ -21317,6 +21587,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21333,24 +21604,25 @@ CreatedAt,
 CreatedBy) VALUES (
 '116', 
 '14', 
-'20', 
-'10', 
+'15', 
+'1', 
+'11', 
+'TableId', 
+'ID da tabela do índice', 
+'Tabela', 
+'Tabela', 
 NULL, 
-'Name', 
-'Nome do índice', 
-'Nome', 
-'Nome', 
 NULL, 
-NULL, 
+CAST('1' AS bigint), 
 NULL, 
 '0', 
+'0', 
+'1', 
 NULL, 
 '1', 
 '1', 
 '1', 
-'1', 
-'1', 
-'0', 
+NULL, 
 '0', 
 GETDATE(),
 'adm')
@@ -21365,6 +21637,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21381,24 +21654,25 @@ CreatedAt,
 CreatedBy) VALUES (
 '117', 
 '14', 
-'25', 
-'6', 
+'20', 
+'10', 
 NULL, 
-'IsUnique', 
-'É índice único?', 
-'É único?', 
-'É único?', 
-NULL, 
-NULL, 
+'Name', 
+'Nome do índice', 
+'Nome', 
+'Nome', 
 NULL, 
 NULL, 
+NULL, 
+NULL, 
+'0', 
 NULL, 
 '1', 
-NULL, 
 '1', 
 '1', 
 '1', 
-NULL, 
+'1', 
+'0', 
 '0', 
 GETDATE(),
 'adm')
@@ -21413,6 +21687,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21428,24 +21703,25 @@ INSERT INTO [dbo].[Columns] (
 CreatedAt,
 CreatedBy) VALUES (
 '118', 
-'15', 
-'5', 
+'14', 
+'25', 
+'6', 
+NULL, 
+'IsUnique', 
+'É índice único?', 
+'É único?', 
+'É único?', 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
 '1', 
 NULL, 
-'Id', 
-'ID da chave de índice', 
-'ID', 
-'ID', 
-NULL, 
-CAST('1' AS bigint), 
-NULL, 
 '1', 
-'0', 
 '1', 
-NULL, 
 '1', 
-'0', 
-'0', 
 NULL, 
 '0', 
 GETDATE(),
@@ -21461,6 +21737,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21477,13 +21754,64 @@ CreatedAt,
 CreatedBy) VALUES (
 '119', 
 '15', 
+'5', 
+'1', 
+NULL, 
+'Id', 
+'ID da chave de índice', 
+'ID', 
+'ID', 
+NULL, 
+NULL, 
+CAST('1' AS bigint), 
+NULL, 
+'1', 
+'0', 
+'1', 
+NULL, 
+'1', 
+'0', 
+'0', 
+NULL, 
+'0', 
+GETDATE(),
+'adm')
+GO
+INSERT INTO [dbo].[Columns] (
+[Id], 
+[TableId], 
+[Sequence], 
+[DomainId], 
+[ReferenceTableId], 
+[Name], 
+[Description], 
+[Title], 
+[Caption], 
+[ValidValues], 
+[Default], 
+[Minimum], 
+[Maximum], 
+[IsPrimarykey], 
+[IsAutoIncrement], 
+[IsRequired], 
+[IsListable], 
+[IsFilterable], 
+[IsEditable], 
+[IsBrowseable], 
+[IsEncrypted], 
+[IsCalculated], 
+CreatedAt,
+CreatedBy) VALUES (
+'120', 
+'15', 
 '10', 
 '1', 
-'12', 
+'14', 
 'IndexId', 
 'ID do índice da chave', 
 'Índice', 
 'Índice', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -21509,6 +21837,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21523,7 +21852,7 @@ INSERT INTO [dbo].[Columns] (
 [IsCalculated], 
 CreatedAt,
 CreatedBy) VALUES (
-'120', 
+'121', 
 '15', 
 '15', 
 '4', 
@@ -21532,6 +21861,7 @@ NULL,
 'Sequência da chave', 
 'Sequência', 
 'Sequência', 
+NULL, 
 NULL, 
 CAST('1' AS smallint), 
 NULL, 
@@ -21557,54 +21887,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
-[Default], 
-[Minimum], 
-[Maximum], 
-[IsPrimarykey], 
-[IsAutoIncrement], 
-[IsRequired], 
-[IsListable], 
-[IsFilterable], 
-[IsEditable], 
-[IsBrowseable], 
-[IsEncrypted], 
-[IsCalculated], 
-CreatedAt,
-CreatedBy) VALUES (
-'121', 
-'15', 
-'20', 
-'1', 
-'11', 
-'ColumnId', 
-'ID da coluna-chave do índice', 
-'Coluna', 
-'Coluna', 
-NULL, 
-CAST('1' AS bigint), 
-NULL, 
-'0', 
-'0', 
-'1', 
-NULL, 
-'1', 
-'1', 
-'1', 
-NULL, 
-'0', 
-GETDATE(),
-'adm')
-GO
-INSERT INTO [dbo].[Columns] (
-[Id], 
-[TableId], 
-[Sequence], 
-[DomainId], 
-[ReferenceTableId], 
-[Name], 
-[Description], 
-[Title], 
-[Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21621,18 +21904,19 @@ CreatedAt,
 CreatedBy) VALUES (
 '122', 
 '15', 
-'25', 
-'6', 
-NULL, 
-'IsDescending', 
-'Ordem descedente da chave?', 
-'Descendente?', 
-'Descendente?', 
-NULL, 
-NULL, 
+'20', 
+'1', 
+'13', 
+'ColumnId', 
+'ID da coluna-chave do índice', 
+'Coluna', 
+'Coluna', 
 NULL, 
 NULL, 
+CAST('1' AS bigint), 
 NULL, 
+'0', 
+'0', 
 '1', 
 NULL, 
 '1', 
@@ -21653,6 +21937,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21668,24 +21953,25 @@ INSERT INTO [dbo].[Columns] (
 CreatedAt,
 CreatedBy) VALUES (
 '123', 
-'16', 
-'5', 
+'15', 
+'25', 
+'6', 
+NULL, 
+'IsDescending', 
+'Ordem descedente da chave?', 
+'Descendente?', 
+'Descendente?', 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
 '1', 
 NULL, 
-'Id', 
-'ID do Login de Acesso', 
-'ID', 
-'ID', 
-NULL, 
-CAST('1' AS bigint), 
-NULL, 
 '1', 
-'0', 
 '1', 
-NULL, 
 '1', 
-'0', 
-'0', 
 NULL, 
 '0', 
 GETDATE(),
@@ -21701,6 +21987,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21717,23 +22004,24 @@ CreatedAt,
 CreatedBy) VALUES (
 '124', 
 '16', 
-'10', 
+'5', 
 '1', 
-'4', 
-'SystemId', 
-'ID do Sistema', 
-'Sistema', 
-'Sistema', 
+NULL, 
+'Id', 
+'ID do Login de Acesso', 
+'ID', 
+'ID', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
-'0', 
+'1', 
 '0', 
 '1', 
 NULL, 
 '1', 
 '0', 
-'1', 
+'0', 
 NULL, 
 '0', 
 GETDATE(),
@@ -21749,6 +22037,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21765,18 +22054,19 @@ CreatedAt,
 CreatedBy) VALUES (
 '125', 
 '16', 
-'15', 
+'10', 
 '1', 
-'7', 
-'UserId', 
-'ID do usuário', 
-'Usuário', 
-'Usuário', 
+'5', 
+'SystemId', 
+'ID do Sistema', 
+'Sistema', 
+'Sistema', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
-NULL, 
-NULL, 
+'0', 
+'0', 
 '1', 
 NULL, 
 '1', 
@@ -21797,6 +22087,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21813,24 +22104,25 @@ CreatedAt,
 CreatedBy) VALUES (
 '126', 
 '16', 
-'20', 
-'11', 
+'15', 
+'1', 
+'7', 
+'UserId', 
+'ID do usuário', 
+'Usuário', 
+'Usuário', 
 NULL, 
-'PublicKey', 
-'Chave pública do usuário', 
-'Chave pública', 
-'Chave pública', 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
-'0', 
-'0', 
+NULL, 
+NULL, 
+'1', 
+NULL, 
 '1', 
 '0', 
-'0', 
-'0', 
 '1', 
-'1', 
+NULL, 
 '0', 
 GETDATE(),
 'adm')
@@ -21845,6 +22137,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21861,24 +22154,25 @@ CreatedAt,
 CreatedBy) VALUES (
 '127', 
 '16', 
-'25', 
-'6', 
+'20', 
+'11', 
 NULL, 
-'Logged', 
-'Logado?', 
-'Logado?', 
-'Logado?', 
-NULL, 
-NULL, 
+'PublicKey', 
+'Chave pública do usuário', 
+'Chave pública', 
+'Chave pública', 
 NULL, 
 NULL, 
+CAST('1' AS bigint), 
 NULL, 
-'1', 
-NULL, 
-'1', 
+'0', 
+'0', 
 '1', 
 '0', 
-NULL, 
+'0', 
+'0', 
+'1', 
+'1', 
 '0', 
 GETDATE(),
 'adm')
@@ -21893,6 +22187,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21908,23 +22203,24 @@ INSERT INTO [dbo].[Columns] (
 CreatedAt,
 CreatedBy) VALUES (
 '128', 
-'17', 
-'5', 
+'16', 
+'25', 
+'6', 
+NULL, 
+'IsLogged', 
+'Logado?', 
+'Logado?', 
+'Logado?', 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
 '1', 
 NULL, 
-'Id', 
-'ID  da Atualização', 
-'ID', 
-'ID', 
-NULL, 
-CAST('1' AS bigint), 
-NULL, 
 '1', 
-'0', 
 '1', 
-NULL, 
-'1', 
-'0', 
 '0', 
 NULL, 
 '0', 
@@ -21941,6 +22237,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -21957,17 +22254,18 @@ CreatedAt,
 CreatedBy) VALUES (
 '129', 
 '17', 
-'10', 
+'5', 
 '1', 
-'16', 
-'LoginId', 
-'ID do Login de Acesso', 
-'Log de Acesso', 
-'Log de Acesso', 
+NULL, 
+'Id', 
+'ID  da Atualização', 
+'ID', 
+'ID', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
-'0', 
+'1', 
 '0', 
 '1', 
 NULL, 
@@ -21989,6 +22287,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -22005,13 +22304,14 @@ CreatedAt,
 CreatedBy) VALUES (
 '130', 
 '17', 
-'15', 
+'10', 
 '1', 
-'9', 
-'DatabaseId', 
-'ID do Banco-de-dados', 
-'Banco-de-dados', 
-'Banco-de-dados', 
+'16', 
+'LoginId', 
+'ID do Login de Acesso', 
+'Log de Acesso', 
+'Log de Acesso', 
+NULL, 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
@@ -22037,6 +22337,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -22053,23 +22354,24 @@ CreatedAt,
 CreatedBy) VALUES (
 '131', 
 '17', 
-'20', 
-'6', 
-NULL, 
-'IsConfirmed', 
-'Confirmado?', 
-'Confirmado?', 
-'Confirmado?', 
-NULL, 
-NULL, 
+'15', 
+'1', 
+'5', 
+'SystemId', 
+'ID do Sistema', 
+'Sistema', 
+'Sistema', 
 NULL, 
 NULL, 
+CAST('1' AS bigint), 
 NULL, 
 '0', 
+'0', 
 '1', 
+NULL, 
 '1', 
-'1', 
-'1', 
+'0', 
+'0', 
 NULL, 
 '0', 
 GETDATE(),
@@ -22085,6 +22387,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -22100,18 +22403,19 @@ INSERT INTO [dbo].[Columns] (
 CreatedAt,
 CreatedBy) VALUES (
 '132', 
-'18', 
-'5', 
+'17', 
+'20', 
 '1', 
+'9', 
+'DatabaseId', 
+'ID do Banco-de-dados', 
+'Banco-de-dados', 
+'Banco-de-dados', 
 NULL, 
-'Id', 
-'ID  da Atualização', 
-'ID', 
-'ID', 
 NULL, 
 CAST('1' AS bigint), 
 NULL, 
-'1', 
+'0', 
 '0', 
 '1', 
 NULL, 
@@ -22133,6 +22437,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -22148,24 +22453,25 @@ INSERT INTO [dbo].[Columns] (
 CreatedAt,
 CreatedBy) VALUES (
 '133', 
-'18', 
-'10', 
-'1', 
 '17', 
-'TransactionId', 
-'Id da Transação', 
-'Log de Acesso', 
-'Log de Acesso', 
+'25', 
+'6', 
 NULL, 
-CAST('1' AS bigint), 
+'IsConfirmed', 
+'Confirmado?', 
+'Confirmado?', 
+'Confirmado?', 
 NULL, 
-'0', 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
+NULL, 
 '0', 
 '1', 
-NULL, 
 '1', 
-'0', 
-'0', 
+'1', 
+'1', 
 NULL, 
 '0', 
 GETDATE(),
@@ -22181,6 +22487,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -22197,24 +22504,25 @@ CreatedAt,
 CreatedBy) VALUES (
 '134', 
 '18', 
-'15', 
-'7', 
-NULL, 
-'Action', 
-'Ação de Atualização', 
-'Ação', 
-'Ação', 
-NULL, 
-NULL, 
-NULL, 
-'0', 
-NULL, 
+'5', 
 '1', 
-'1', 
-'1', 
-'1', 
+NULL, 
+'Id', 
+'ID  da Atualização', 
+'ID', 
+'ID', 
+NULL, 
+NULL, 
+CAST('1' AS bigint), 
+NULL, 
 '1', 
 '0', 
+'1', 
+NULL, 
+'1', 
+'0', 
+'0', 
+NULL, 
 '0', 
 GETDATE(),
 'adm')
@@ -22229,6 +22537,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -22245,13 +22554,164 @@ CreatedAt,
 CreatedBy) VALUES (
 '135', 
 '18', 
+'10', 
+'1', 
+'17', 
+'TransactionId', 
+'Id da Transação', 
+'Transação', 
+'Transação', 
+NULL, 
+NULL, 
+CAST('1' AS bigint), 
+NULL, 
+'0', 
+'0', 
+'1', 
+NULL, 
+'1', 
+'0', 
+'0', 
+NULL, 
+'0', 
+GETDATE(),
+'adm')
+GO
+INSERT INTO [dbo].[Columns] (
+[Id], 
+[TableId], 
+[Sequence], 
+[DomainId], 
+[ReferenceTableId], 
+[Name], 
+[Description], 
+[Title], 
+[Caption], 
+[ValidValues], 
+[Default], 
+[Minimum], 
+[Maximum], 
+[IsPrimarykey], 
+[IsAutoIncrement], 
+[IsRequired], 
+[IsListable], 
+[IsFilterable], 
+[IsEditable], 
+[IsBrowseable], 
+[IsEncrypted], 
+[IsCalculated], 
+CreatedAt,
+CreatedBy) VALUES (
+'136', 
+'18', 
+'15', 
+'1', 
+'11', 
+'TableId', 
+'Id da Tabela', 
+'Tabela', 
+'Tabela', 
+NULL, 
+NULL, 
+CAST('1' AS bigint), 
+NULL, 
+'0', 
+'0', 
+'1', 
+NULL, 
+'1', 
+'0', 
+'0', 
+NULL, 
+'0', 
+GETDATE(),
+'adm')
+GO
+INSERT INTO [dbo].[Columns] (
+[Id], 
+[TableId], 
+[Sequence], 
+[DomainId], 
+[ReferenceTableId], 
+[Name], 
+[Description], 
+[Title], 
+[Caption], 
+[ValidValues], 
+[Default], 
+[Minimum], 
+[Maximum], 
+[IsPrimarykey], 
+[IsAutoIncrement], 
+[IsRequired], 
+[IsListable], 
+[IsFilterable], 
+[IsEditable], 
+[IsBrowseable], 
+[IsEncrypted], 
+[IsCalculated], 
+CreatedAt,
+CreatedBy) VALUES (
+'137', 
+'18', 
 '20', 
-'12', 
+'21', 
+NULL, 
+'Action', 
+'Ação de Atualização', 
+'Ação', 
+'Ação', 
+'create;read;update;delete', 
+NULL, 
+NULL, 
+NULL, 
+'0', 
+NULL, 
+'1', 
+'1', 
+'1', 
+'1', 
+'1', 
+'0', 
+'0', 
+GETDATE(),
+'adm')
+GO
+INSERT INTO [dbo].[Columns] (
+[Id], 
+[TableId], 
+[Sequence], 
+[DomainId], 
+[ReferenceTableId], 
+[Name], 
+[Description], 
+[Title], 
+[Caption], 
+[ValidValues], 
+[Default], 
+[Minimum], 
+[Maximum], 
+[IsPrimarykey], 
+[IsAutoIncrement], 
+[IsRequired], 
+[IsListable], 
+[IsFilterable], 
+[IsEditable], 
+[IsBrowseable], 
+[IsEncrypted], 
+[IsCalculated], 
+CreatedAt,
+CreatedBy) VALUES (
+'138', 
+'18', 
+'25', 
+'15', 
 NULL, 
 'LastRecord', 
 'Registro Anterior', 
 'Registro Anterior', 
 'Registro Anterior', 
+NULL, 
 NULL, 
 NULL, 
 NULL, 
@@ -22277,6 +22737,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -22291,15 +22752,16 @@ INSERT INTO [dbo].[Columns] (
 [IsCalculated], 
 CreatedAt,
 CreatedBy) VALUES (
-'136', 
+'139', 
 '18', 
-'25', 
-'12', 
+'30', 
+'15', 
 NULL, 
 'ActualRecord', 
 'Registro Atual', 
 'Registro Atual', 
 'Registro Atual', 
+NULL, 
 NULL, 
 NULL, 
 NULL, 
@@ -22325,6 +22787,7 @@ INSERT INTO [dbo].[Columns] (
 [Description], 
 [Title], 
 [Caption], 
+[ValidValues], 
 [Default], 
 [Minimum], 
 [Maximum], 
@@ -22339,15 +22802,16 @@ INSERT INTO [dbo].[Columns] (
 [IsCalculated], 
 CreatedAt,
 CreatedBy) VALUES (
-'137', 
+'140', 
 '18', 
-'30', 
+'35', 
 '6', 
 NULL, 
 'IsConfirmed', 
 'Confirmado?', 
 'Confirmado?', 
 'Confirmado?', 
+NULL, 
 NULL, 
 NULL, 
 NULL, 
@@ -22458,7 +22922,7 @@ CreatedBy) VALUES (
 '6', 
 '1', 
 '6', 
-'UNQ_Menus_System_Sequence', 
+'UNQ_Menus_SystemId_Sequence', 
 '1', 
 GETDATE(),
 'adm')
@@ -22490,7 +22954,7 @@ CreatedBy) VALUES (
 '8', 
 '1', 
 '8', 
-'UNQ_SystemsUsers_System_User', 
+'UNQ_SystemsUsers_SystemId_UserId', 
 '1', 
 GETDATE(),
 'adm')
@@ -22554,7 +23018,7 @@ CreatedBy) VALUES (
 '12', 
 '1', 
 '10', 
-'UNQ_SystemsDatabases_System_Database', 
+'UNQ_SystemsDatabases_SystemId_DatabaseId', 
 '1', 
 GETDATE(),
 'adm')
@@ -22618,7 +23082,7 @@ CreatedBy) VALUES (
 '16', 
 '1', 
 '12', 
-'UNQ_DatabasesTables_Database_Table', 
+'UNQ_DatabasesTables_DatabaseId_TableId', 
 '1', 
 GETDATE(),
 'adm')
@@ -22650,7 +23114,7 @@ CreatedBy) VALUES (
 '18', 
 '1', 
 '13', 
-'UNQ_Columns_Table_Name', 
+'UNQ_Columns_TableId_Name', 
 '1', 
 GETDATE(),
 'adm')
@@ -22666,7 +23130,7 @@ CreatedBy) VALUES (
 '19', 
 '1', 
 '13', 
-'UNQ_Columns_Table_Sequence', 
+'UNQ_Columns_TableId_Sequence', 
 '1', 
 GETDATE(),
 'adm')
@@ -22682,7 +23146,7 @@ CreatedBy) VALUES (
 '20', 
 '1', 
 '14', 
-'UNQ_Indexes_Database_Name', 
+'UNQ_Indexes_DatabaseId_Name', 
 '1', 
 GETDATE(),
 'adm')
@@ -22698,7 +23162,7 @@ CreatedBy) VALUES (
 '21', 
 '1', 
 '15', 
-'UNQ_Indexkeys_Index_Sequence', 
+'UNQ_Indexkeys_IndexId_Sequence', 
 '1', 
 GETDATE(),
 'adm')
@@ -22714,7 +23178,7 @@ CreatedBy) VALUES (
 '22', 
 '1', 
 '15', 
-'UNQ_Indexkeys_Index_Column', 
+'UNQ_Indexkeys_IndexId_Column', 
 '1', 
 GETDATE(),
 'adm')
@@ -22730,7 +23194,7 @@ CreatedBy) VALUES (
 '23', 
 '1', 
 '16', 
-'UNQ_Logs_System_User_Logged', 
+'UNQ_Logins_SystemId_UserId_IsLogged', 
 '0', 
 GETDATE(),
 'adm')
@@ -22746,7 +23210,23 @@ CreatedBy) VALUES (
 '24', 
 '1', 
 '17', 
-'UNQ_Transactions_Log_Table_Primarykey', 
+'UNQ_Transactions_LoginId_SystemId_DatabaseId', 
+'0', 
+GETDATE(),
+'adm')
+GO
+INSERT INTO [dbo].[Indexes] (
+[Id], 
+[DatabaseId], 
+[TableId], 
+[Name], 
+[IsUnique], 
+CreatedAt,
+CreatedBy) VALUES (
+'25', 
+'1', 
+'18', 
+'UNQ_Operations_TransactionId_TableId_Action', 
 '0', 
 GETDATE(),
 'adm')
@@ -23166,7 +23646,7 @@ CreatedBy) VALUES (
 '26', 
 '20', 
 '5', 
-'114', 
+'115', 
 '0', 
 GETDATE(),
 'adm')
@@ -23182,7 +23662,7 @@ CreatedBy) VALUES (
 '27', 
 '20', 
 '10', 
-'116', 
+'117', 
 '0', 
 GETDATE(),
 'adm')
@@ -23198,7 +23678,7 @@ CreatedBy) VALUES (
 '28', 
 '21', 
 '5', 
-'119', 
+'120', 
 '0', 
 GETDATE(),
 'adm')
@@ -23214,7 +23694,7 @@ CreatedBy) VALUES (
 '29', 
 '21', 
 '10', 
-'120', 
+'121', 
 '0', 
 GETDATE(),
 'adm')
@@ -23230,7 +23710,7 @@ CreatedBy) VALUES (
 '30', 
 '22', 
 '5', 
-'119', 
+'120', 
 '0', 
 GETDATE(),
 'adm')
@@ -23246,7 +23726,7 @@ CreatedBy) VALUES (
 '31', 
 '22', 
 '10', 
-'121', 
+'122', 
 '0', 
 GETDATE(),
 'adm')
@@ -23262,7 +23742,7 @@ CreatedBy) VALUES (
 '32', 
 '23', 
 '5', 
-'124', 
+'125', 
 '0', 
 GETDATE(),
 'adm')
@@ -23278,7 +23758,7 @@ CreatedBy) VALUES (
 '33', 
 '23', 
 '10', 
-'125', 
+'126', 
 '0', 
 GETDATE(),
 'adm')
@@ -23294,7 +23774,7 @@ CreatedBy) VALUES (
 '34', 
 '23', 
 '15', 
-'126', 
+'128', 
 '0', 
 GETDATE(),
 'adm')
@@ -23310,7 +23790,7 @@ CreatedBy) VALUES (
 '35', 
 '24', 
 '5', 
-'129', 
+'130', 
 '0', 
 GETDATE(),
 'adm')
@@ -23326,7 +23806,7 @@ CreatedBy) VALUES (
 '36', 
 '24', 
 '10', 
-'130', 
+'131', 
 '0', 
 GETDATE(),
 'adm')
@@ -23342,7 +23822,55 @@ CreatedBy) VALUES (
 '37', 
 '24', 
 '15', 
-'131', 
+'132', 
+'0', 
+GETDATE(),
+'adm')
+GO
+INSERT INTO [dbo].[Indexkeys] (
+[Id], 
+[IndexId], 
+[Sequence], 
+[ColumnId], 
+[IsDescending], 
+CreatedAt,
+CreatedBy) VALUES (
+'38', 
+'25', 
+'5', 
+'135', 
+'0', 
+GETDATE(),
+'adm')
+GO
+INSERT INTO [dbo].[Indexkeys] (
+[Id], 
+[IndexId], 
+[Sequence], 
+[ColumnId], 
+[IsDescending], 
+CreatedAt,
+CreatedBy) VALUES (
+'39', 
+'25', 
+'10', 
+'136', 
+'0', 
+GETDATE(),
+'adm')
+GO
+INSERT INTO [dbo].[Indexkeys] (
+[Id], 
+[IndexId], 
+[Sequence], 
+[ColumnId], 
+[IsDescending], 
+CreatedAt,
+CreatedBy) VALUES (
+'40', 
+'25', 
+'15', 
+'137', 
 '0', 
 GETDATE(),
 'adm')

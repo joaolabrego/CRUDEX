@@ -127,7 +127,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -242,7 +242,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordCategory' AS [ClassName],
@@ -876,7 +876,7 @@ ALTER PROCEDURE[dbo].[TypesRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -1019,7 +1019,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordType' AS [ClassName],
@@ -2406,7 +2406,7 @@ ALTER PROCEDURE[dbo].[MasksRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -2481,7 +2481,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordMask' AS [ClassName],
@@ -2872,7 +2872,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -3003,7 +3003,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordDomain' AS [ClassName],
@@ -3792,7 +3792,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -3877,7 +3877,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordSystem' AS [ClassName],
@@ -4202,7 +4202,7 @@ ALTER PROCEDURE[dbo].[MenusRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -4303,7 +4303,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordMenu' AS [ClassName],
@@ -4361,7 +4361,7 @@ CreatedAt, CreatedBy) VALUES (
 '10', 
 'Tipos', 
 'Cadastro de tipos', 
-'grid/cruda/Types', 
+'browse/cruda/Types', 
 '7', 
 GETDATE(), 'adm')
 GO
@@ -4379,7 +4379,7 @@ CreatedAt, CreatedBy) VALUES (
 '15', 
 'Usuários', 
 'Cadastro de Usuários', 
-'grid/cruda/Users', 
+'browse/cruda/Users', 
 '1', 
 GETDATE(), 'adm')
 GO
@@ -4397,7 +4397,7 @@ CreatedAt, CreatedBy) VALUES (
 '60', 
 'Tabelas', 
 'Cadastro de tabelas', 
-'grid/cruda/Tables', 
+'browse/cruda/Tables', 
 '1', 
 GETDATE(), 'adm')
 GO
@@ -4415,7 +4415,7 @@ CreatedAt, CreatedBy) VALUES (
 '35', 
 'Menus', 
 'Cadastro de menus', 
-'grid/cruda/Menus', 
+'browse/cruda/Menus', 
 '1', 
 GETDATE(), 'adm')
 GO
@@ -4433,7 +4433,7 @@ CreatedAt, CreatedBy) VALUES (
 '20', 
 'Sistemas', 
 'Cadastro de sistemas', 
-'grid/cruda/Systems', 
+'browse/cruda/Systems', 
 '3', 
 GETDATE(), 'adm')
 GO
@@ -4451,7 +4451,7 @@ CreatedAt, CreatedBy) VALUES (
 '25', 
 'Banco de Dados', 
 'Cadastro de bancos de dados', 
-'grid/cruda/Databases', 
+'browse/cruda/Databases', 
 '3', 
 GETDATE(), 'adm')
 GO
@@ -4469,7 +4469,7 @@ CreatedAt, CreatedBy) VALUES (
 '30', 
 'Colunas', 
 'Cadastro de colunas de tabelas', 
-'grid/cruda/Columns', 
+'browse/cruda/Columns', 
 '7', 
 GETDATE(), 'adm')
 GO
@@ -4505,7 +4505,7 @@ CreatedAt, CreatedBy) VALUES (
 '45', 
 'Sistemas x BD', 
 'Associação entre sistemas e bancos de dados', 
-'grid/cruda/SystemsDatabases', 
+'browse/cruda/SystemsDatabases', 
 '9', 
 GETDATE(), 'adm')
 GO
@@ -4523,7 +4523,7 @@ CreatedAt, CreatedBy) VALUES (
 '50', 
 'Usuários x Sistemas', 
 'Associação entre usuários e sistemas', 
-'grid/cruda/SystemsUsers', 
+'browse/cruda/SystemsUsers', 
 '9', 
 GETDATE(), 'adm')
 GO
@@ -4798,7 +4798,7 @@ ALTER PROCEDURE[dbo].[UsersRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -4889,7 +4889,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordUser' AS [ClassName],
@@ -5187,7 +5187,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -5286,7 +5286,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordSystemUser' AS [ClassName],
@@ -5596,7 +5596,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -5701,7 +5701,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordDatabase' AS [ClassName],
@@ -6011,7 +6011,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -6110,7 +6110,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordSystemDatabase' AS [ClassName],
@@ -6462,7 +6462,7 @@ ALTER PROCEDURE[dbo].[TablesRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -6587,7 +6587,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordTable' AS [ClassName],
@@ -7351,7 +7351,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -7450,7 +7450,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordDatabaseTable' AS [ClassName],
@@ -8118,7 +8118,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -8311,7 +8311,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordColumn' AS [ClassName],
@@ -14728,7 +14728,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -14823,7 +14823,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordIndex' AS [ClassName],
@@ -15472,7 +15472,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](
 @PageNumber INT OUT,
 @LimitRows BIGINT OUT,
 @MaxPage INT OUT,
-@PaddingGridLastPage BIT OUT,
+@PaddingBrowseLastPage BIT OUT,
 @UserName VARCHAR(25),
 @Record VARCHAR(MAX)) AS BEGIN
 BEGIN TRY
@@ -15575,7 +15575,7 @@ SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 IF @PageNumber < 0
 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 SET @offset = (@PageNumber - 1) * @LimitRows
-IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
 END
 SELECT 'RecordIndexkey' AS [ClassName],

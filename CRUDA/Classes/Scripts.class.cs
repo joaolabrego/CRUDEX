@@ -43,15 +43,15 @@ namespace CRUDA.Classes
                 }
                 stream.Write(GetCreateTableScript(table, columns, indexes, indexkeys, domains, types));
                 if (ToString(table["ProcedureCreate"]) != string.Empty)
-                    stream.Write(GetCreateScript(table, tables, columns, domains, types, categories, indexes, indexkeys));
+                    stream.Write(GetScriptCreate(table, tables, columns, domains, types, categories, indexes, indexkeys));
                 if (ToString(table["ProcedureUpdate"]) != string.Empty)
-                    stream.Write(GetUpdateScript(table, tables, columns, domains, types, categories, indexes, indexkeys));
+                    stream.Write(GetScriptUpdate(table, tables, columns, domains, types, categories, indexes, indexkeys));
                 if (ToString(table["ProcedureDelete"]) != string.Empty)
-                    stream.Write(GetDeleteScript(table, tables, columns, domains, types, categories, indexes, indexkeys));
+                    stream.Write(GetScriptDelete(table, tables, columns, domains, types, categories, indexes, indexkeys));
                 if (ToString(table["ProcedureRead"]) != string.Empty)
-                    stream.Write(GetReadScript(table, tables, columns, domains, types, categories, indexes, indexkeys));
+                    stream.Write(GetScriptRead(table, tables, columns, domains, types, categories, indexes, indexkeys));
             }
-            stream.Write(GetCreateReferencesScript(tables, columns));
+            stream.Write(GetScriptCreateReferences(tables, columns));
             foreach (var table in tables)
                 stream.Write(GetDmlScript(table, columns, domains, types, categories, dataSet[ToString(table["Name"])] ?? new DataTable()));
         }
@@ -263,7 +263,7 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static string GetCreateReferencesScript(TDataTable tables, TDataTable columns)
+        private static string GetScriptCreateReferences(TDataTable tables, TDataTable columns)
         {
             var result = new StringBuilder();
             var listColumns = columns.Where(column => column["ReferenceTableId"] != null);
@@ -273,28 +273,28 @@ namespace CRUDA.Classes
             {
                 foreach (var column in listColumns)
                 {
-                    var table = tables.First(table => table["Id"] == column["TableId"]);
+                    var primaryTable = tables.First(table => table["Id"] == column["TableId"]);
                     var referencedTable = tables.First(table => table["Id"] == column["ReferenceTableId"]);
-                    var primaryKey = columns.First(column => column["TableId"] == table["Id"] && ToBoolean(column["IsPrimarykey"]));
-                    var foreignKeyName = $"FK_{table["Name"]}_{referencedTable["Name"]}";
+                    var referencedPrimarykey = columns.First(column => column["TableId"] == referencedTable["Id"] && ToBoolean(column["IsPrimarykey"]));
+                    var foreignKeyName = $"FK_{primaryTable["Name"]}_{referencedTable["Name"]}";
 
-                    if (table["Name"] != lastTableName)
+                    if (primaryTable["Name"] != lastTableName)
                     {
                         result.AppendLine($"/**********************************************************************************");
-                        result.AppendLine($"Criar referências de {table["Name"]})");
+                        result.AppendLine($"Criar referências de {primaryTable["Name"]})");
                         result.AppendLine($"**********************************************************************************/");
-                        lastTableName = table["Name"];
+                        lastTableName = primaryTable["Name"];
                     }
                     result.AppendLine($"IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS " +
                                       $"WHERE CONSTRAINT_NAME = '{foreignKeyName}')");
-                    result.AppendLine($"ALTER TABLE [dbo].[{table["Name"]}] DROP CONSTRAINT {foreignKeyName}");
+                    result.AppendLine($"ALTER TABLE [dbo].[{primaryTable["Name"]}] DROP CONSTRAINT {foreignKeyName}");
                     result.AppendLine($"GO");
-                    result.Append($"ALTER TABLE [dbo].[{table["Name"]}] WITH CHECK ");
+                    result.Append($"ALTER TABLE [dbo].[{primaryTable["Name"]}] WITH CHECK ");
                     result.Append($"ADD CONSTRAINT [{foreignKeyName}] ");
                     result.Append($"FOREIGN KEY([{column["Name"]}]) ");
-                    result.AppendLine($"REFERENCES [dbo].[{referencedTable["Name"]}] ([{primaryKey["Name"]}])");
+                    result.AppendLine($"REFERENCES [dbo].[{referencedTable["Name"]}] ([{referencedPrimarykey["Name"]}])");
                     result.AppendLine($"GO");
-                    result.AppendLine($"ALTER TABLE [dbo].[{table["Name"]}] CHECK CONSTRAINT [{foreignKeyName}]");
+                    result.AppendLine($"ALTER TABLE [dbo].[{primaryTable["Name"]}] CHECK CONSTRAINT [{foreignKeyName}]");
                     result.AppendLine($"GO");
                 }
             }
@@ -408,7 +408,7 @@ namespace CRUDA.Classes
                 result.AppendLine($"DECLARE @PageNumber INT --OUT");
                 result.AppendLine($",@LimitRows BIGINT --OUT");
                 result.AppendLine($",@MaxPage INT --OUT");
-                result.AppendLine($",@PaddingGridLastPage BIT --OUT");
+                result.AppendLine($",@PaddingBrowseLastPage BIT --OUT");
                 result.AppendLine($",@RowCount BIGINT");
                 result.AppendLine($",@LoginId BIGINT");
                 result.AppendLine($",@OffSet INT");
@@ -547,7 +547,7 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static string GetCreateScript(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
+        private static string GetScriptCreate(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
         {
             var result = new StringBuilder();
             var listColumns = columns.Where(column => column["TableId"] == table["Id"]);
@@ -619,7 +619,7 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static string GetUpdateScript(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
+        private static string GetScriptUpdate(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
         {
             var result = new StringBuilder();
             var listColumns = columns.Where(column => column["TableId"] == table["Id"]);
@@ -695,7 +695,7 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static string GetDeleteScript(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
+        private static string GetScriptDelete(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
         {
             var result = new StringBuilder();
             var listColumns = columns.Where(column => column["TableId"] == table["Id"] && ToBoolean(column["IsPrimarykey"]));
@@ -747,7 +747,7 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static string GetReadScript(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
+        private static string GetScriptRead(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
         {
             var result = new StringBuilder();
             var listColumns = columns.Where(column => column["TableId"] == table["Id"]);

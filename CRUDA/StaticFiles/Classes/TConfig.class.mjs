@@ -326,7 +326,7 @@ export default class TConfig {
             sql += `@PageNumber INT OUT\n`
             sql += `,@LimitRows INT OUT\n`
             sql += `,@MaxPage INT OUT\n`
-            sql += `,@PaddingGridLastPage BIT OUT\n`
+            sql += `,@PaddingBrowseLastPage BIT OUT\n`
 
             let and = ""
 
@@ -370,7 +370,7 @@ export default class TConfig {
             sql += `            IF @PageNumber < 0\n`
             sql += `                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1\n`
             sql += `            SET @offset = (@PageNumber - 1) * @LimitRows\n`
-            sql += `            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT\n`
+            sql += `            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT\n`
             sql += `                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END\n`
             sql += `    END\n`
             sql += `    SELECT *\n`
