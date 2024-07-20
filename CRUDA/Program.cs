@@ -37,22 +37,19 @@ namespace CRUDA_LIB
                     response.WriteAsync(Config.GetHTML(systemName, ex.Message), Encoding.UTF8);
                 }
             });
-            app.MapPost("/{systemName}/" + Actions.CONFIG, (HttpResponse response, string systemName) =>
+            app.MapPost($"/{{systemName}}/{Actions.CONFIG}", (HttpContext context, string systemName) =>
             {
-                response.Headers.ContentType = "application/json";
+                context.Response.Headers.ContentType = "application/json";
                 try
                 {
-                    var config = new Config(systemName, "all").ToString();
-
-                    //File.WriteAllText($"{Directory.GetCurrentDirectory()}/config.json", config);
-                    response.WriteAsync(config, Encoding.UTF8);
+                    context.Response.WriteAsync(new Config(systemName, "all").ToString(), Encoding.UTF8);
                 }
                 catch (Exception ex)
                 {
-                    response.WriteAsync(new Error(ex.Message).ToString(), Encoding.UTF8);
+                    context.Response.WriteAsync(new Error(ex.Message).ToString(), Encoding.UTF8);
                 }
             });
-            app.MapPost("/{systemName}/" + Actions.LOGIN, (HttpContext context, string systemName, object body) =>
+            app.MapPost($"/{{systemName}}/{Actions.LOGIN}", (HttpContext context, string systemName, object body) =>
             {
                 context.Response.Headers.ContentType = "application/json";
                 try
@@ -64,7 +61,7 @@ namespace CRUDA_LIB
                     context.Response.WriteAsync(new Error(ex.Message).ToString(), Encoding.UTF8);
                 }
             });
-            app.MapPost("/{systemName}/" + Actions.LOGOUT, (HttpContext context, string systemName, object body) =>
+            app.MapPost($"/{{systemName}}/{Actions.LOGOUT}", (HttpContext context, string systemName, object body) =>
             {
                 context.Response.Headers.ContentType = "application/json";
                 try
