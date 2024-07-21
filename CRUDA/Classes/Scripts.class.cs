@@ -340,11 +340,13 @@ namespace CRUDA.Classes
             result.AppendLine($",@TransactionId BIGINT");
             result.AppendLine($",@TableId BIGINT");
             result.AppendLine($",@Action VARCHAR(15)");
+            result.AppendLine($",@LastRecord VARCHAR(MAX)");
             result.AppendLine($",@ActualRecord VARCHAR(MAX)");
             result.AppendLine($",@IsConfirmed BIT");
             result.AppendLine($"SELECT @TransactionId = [TransactionId]");
             result.AppendLine($",@TableId = [TableId]");
             result.AppendLine($",@Action = [Action]");
+            result.AppendLine($",@LastRecord = [LastRecord]");
             result.AppendLine($",@ActualRecord = [ActualRecord]");
             result.AppendLine($",@IsConfirmed = [IsConfirmed]");
             result.AppendLine($"FROM [dbo].[Operations]");
@@ -970,8 +972,6 @@ namespace CRUDA.Classes
                     var rowHeader = ws.GetRow(0);
                     var dataTable = new TDataTable();
 
-                    if (ws.SheetName == "Domains")
-                        Console.WriteLine("teste");
                     for (var rowIndex = 1; rowIndex <= ws.LastRowNum; rowIndex++)
                     {
                         var row = ws.GetRow(rowIndex);

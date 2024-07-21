@@ -50,7 +50,8 @@ BEGIN
 		END
 		SELECT @SystemId = [SystemId],
 			   @UserId = [UserId],
-			   @IsLogged = [IsLogged]
+			   @IsLogged = [IsLogged],
+			   @PasswordAux = [Password]
 			FROM [dbo].[Logins]
 			WHERE [Id] = @LoginId
 		IF @RetryLogins >= @MaxRetryLogins BEGIN
