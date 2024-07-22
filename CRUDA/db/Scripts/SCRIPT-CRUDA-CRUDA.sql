@@ -111,8 +111,8 @@ CREATE FUNCTION [dbo].[F_IsEquals](@LeftValue SQL_VARIANT,
 RETURNS BIT AS
 BEGIN
 	DECLARE @Result BIT = 0,
-			@LeftType VARCHAR(25) = CAST(ISNULL(SQL_VARIANT_PROPERTY(@LeftValue, 'BaseType'), 'NULL') AS VARCHAR(25)),
-			@RightType VARCHAR(25) = CAST(ISNULL(SQL_VARIANT_PROPERTY(@RightValue, 'BaseType'), 'NULL') AS VARCHAR(25))
+			@LeftType VARCHAR(25) = CAST(ISNULL(SQL_VARIANT_PROPERTY(@LeftValue, 'BaseType'), 'NULL') AS VARCHAR(50)),
+			@RightType VARCHAR(25) = CAST(ISNULL(SQL_VARIANT_PROPERTY(@RightValue, 'BaseType'), 'NULL') AS VARCHAR(50))
 
 	IF (@LeftValue IS NULL AND @RightValue IS NULL) OR 
 	   (@LeftType = @RightType AND @LeftValue = @RightValue)
@@ -800,13 +800,13 @@ BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-		DECLARE @ErrorMessage VARCHAR(256)
-
 		IF @@TRANCOUNT = 0 BEGIN
 			BEGIN TRANSACTION P_Login
 		END ELSE
 			SAVE TRANSACTION P_Login
+
+		DECLARE @ErrorMessage VARCHAR(256)
+
 		IF ISJSON(@Login) = 1 BEGIN
 			SET @ErrorMessage = 'Parâmetro Login não está no formato JSON.';
 			THROW 51000, @ErrorMessage, 1
@@ -837,7 +837,8 @@ BEGIN
 		END
 		SELECT @SystemId = [SystemId],
 			   @UserId = [UserId],
-			   @IsLogged = [IsLogged]
+			   @IsLogged = [IsLogged],
+			   @PasswordAux = [Password]
 			FROM [dbo].[Logins]
 			WHERE [Id] = @LoginId
 		IF @RetryLogins >= @MaxRetryLogins BEGIN
@@ -986,11 +987,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -1172,11 +1175,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -1345,11 +1350,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -1478,11 +1485,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -1725,11 +1734,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -1958,11 +1969,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -2173,11 +2186,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -2306,11 +2321,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -2597,11 +2614,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -2742,11 +2761,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -2881,11 +2902,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -3014,11 +3037,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -3203,11 +3228,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -3412,11 +3439,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -3607,11 +3636,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -3740,11 +3771,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -3999,11 +4032,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -4166,11 +4201,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -4325,11 +4362,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -4458,11 +4497,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -4668,11 +4709,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -4865,11 +4908,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -5052,11 +5097,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -5185,11 +5232,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -5426,11 +5475,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -5600,11 +5651,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -5765,11 +5818,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -5898,11 +5953,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -6115,11 +6172,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -6295,11 +6354,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -6468,11 +6529,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -6601,11 +6664,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -6828,11 +6893,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -7010,11 +7077,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -7179,11 +7248,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -7312,11 +7383,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -7540,11 +7613,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -7720,11 +7795,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -7893,11 +7970,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -8026,11 +8105,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -8255,11 +8336,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -8463,11 +8546,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -8656,11 +8741,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -8789,11 +8876,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -9047,11 +9136,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -9227,11 +9318,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -9400,11 +9493,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -9533,11 +9628,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -9772,11 +9869,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -10050,11 +10149,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -10303,11 +10404,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -10436,11 +10539,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -10782,11 +10887,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -10965,11 +11072,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -11140,11 +11249,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -11273,11 +11384,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -11499,11 +11612,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -11694,11 +11809,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -11881,11 +11998,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]
@@ -12014,11 +12133,13 @@ DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') A
 ,@TransactionId BIGINT
 ,@TableId BIGINT
 ,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
 ,@ActualRecord VARCHAR(MAX)
 ,@IsConfirmed BIT
 SELECT @TransactionId = [TransactionId]
 ,@TableId = [TableId]
 ,@Action = [Action]
+,@LastRecord = [LastRecord]
 ,@ActualRecord = [ActualRecord]
 ,@IsConfirmed = [IsConfirmed]
 FROM [dbo].[Operations]

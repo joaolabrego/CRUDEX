@@ -13,13 +13,13 @@ BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-		DECLARE @ErrorMessage VARCHAR(256)
-
 		IF @@TRANCOUNT = 0 BEGIN
 			BEGIN TRANSACTION P_Login
 		END ELSE
 			SAVE TRANSACTION P_Login
+
+		DECLARE @ErrorMessage VARCHAR(256)
+
 		IF ISJSON(@Login) = 1 BEGIN
 			SET @ErrorMessage = 'Parâmetro Login não está no formato JSON.';
 			THROW 51000, @ErrorMessage, 1
