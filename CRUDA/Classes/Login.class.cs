@@ -6,13 +6,13 @@ namespace CRUDA_LIB
     public static class Login
     {
         public readonly static string ClassName = "Login";
-        public static SQLResult Execute(string systemName, Dictionary? parameters)
+        public static SQLResult Execute(string systemName, string action, Dictionary? parameters)
         {
             if (parameters != null && parameters.TryGetValue("Login", out dynamic? login))
             {
                 if (login == null)
-                    throw new Exception("Parâmetro Login não passado para Execute.");
-                else if (login.ContainsKey("UserName") && login.ContainsKey("Password") && login.ContainsKey("Action"))
+                    throw new Exception("Login requerido em Parameters.");
+                else if (login.ContainsKey("UserName") && login.ContainsKey("Password"))
                     return SQLProcedure.Execute(
                         Settings.ConnecionString(),
                         Settings.Get("LOGIN_PROCEDURE"),
@@ -23,13 +23,13 @@ namespace CRUDA_LIB
                                 SystemName = systemName,
                                 UserName = login["UserName"],
                                 Password = login["Password"],
-                                Action = login["Action"],
+                                Action = action,
                             }
                         }));
                 else
-                    throw new Exception("Parâmetro(s) UserName e/ou Password e/ou Action não definidos no parâmetro Login de Execute.");
+                    throw new Exception("Parâmetro(s) UserName e/ou Password e/ou Action requeridos em Login.");
             }
-            throw new Exception("Parâmetros não passados para Execute.");
+            throw new Exception("Parameters requerido.");
         }
     }
 }

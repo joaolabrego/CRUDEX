@@ -6,6 +6,7 @@
         public const string MENU = "menu";
         public const string LOGIN = "login";
         public const string LOGOUT = "logout";
+        public const string AUTHENTICATE = "authenticate";
         public const string CREATE = "create";
         public const string READ = "read";
         public const string UPDATE = "update";

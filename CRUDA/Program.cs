@@ -1,6 +1,7 @@
 using System.Text;
 using CRUDA.Classes;
 using CRUDA.Classes.Models;
+using Dictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
 namespace CRUDA_LIB
 {
@@ -12,7 +13,6 @@ namespace CRUDA_LIB
 
             app.Use(async (context, next) =>
             {
-                Console.WriteLine("teste");
                 await next.Invoke();
             });
 
@@ -40,20 +40,21 @@ namespace CRUDA_LIB
             });
             app.MapPost($"/{{systemName}}/{Actions.LOGIN}", (HttpContext context, string systemName, object body) =>
             {
-                ExecuteRoute(context, systemName, Actions.LOGIN);
+                ExecuteRoute(context, systemName, Actions.LOGIN, Config.GetParameters(context.Request, body));
             });
             app.MapPost($"/{{systemName}}/{Actions.LOGOUT}", (HttpContext context, string systemName, object body) =>
             {
-                ExecuteRoute(context, systemName, Actions.LOGOUT);
+                ExecuteRoute(context, systemName, Actions.LOGOUT, Config.GetParameters(context.Request, body));
             });
-            app.MapPost("/{systemName}/{databaseName}/{tableName}/{action}", (HttpContext context, string systemName, string databaseName, string tableName, string action, object body) =>
+            app.MapPost("/{systemName}/{databaseName}/{tableName}/{action}", (HttpContext context, string systemName, string databaseName, 
+                                                                              string tableName, string action, object body) =>
             {
                 context.Response.Headers.ContentType = "application/json";
                 try
                 {
                     var parameters = Config.GetParameters(context.Request, body);
+                    var login = Login.Execute(systemName, Actions.AUTHENTICATE, parameters);
 
-                    Login.Execute(systemName, parameters);
                     try
                     {
                         context.Response.WriteAsync(SQLProcedure.Execute(systemName, databaseName, tableName, action, parameters).ToString(), Encoding.UTF8);
@@ -65,13 +66,13 @@ namespace CRUDA_LIB
                 }
                 catch (Exception ex)
                 {
-                    context.Response.WriteAsync(new Error(ex.Message, Actions.MENU).ToString(), Encoding.UTF8);
+                    context.Response.WriteAsync(new Error(ex.Message, Actions.LOGIN).ToString(), Encoding.UTF8);
                 }
             });
 
             app.Run();
         }
-        private static void ExecuteRoute(HttpContext context, string systemName, string action, object? body = null)
+        private static void ExecuteRoute(HttpContext context, string systemName, string action, Dictionary? parameters = null)
         {
             try
             {
@@ -83,8 +84,10 @@ namespace CRUDA_LIB
                         break;
                     case Actions.LOGIN:
                     case Actions.LOGOUT:
-                        context.Response.WriteAsync(Login.Execute(systemName, Config.GetParameters(context.Request, body ?? new { })).ToString(), Encoding.UTF8);
+                        context.Response.WriteAsync(Login.Execute(systemName, action, parameters).ToString(), Encoding.UTF8);
                         break;
+                    default:
+                        throw new Exception("Ação inválida em rota.");
                 }
             }
             catch (Exception ex)
