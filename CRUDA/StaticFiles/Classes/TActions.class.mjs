@@ -4,6 +4,7 @@
     static get LOGIN() { return "login" }
     static get LOGOUT() { return "logout" }
     static get AUTHENTICATE() { return "authenticate" }
+    static get EXECUTE() { return "execute" }
     static get MENU() { return "menu" }
     static get BROWSE() { return "browse" }
     static get RELOAD() { return "reload" }

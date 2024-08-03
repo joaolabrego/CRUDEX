@@ -54,15 +54,7 @@ namespace CRUDA_LIB
         {
             return JsonConvert.SerializeObject(this, Formatting.Indented);
         }
-        public static Dictionary GetParameters(HttpRequest request, dynamic body)
-        {
-            return ToDictionary(new
-            {
-                Login = JsonConvert.DeserializeObject(request.Headers["Login"].ToString()),
-                Parameters = JsonConvert.DeserializeObject(body.ToString()),
-            });
-        }
-        private static string GetHeaderHTML(string systemName)
+        public static string GetHTML(string systemName, string? message = null)
         {
             var favIcon = Images.ReadImageFile($"{Path.Combine(Directory.GetCurrentDirectory(), "Assets/Images", Settings.Get("FAVICON_IMAGE"))}");
 
@@ -79,43 +71,22 @@ namespace CRUDA_LIB
                    $"        <meta name='copyright' content='© 2024 Labrego' />\n" +
                    $"        <meta name='description' content='Sistema de operações CRUD em tabelas de bancos-de-dados MS-SQL Server' />\n" +
                    $"        <link rel='icon' href='{favIcon}' />\n" +
-                   $"        <title>{systemName.ToUpper()}</title>\n"; 
-        }
-        public string GetHTML(string systemName)
-        {
-            return GetHeaderHTML(systemName) +
-                   $"        <script type='module' defer>\n" +
-                   $"            import TSystem from './Classes/TSystem.class.mjs'\n" +
-                   $"            TSystem.Run({Settings.Get("WITH_BACKGROUND_IMAGE").ToLower()})\n" +
-                   $"        </script>\n" +
-                   $"    </head>\n" +
-                   $"    <body>\n" +
-                   $"        <noscript><h1 style='color: red;'>Seu navegador não suporta JavaScript ou o JavaScript está desabilitado.</h1></noscript>\n" +
-                   GetFooterHTML();
-        }
-        public static string GetHTML(string systemName, string message)
-        {
-            return GetHeaderHTML(systemName) +
-                   $"    <body>\n" +
-                   $"        <h1 style='color: red;'>{message}</h1>\n" +
-                   GetFooterHTML();
-        }
-        private static string GetFooterHTML()
-        {
-            return $"    </body>\n" +
+                   $"        <title>{systemName.ToUpper()}</title>\n" +
+                   (message == null ? $"        <script type='module' defer>\n" +
+                                      $"            import TSystem from './Classes/TSystem.class.mjs'\n" +
+                                      $"            TSystem.Run({Settings.Get("WITH_BACKGROUND_IMAGE").ToLower()})\n" +
+                                      $"        </script>\n" +
+                                      $"    </head>\n" +
+                                      $"    <body>\n" +
+                                      $"        <noscript><h1 style='color: red;'>Seu navegador não suporta JavaScript ou o JavaScript está desabilitado.</h1></noscript>\n"
+                                    : $"    <body>\n" +
+                                      $"        <h1 style='color: red;'>{message}</h1>\n") +
+                   $"    </body>\n" +
                    $"</html>";
-        }
-        public static string Serialize(dynamic json)
-        {
-            return JsonConvert.SerializeObject(json, Formatting.Indented);
-        }
-        public static object Deserialize(dynamic json)
-        {
-            return JsonConvert.DeserializeObject(json.ToString());
         }
         public static Dictionary ToDictionary(object json)
         {
-            var result = JsonConvert.DeserializeObject<Dictionary>(Serialize(json)) ?? [];
+            var result = JsonConvert.DeserializeObject<Dictionary>(JsonConvert.SerializeObject(json, Formatting.Indented)) ?? [];
 
             foreach (var item in result.Where(item => item.Value is JObject))
                 result[item.Key] = ToDictionary(item.Value);

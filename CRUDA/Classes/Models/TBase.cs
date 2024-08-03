@@ -13,13 +13,13 @@
         private static void ValidAnonymousObject(object anonymousObject, string expectedClassName)
         {
             if (anonymousObject == null)
-                throw new ArgumentNullException(nameof(anonymousObject), "Objeto anônimo requerido.");
+                throw new Exception( "Objeto anônimo requerido.");
 
             var classNameProperty = anonymousObject.GetType().GetProperty("ClassName") ?? 
-                throw new ArgumentException("Propriedade ClassName indefinida em objeto anônimo.", nameof(anonymousObject));
+                throw new Exception("Propriedade ClassName indefinida em objeto anônimo.");
 
             if (classNameProperty.GetValue(anonymousObject)?.ToString() != expectedClassName)
-                throw new ArgumentException($"Objeto anônimo deve ser do tipo {expectedClassName}.", nameof(anonymousObject));
+                throw new Exception($"Objeto anônimo deve ser do tipo {expectedClassName}.");
         }
         public void SetProperties(object anonymousObject)
         {
@@ -34,7 +34,7 @@
         public static T[] ToArray<T>(object[] objects) where T : TBase, new()
         {
             if (objects == null)
-                throw new ArgumentNullException(nameof(objects), "Array de objetos anônimos requerido.");
+                throw new Exception("Array de objetos anônimos requerido.");
 
             T[] instances = new T[objects.Length];
 

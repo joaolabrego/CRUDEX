@@ -1,5 +1,6 @@
 "use strict"
 
+import TActions from "./TActions.class.mjs"
 import TConfig from "./TConfig.class.mjs"
 import TLogin from "./TLogin.class.mjs"
 import TSystem from "./TSystem.class.mjs"
@@ -82,6 +83,9 @@ export default class TTable {
     }
     async ReadTablePage(pageNumber = this.#PageNumber) {
         let parameters = {
+            DatabaseName: this.#Database.Name,
+            TableName: this.#Name,
+            Action: TActions.READ,
             InputParams: {},
             OutputParams: {},
             IOParams: {
@@ -97,7 +101,7 @@ export default class TTable {
             UserName: TLogin.UserName,
             Record: JSON.stringify(parameters.InputParams),
         }
-        let res = await TConfig.GetAPI(`${this.#Database.Name}/${this.#Name}/read`, parameters)
+        let res = await TConfig.GetAPI(TActions.EXECUTE, parameters)
 
         this.#RowCount = res.Parameters.ReturnValue
         this.#PageNumber = res.Parameters.PageNumber

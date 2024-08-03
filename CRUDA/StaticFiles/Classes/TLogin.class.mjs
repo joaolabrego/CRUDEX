@@ -75,8 +75,10 @@ export default class TLogin {
                         TSystem.Action = TActions.MENU
                     })
                     .catch(error => {
-                        if (error.Action) 
-                            TScreen.ShowError(error.Message, error.Action)
+                        if (error.Action) {
+                            TScreen.ErrorMessage = error.Message
+                            this.#HTML.UserName.focus()
+                        }
                         else {
                             TScreen.ErrorMessage = error.Message
                             if (error.Message.toLowerCase().indexOf("senha") === -1)

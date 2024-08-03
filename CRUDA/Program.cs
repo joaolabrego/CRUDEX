@@ -1,6 +1,11 @@
+using System.Dynamic;
 using System.Text;
 using CRUDA.Classes;
 using CRUDA.Classes.Models;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using NPOI.XWPF.UserModel;
+using Org.BouncyCastle.Asn1.Ocsp;
 using Dictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
 namespace CRUDA_LIB
@@ -16,75 +21,70 @@ namespace CRUDA_LIB
                 await next.Invoke();
             });
 
-            app.MapGet("/", (HttpResponse response) =>
+            app.MapGet("/", (HttpContext context) =>
             {
-                response.Headers.ContentType = "text/html;";
-                Scripts.GenerateScript("cruda", "cruda");
-                response.WriteAsync(Config.GetHTML("cruda", "Nome do sistema é requerido na URL."), Encoding.UTF8);
+                //Scripts.GenerateScript("cruda", "cruda");
+                ExecuteRoute(context, "", Actions.NO_SYSTEM);
             });
-            app.MapGet("/{systemName}", (HttpResponse response, string systemName) =>
+            app.MapGet("/{systemName}", (HttpContext context, string systemName) =>
             {
-                response.Headers.ContentType = "text/html"; 
-                try
-                {
-                    response.WriteAsync(new Config(systemName).GetHTML(systemName), Encoding.UTF8);
-                }
-                catch(Exception ex)
-                {
-                    response.WriteAsync(Config.GetHTML(systemName, ex.Message), Encoding.UTF8);
-                }
+                ExecuteRoute(context, systemName, Actions.CHECK_SYSTEM);
             });
             app.MapPost($"/{{systemName}}/{Actions.CONFIG}", (HttpContext context, string systemName) =>
             {
                 ExecuteRoute(context, systemName, Actions.CONFIG);
             });
-            app.MapPost($"/{{systemName}}/{Actions.LOGIN}", (HttpContext context, string systemName, object body) =>
+            app.MapPost($"/{{systemName}}/{Actions.LOGIN}", (HttpContext context, string systemName, dynamic body) =>
             {
-                ExecuteRoute(context, systemName, Actions.LOGIN, Config.GetParameters(context.Request, body));
+                ExecuteRoute(context, systemName, Actions.LOGIN, body);
             });
-            app.MapPost($"/{{systemName}}/{Actions.LOGOUT}", (HttpContext context, string systemName, object body) =>
+            app.MapPost($"/{{systemName}}/{Actions.LOGOUT}", (HttpContext context, string systemName, dynamic body) =>
             {
-                ExecuteRoute(context, systemName, Actions.LOGOUT, Config.GetParameters(context.Request, body));
+                ExecuteRoute(context, systemName, Actions.LOGOUT, body);
             });
-            app.MapPost("/{systemName}/{databaseName}/{tableName}/{action}", (HttpContext context, string systemName, string databaseName, 
-                                                                              string tableName, string action, object body) =>
+            app.MapPost($"/{{systemName}}/{Actions.EXECUTE}", (HttpContext context, string systemName, dynamic body) =>
             {
-                context.Response.Headers.ContentType = "application/json";
-                try
-                {
-                    var parameters = Config.GetParameters(context.Request, body);
-                    var login = Login.Execute(systemName, Actions.AUTHENTICATE, parameters);
-
-                    try
-                    {
-                        context.Response.WriteAsync(SQLProcedure.Execute(systemName, databaseName, tableName, action, parameters).ToString(), Encoding.UTF8);
-                    }
-                    catch (Exception ex)
-                    {
-                        context.Response.WriteAsync(new Error(ex.Message, Actions.MENU).ToString(), Encoding.UTF8);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    context.Response.WriteAsync(new Error(ex.Message, Actions.LOGIN).ToString(), Encoding.UTF8);
-                }
+                ExecuteRoute(context, systemName, Actions.EXECUTE, body);
             });
 
             app.Run();
         }
-        private static void ExecuteRoute(HttpContext context, string systemName, string action, Dictionary? parameters = null)
+        private static void ExecuteRoute(HttpContext context, string systemName, string action, dynamic? body = null)
         {
+            var response = context.Response;
+
             try
             {
-                context.Response.Headers.ContentType = "application/json";
+                var parameters = Config.ToDictionary(new
+                {
+                    Login = JsonConvert.DeserializeObject(context.Request.Headers["Login"].ToString()),
+                    Parameters = JsonConvert.DeserializeObject((body ?? new { }).ToString()),
+                });
+
                 switch (action)
                 {
+                    case Actions.NO_SYSTEM:
+                        response.Headers.ContentType = "text/html;";
+                        response.WriteAsync(Config.GetHTML("cruda", "Nome do sistema é requerido na URL."), Encoding.UTF8);
+                        break;
+                    case Actions.CHECK_SYSTEM:
+                        response.Headers.ContentType = "text/html";
+                        SQLProcedure.GetConfig(systemName);
+                        response.WriteAsync(Config.GetHTML(systemName), Encoding.UTF8);
+                        break;
                     case Actions.CONFIG:
-                        context.Response.WriteAsync(new Config(systemName, "all").ToString(), Encoding.UTF8);
+                        response.Headers.ContentType = "application/json";
+                        response.WriteAsync(new Config(systemName, "all").ToString(), Encoding.UTF8);
                         break;
                     case Actions.LOGIN:
                     case Actions.LOGOUT:
-                        context.Response.WriteAsync(Login.Execute(systemName, action, parameters).ToString(), Encoding.UTF8);
+                        response.Headers.ContentType = "application/json";
+                        response.WriteAsync(Login.Execute(systemName, action, parameters).ToString(), Encoding.UTF8);
+                        break;
+                    case Actions.EXECUTE:
+                        response.Headers.ContentType = "application/json";
+                        Login.Execute(systemName, Actions.AUTHENTICATE, parameters);
+                        response.WriteAsync(SQLProcedure.Execute(systemName, parameters).ToString(), Encoding.UTF8);
                         break;
                     default:
                         throw new Exception("Ação inválida em rota.");
@@ -92,7 +92,9 @@ namespace CRUDA_LIB
             }
             catch (Exception ex)
             {
-                context.Response.WriteAsync(new Error(ex.Message).ToString(), Encoding.UTF8);
+                var message = action == Actions.CHECK_SYSTEM ? Config.GetHTML(systemName, ex.Message) : new Error(ex.Message, Actions.LOGIN).ToString();
+
+                response.WriteAsync(message, Encoding.UTF8);
             }
         }
     }

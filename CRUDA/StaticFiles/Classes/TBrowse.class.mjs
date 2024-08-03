@@ -34,7 +34,6 @@ export default class TBrowse {
         Query: "",
         Exit: "",
     }
-
     constructor(table) {
         if (table.ClassName !== "TTable")
             throw new Error("Argumento table não é do tipo TTable.")

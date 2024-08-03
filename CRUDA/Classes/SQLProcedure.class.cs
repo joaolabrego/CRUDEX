@@ -48,8 +48,12 @@ namespace CRUDA_LIB
 
             return Execute(Settings.ConnecionString(), Settings.Get("CONFIG_PROCEDURE"), parameters);
         }
-        public static SQLResult Execute(string systemName, string databaseName, string tableName, string action, Dictionary? parameters = null)
+        public static SQLResult Execute(string systemName, Dictionary? parameters)
         {
+            var parms = parameters?["Parameters"];
+            var databaseName = parms?["DatabaseName"];
+            var tableName = parms?["TableName"];
+            var action = parms?["Action"];
             var config = GetConfig(systemName, databaseName, tableName);
             var databaseRow = config.Tables[1].Rows[0];
             var tableRow = config.Tables[2].Rows[0];

@@ -882,7 +882,7 @@ namespace CRUDA.Classes
                         if (ToString(category["Name"]) == "numeric")
                             value ??= null;
                         else if (ToString(category["Name"]) == "boolean")
-                            value = value == null ? null : ToBoolean(value) ? 1 : 0;
+                            value = value == null ? null : value ? 1 : 0;
                         if ((value = ToString(value)) == string.Empty)
                             value = "NULL";
                         else if (!"undefined;date;datetime;time;".Contains($"{ToString(category["Name"])};"))

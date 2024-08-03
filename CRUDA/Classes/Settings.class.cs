@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.FileProviders;
+using NPOI.OpenXmlFormats.Dml;
 using System.Globalization;
 
 namespace CRUDA_LIB
@@ -17,6 +18,7 @@ namespace CRUDA_LIB
             {
                 FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "StaticFiles"))
             });
+            app.UseRouting();
 
             return app;
         }
@@ -27,6 +29,12 @@ namespace CRUDA_LIB
         public static string Get(string key)
         {
             return Environment.GetEnvironmentVariable(key) ?? app.Configuration[key] ?? string.Empty;
+        }
+        public static string GetStaticFile(string filename)
+        {
+            var path = Path.Combine(builder.Environment.ContentRootPath, "StaticFiles");
+
+            return Path.Combine(path, filename);
         }
     }
 }
