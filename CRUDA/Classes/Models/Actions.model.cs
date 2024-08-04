@@ -16,7 +16,6 @@
         public const string ROLLBACK = "rollback";
         public const string LIST = "list";
         public const string GEN_ID = "gen_id";
-        public const string NO_SYSTEM = "no_system";
         public const string CHECK_SYSTEM = "check_system";
     }
 }

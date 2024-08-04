@@ -20,11 +20,11 @@ export default class TConfig {
             }
         if (action !== TActions.CONFIG) {
             headers.Login = JSON.stringify({
+                Action: `${TActions.LOGIN};${TActions.LOGOUT}`.search(action) === -1 ? TActions.AUTHENTICATE : action,
+                SystemName: TSystem.Name,
                 LogId: TLogin.LogId,
                 UserName: TLogin.UserName,
                 Password: TLogin.Password,
-                Action: `${TActions.LOGIN};${TActions.LOGOUT}`.search(action) === -1 ? TActions.AUTHENTICATE : action,
-                LastAction: TSystem.Action,
             })
         }
         const response = await fetch(`${location}/${action}`, {
@@ -40,6 +40,7 @@ export default class TConfig {
         return result
     }
     static SetIdleTime(activate = true) {
+        const setEvents = (value) => window.onload = window.onmousemove = window.onmousedown = window.ontouchstart = window.onclick = window.onbeforeinput = value
         const resetTimer = () => {
             clearTimeout(this.#Timer)
             this.#Timer = setTimeout(() => {
@@ -47,12 +48,14 @@ export default class TConfig {
                 TScreen.ShowAlert(`Sistema ocioso por mais de ${this.#IdleTimeInMinutesLimit} minuto(s).`, TActions.RELOAD, 10000)
             }, this.#IdleTimeInMinutesLimit * 60000)
         }
-        if (activate)
+        if (activate) {
+            setEvents(resetTimer)
             resetTimer()
-        else
+        }
+        else {
+            setEvents(null)
             clearTimeout(this.#Timer)
-        window.onload = window.onmousemove = window.onmousedown = window.ontouchstart = window.onclick = window.onbeforeinput =
-            activate ? resetTimer : null
+        }
     }
     static get Locale() {
         if (this.#Locale)

@@ -4,7 +4,6 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
--- EXEC [dbo].[P_Login] 'cruda','labrego','diva','authenticate'
 IF(SELECT object_id('[dbo].[P_Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[P_Login] AS PRINT 1')
 GO
@@ -26,11 +25,11 @@ BEGIN
 		END
 	
 		DECLARE	@Action VARCHAR(15) = CAST(JSON_VALUE(@Login, '$.Action') AS VARCHAR(15))
-				,@LoginId BIGINT = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
 				,@SystemName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.SystemName') AS VARCHAR(25))
+				,@LoginId BIGINT = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
 				,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
-				,@PublicKey VARCHAR(256) = CAST(JSON_VALUE(@Login, '$.PublicKey') AS VARCHAR(256))
 				,@Password VARCHAR(256) = CAST(JSON_VALUE(@Login, '$.Password') AS VARCHAR(256))
+				,@PublicKey VARCHAR(256) = CAST(JSON_VALUE(@Login, '$.PublicKey') AS VARCHAR(256))
 				,@PasswordAux VARCHAR(256)
 				,@LoginIdAux BIGINT
 				,@SystemId BIGINT
@@ -118,10 +117,12 @@ BEGIN
 			SELECT [Id]
 					,[Name]
 					,[FullName]
+					,[PublicKey]
 				FROM [dbo].[Users] 
 				WHERE [Id] = @UserId
 			GOTO RESET_LOGINS
-		END ELSE IF @LoginId IS NULL BEGIN
+		END
+		IF @LoginId IS NULL BEGIN
 			SET @ErrorMessage = 'Id de login requerido.';
 			THROW 51000, @ErrorMessage, 1
 		END
