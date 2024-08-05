@@ -1,8 +1,7 @@
-using System;
 using System.Text;
+using CRUDA.Classes;
 using CRUDA.Classes.Models;
 using Newtonsoft.Json;
-using NPOI.XWPF.UserModel;
 
 namespace CRUDA_LIB
 {
@@ -10,16 +9,15 @@ namespace CRUDA_LIB
     {
         public static void Main()
         {
-            var app = Settings.Initialize();
+            var app = Settings.GetApplication();
 
             app.Use(async (context, next) =>
             {
-                //Scripts.GenerateScript("cruda", "cruda");
                 await next.Invoke();
             });
-
             app.MapGet("/", (HttpContext context) =>
             {
+                //Scripts.GenerateScript("cruda", "cruda");
                 ExecuteRoute(context);
             });
             app.MapGet("/{systemName}", (HttpContext context, string systemName) =>
@@ -77,9 +75,7 @@ namespace CRUDA_LIB
             }
             catch (Exception ex)
             {
-                var message = action == Actions.CHECK_SYSTEM ? Config.GetHTML(systemName, ex.Message) : new Error(ex.Message, Actions.LOGIN).ToString();
-
-                context.Response.WriteAsync(message, Encoding.UTF8);
+                context.Response.WriteAsync(action == Actions.CHECK_SYSTEM ? Config.GetHTML(systemName, ex.Message) : new Error(ex.Message, Actions.LOGIN).ToString(), Encoding.UTF8);
             }
         }
     }
