@@ -21,7 +21,7 @@ export default class TSystem {
     static #Name = ""
     static #Description = ""
     static #ClientName = ""
-    static #CryptoKey = ""
+
     static #Action = ""
     static #RowsPerPage = 0
     static #PaddingBrowseLastPage = false
@@ -42,20 +42,19 @@ export default class TSystem {
                         return this.constructor.name
                     }
                 });
-                document.body.style = config.Data.Styles.Body
+                document.body.style = config.Styles.Body
                 this.#Name = config.Data.System[0].Name
                 this.#Description = config.Data.System[0].Description
                 this.#ClientName = config.Data.System[0].ClientName
-                this.#CryptoKey = config.CryptoKey
-                this.#RowsPerPage = config.Data.RowsPerPage
-                this.#PaddingBrowseLastPage = config.Data.PaddingBrowseLastPage
-                TConfig.IdleTimeInMinutesLimit = config.Data.IdleTimeInMinutesLimit
-                TLogin.Initialize(config.Data.Styles)
-                TDialog.Initialize(config.Data.Styles, config.Data.Images)
-                TScreen.Initialize(config.Data.Styles, config.Data.Images, withBackgroundImage)
-                TMenu.Initialize(config.Data.Styles, config.Data.Menus)
-                TBrowse.Initialize(config.Data.Styles, config.Data.Images)
-                TForm.Initialize(config.Data.Styles, config.Data.Images)
+                this.#RowsPerPage = config.RowsPerPage
+                this.#PaddingBrowseLastPage = config.PaddingBrowseLastPage
+                TConfig.IdleTimeInMinutesLimit = config.IdleTimeInMinutesLimit
+                TLogin.Initialize(config.Styles)
+                TDialog.Initialize(config.Styles, config.Images)
+                TScreen.Initialize(config.Styles, config.Images, withBackgroundImage)
+                TMenu.Initialize(config.Styles, config.Data.Menus)
+                TBrowse.Initialize(config.Styles, config.Images)
+                TForm.Initialize(config.Styles, config.Images)
                 config.Data.Categories.forEach(row => this.#Categories.push(new TCategory(row)))
                 config.Data.Types.forEach(row => this.#Types.push(new TType(row)))
                 config.Data.Domains.forEach(row => this.#Domains.push(new TDomain(row)))
@@ -208,9 +207,6 @@ export default class TSystem {
     }
     static get PaddingBrowseLastPage() {
         return this.#PaddingBrowseLastPage
-    }
-    static get CryptoKey() {
-        return this.#CryptoKey
     }
     static get Types() {
         return this.#Types

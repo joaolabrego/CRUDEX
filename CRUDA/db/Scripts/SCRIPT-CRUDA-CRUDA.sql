@@ -791,6 +791,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+-- EXEC [dbo].[P_Login] 'cruda','labrego','diva','authenticate'
 IF(SELECT object_id('[dbo].[P_Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[P_Login] AS PRINT 1')
 GO
@@ -812,11 +813,11 @@ BEGIN
 		END
 	
 		DECLARE	@Action VARCHAR(15) = CAST(JSON_VALUE(@Login, '$.Action') AS VARCHAR(15))
-				,@SystemName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.SystemName') AS VARCHAR(25))
 				,@LoginId BIGINT = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+				,@SystemName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.SystemName') AS VARCHAR(25))
 				,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
-				,@Password VARCHAR(256) = CAST(JSON_VALUE(@Login, '$.Password') AS VARCHAR(256))
 				,@PublicKey VARCHAR(256) = CAST(JSON_VALUE(@Login, '$.PublicKey') AS VARCHAR(256))
+				,@Password VARCHAR(256) = CAST(JSON_VALUE(@Login, '$.Password') AS VARCHAR(256))
 				,@PasswordAux VARCHAR(256)
 				,@LoginIdAux BIGINT
 				,@SystemId BIGINT
@@ -904,12 +905,10 @@ BEGIN
 			SELECT [Id]
 					,[Name]
 					,[FullName]
-					,[PublicKey]
 				FROM [dbo].[Users] 
 				WHERE [Id] = @UserId
 			GOTO RESET_LOGINS
-		END
-		IF @LoginId IS NULL BEGIN
+		END ELSE IF @LoginId IS NULL BEGIN
 			SET @ErrorMessage = 'Id de login requerido.';
 			THROW 51000, @ErrorMessage, 1
 		END
@@ -1727,6 +1726,7 @@ CREATE TABLE [dbo].[Types](
 ,[AskFilterable] bit NOT NULL
 ,[AskBrowseable] bit NOT NULL
 ,[AskCodification] bit NOT NULL
+,[AskFormula] bit NOT NULL
 ,[AllowMaxLength] bit NOT NULL
 ,[IsActive] bit NOT NULL
 ,[CreatedAt] datetime NOT NULL
@@ -1844,6 +1844,7 @@ DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 ,@W_AskFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFilterable') AS bit)
 ,@W_AskBrowseable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskBrowseable') AS bit)
 ,@W_AskCodification bit = CAST(JSON_VALUE(@ActualRecord, '$.AskCodification') AS bit)
+,@W_AskFormula bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFormula') AS bit)
 ,@W_AllowMaxLength bit = CAST(JSON_VALUE(@ActualRecord, '$.AllowMaxLength') AS bit)
 ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 IF @W_Id IS NULL BEGIN
@@ -1906,6 +1907,10 @@ IF @W_AskCodification IS NULL BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de AskCodification é requerido.';
 THROW 51000, @ErrorMessage, 1
 END
+IF @W_AskFormula IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskFormula é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
 IF @W_AllowMaxLength IS NULL BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de AllowMaxLength é requerido.';
 THROW 51000, @ErrorMessage, 1
@@ -1934,6 +1939,7 @@ INSERT INTO [dbo].[Types] ([Id]
 ,[AskFilterable]
 ,[AskBrowseable]
 ,[AskCodification]
+,[AskFormula]
 ,[AllowMaxLength]
 ,[IsActive]
 ,[CreatedAt]
@@ -1951,6 +1957,7 @@ VALUES (@W_Id
 ,@W_AskFilterable
 ,@W_AskBrowseable
 ,@W_AskCodification
+,@W_AskFormula
 ,@W_AllowMaxLength
 ,@W_IsActive
 ,GETDATE()
@@ -2072,6 +2079,7 @@ DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 ,@W_AskFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFilterable') AS bit)
 ,@W_AskBrowseable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskBrowseable') AS bit)
 ,@W_AskCodification bit = CAST(JSON_VALUE(@ActualRecord, '$.AskCodification') AS bit)
+,@W_AskFormula bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFormula') AS bit)
 ,@W_AllowMaxLength bit = CAST(JSON_VALUE(@ActualRecord, '$.AllowMaxLength') AS bit)
 ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 IF @W_Id IS NULL BEGIN
@@ -2134,6 +2142,10 @@ IF @W_AskCodification IS NULL BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de AskCodification é requerido.';
 THROW 51000, @ErrorMessage, 1
 END
+IF @W_AskFormula IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskFormula é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
 IF @W_AllowMaxLength IS NULL BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de AllowMaxLength é requerido.';
 THROW 51000, @ErrorMessage, 1
@@ -2162,6 +2174,7 @@ SET [CategoryId] = @W_CategoryId
 ,[AskFilterable] = @W_AskFilterable
 ,[AskBrowseable] = @W_AskBrowseable
 ,[AskCodification] = @W_AskCodification
+,[AskFormula] = @W_AskFormula
 ,[AllowMaxLength] = @W_AllowMaxLength
 ,[IsActive] = @W_IsActive
 ,[UpdatedAt] = GETDATE()
@@ -2425,6 +2438,7 @@ DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 ,@W_AskFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFilterable') AS bit)
 ,@W_AskBrowseable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskBrowseable') AS bit)
 ,@W_AskCodification bit = CAST(JSON_VALUE(@ActualRecord, '$.AskCodification') AS bit)
+,@W_AskFormula bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFormula') AS bit)
 ,@W_AllowMaxLength bit = CAST(JSON_VALUE(@ActualRecord, '$.AllowMaxLength') AS bit)
 ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 IF @W_Id IS NULL BEGIN
@@ -2487,6 +2501,10 @@ IF @W_AskCodification IS NULL BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de AskCodification é requerido.';
 THROW 51000, @ErrorMessage, 1
 END
+IF @W_AskFormula IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de AskFormula é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
 IF @W_AllowMaxLength IS NULL BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de AllowMaxLength é requerido.';
 THROW 51000, @ErrorMessage, 1
@@ -2512,6 +2530,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([ActualRecord], 'AskFilterable') AS bit) AS [AskFilterable]
 ,CAST(JSON_VALUE([ActualRecord], 'AskBrowseable') AS bit) AS [AskBrowseable]
 ,CAST(JSON_VALUE([ActualRecord], 'AskCodification') AS bit) AS [AskCodification]
+,CAST(JSON_VALUE([ActualRecord], 'AskFormula') AS bit) AS [AskFormula]
 ,CAST(JSON_VALUE([ActualRecord], 'AllowMaxLength') AS bit) AS [AllowMaxLength]
 ,CAST(JSON_VALUE([ActualRecord], 'IsActive') AS bit) AS [IsActive]
 INTO [dbo].[#Operations]
@@ -2532,6 +2551,7 @@ SELECT [Id]
 ,[AskFilterable]
 ,[AskBrowseable]
 ,[AskCodification]
+,[AskFormula]
 ,[AllowMaxLength]
 ,[IsActive]
 INTO[dbo].[#Types]
@@ -2545,6 +2565,7 @@ AND [AskAutoincrement] = ISNULL(@W_AskAutoincrement, [AskAutoincrement])
 AND [AskFilterable] = ISNULL(@W_AskFilterable, [AskFilterable])
 AND [AskBrowseable] = ISNULL(@W_AskBrowseable, [AskBrowseable])
 AND [AskCodification] = ISNULL(@W_AskCodification, [AskCodification])
+AND [AskFormula] = ISNULL(@W_AskFormula, [AskFormula])
 AND [AllowMaxLength] = ISNULL(@W_AllowMaxLength, [AllowMaxLength])
 AND [IsActive] = ISNULL(@W_IsActive, [IsActive])
 SET @RowCount = @@ROWCOUNT
@@ -2565,6 +2586,7 @@ INSERT [dbo].[#Types] SELECT [Id]
 ,[AskFilterable]
 ,[AskBrowseable]
 ,[AskCodification]
+,[AskFormula]
 ,[AllowMaxLength]
 ,[IsActive]
 FROM [dbo].[#Operations]
@@ -2592,7 +2614,7 @@ CREATE TABLE [dbo].[Masks](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Masks] ADD CONSTRAINT PK_Masks PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Masks_Name] ON [dbo].[Masks]([Mask] ASC)
+CREATE UNIQUE INDEX [UNQ_Masks_Name] ON [dbo].[Masks]([Name] ASC)
 GO
 /**********************************************************************************
 Criar procedure MasksCreate
@@ -2717,7 +2739,7 @@ IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_Id) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Masks.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Mask] = @W_Mask) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Name] = @W_Name) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Masks_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -2864,7 +2886,7 @@ IF NOT EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_Id) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Masks.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Mask] = @W_Mask) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Name] = @W_Name) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Masks_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -3143,7 +3165,7 @@ IF @W_Mask IS NULL BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de Mask é requerido.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Mask] = @W_Mask) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Name] = @W_Name) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Masks_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -3206,7 +3228,7 @@ CREATE TABLE [dbo].[Domains](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Domains] ADD CONSTRAINT PK_Domains PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Domains_Name] ON [dbo].[Domains]([Length] ASC)
+CREATE UNIQUE INDEX [UNQ_Domains_Name] ON [dbo].[Domains]([Name] ASC)
 GO
 /**********************************************************************************
 Criar procedure DomainsCreate
@@ -3379,7 +3401,7 @@ IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_Id) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Domains.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Length] = @W_Length) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Name] = @W_Name) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Domains_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -3590,7 +3612,7 @@ IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_Id) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Domains.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Length] = @W_Length) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Name] = @W_Name) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Domains_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -3925,7 +3947,7 @@ IF @W_Decimals IS NOT NULL AND @W_Decimals > CAST('255' AS tinyint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @Decimals deve ser menor que ou igual à ''255''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Length] = @W_Length) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Name] = @W_Name) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Domains_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -4010,7 +4032,7 @@ CREATE TABLE [dbo].[Systems](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Systems] ADD CONSTRAINT PK_Systems PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Systems_Name] ON [dbo].[Systems]([Description] ASC)
+CREATE UNIQUE INDEX [UNQ_Systems_Name] ON [dbo].[Systems]([Name] ASC)
 GO
 /**********************************************************************************
 Criar procedure SystemsCreate
@@ -4153,7 +4175,7 @@ IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_Id) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Systems.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Description] = @W_Description) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Name] = @W_Name) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Systems_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -4322,7 +4344,7 @@ IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_Id) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Systems.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Description] = @W_Description) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Name] = @W_Name) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Systems_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -4621,7 +4643,7 @@ IF @W_MaxRetryLogins > CAST('255' AS tinyint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @MaxRetryLogins deve ser menor que ou igual à ''255''.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Description] = @W_Description) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Name] = @W_Name) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Systems_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -4687,7 +4709,7 @@ CREATE TABLE [dbo].[Menus](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Menus] ADD CONSTRAINT PK_Menus PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Sequence] ON [dbo].[Menus]([Sequence] ASC,[Caption] ASC)
+CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Sequence] ON [dbo].[Menus]([SystemId] ASC,[Sequence] ASC)
 GO
 /**********************************************************************************
 Criar procedure MenusCreate
@@ -4856,7 +4878,7 @@ IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_Id) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Menus.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Sequence] = @W_Sequence AND [Caption] = @W_Caption) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Menus_SystemId_Sequence já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -5055,7 +5077,7 @@ IF NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_Id) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Menus.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Sequence] = @W_Sequence AND [Caption] = @W_Caption) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Menus_SystemId_Sequence já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -5382,7 +5404,7 @@ IF @W_ParentMenuId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE 
 SET @ErrorMessage = @ErrorMessage + 'Valor de ParentMenuId não existe em Menus';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Sequence] = @W_Sequence AND [Caption] = @W_Caption) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Menus_SystemId_Sequence já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -5444,7 +5466,7 @@ DROP TABLE [dbo].[Users]
 CREATE TABLE [dbo].[Users](
 [Id] bigint NOT NULL
 ,[Name] varchar(25) NOT NULL
-,[Password] varchar(MAX) NOT NULL
+,[Password] varchar(256) NOT NULL
 ,[FullName] varchar(50) NOT NULL
 ,[RetryLogins] tinyint NOT NULL
 ,[IsActive] bit NOT NULL
@@ -5453,7 +5475,7 @@ CREATE TABLE [dbo].[Users](
 ,[UpdatedAt] datetime NULL
 ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Users] ADD CONSTRAINT PK_Users PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Users_Name] ON [dbo].[Users]([Password] ASC)
+CREATE UNIQUE INDEX [UNQ_Users_Name] ON [dbo].[Users]([Name] ASC)
 GO
 /**********************************************************************************
 Criar procedure UsersCreate
@@ -5553,7 +5575,7 @@ THROW 51000, @ErrorMessage, 1
 END
 DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 ,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
-,@W_Password varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(MAX))
+,@W_Password varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(256))
 ,@W_FullName varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.FullName') AS varchar(50))
 ,@W_RetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint)
 ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
@@ -5601,7 +5623,7 @@ IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_Id) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Users.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Password] = @W_Password) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Name] = @W_Name) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Users_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -5729,7 +5751,7 @@ THROW 51000, @ErrorMessage, 1
 END
 DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 ,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
-,@W_Password varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(MAX))
+,@W_Password varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(256))
 ,@W_FullName varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.FullName') AS varchar(50))
 ,@W_RetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint)
 ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
@@ -5777,7 +5799,7 @@ IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_Id) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Users.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Password] = @W_Password) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Name] = @W_Name) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Users_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
@@ -6038,7 +6060,7 @@ DECLARE @PageNumber INT --OUT
 ,@OffSet INT
 DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 ,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
-,@W_Password varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(MAX))
+,@W_Password varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(256))
 ,@W_FullName varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.FullName') AS varchar(50))
 ,@W_RetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint)
 ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
@@ -6082,14 +6104,14 @@ IF @W_IsActive IS NULL BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de IsActive é requerido.';
 THROW 51000, @ErrorMessage, 1
 END
-IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Password] = @W_Password) BEGIN
+IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Name] = @W_Name) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Users_Name já existe.';
 THROW 51000, @ErrorMessage, 1
 END
 SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([ActualRecord], 'Id') AS bigint) AS [Id]
 ,CAST(JSON_VALUE([ActualRecord], 'Name') AS varchar(25)) AS [Name]
-,CAST(JSON_VALUE([ActualRecord], 'Password') AS varchar(MAX)) AS [Password]
+,CAST(JSON_VALUE([ActualRecord], 'Password') AS varchar(256)) AS [Password]
 ,CAST(JSON_VALUE([ActualRecord], 'FullName') AS varchar(50)) AS [FullName]
 ,CAST(JSON_VALUE([ActualRecord], 'RetryLogins') AS tinyint) AS [RetryLogins]
 ,CAST(JSON_VALUE([ActualRecord], 'IsActive') AS bit) AS [IsActive]
@@ -6134,3 +6156,6407 @@ THROW
 END CATCH
 END
 GO
+/**********************************************************************************
+Criar tabela SystemsUsers
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[SystemsUsers]', 'U')) IS NOT NULL
+DROP TABLE [dbo].[SystemsUsers]
+CREATE TABLE [dbo].[SystemsUsers](
+[Id] bigint NOT NULL
+,[SystemId] bigint NOT NULL
+,[UserId] bigint NOT NULL
+,[Description] varchar(50) NOT NULL
+,[CreatedAt] datetime NOT NULL
+,[CreatedBy] varchar(25) NOT NULL
+,[UpdatedAt] datetime NULL
+,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[SystemsUsers] ADD CONSTRAINT PK_SystemsUsers PRIMARY KEY CLUSTERED ([Id])
+CREATE UNIQUE INDEX [UNQ_SystemsUsers_SystemId_UserId] ON [dbo].[SystemsUsers]([SystemId] ASC,[UserId] ASC)
+CREATE UNIQUE INDEX [UNQ_SystemsUsers_Description] ON [dbo].[SystemsUsers]([Description] ASC)
+GO
+/**********************************************************************************
+Criar procedure SystemsUsersCreate
+**********************************************************************************/
+IF(SELECT object_id('SystemsUsersCreate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[SystemsUsersCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[SystemsUsersCreate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'create' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de inclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId não existe em Systems';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_UserId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de UserId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_UserId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de UserId não existe em Users';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela SystemsUsers.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsUsers_SystemId_UserId já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Description] = @W_Description) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsUsers_Description já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+INSERT INTO [dbo].[SystemsUsers] ([Id]
+,[SystemId]
+,[UserId]
+,[Description]
+,[CreatedAt]
+,[CreatedBy]
+)
+VALUES (@W_Id
+,@W_SystemId
+,@W_UserId
+,@W_Description
+,GETDATE()
+,@UserName
+)
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure SystemsUsersUpdate
+**********************************************************************************/
+IF(SELECT object_id('SystemsUsersUpdate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[SystemsUsersUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[SystemsUsersUpdate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'update' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de alteração.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId não existe em Systems';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_UserId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de UserId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_UserId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de UserId não existe em Users';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela SystemsUsers.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsUsers_SystemId_UserId já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Description] = @W_Description) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsUsers_Description já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+UPDATE [dbo].[SystemsUsers]
+SET [SystemId] = @W_SystemId
+,[UserId] = @W_UserId
+,[Description] = @W_Description
+,[UpdatedAt] = GETDATE()
+,[UpdatedBy] = @UserName
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure SystemsUsersDelete
+**********************************************************************************/
+IF(SELECT object_id('SystemsUsersDelete', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[SystemsUsersDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[SystemsUsersDelete](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'delete' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de exclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela SystemsUsers.';
+THROW 51000, @ErrorMessage, 1
+END
+DELETE FROM [dbo].[SystemsUsers]
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure SystemsUsersRead
+**********************************************************************************/
+IF(SELECT object_id('SystemsUsersRead', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[SystemsUsersRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[SystemsUsersRead](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'read' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de consulta.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @PageNumber INT --OUT
+,@LimitRows BIGINT --OUT
+,@MaxPage INT --OUT
+,@PaddingBrowseLastPage BIT --OUT
+,@RowCount BIGINT
+,@LoginId BIGINT
+,@OffSet INT
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId não existe em Systems';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_UserId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de UserId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_UserId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de UserId não existe em Users';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsUsers_SystemId_UserId já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Description] = @W_Description) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsUsers_Description já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+SELECT [Action] AS [_]
+,CAST(JSON_VALUE([ActualRecord], 'Id') AS bigint) AS [Id]
+,CAST(JSON_VALUE([ActualRecord], 'SystemId') AS bigint) AS [SystemId]
+,CAST(JSON_VALUE([ActualRecord], 'UserId') AS bigint) AS [UserId]
+,CAST(JSON_VALUE([ActualRecord], 'Description') AS varchar(50)) AS [Description]
+INTO [dbo].[#Operations]
+FROM [dbo].[Operations]
+WHERE [TransactionId] = @TransactionId
+AND [TableId] = @TableId
+AND [IsConfirmed] IS NULL
+CREATE INDEX [#IDX_Operations] ON [dbo].[#Operations]([_], [Id])
+SELECT [Id]
+,[SystemId]
+,[UserId]
+,[Description]
+INTO[dbo].[#SystemsUsers]
+FROM [dbo].[SystemsUsers]
+WHERE [Id] = ISNULL(@W_Id, [Id])
+AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
+AND [UserId] = ISNULL(@W_UserId, [UserId])
+AND [Description] = ISNULL(@W_Description, [Description])
+SET @RowCount = @@ROWCOUNT
+DELETE [SystemsUsers]
+FROM [dbo].[#Operations] [Operations]
+INNER JOIN [dbo].[#SystemsUsers] [SystemsUsers] ON [SystemsUsers].[Id] = [Operations].[Id]
+WHERE [Operations].[_] = 'delete'
+SET @RowCount = @RowCount - @@ROWCOUNT
+INSERT [dbo].[#SystemsUsers] SELECT [Id]
+,[SystemId]
+,[UserId]
+,[Description]
+FROM [dbo].[#Operations]
+WHERE [_] = 'create'
+SET @RowCount = @RowCount + @@ROWCOUNT
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar tabela Databases
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Databases]', 'U')) IS NOT NULL
+DROP TABLE [dbo].[Databases]
+CREATE TABLE [dbo].[Databases](
+[Id] bigint NOT NULL
+,[Name] varchar(25) NOT NULL
+,[Description] varchar(50) NOT NULL
+,[Alias] varchar(25) NOT NULL
+,[ServerName] varchar(50) NULL
+,[HostName] varchar(25) NULL
+,[Port] int NULL
+,[Logon] varchar(256) NULL
+,[Password] varchar(256) NULL
+,[Folder] varchar(256) NULL
+,[CreatedAt] datetime NOT NULL
+,[CreatedBy] varchar(25) NOT NULL
+,[UpdatedAt] datetime NULL
+,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[Databases] ADD CONSTRAINT PK_Databases PRIMARY KEY CLUSTERED ([Id])
+CREATE UNIQUE INDEX [UNQ_Databases_Name] ON [dbo].[Databases]([Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Databases_Alias] ON [dbo].[Databases]([Alias] ASC)
+GO
+/**********************************************************************************
+Criar procedure DatabasesCreate
+**********************************************************************************/
+IF(SELECT object_id('DatabasesCreate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[DatabasesCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[DatabasesCreate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'create' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de inclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+,@W_Alias varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25))
+,@W_ServerName varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ServerName') AS varchar(50))
+,@W_HostName varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.HostName') AS varchar(25))
+,@W_Port int = CAST(JSON_VALUE(@ActualRecord, '$.Port') AS int)
+,@W_Logon varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Logon') AS varchar(256))
+,@W_Password varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(256))
+,@W_Folder varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Folder') AS varchar(256))
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Alias IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Alias é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Port IS NOT NULL AND @W_Port < CAST('1' AS int) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Port deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Port IS NOT NULL AND @W_Port > CAST('65535' AS int) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Port deve ser menor que ou igual à ''65535''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Databases.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Databases_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Alias] = @W_Alias) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Databases_Alias já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+INSERT INTO [dbo].[Databases] ([Id]
+,[Name]
+,[Description]
+,[Alias]
+,[ServerName]
+,[HostName]
+,[Port]
+,[Logon]
+,[Password]
+,[Folder]
+,[CreatedAt]
+,[CreatedBy]
+)
+VALUES (@W_Id
+,@W_Name
+,@W_Description
+,@W_Alias
+,@W_ServerName
+,@W_HostName
+,@W_Port
+,@W_Logon
+,@W_Password
+,@W_Folder
+,GETDATE()
+,@UserName
+)
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure DatabasesUpdate
+**********************************************************************************/
+IF(SELECT object_id('DatabasesUpdate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[DatabasesUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[DatabasesUpdate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'update' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de alteração.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+,@W_Alias varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25))
+,@W_ServerName varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ServerName') AS varchar(50))
+,@W_HostName varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.HostName') AS varchar(25))
+,@W_Port int = CAST(JSON_VALUE(@ActualRecord, '$.Port') AS int)
+,@W_Logon varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Logon') AS varchar(256))
+,@W_Password varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(256))
+,@W_Folder varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Folder') AS varchar(256))
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Alias IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Alias é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Port IS NOT NULL AND @W_Port < CAST('1' AS int) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Port deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Port IS NOT NULL AND @W_Port > CAST('65535' AS int) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Port deve ser menor que ou igual à ''65535''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Databases.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Databases_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Alias] = @W_Alias) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Databases_Alias já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+UPDATE [dbo].[Databases]
+SET [Name] = @W_Name
+,[Description] = @W_Description
+,[Alias] = @W_Alias
+,[ServerName] = @W_ServerName
+,[HostName] = @W_HostName
+,[Port] = @W_Port
+,[Logon] = @W_Logon
+,[Password] = @W_Password
+,[Folder] = @W_Folder
+,[UpdatedAt] = GETDATE()
+,[UpdatedBy] = @UserName
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure DatabasesDelete
+**********************************************************************************/
+IF(SELECT object_id('DatabasesDelete', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[DatabasesDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[DatabasesDelete](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'delete' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de exclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Databases.';
+THROW 51000, @ErrorMessage, 1
+END
+DELETE FROM [dbo].[Databases]
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure DatabasesRead
+**********************************************************************************/
+IF(SELECT object_id('DatabasesRead', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[DatabasesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[DatabasesRead](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'read' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de consulta.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @PageNumber INT --OUT
+,@LimitRows BIGINT --OUT
+,@MaxPage INT --OUT
+,@PaddingBrowseLastPage BIT --OUT
+,@RowCount BIGINT
+,@LoginId BIGINT
+,@OffSet INT
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+,@W_Alias varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25))
+,@W_ServerName varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ServerName') AS varchar(50))
+,@W_HostName varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.HostName') AS varchar(25))
+,@W_Port int = CAST(JSON_VALUE(@ActualRecord, '$.Port') AS int)
+,@W_Logon varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Logon') AS varchar(256))
+,@W_Password varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(256))
+,@W_Folder varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Folder') AS varchar(256))
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Alias IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Alias é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Port IS NOT NULL AND @W_Port < CAST('1' AS int) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Port deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Port IS NOT NULL AND @W_Port > CAST('65535' AS int) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Port deve ser menor que ou igual à ''65535''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Databases_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Alias] = @W_Alias) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Databases_Alias já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+SELECT [Action] AS [_]
+,CAST(JSON_VALUE([ActualRecord], 'Id') AS bigint) AS [Id]
+,CAST(JSON_VALUE([ActualRecord], 'Name') AS varchar(25)) AS [Name]
+,CAST(JSON_VALUE([ActualRecord], 'Description') AS varchar(50)) AS [Description]
+,CAST(JSON_VALUE([ActualRecord], 'Alias') AS varchar(25)) AS [Alias]
+,CAST(JSON_VALUE([ActualRecord], 'ServerName') AS varchar(50)) AS [ServerName]
+,CAST(JSON_VALUE([ActualRecord], 'HostName') AS varchar(25)) AS [HostName]
+,CAST(JSON_VALUE([ActualRecord], 'Port') AS int) AS [Port]
+,CAST(JSON_VALUE([ActualRecord], 'Logon') AS varchar(256)) AS [Logon]
+,CAST(JSON_VALUE([ActualRecord], 'Password') AS varchar(256)) AS [Password]
+,CAST(JSON_VALUE([ActualRecord], 'Folder') AS varchar(256)) AS [Folder]
+INTO [dbo].[#Operations]
+FROM [dbo].[Operations]
+WHERE [TransactionId] = @TransactionId
+AND [TableId] = @TableId
+AND [IsConfirmed] IS NULL
+CREATE INDEX [#IDX_Operations] ON [dbo].[#Operations]([_], [Id])
+SELECT [Id]
+,[Name]
+,[Description]
+,[Alias]
+,[ServerName]
+,[HostName]
+,[Port]
+,[Logon]
+,[Password]
+,[Folder]
+INTO[dbo].[#Databases]
+FROM [dbo].[Databases]
+WHERE [Id] = ISNULL(@W_Id, [Id])
+AND [Name] = ISNULL(@W_Name, [Name])
+AND [Alias] = ISNULL(@W_Alias, [Alias])
+SET @RowCount = @@ROWCOUNT
+DELETE [Databases]
+FROM [dbo].[#Operations] [Operations]
+INNER JOIN [dbo].[#Databases] [Databases] ON [Databases].[Id] = [Operations].[Id]
+WHERE [Operations].[_] = 'delete'
+SET @RowCount = @RowCount - @@ROWCOUNT
+INSERT [dbo].[#Databases] SELECT [Id]
+,[Name]
+,[Description]
+,[Alias]
+,[ServerName]
+,[HostName]
+,[Port]
+,[Logon]
+,[Password]
+,[Folder]
+FROM [dbo].[#Operations]
+WHERE [_] = 'create'
+SET @RowCount = @RowCount + @@ROWCOUNT
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar tabela SystemsDatabases
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[SystemsDatabases]', 'U')) IS NOT NULL
+DROP TABLE [dbo].[SystemsDatabases]
+CREATE TABLE [dbo].[SystemsDatabases](
+[Id] bigint NOT NULL
+,[SystemId] bigint NOT NULL
+,[DatabaseId] bigint NOT NULL
+,[Description] varchar(50) NOT NULL
+,[CreatedAt] datetime NOT NULL
+,[CreatedBy] varchar(25) NOT NULL
+,[UpdatedAt] datetime NULL
+,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[SystemsDatabases] ADD CONSTRAINT PK_SystemsDatabases PRIMARY KEY CLUSTERED ([Id])
+CREATE UNIQUE INDEX [UNQ_SystemsDatabases_SystemId_DatabaseId] ON [dbo].[SystemsDatabases]([SystemId] ASC,[DatabaseId] ASC)
+CREATE UNIQUE INDEX [UNQ_SystemsDatabases_Description] ON [dbo].[SystemsDatabases]([Description] ASC)
+GO
+/**********************************************************************************
+Criar procedure SystemsDatabasesCreate
+**********************************************************************************/
+IF(SELECT object_id('SystemsDatabasesCreate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[SystemsDatabasesCreate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'create' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de inclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId não existe em Systems';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em Databases';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela SystemsDatabases.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsDatabases_SystemId_DatabaseId já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Description] = @W_Description) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsDatabases_Description já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+INSERT INTO [dbo].[SystemsDatabases] ([Id]
+,[SystemId]
+,[DatabaseId]
+,[Description]
+,[CreatedAt]
+,[CreatedBy]
+)
+VALUES (@W_Id
+,@W_SystemId
+,@W_DatabaseId
+,@W_Description
+,GETDATE()
+,@UserName
+)
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure SystemsDatabasesUpdate
+**********************************************************************************/
+IF(SELECT object_id('SystemsDatabasesUpdate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[SystemsDatabasesUpdate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'update' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de alteração.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId não existe em Systems';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em Databases';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela SystemsDatabases.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsDatabases_SystemId_DatabaseId já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Description] = @W_Description) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsDatabases_Description já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+UPDATE [dbo].[SystemsDatabases]
+SET [SystemId] = @W_SystemId
+,[DatabaseId] = @W_DatabaseId
+,[Description] = @W_Description
+,[UpdatedAt] = GETDATE()
+,[UpdatedBy] = @UserName
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure SystemsDatabasesDelete
+**********************************************************************************/
+IF(SELECT object_id('SystemsDatabasesDelete', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[SystemsDatabasesDelete](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'delete' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de exclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela SystemsDatabases.';
+THROW 51000, @ErrorMessage, 1
+END
+DELETE FROM [dbo].[SystemsDatabases]
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure SystemsDatabasesRead
+**********************************************************************************/
+IF(SELECT object_id('SystemsDatabasesRead', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'read' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de consulta.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @PageNumber INT --OUT
+,@LimitRows BIGINT --OUT
+,@MaxPage INT --OUT
+,@PaddingBrowseLastPage BIT --OUT
+,@RowCount BIGINT
+,@LoginId BIGINT
+,@OffSet INT
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId não existe em Systems';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em Databases';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsDatabases_SystemId_DatabaseId já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Description] = @W_Description) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_SystemsDatabases_Description já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+SELECT [Action] AS [_]
+,CAST(JSON_VALUE([ActualRecord], 'Id') AS bigint) AS [Id]
+,CAST(JSON_VALUE([ActualRecord], 'SystemId') AS bigint) AS [SystemId]
+,CAST(JSON_VALUE([ActualRecord], 'DatabaseId') AS bigint) AS [DatabaseId]
+,CAST(JSON_VALUE([ActualRecord], 'Description') AS varchar(50)) AS [Description]
+INTO [dbo].[#Operations]
+FROM [dbo].[Operations]
+WHERE [TransactionId] = @TransactionId
+AND [TableId] = @TableId
+AND [IsConfirmed] IS NULL
+CREATE INDEX [#IDX_Operations] ON [dbo].[#Operations]([_], [Id])
+SELECT [Id]
+,[SystemId]
+,[DatabaseId]
+,[Description]
+INTO[dbo].[#SystemsDatabases]
+FROM [dbo].[SystemsDatabases]
+WHERE [Id] = ISNULL(@W_Id, [Id])
+AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
+AND [DatabaseId] = ISNULL(@W_DatabaseId, [DatabaseId])
+AND [Description] = ISNULL(@W_Description, [Description])
+SET @RowCount = @@ROWCOUNT
+DELETE [SystemsDatabases]
+FROM [dbo].[#Operations] [Operations]
+INNER JOIN [dbo].[#SystemsDatabases] [SystemsDatabases] ON [SystemsDatabases].[Id] = [Operations].[Id]
+WHERE [Operations].[_] = 'delete'
+SET @RowCount = @RowCount - @@ROWCOUNT
+INSERT [dbo].[#SystemsDatabases] SELECT [Id]
+,[SystemId]
+,[DatabaseId]
+,[Description]
+FROM [dbo].[#Operations]
+WHERE [_] = 'create'
+SET @RowCount = @RowCount + @@ROWCOUNT
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar tabela Tables
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Tables]', 'U')) IS NOT NULL
+DROP TABLE [dbo].[Tables]
+CREATE TABLE [dbo].[Tables](
+[Id] bigint NOT NULL
+,[Name] varchar(25) NOT NULL
+,[Alias] varchar(25) NOT NULL
+,[Description] varchar(50) NOT NULL
+,[ParentTableId] bigint NULL
+,[ProcedureCreate] varchar(50) NULL
+,[ProcedureRead] varchar(50) NULL
+,[ProcedureUpdate] varchar(50) NULL
+,[ProcedureDelete] varchar(50) NULL
+,[ProcedureList] varchar(50) NULL
+,[IsPaged] bit NOT NULL
+,[LastId] bigint NOT NULL
+,[CreatedAt] datetime NOT NULL
+,[CreatedBy] varchar(25) NOT NULL
+,[UpdatedAt] datetime NULL
+,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[Tables] ADD CONSTRAINT PK_Tables PRIMARY KEY CLUSTERED ([Id])
+CREATE UNIQUE INDEX [UNQ_Tables_Name] ON [dbo].[Tables]([Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Tables_Alias] ON [dbo].[Tables]([Alias] ASC)
+GO
+/**********************************************************************************
+Criar procedure TablesCreate
+**********************************************************************************/
+IF(SELECT object_id('TablesCreate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[TablesCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[TablesCreate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'create' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de inclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+,@W_Alias varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25))
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
+,@W_ProcedureCreate varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureCreate') AS varchar(50))
+,@W_ProcedureRead varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureRead') AS varchar(50))
+,@W_ProcedureUpdate varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureUpdate') AS varchar(50))
+,@W_ProcedureDelete varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureDelete') AS varchar(50))
+,@W_ProcedureList varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureList') AS varchar(50))
+,@W_IsPaged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPaged') AS bit)
+,@W_LastId bigint = CAST(JSON_VALUE(@ActualRecord, '$.LastId') AS bigint)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Alias IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Alias é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('-9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentTableId deve ser maior que ou igual à ''-9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentTableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ParentTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ParentTableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsPaged IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsPaged é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_LastId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de LastId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_LastId < CAST('0' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @LastId deve ser maior que ou igual à ''0''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_LastId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @LastId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Tables.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Tables_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Tables_Alias já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+INSERT INTO [dbo].[Tables] ([Id]
+,[Name]
+,[Alias]
+,[Description]
+,[ParentTableId]
+,[ProcedureCreate]
+,[ProcedureRead]
+,[ProcedureUpdate]
+,[ProcedureDelete]
+,[ProcedureList]
+,[IsPaged]
+,[LastId]
+,[CreatedAt]
+,[CreatedBy]
+)
+VALUES (@W_Id
+,@W_Name
+,@W_Alias
+,@W_Description
+,@W_ParentTableId
+,@W_ProcedureCreate
+,@W_ProcedureRead
+,@W_ProcedureUpdate
+,@W_ProcedureDelete
+,@W_ProcedureList
+,@W_IsPaged
+,@W_LastId
+,GETDATE()
+,@UserName
+)
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure TablesUpdate
+**********************************************************************************/
+IF(SELECT object_id('TablesUpdate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[TablesUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[TablesUpdate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'update' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de alteração.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+,@W_Alias varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25))
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
+,@W_ProcedureCreate varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureCreate') AS varchar(50))
+,@W_ProcedureRead varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureRead') AS varchar(50))
+,@W_ProcedureUpdate varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureUpdate') AS varchar(50))
+,@W_ProcedureDelete varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureDelete') AS varchar(50))
+,@W_ProcedureList varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureList') AS varchar(50))
+,@W_IsPaged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPaged') AS bit)
+,@W_LastId bigint = CAST(JSON_VALUE(@ActualRecord, '$.LastId') AS bigint)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Alias IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Alias é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('-9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentTableId deve ser maior que ou igual à ''-9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentTableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ParentTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ParentTableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsPaged IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsPaged é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_LastId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de LastId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_LastId < CAST('0' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @LastId deve ser maior que ou igual à ''0''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_LastId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @LastId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Tables.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Tables_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Tables_Alias já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+UPDATE [dbo].[Tables]
+SET [Name] = @W_Name
+,[Alias] = @W_Alias
+,[Description] = @W_Description
+,[ParentTableId] = @W_ParentTableId
+,[ProcedureCreate] = @W_ProcedureCreate
+,[ProcedureRead] = @W_ProcedureRead
+,[ProcedureUpdate] = @W_ProcedureUpdate
+,[ProcedureDelete] = @W_ProcedureDelete
+,[ProcedureList] = @W_ProcedureList
+,[IsPaged] = @W_IsPaged
+,[LastId] = @W_LastId
+,[UpdatedAt] = GETDATE()
+,[UpdatedBy] = @UserName
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure TablesDelete
+**********************************************************************************/
+IF(SELECT object_id('TablesDelete', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[TablesDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[TablesDelete](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'delete' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de exclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Tables.';
+THROW 51000, @ErrorMessage, 1
+END
+DELETE FROM [dbo].[Tables]
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure TablesRead
+**********************************************************************************/
+IF(SELECT object_id('TablesRead', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[TablesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[TablesRead](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'read' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de consulta.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @PageNumber INT --OUT
+,@LimitRows BIGINT --OUT
+,@MaxPage INT --OUT
+,@PaddingBrowseLastPage BIT --OUT
+,@RowCount BIGINT
+,@LoginId BIGINT
+,@OffSet INT
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+,@W_Alias varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25))
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
+,@W_ProcedureCreate varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureCreate') AS varchar(50))
+,@W_ProcedureRead varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureRead') AS varchar(50))
+,@W_ProcedureUpdate varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureUpdate') AS varchar(50))
+,@W_ProcedureDelete varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureDelete') AS varchar(50))
+,@W_ProcedureList varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ProcedureList') AS varchar(50))
+,@W_IsPaged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPaged') AS bit)
+,@W_LastId bigint = CAST(JSON_VALUE(@ActualRecord, '$.LastId') AS bigint)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Alias IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Alias é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('-9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentTableId deve ser maior que ou igual à ''-9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentTableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ParentTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ParentTableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsPaged IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsPaged é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_LastId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de LastId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_LastId < CAST('0' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @LastId deve ser maior que ou igual à ''0''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_LastId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @LastId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Tables_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Tables_Alias já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+SELECT [Action] AS [_]
+,CAST(JSON_VALUE([ActualRecord], 'Id') AS bigint) AS [Id]
+,CAST(JSON_VALUE([ActualRecord], 'Name') AS varchar(25)) AS [Name]
+,CAST(JSON_VALUE([ActualRecord], 'Alias') AS varchar(25)) AS [Alias]
+,CAST(JSON_VALUE([ActualRecord], 'Description') AS varchar(50)) AS [Description]
+,CAST(JSON_VALUE([ActualRecord], 'ParentTableId') AS bigint) AS [ParentTableId]
+,CAST(JSON_VALUE([ActualRecord], 'ProcedureCreate') AS varchar(50)) AS [ProcedureCreate]
+,CAST(JSON_VALUE([ActualRecord], 'ProcedureRead') AS varchar(50)) AS [ProcedureRead]
+,CAST(JSON_VALUE([ActualRecord], 'ProcedureUpdate') AS varchar(50)) AS [ProcedureUpdate]
+,CAST(JSON_VALUE([ActualRecord], 'ProcedureDelete') AS varchar(50)) AS [ProcedureDelete]
+,CAST(JSON_VALUE([ActualRecord], 'ProcedureList') AS varchar(50)) AS [ProcedureList]
+,CAST(JSON_VALUE([ActualRecord], 'IsPaged') AS bit) AS [IsPaged]
+,CAST(JSON_VALUE([ActualRecord], 'LastId') AS bigint) AS [LastId]
+INTO [dbo].[#Operations]
+FROM [dbo].[Operations]
+WHERE [TransactionId] = @TransactionId
+AND [TableId] = @TableId
+AND [IsConfirmed] IS NULL
+CREATE INDEX [#IDX_Operations] ON [dbo].[#Operations]([_], [Id])
+SELECT [Id]
+,[Name]
+,[Alias]
+,[Description]
+,[ParentTableId]
+,[ProcedureCreate]
+,[ProcedureRead]
+,[ProcedureUpdate]
+,[ProcedureDelete]
+,[ProcedureList]
+,[IsPaged]
+,[LastId]
+INTO[dbo].[#Tables]
+FROM [dbo].[Tables]
+WHERE [Id] = ISNULL(@W_Id, [Id])
+AND [Name] = ISNULL(@W_Name, [Name])
+AND [Alias] = ISNULL(@W_Alias, [Alias])
+AND (@W_ParentTableId IS NULL OR [ParentTableId] = @W_ParentTableId)
+AND [IsPaged] = ISNULL(@W_IsPaged, [IsPaged])
+SET @RowCount = @@ROWCOUNT
+DELETE [Tables]
+FROM [dbo].[#Operations] [Operations]
+INNER JOIN [dbo].[#Tables] [Tables] ON [Tables].[Id] = [Operations].[Id]
+WHERE [Operations].[_] = 'delete'
+SET @RowCount = @RowCount - @@ROWCOUNT
+INSERT [dbo].[#Tables] SELECT [Id]
+,[Name]
+,[Alias]
+,[Description]
+,[ParentTableId]
+,[ProcedureCreate]
+,[ProcedureRead]
+,[ProcedureUpdate]
+,[ProcedureDelete]
+,[ProcedureList]
+,[IsPaged]
+,[LastId]
+FROM [dbo].[#Operations]
+WHERE [_] = 'create'
+SET @RowCount = @RowCount + @@ROWCOUNT
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar tabela DatabasesTables
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[DatabasesTables]', 'U')) IS NOT NULL
+DROP TABLE [dbo].[DatabasesTables]
+CREATE TABLE [dbo].[DatabasesTables](
+[Id] bigint NOT NULL
+,[DatabaseId] bigint NOT NULL
+,[TableId] bigint NOT NULL
+,[Description] varchar(50) NOT NULL
+,[CreatedAt] datetime NOT NULL
+,[CreatedBy] varchar(25) NOT NULL
+,[UpdatedAt] datetime NULL
+,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[DatabasesTables] ADD CONSTRAINT PK_DatabasesTables PRIMARY KEY CLUSTERED ([Id])
+CREATE UNIQUE INDEX [UNQ_DatabasesTables_DatabaseId_TableId] ON [dbo].[DatabasesTables]([DatabaseId] ASC,[TableId] ASC)
+CREATE UNIQUE INDEX [UNQ_DatabasesTables_Description] ON [dbo].[DatabasesTables]([Description] ASC)
+GO
+/**********************************************************************************
+Criar procedure DatabasesTablesCreate
+**********************************************************************************/
+IF(SELECT object_id('DatabasesTablesCreate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[DatabasesTablesCreate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'create' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de inclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em Databases';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela DatabasesTables.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId AND [TableId] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_DatabasesTables_DatabaseId_TableId já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Description] = @W_Description) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_DatabasesTables_Description já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+,[DatabaseId]
+,[TableId]
+,[Description]
+,[CreatedAt]
+,[CreatedBy]
+)
+VALUES (@W_Id
+,@W_DatabaseId
+,@W_TableId
+,@W_Description
+,GETDATE()
+,@UserName
+)
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure DatabasesTablesUpdate
+**********************************************************************************/
+IF(SELECT object_id('DatabasesTablesUpdate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[DatabasesTablesUpdate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'update' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de alteração.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em Databases';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela DatabasesTables.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId AND [TableId] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_DatabasesTables_DatabaseId_TableId já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Description] = @W_Description) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_DatabasesTables_Description já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+UPDATE [dbo].[DatabasesTables]
+SET [DatabaseId] = @W_DatabaseId
+,[TableId] = @W_TableId
+,[Description] = @W_Description
+,[UpdatedAt] = GETDATE()
+,[UpdatedBy] = @UserName
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure DatabasesDelete
+**********************************************************************************/
+IF(SELECT object_id('DatabasesDelete', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[DatabasesDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[DatabasesDelete](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'delete' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de exclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela DatabasesTables.';
+THROW 51000, @ErrorMessage, 1
+END
+DELETE FROM [dbo].[DatabasesTables]
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure DatabasesTablesRead
+**********************************************************************************/
+IF(SELECT object_id('DatabasesTablesRead', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[DatabasesTablesRead](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'read' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de consulta.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @PageNumber INT --OUT
+,@LimitRows BIGINT --OUT
+,@MaxPage INT --OUT
+,@PaddingBrowseLastPage BIT --OUT
+,@RowCount BIGINT
+,@LoginId BIGINT
+,@OffSet INT
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em Databases';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId AND [TableId] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_DatabasesTables_DatabaseId_TableId já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Description] = @W_Description) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_DatabasesTables_Description já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+SELECT [Action] AS [_]
+,CAST(JSON_VALUE([ActualRecord], 'Id') AS bigint) AS [Id]
+,CAST(JSON_VALUE([ActualRecord], 'DatabaseId') AS bigint) AS [DatabaseId]
+,CAST(JSON_VALUE([ActualRecord], 'TableId') AS bigint) AS [TableId]
+,CAST(JSON_VALUE([ActualRecord], 'Description') AS varchar(50)) AS [Description]
+INTO [dbo].[#Operations]
+FROM [dbo].[Operations]
+WHERE [TransactionId] = @TransactionId
+AND [TableId] = @TableId
+AND [IsConfirmed] IS NULL
+CREATE INDEX [#IDX_Operations] ON [dbo].[#Operations]([_], [Id])
+SELECT [Id]
+,[DatabaseId]
+,[TableId]
+,[Description]
+INTO[dbo].[#DatabasesTables]
+FROM [dbo].[DatabasesTables]
+WHERE [Id] = ISNULL(@W_Id, [Id])
+AND [DatabaseId] = ISNULL(@W_DatabaseId, [DatabaseId])
+AND [TableId] = ISNULL(@W_TableId, [TableId])
+AND [Description] = ISNULL(@W_Description, [Description])
+SET @RowCount = @@ROWCOUNT
+DELETE [DatabasesTables]
+FROM [dbo].[#Operations] [Operations]
+INNER JOIN [dbo].[#DatabasesTables] [DatabasesTables] ON [DatabasesTables].[Id] = [Operations].[Id]
+WHERE [Operations].[_] = 'delete'
+SET @RowCount = @RowCount - @@ROWCOUNT
+INSERT [dbo].[#DatabasesTables] SELECT [Id]
+,[DatabaseId]
+,[TableId]
+,[Description]
+FROM [dbo].[#Operations]
+WHERE [_] = 'create'
+SET @RowCount = @RowCount + @@ROWCOUNT
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar tabela Columns
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Columns]', 'U')) IS NOT NULL
+DROP TABLE [dbo].[Columns]
+CREATE TABLE [dbo].[Columns](
+[Id] bigint NOT NULL
+,[TableId] bigint NOT NULL
+,[Sequence] smallint NOT NULL
+,[DomainId] bigint NOT NULL
+,[ReferenceTableId] bigint NULL
+,[Name] varchar(25) NOT NULL
+,[Description] varchar(50) NOT NULL
+,[Title] varchar(25) NOT NULL
+,[Caption] varchar(25) NOT NULL
+,[ValidValues] varchar(MAX) NULL
+,[Default] sql_variant NULL
+,[Minimum] sql_variant NULL
+,[Maximum] sql_variant NULL
+,[IsPrimarykey] bit NULL
+,[IsAutoIncrement] bit NULL
+,[IsRequired] bit NOT NULL
+,[IsListable] bit NULL
+,[IsFilterable] bit NULL
+,[IsEditable] bit NULL
+,[IsBrowseable] bit NULL
+,[IsEncrypted] bit NULL
+,[IsCalculated] bit NOT NULL
+,[CreatedAt] datetime NOT NULL
+,[CreatedBy] varchar(25) NOT NULL
+,[UpdatedAt] datetime NULL
+,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[Columns] ADD CONSTRAINT PK_Columns PRIMARY KEY CLUSTERED ([Id])
+CREATE UNIQUE INDEX [UNQ_Columns_TableId_Name] ON [dbo].[Columns]([TableId] ASC,[Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Columns_TableId_Sequence] ON [dbo].[Columns]([TableId] ASC,[Sequence] ASC)
+GO
+/**********************************************************************************
+Criar procedure ColumnsCreate
+**********************************************************************************/
+IF(SELECT object_id('ColumnsCreate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[ColumnsCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[ColumnsCreate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'create' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de inclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
+,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
+,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+,@W_Title varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
+,@W_Caption varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
+,@W_ValidValues varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
+,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
+,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
+,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
+,@W_IsPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPrimarykey') AS bit)
+,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@ActualRecord, '$.IsAutoIncrement') AS bit)
+,@W_IsRequired bit = CAST(JSON_VALUE(@ActualRecord, '$.IsRequired') AS bit)
+,@W_IsListable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit)
+,@W_IsFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit)
+,@W_IsEditable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit)
+,@W_IsBrowseable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBrowseable') AS bit)
+,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
+,@W_IsCalculated bit = CAST(JSON_VALUE(@ActualRecord, '$.IsCalculated') AS bit)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence < CAST('1' AS smallint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Sequence deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence > CAST('32767' AS smallint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Sequence deve ser menor que ou igual à ''32767''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DomainId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DomainId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DomainId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DomainId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DomainId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId não existe em Domains';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ReferenceTableId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ReferenceTableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ReferenceTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ReferenceTableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Title IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Title é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Caption IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Caption é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsRequired IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsRequired é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsCalculated IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsCalculated é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Columns.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_TableId_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_TableId_Sequence já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+INSERT INTO [dbo].[Columns] ([Id]
+,[TableId]
+,[Sequence]
+,[DomainId]
+,[ReferenceTableId]
+,[Name]
+,[Description]
+,[Title]
+,[Caption]
+,[ValidValues]
+,[Default]
+,[Minimum]
+,[Maximum]
+,[IsPrimarykey]
+,[IsAutoIncrement]
+,[IsRequired]
+,[IsListable]
+,[IsFilterable]
+,[IsEditable]
+,[IsBrowseable]
+,[IsEncrypted]
+,[IsCalculated]
+,[CreatedAt]
+,[CreatedBy]
+)
+VALUES (@W_Id
+,@W_TableId
+,@W_Sequence
+,@W_DomainId
+,@W_ReferenceTableId
+,@W_Name
+,@W_Description
+,@W_Title
+,@W_Caption
+,@W_ValidValues
+,@W_Default
+,@W_Minimum
+,@W_Maximum
+,@W_IsPrimarykey
+,@W_IsAutoIncrement
+,@W_IsRequired
+,@W_IsListable
+,@W_IsFilterable
+,@W_IsEditable
+,@W_IsBrowseable
+,@W_IsEncrypted
+,@W_IsCalculated
+,GETDATE()
+,@UserName
+)
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure ColumnsUpdate
+**********************************************************************************/
+IF(SELECT object_id('ColumnsUpdate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[ColumnsUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[ColumnsUpdate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'update' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de alteração.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
+,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
+,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+,@W_Title varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
+,@W_Caption varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
+,@W_ValidValues varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
+,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
+,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
+,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
+,@W_IsPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPrimarykey') AS bit)
+,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@ActualRecord, '$.IsAutoIncrement') AS bit)
+,@W_IsRequired bit = CAST(JSON_VALUE(@ActualRecord, '$.IsRequired') AS bit)
+,@W_IsListable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit)
+,@W_IsFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit)
+,@W_IsEditable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit)
+,@W_IsBrowseable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBrowseable') AS bit)
+,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
+,@W_IsCalculated bit = CAST(JSON_VALUE(@ActualRecord, '$.IsCalculated') AS bit)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence < CAST('1' AS smallint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Sequence deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence > CAST('32767' AS smallint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Sequence deve ser menor que ou igual à ''32767''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DomainId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DomainId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DomainId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DomainId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DomainId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId não existe em Domains';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ReferenceTableId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ReferenceTableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ReferenceTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ReferenceTableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Title IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Title é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Caption IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Caption é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsRequired IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsRequired é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsCalculated IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsCalculated é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Columns.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_TableId_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_TableId_Sequence já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+UPDATE [dbo].[Columns]
+SET [TableId] = @W_TableId
+,[Sequence] = @W_Sequence
+,[DomainId] = @W_DomainId
+,[ReferenceTableId] = @W_ReferenceTableId
+,[Name] = @W_Name
+,[Description] = @W_Description
+,[Title] = @W_Title
+,[Caption] = @W_Caption
+,[ValidValues] = @W_ValidValues
+,[Default] = @W_Default
+,[Minimum] = @W_Minimum
+,[Maximum] = @W_Maximum
+,[IsPrimarykey] = @W_IsPrimarykey
+,[IsAutoIncrement] = @W_IsAutoIncrement
+,[IsRequired] = @W_IsRequired
+,[IsListable] = @W_IsListable
+,[IsFilterable] = @W_IsFilterable
+,[IsEditable] = @W_IsEditable
+,[IsBrowseable] = @W_IsBrowseable
+,[IsEncrypted] = @W_IsEncrypted
+,[IsCalculated] = @W_IsCalculated
+,[UpdatedAt] = GETDATE()
+,[UpdatedBy] = @UserName
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure ColumnsDelete
+**********************************************************************************/
+IF(SELECT object_id('ColumnsDelete', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[ColumnsDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[ColumnsDelete](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'delete' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de exclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Columns.';
+THROW 51000, @ErrorMessage, 1
+END
+DELETE FROM [dbo].[Columns]
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure ColumnsRead
+**********************************************************************************/
+IF(SELECT object_id('ColumnsRead', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[ColumnsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[ColumnsRead](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'read' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de consulta.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @PageNumber INT --OUT
+,@LimitRows BIGINT --OUT
+,@MaxPage INT --OUT
+,@PaddingBrowseLastPage BIT --OUT
+,@RowCount BIGINT
+,@LoginId BIGINT
+,@OffSet INT
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
+,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
+,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+,@W_Title varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
+,@W_Caption varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
+,@W_ValidValues varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
+,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
+,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
+,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
+,@W_IsPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPrimarykey') AS bit)
+,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@ActualRecord, '$.IsAutoIncrement') AS bit)
+,@W_IsRequired bit = CAST(JSON_VALUE(@ActualRecord, '$.IsRequired') AS bit)
+,@W_IsListable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit)
+,@W_IsFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit)
+,@W_IsEditable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit)
+,@W_IsBrowseable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBrowseable') AS bit)
+,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
+,@W_IsCalculated bit = CAST(JSON_VALUE(@ActualRecord, '$.IsCalculated') AS bit)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence < CAST('1' AS smallint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Sequence deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence > CAST('32767' AS smallint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Sequence deve ser menor que ou igual à ''32767''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DomainId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DomainId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DomainId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DomainId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DomainId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId não existe em Domains';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ReferenceTableId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ReferenceTableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ReferenceTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ReferenceTableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Description IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Description é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Title IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Title é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Caption IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Caption é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsRequired IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsRequired é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsCalculated IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsCalculated é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_TableId_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Columns_TableId_Sequence já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+SELECT [Action] AS [_]
+,CAST(JSON_VALUE([ActualRecord], 'Id') AS bigint) AS [Id]
+,CAST(JSON_VALUE([ActualRecord], 'TableId') AS bigint) AS [TableId]
+,CAST(JSON_VALUE([ActualRecord], 'Sequence') AS smallint) AS [Sequence]
+,CAST(JSON_VALUE([ActualRecord], 'DomainId') AS bigint) AS [DomainId]
+,CAST(JSON_VALUE([ActualRecord], 'ReferenceTableId') AS bigint) AS [ReferenceTableId]
+,CAST(JSON_VALUE([ActualRecord], 'Name') AS varchar(25)) AS [Name]
+,CAST(JSON_VALUE([ActualRecord], 'Description') AS varchar(50)) AS [Description]
+,CAST(JSON_VALUE([ActualRecord], 'Title') AS varchar(25)) AS [Title]
+,CAST(JSON_VALUE([ActualRecord], 'Caption') AS varchar(25)) AS [Caption]
+,CAST(JSON_VALUE([ActualRecord], 'ValidValues') AS varchar(MAX)) AS [ValidValues]
+,CAST(JSON_VALUE([ActualRecord], 'Default') AS sql_variant) AS [Default]
+,CAST(JSON_VALUE([ActualRecord], 'Minimum') AS sql_variant) AS [Minimum]
+,CAST(JSON_VALUE([ActualRecord], 'Maximum') AS sql_variant) AS [Maximum]
+,CAST(JSON_VALUE([ActualRecord], 'IsPrimarykey') AS bit) AS [IsPrimarykey]
+,CAST(JSON_VALUE([ActualRecord], 'IsAutoIncrement') AS bit) AS [IsAutoIncrement]
+,CAST(JSON_VALUE([ActualRecord], 'IsRequired') AS bit) AS [IsRequired]
+,CAST(JSON_VALUE([ActualRecord], 'IsListable') AS bit) AS [IsListable]
+,CAST(JSON_VALUE([ActualRecord], 'IsFilterable') AS bit) AS [IsFilterable]
+,CAST(JSON_VALUE([ActualRecord], 'IsEditable') AS bit) AS [IsEditable]
+,CAST(JSON_VALUE([ActualRecord], 'IsBrowseable') AS bit) AS [IsBrowseable]
+,CAST(JSON_VALUE([ActualRecord], 'IsEncrypted') AS bit) AS [IsEncrypted]
+,CAST(JSON_VALUE([ActualRecord], 'IsCalculated') AS bit) AS [IsCalculated]
+INTO [dbo].[#Operations]
+FROM [dbo].[Operations]
+WHERE [TransactionId] = @TransactionId
+AND [TableId] = @TableId
+AND [IsConfirmed] IS NULL
+CREATE INDEX [#IDX_Operations] ON [dbo].[#Operations]([_], [Id])
+SELECT [Id]
+,[TableId]
+,[Sequence]
+,[DomainId]
+,[ReferenceTableId]
+,[Name]
+,[Description]
+,[Title]
+,[Caption]
+,[ValidValues]
+,[Default]
+,[Minimum]
+,[Maximum]
+,[IsPrimarykey]
+,[IsAutoIncrement]
+,[IsRequired]
+,[IsListable]
+,[IsFilterable]
+,[IsEditable]
+,[IsBrowseable]
+,[IsEncrypted]
+,[IsCalculated]
+INTO[dbo].[#Columns]
+FROM [dbo].[Columns]
+WHERE [Id] = ISNULL(@W_Id, [Id])
+AND [TableId] = ISNULL(@W_TableId, [TableId])
+AND [DomainId] = ISNULL(@W_DomainId, [DomainId])
+AND (@W_ReferenceTableId IS NULL OR [ReferenceTableId] = @W_ReferenceTableId)
+AND [Name] = ISNULL(@W_Name, [Name])
+AND (@W_IsAutoIncrement IS NULL OR [IsAutoIncrement] = @W_IsAutoIncrement)
+AND [IsRequired] = ISNULL(@W_IsRequired, [IsRequired])
+AND (@W_IsListable IS NULL OR [IsListable] = @W_IsListable)
+AND (@W_IsFilterable IS NULL OR [IsFilterable] = @W_IsFilterable)
+AND (@W_IsEditable IS NULL OR [IsEditable] = @W_IsEditable)
+AND (@W_IsBrowseable IS NULL OR [IsBrowseable] = @W_IsBrowseable)
+AND (@W_IsEncrypted IS NULL OR [IsEncrypted] = @W_IsEncrypted)
+AND [IsCalculated] = ISNULL(@W_IsCalculated, [IsCalculated])
+SET @RowCount = @@ROWCOUNT
+DELETE [Columns]
+FROM [dbo].[#Operations] [Operations]
+INNER JOIN [dbo].[#Columns] [Columns] ON [Columns].[Id] = [Operations].[Id]
+WHERE [Operations].[_] = 'delete'
+SET @RowCount = @RowCount - @@ROWCOUNT
+INSERT [dbo].[#Columns] SELECT [Id]
+,[TableId]
+,[Sequence]
+,[DomainId]
+,[ReferenceTableId]
+,[Name]
+,[Description]
+,[Title]
+,[Caption]
+,[ValidValues]
+,[Default]
+,[Minimum]
+,[Maximum]
+,[IsPrimarykey]
+,[IsAutoIncrement]
+,[IsRequired]
+,[IsListable]
+,[IsFilterable]
+,[IsEditable]
+,[IsBrowseable]
+,[IsEncrypted]
+,[IsCalculated]
+FROM [dbo].[#Operations]
+WHERE [_] = 'create'
+SET @RowCount = @RowCount + @@ROWCOUNT
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar tabela Indexes
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Indexes]', 'U')) IS NOT NULL
+DROP TABLE [dbo].[Indexes]
+CREATE TABLE [dbo].[Indexes](
+[Id] bigint NOT NULL
+,[DatabaseId] bigint NOT NULL
+,[TableId] bigint NOT NULL
+,[Name] varchar(50) NOT NULL
+,[IsUnique] bit NOT NULL
+,[CreatedAt] datetime NOT NULL
+,[CreatedBy] varchar(25) NOT NULL
+,[UpdatedAt] datetime NULL
+,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[Indexes] ADD CONSTRAINT PK_Indexes PRIMARY KEY CLUSTERED ([Id])
+CREATE UNIQUE INDEX [UNQ_Indexes_DatabaseId_Name] ON [dbo].[Indexes]([DatabaseId] ASC,[Name] ASC)
+GO
+/**********************************************************************************
+Criar procedure IndexesCreate
+**********************************************************************************/
+IF(SELECT object_id('IndexesCreate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[IndexesCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[IndexesCreate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'create' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de inclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+,@W_Name varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(50))
+,@W_IsUnique bit = CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em Databases';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsUnique IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsUnique é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Indexes.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId AND [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexes_DatabaseId_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+INSERT INTO [dbo].[Indexes] ([Id]
+,[DatabaseId]
+,[TableId]
+,[Name]
+,[IsUnique]
+,[CreatedAt]
+,[CreatedBy]
+)
+VALUES (@W_Id
+,@W_DatabaseId
+,@W_TableId
+,@W_Name
+,@W_IsUnique
+,GETDATE()
+,@UserName
+)
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure IndexesUpdate
+**********************************************************************************/
+IF(SELECT object_id('IndexesUpdate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[IndexesUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[IndexesUpdate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'update' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de alteração.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+,@W_Name varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(50))
+,@W_IsUnique bit = CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em Databases';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsUnique IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsUnique é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Indexes.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId AND [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexes_DatabaseId_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+UPDATE [dbo].[Indexes]
+SET [DatabaseId] = @W_DatabaseId
+,[TableId] = @W_TableId
+,[Name] = @W_Name
+,[IsUnique] = @W_IsUnique
+,[UpdatedAt] = GETDATE()
+,[UpdatedBy] = @UserName
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure IndexesDelete
+**********************************************************************************/
+IF(SELECT object_id('IndexesDelete', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[IndexesDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[IndexesDelete](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'delete' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de exclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Indexes.';
+THROW 51000, @ErrorMessage, 1
+END
+DELETE FROM [dbo].[Indexes]
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure IndexesRead
+**********************************************************************************/
+IF(SELECT object_id('IndexesRead', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[IndexesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[IndexesRead](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'read' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de consulta.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @PageNumber INT --OUT
+,@LimitRows BIGINT --OUT
+,@MaxPage INT --OUT
+,@PaddingBrowseLastPage BIT --OUT
+,@RowCount BIGINT
+,@LoginId BIGINT
+,@OffSet INT
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+,@W_Name varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(50))
+,@W_IsUnique bit = CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId não existe em Databases';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de TableId não existe em Tables';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Name IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Name é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsUnique IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsUnique é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId AND [Name] = @W_Name) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexes_DatabaseId_Name já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+SELECT [Action] AS [_]
+,CAST(JSON_VALUE([ActualRecord], 'Id') AS bigint) AS [Id]
+,CAST(JSON_VALUE([ActualRecord], 'DatabaseId') AS bigint) AS [DatabaseId]
+,CAST(JSON_VALUE([ActualRecord], 'TableId') AS bigint) AS [TableId]
+,CAST(JSON_VALUE([ActualRecord], 'Name') AS varchar(50)) AS [Name]
+,CAST(JSON_VALUE([ActualRecord], 'IsUnique') AS bit) AS [IsUnique]
+INTO [dbo].[#Operations]
+FROM [dbo].[Operations]
+WHERE [TransactionId] = @TransactionId
+AND [TableId] = @TableId
+AND [IsConfirmed] IS NULL
+CREATE INDEX [#IDX_Operations] ON [dbo].[#Operations]([_], [Id])
+SELECT [Id]
+,[DatabaseId]
+,[TableId]
+,[Name]
+,[IsUnique]
+INTO[dbo].[#Indexes]
+FROM [dbo].[Indexes]
+WHERE [Id] = ISNULL(@W_Id, [Id])
+AND [TableId] = ISNULL(@W_TableId, [TableId])
+AND [Name] = ISNULL(@W_Name, [Name])
+AND [IsUnique] = ISNULL(@W_IsUnique, [IsUnique])
+SET @RowCount = @@ROWCOUNT
+DELETE [Indexes]
+FROM [dbo].[#Operations] [Operations]
+INNER JOIN [dbo].[#Indexes] [Indexes] ON [Indexes].[Id] = [Operations].[Id]
+WHERE [Operations].[_] = 'delete'
+SET @RowCount = @RowCount - @@ROWCOUNT
+INSERT [dbo].[#Indexes] SELECT [Id]
+,[DatabaseId]
+,[TableId]
+,[Name]
+,[IsUnique]
+FROM [dbo].[#Operations]
+WHERE [_] = 'create'
+SET @RowCount = @RowCount + @@ROWCOUNT
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar tabela Indexkeys
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Indexkeys]', 'U')) IS NOT NULL
+DROP TABLE [dbo].[Indexkeys]
+CREATE TABLE [dbo].[Indexkeys](
+[Id] bigint NOT NULL
+,[IndexId] bigint NOT NULL
+,[Sequence] smallint NOT NULL
+,[ColumnId] bigint NOT NULL
+,[IsDescending] bit NOT NULL
+,[CreatedAt] datetime NOT NULL
+,[CreatedBy] varchar(25) NOT NULL
+,[UpdatedAt] datetime NULL
+,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[Indexkeys] ADD CONSTRAINT PK_Indexkeys PRIMARY KEY CLUSTERED ([Id])
+CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_Sequence] ON [dbo].[Indexkeys]([IndexId] ASC,[Sequence] ASC)
+CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_Column] ON [dbo].[Indexkeys]([IndexId] ASC,[ColumnId] ASC)
+GO
+/**********************************************************************************
+Criar procedure IndexkeysCreate
+**********************************************************************************/
+IF(SELECT object_id('IndexkeysCreate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[IndexkeysCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[IndexkeysCreate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'create' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de inclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_IndexId bigint = CAST(JSON_VALUE(@ActualRecord, '$.IndexId') AS bigint)
+,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+,@W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
+,@W_IsDescending bit = CAST(JSON_VALUE(@ActualRecord, '$.IsDescending') AS bit)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IndexId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IndexId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @IndexId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IndexId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @IndexId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId não existe em Indexes';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence < CAST('1' AS smallint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Sequence deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence > CAST('32767' AS smallint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Sequence deve ser menor que ou igual à ''32767''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ColumnId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ColumnId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ColumnId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ColumnId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ColumnId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId não existe em Columns';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsDescending IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsDescending é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela Indexkeys.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_IndexId_Sequence já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_IndexId_Column já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+INSERT INTO [dbo].[Indexkeys] ([Id]
+,[IndexId]
+,[Sequence]
+,[ColumnId]
+,[IsDescending]
+,[CreatedAt]
+,[CreatedBy]
+)
+VALUES (@W_Id
+,@W_IndexId
+,@W_Sequence
+,@W_ColumnId
+,@W_IsDescending
+,GETDATE()
+,@UserName
+)
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure IndexkeysUpdate
+**********************************************************************************/
+IF(SELECT object_id('IndexkeysUpdate', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[IndexkeysUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[IndexkeysUpdate](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'update' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de alteração.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_IndexId bigint = CAST(JSON_VALUE(@ActualRecord, '$.IndexId') AS bigint)
+,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+,@W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
+,@W_IsDescending bit = CAST(JSON_VALUE(@ActualRecord, '$.IsDescending') AS bit)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IndexId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IndexId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @IndexId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IndexId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @IndexId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId não existe em Indexes';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence < CAST('1' AS smallint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Sequence deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence > CAST('32767' AS smallint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Sequence deve ser menor que ou igual à ''32767''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ColumnId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ColumnId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ColumnId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ColumnId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ColumnId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId não existe em Columns';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsDescending IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsDescending é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Indexkeys.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_IndexId_Sequence já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_IndexId_Column já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+UPDATE [dbo].[Indexkeys]
+SET [IndexId] = @W_IndexId
+,[Sequence] = @W_Sequence
+,[ColumnId] = @W_ColumnId
+,[IsDescending] = @W_IsDescending
+,[UpdatedAt] = GETDATE()
+,[UpdatedBy] = @UserName
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure IndexkeysDelete
+**********************************************************************************/
+IF(SELECT object_id('IndexkeysDelete', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[IndexkeysDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[IndexkeysDelete](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'delete' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de exclusão.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [Id] = @W_Id) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela Indexkeys.';
+THROW 51000, @ErrorMessage, 1
+END
+DELETE FROM [dbo].[Indexkeys]
+WHERE [Id] = @W_Id
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar procedure IndexkeysRead
+**********************************************************************************/
+IF(SELECT object_id('IndexkeysRead', 'P')) IS NULL
+EXEC('CREATE PROCEDURE [dbo].[IndexkeysRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[IndexkeysRead](@Parameters VARCHAR(MAX)) AS
+BEGIN
+BEGIN TRY
+SET NOCOUNT ON
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+DECLARE @ErrorMessage VARCHAR(255)
+IF ISJSON(@Parameters) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Parâmetros não estão no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @Login VARCHAR(MAX) = CAST(JSON_VALUE(@Parameters, '$.Login') AS VARCHAR(MAX))
+IF ISJSON(@Login) = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Login não está no formato JSON.';
+THROW 51000, @ErrorMessage, 1
+END
+EXEC [dbo].[P_Login] @Login
+DECLARE @SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+,@DatabaseName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.DatabaseName') AS VARCHAR(25))
+,@TableName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.TableName') AS VARCHAR(25))
+,@OperationId BIGINT = CAST(JSON_VALUE(@Parameters, '$.OperationId') AS BIGINT)
+,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+,@TransactionId BIGINT
+,@TableId BIGINT
+,@Action VARCHAR(15)
+,@LastRecord VARCHAR(MAX)
+,@ActualRecord VARCHAR(MAX)
+,@IsConfirmed BIT
+SELECT @TransactionId = [TransactionId]
+,@TableId = [TableId]
+,@Action = [Action]
+,@LastRecord = [LastRecord]
+,@ActualRecord = [ActualRecord]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Operations]
+WHERE [Id] = @OperationId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @Action <> 'read' BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação não é de consulta.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Operação já ' + 
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Tables]
+WHERE [Id] = @TableId) <> @TableName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de tabela inválido para a operação.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @SystemId BIGINT
+,@DatabaseId BIGINT
+SELECT @SystemId = [SystemId]
+,@DatabaseId = [DatabaseId]
+,@IsConfirmed = [IsConfirmed]
+FROM [dbo].[Transactions]
+WHERE [Id] = @TransactionId
+IF @@ROWCOUNT = 0 BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @IsConfirmed IS NOT NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Transação já ' +
+CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Systems]
+WHERE [Id] = @SystemId) <> @SystemName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de sistema inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF (SELECT [Name]
+FROM [dbo].[Databases]
+WHERE [Id] = @DatabaseId) <> @DatabaseName BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Nome de banco-de-dados inválido para a transação.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1
+FROM [dbo].[DatabasesTables]
+WHERE [DatabaseId] = @DatabaseId
+AND [TableId] = @TableId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado.';
+THROW 51000, @ErrorMessage, 1
+END
+DECLARE @PageNumber INT --OUT
+,@LimitRows BIGINT --OUT
+,@MaxPage INT --OUT
+,@PaddingBrowseLastPage BIT --OUT
+,@RowCount BIGINT
+,@LoginId BIGINT
+,@OffSet INT
+DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+,@W_IndexId bigint = CAST(JSON_VALUE(@ActualRecord, '$.IndexId') AS bigint)
+,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+,@W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
+,@W_IsDescending bit = CAST(JSON_VALUE(@ActualRecord, '$.IsDescending') AS bit)
+IF @W_Id IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Id é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IndexId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IndexId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @IndexId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IndexId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @IndexId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId não existe em Indexes';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence < CAST('1' AS smallint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Sequence deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_Sequence > CAST('32767' AS smallint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @Sequence deve ser menor que ou igual à ''32767''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ColumnId IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ColumnId < CAST('1' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ColumnId deve ser maior que ou igual à ''1''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_ColumnId > CAST('9007199254740990' AS bigint) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de @ColumnId deve ser menor que ou igual à ''9007199254740990''.';
+THROW 51000, @ErrorMessage, 1
+END
+IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId não existe em Columns';
+THROW 51000, @ErrorMessage, 1
+END
+IF @W_IsDescending IS NULL BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Valor de IsDescending é requerido.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_IndexId_Sequence já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId) BEGIN
+SET @ErrorMessage = @ErrorMessage + 'Chave única do índice UNQ_Indexkeys_IndexId_Column já existe.';
+THROW 51000, @ErrorMessage, 1
+END
+SELECT [Action] AS [_]
+,CAST(JSON_VALUE([ActualRecord], 'Id') AS bigint) AS [Id]
+,CAST(JSON_VALUE([ActualRecord], 'IndexId') AS bigint) AS [IndexId]
+,CAST(JSON_VALUE([ActualRecord], 'Sequence') AS smallint) AS [Sequence]
+,CAST(JSON_VALUE([ActualRecord], 'ColumnId') AS bigint) AS [ColumnId]
+,CAST(JSON_VALUE([ActualRecord], 'IsDescending') AS bit) AS [IsDescending]
+INTO [dbo].[#Operations]
+FROM [dbo].[Operations]
+WHERE [TransactionId] = @TransactionId
+AND [TableId] = @TableId
+AND [IsConfirmed] IS NULL
+CREATE INDEX [#IDX_Operations] ON [dbo].[#Operations]([_], [Id])
+SELECT [Id]
+,[IndexId]
+,[Sequence]
+,[ColumnId]
+,[IsDescending]
+INTO[dbo].[#Indexkeys]
+FROM [dbo].[Indexkeys]
+WHERE [Id] = ISNULL(@W_Id, [Id])
+AND [IndexId] = ISNULL(@W_IndexId, [IndexId])
+AND [ColumnId] = ISNULL(@W_ColumnId, [ColumnId])
+AND [IsDescending] = ISNULL(@W_IsDescending, [IsDescending])
+SET @RowCount = @@ROWCOUNT
+DELETE [Indexkeys]
+FROM [dbo].[#Operations] [Operations]
+INNER JOIN [dbo].[#Indexkeys] [Indexkeys] ON [Indexkeys].[Id] = [Operations].[Id]
+WHERE [Operations].[_] = 'delete'
+SET @RowCount = @RowCount - @@ROWCOUNT
+INSERT [dbo].[#Indexkeys] SELECT [Id]
+,[IndexId]
+,[Sequence]
+,[ColumnId]
+,[IsDescending]
+FROM [dbo].[#Operations]
+WHERE [_] = 'create'
+SET @RowCount = @RowCount + @@ROWCOUNT
+UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
+RETURN 1
+END TRY
+BEGIN CATCH
+THROW
+END CATCH
+END
+GO
+/**********************************************************************************
+Criar tabela Logins
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Logins]', 'U')) IS NOT NULL
+DROP TABLE [dbo].[Logins]
+CREATE TABLE [dbo].[Logins](
+[Id] bigint NOT NULL
+,[SystemId] bigint NOT NULL
+,[UserId] bigint NOT NULL
+,[PublicKey] varchar(256) NOT NULL
+,[IsLogged] bit NOT NULL
+,[CreatedAt] datetime NOT NULL
+,[CreatedBy] varchar(25) NOT NULL
+,[UpdatedAt] datetime NULL
+,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[Logins] ADD CONSTRAINT PK_Logins PRIMARY KEY CLUSTERED ([Id])
+CREATE INDEX [UNQ_Logins_SystemId_UserId_IsLogged] ON [dbo].[Logins]([SystemId] ASC,[UserId] ASC,[IsLogged] ASC)
+GO
+/**********************************************************************************
+Criar tabela Transactions
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Transactions]', 'U')) IS NOT NULL
+DROP TABLE [dbo].[Transactions]
+CREATE TABLE [dbo].[Transactions](
+[Id] bigint NOT NULL
+,[LoginId] bigint NOT NULL
+,[SystemId] bigint NOT NULL
+,[DatabaseId] bigint NOT NULL
+,[IsConfirmed] bit NULL
+,[CreatedAt] datetime NOT NULL
+,[CreatedBy] varchar(25) NOT NULL
+,[UpdatedAt] datetime NULL
+,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED ([Id])
+CREATE INDEX [UNQ_Transactions_LoginId_SystemId_DatabaseId] ON [dbo].[Transactions]([LoginId] ASC,[SystemId] ASC,[DatabaseId] ASC)
+GO
+/**********************************************************************************
+Criar tabela Operations
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Operations]', 'U')) IS NOT NULL
+DROP TABLE [dbo].[Operations]
+CREATE TABLE [dbo].[Operations](
+[Id] bigint NOT NULL
+,[TransactionId] bigint NOT NULL
+,[TableId] bigint NOT NULL
+,[Action] varchar(15) NOT NULL
+,[LastRecord] varchar(MAX) NULL
+,[ActualRecord] varchar(MAX) NOT NULL
+,[IsConfirmed] bit NULL
+,[CreatedAt] datetime NOT NULL
+,[CreatedBy] varchar(25) NOT NULL
+,[UpdatedAt] datetime NULL
+,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED ([Id])
+CREATE INDEX [UNQ_Operations_TransactionId_TableId_Action] ON [dbo].[Operations]([TransactionId] ASC,[TableId] ASC,[Action] ASC)
+GO
+/**********************************************************************************
+Criar referências de Types)
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Types_Categories')
+ALTER TABLE [dbo].[Types] DROP CONSTRAINT FK_Types_Categories
+GO
+ALTER TABLE [dbo].[Types] WITH CHECK ADD CONSTRAINT [FK_Types_Categories] FOREIGN KEY([CategoryId]) REFERENCES [dbo].[Categories] ([Id])
+GO
+ALTER TABLE [dbo].[Types] CHECK CONSTRAINT [FK_Types_Categories]
+GO
+/**********************************************************************************
+Criar referências de Domains)
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Domains_Types')
+ALTER TABLE [dbo].[Domains] DROP CONSTRAINT FK_Domains_Types
+GO
+ALTER TABLE [dbo].[Domains] WITH CHECK ADD CONSTRAINT [FK_Domains_Types] FOREIGN KEY([TypeId]) REFERENCES [dbo].[Types] ([Id])
+GO
+ALTER TABLE [dbo].[Domains] CHECK CONSTRAINT [FK_Domains_Types]
+GO
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Domains_Masks')
+ALTER TABLE [dbo].[Domains] DROP CONSTRAINT FK_Domains_Masks
+GO
+ALTER TABLE [dbo].[Domains] WITH CHECK ADD CONSTRAINT [FK_Domains_Masks] FOREIGN KEY([MaskId]) REFERENCES [dbo].[Masks] ([Id])
+GO
+ALTER TABLE [dbo].[Domains] CHECK CONSTRAINT [FK_Domains_Masks]
+GO
+/**********************************************************************************
+Criar referências de Menus)
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Menus_Systems')
+ALTER TABLE [dbo].[Menus] DROP CONSTRAINT FK_Menus_Systems
+GO
+ALTER TABLE [dbo].[Menus] WITH CHECK ADD CONSTRAINT [FK_Menus_Systems] FOREIGN KEY([SystemId]) REFERENCES [dbo].[Systems] ([Id])
+GO
+ALTER TABLE [dbo].[Menus] CHECK CONSTRAINT [FK_Menus_Systems]
+GO
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Menus_Menus')
+ALTER TABLE [dbo].[Menus] DROP CONSTRAINT FK_Menus_Menus
+GO
+ALTER TABLE [dbo].[Menus] WITH CHECK ADD CONSTRAINT [FK_Menus_Menus] FOREIGN KEY([ParentMenuId]) REFERENCES [dbo].[Menus] ([Id])
+GO
+ALTER TABLE [dbo].[Menus] CHECK CONSTRAINT [FK_Menus_Menus]
+GO
+/**********************************************************************************
+Criar referências de SystemsUsers)
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_SystemsUsers_Systems')
+ALTER TABLE [dbo].[SystemsUsers] DROP CONSTRAINT FK_SystemsUsers_Systems
+GO
+ALTER TABLE [dbo].[SystemsUsers] WITH CHECK ADD CONSTRAINT [FK_SystemsUsers_Systems] FOREIGN KEY([SystemId]) REFERENCES [dbo].[Systems] ([Id])
+GO
+ALTER TABLE [dbo].[SystemsUsers] CHECK CONSTRAINT [FK_SystemsUsers_Systems]
+GO
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_SystemsUsers_Users')
+ALTER TABLE [dbo].[SystemsUsers] DROP CONSTRAINT FK_SystemsUsers_Users
+GO
+ALTER TABLE [dbo].[SystemsUsers] WITH CHECK ADD CONSTRAINT [FK_SystemsUsers_Users] FOREIGN KEY([UserId]) REFERENCES [dbo].[Users] ([Id])
+GO
+ALTER TABLE [dbo].[SystemsUsers] CHECK CONSTRAINT [FK_SystemsUsers_Users]
+GO
+/**********************************************************************************
+Criar referências de SystemsDatabases)
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_SystemsDatabases_Systems')
+ALTER TABLE [dbo].[SystemsDatabases] DROP CONSTRAINT FK_SystemsDatabases_Systems
+GO
+ALTER TABLE [dbo].[SystemsDatabases] WITH CHECK ADD CONSTRAINT [FK_SystemsDatabases_Systems] FOREIGN KEY([SystemId]) REFERENCES [dbo].[Systems] ([Id])
+GO
+ALTER TABLE [dbo].[SystemsDatabases] CHECK CONSTRAINT [FK_SystemsDatabases_Systems]
+GO
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_SystemsDatabases_Databases')
+ALTER TABLE [dbo].[SystemsDatabases] DROP CONSTRAINT FK_SystemsDatabases_Databases
+GO
+ALTER TABLE [dbo].[SystemsDatabases] WITH CHECK ADD CONSTRAINT [FK_SystemsDatabases_Databases] FOREIGN KEY([DatabaseId]) REFERENCES [dbo].[Databases] ([Id])
+GO
+ALTER TABLE [dbo].[SystemsDatabases] CHECK CONSTRAINT [FK_SystemsDatabases_Databases]
+GO
+/**********************************************************************************
+Criar referências de Tables)
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Tables_Tables')
+ALTER TABLE [dbo].[Tables] DROP CONSTRAINT FK_Tables_Tables
+GO
+ALTER TABLE [dbo].[Tables] WITH CHECK ADD CONSTRAINT [FK_Tables_Tables] FOREIGN KEY([ParentTableId]) REFERENCES [dbo].[Tables] ([Id])
+GO
+ALTER TABLE [dbo].[Tables] CHECK CONSTRAINT [FK_Tables_Tables]
+GO
+/**********************************************************************************
+Criar referências de DatabasesTables)
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_DatabasesTables_Databases')
+ALTER TABLE [dbo].[DatabasesTables] DROP CONSTRAINT FK_DatabasesTables_Databases
+GO
+ALTER TABLE [dbo].[DatabasesTables] WITH CHECK ADD CONSTRAINT [FK_DatabasesTables_Databases] FOREIGN KEY([DatabaseId]) REFERENCES [dbo].[Databases] ([Id])
+GO
+ALTER TABLE [dbo].[DatabasesTables] CHECK CONSTRAINT [FK_DatabasesTables_Databases]
+GO
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_DatabasesTables_Tables')
+ALTER TABLE [dbo].[DatabasesTables] DROP CONSTRAINT FK_DatabasesTables_Tables
+GO
+ALTER TABLE [dbo].[DatabasesTables] WITH CHECK ADD CONSTRAINT [FK_DatabasesTables_Tables] FOREIGN KEY([TableId]) REFERENCES [dbo].[Tables] ([Id])
+GO
+ALTER TABLE [dbo].[DatabasesTables] CHECK CONSTRAINT [FK_DatabasesTables_Tables]
+GO
+/**********************************************************************************
+Criar referências de Columns)
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Columns_Tables')
+ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_Tables
+GO
+ALTER TABLE [dbo].[Columns] WITH CHECK ADD CONSTRAINT [FK_Columns_Tables] FOREIGN KEY([TableId]) REFERENCES [dbo].[Tables] ([Id])
+GO
+ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_Tables]
+GO
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Columns_Domains')
+ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_Domains
+GO
+ALTER TABLE [dbo].[Columns] WITH CHECK ADD CONSTRAINT [FK_Columns_Domains] FOREIGN KEY([DomainId]) REFERENCES [dbo].[Domains] ([Id])
+GO
+ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_Domains]
+GO
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Columns_Tables')
+ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_Tables
+GO
+ALTER TABLE [dbo].[Columns] WITH CHECK ADD CONSTRAINT [FK_Columns_Tables] FOREIGN KEY([ReferenceTableId]) REFERENCES [dbo].[Tables] ([Id])
+GO
+ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_Tables]
+GO
+/**********************************************************************************
+Criar referências de Indexes)
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Indexes_Databases')
+ALTER TABLE [dbo].[Indexes] DROP CONSTRAINT FK_Indexes_Databases
+GO
+ALTER TABLE [dbo].[Indexes] WITH CHECK ADD CONSTRAINT [FK_Indexes_Databases] FOREIGN KEY([DatabaseId]) REFERENCES [dbo].[Databases] ([Id])
+GO
+ALTER TABLE [dbo].[Indexes] CHECK CONSTRAINT [FK_Indexes_Databases]
+GO
+IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'FK_Indexes_Tables')
+ALTER TABLE [dbo].[Indexes] DROP CONSTRAINT FK_Indexes_Tables
+GO
+ALTER TABLE [dbo].[Indexes] WITH CHECK ADD CONSTRAINT [FK_Indexes_Tables] FOREIGN KEY([TableId]) REFERENCES [dbo].[Tables] ([Id])
+GO
+ALTER TABLE [dbo].[Indexes] CHECK CONSTRAINT [FK_Indexes_Tables]
+GO
+/**********************************************************************************
+Criar referências de Indexkey

@@ -19,7 +19,7 @@ namespace CRUDA_LIB
             else
                 CryptoKey = cryptoKey;
         }
-        public static string GenerateCryptoKey(int? length = null)
+        private static string GenerateCryptoKey(int? length = null)
         {
             var result = "";
 
