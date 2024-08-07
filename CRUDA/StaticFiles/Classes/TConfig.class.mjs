@@ -17,12 +17,20 @@ export default class TConfig {
         let headers = {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
-            }
-        if (action !== TActions.CONFIG) {
+        }
+        if (action == TActions.LOGIN)
             headers.Login = JSON.stringify({
-                Action: `${TActions.LOGIN};${TActions.LOGOUT}`.search(action) === -1 ? TActions.AUTHENTICATE : action,
+                Action: action,
                 SystemName: TSystem.Name,
-                LogId: TLogin.LogId,
+                UserName: TLogin.UserName,
+                Password: TLogin.Password,
+                CryptoKey: TSystem.CryptoKey,
+            })
+        else if (action !== TActions.CONFIG) {
+            headers.LoginId = TLogin.LoginId
+            headers.Login = JSON.stringify({
+                Action: action === TActions.LOGOUT ? action : TActions.AUTHENTICATE,
+                SystemName: TSystem.Name,
                 UserName: TLogin.UserName,
                 Password: TLogin.Password,
             })

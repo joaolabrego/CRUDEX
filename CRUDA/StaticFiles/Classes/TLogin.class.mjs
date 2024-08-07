@@ -6,7 +6,7 @@ import TScreen from "./TScreen.class.mjs"
 import TSystem from "./TSystem.class.mjs"
 
 export default class TLogin {
-    static #LogId = 0
+    static #LoginId = 0
     static #HTML = {
         Container: null,
         UserName: null,
@@ -71,7 +71,7 @@ export default class TLogin {
             else {
                 TConfig.GetAPI(TActions.LOGIN)
                     .then((result) => {
-                        TLogin.LogId = result.Parameters.ReturnValue
+                        TLogin.LoginId = result.Parameters.ReturnValue
                         TSystem.Action = TActions.MENU
                     })
                     .catch(error => {
@@ -98,17 +98,17 @@ export default class TLogin {
         this.#HTML.UserName.focus()
     }
     static Logout() {
-        if (this.#LogId){
+        if (this.#LoginId){
             TConfig.GetAPI(TActions.LOGOUT)
-                .then((result) => this.#LogId = result.ReturnValue)
+                .then((result) => this.#LoginId = result.ReturnValue)
                 .catch(error => TScreen.ShowError(error.Message, error.Action))
         }
     }
-    static set LogId(value) {
-        this.#LogId = value
+    static set LoginId(value) {
+        this.#LoginId = value
     }
-    static get LogId() {
-        return this.#LogId
+    static get LoginId() {
+        return this.#LoginId
     }
     static set UserName(value) {
         this.#HTML.UserName.value = TScreen.UserName = value
