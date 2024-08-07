@@ -69,7 +69,6 @@ export default class TLogin {
                 this.#HTML.Password.focus()
             }
             else {
-                debugger
                 TConfig.GetAPI(TActions.LOGIN)
                     .then((result) => {
                         TLogin.LogId = result.Parameters.ReturnValue
