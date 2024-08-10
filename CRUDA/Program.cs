@@ -49,26 +49,27 @@ namespace CRUDA_LIB
                         break;
                     case Actions.CONFIG:
                         context.Response.Headers.ContentType = "application/json";
-                        context.Response.WriteAsync(new Config(systemName, "all").ToString(), Encoding.UTF8);
+                        context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Config(systemName, "all"), }), Encoding.UTF8);
                         break;
                     case Actions.LOGIN:
                     case Actions.LOGOUT:
                     case Actions.EXECUTE:
+                        var decryptedBody = new Crypto(context.Request.Headers["PublicKey"]).Encrypt(Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body)))["Request"]);
+                        var request = Config.ToDictionary(JsonConvert.DeserializeObject(decryptedBody));
                         var parameters = Config.ToDictionary(new
                         {
-                            Login = JsonConvert.DeserializeObject(context.Request.Headers["Login"].ToString()),
-                            Parameters = JsonConvert.DeserializeObject((body ?? new { }).ToString()),
+                            Login = JsonConvert.DeserializeObject(request["Login"].ToString()),
+                            Parameters = JsonConvert.DeserializeObject((request["Parameters"] ?? new { })),
                         });
                         if (action == Actions.EXECUTE)
                         {
                             context.Response.Headers.ContentType = "application/json";
-                            Login.Execute(systemName, Actions.AUTHENTICATE, parameters);
-                            context.Response.WriteAsync(SQLProcedure.Execute(systemName, parameters).ToString(), Encoding.UTF8);
+                            context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = SQLProcedure.Execute(systemName, parameters), }), Encoding.UTF8);
                         }
                         else
                         {
                             context.Response.Headers.ContentType = "application/json";
-                            context.Response.WriteAsync(Login.Execute(systemName, action, parameters).ToString(), Encoding.UTF8);
+                            context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = Login.Execute(systemName, action, parameters) }), Encoding.UTF8);
                         }
                         break;
                     default:
@@ -77,9 +78,16 @@ namespace CRUDA_LIB
             }
             catch (Exception ex)
             {
-                var message = action == Actions.CHECK_SYSTEM ? Config.GetHTML(systemName, ex.Message) : new Error(ex.Message, Actions.LOGIN).ToString();
-
-                context.Response.WriteAsync(message, Encoding.UTF8);
+                if (action == Actions.CHECK_SYSTEM)
+                {
+                    context.Response.Headers.ContentType = "text/html";
+                    context.Response.WriteAsync(Config.GetHTML(systemName, ex.Message), Encoding.UTF8);
+                }
+                else
+                {
+                    context.Response.Headers.ContentType = "application/json";
+                    context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Error(ex.Message, Actions.LOGIN) }), Encoding.UTF8);
+                }
             }
         }
     }

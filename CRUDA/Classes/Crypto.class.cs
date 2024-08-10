@@ -34,12 +34,12 @@ namespace CRUDA_LIB
         {
             return value.Length >= CryptoPrefix.Length && value[..CryptoPrefix.Length] == CryptoPrefix;
         }
-        public string Encrypt(ref string value, string? keys = null)
+        public string Encrypt(string value, string? keys = null)
         {
             var SPACE = (int)' ';
             var factor = -1;
             var prefix = CryptoPrefix;
-            var result = new StringBuilder();
+            var res = new StringBuilder();
             var encrypted = IsEncrypted(value);
 
             if (string.IsNullOrEmpty(keys))
@@ -57,6 +57,7 @@ namespace CRUDA_LIB
                 value += DELIMITER_VALUE;
                 for (var i = value.Length; i <= DEFAULT_LENGTH; i++)
                     value += CHARSET[Rnd.Next(0, CHARSET.Length)];
+                //value = Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
             }
             for (var i = 0; i < value.Length; i++)
             {
@@ -71,15 +72,18 @@ namespace CRUDA_LIB
                         ascii += 256 - SPACE;
                     ascii += SPACE;
                 }
-                result.Append((char)ascii);
+                res.Append((char)ascii);
             }
 
-            var res = result.ToString();
+            var result = res.ToString();
 
             if (encrypted)
-                res = res[..res.IndexOf(DELIMITER_VALUE)];
-
-            return prefix + res;
+            {
+                //result = Encoding.UTF8.GetString(Convert.FromBase64String(result));
+                result = result[..result.IndexOf(DELIMITER_VALUE)];
+            }
+                
+            return prefix + result;
         }
     }
 }

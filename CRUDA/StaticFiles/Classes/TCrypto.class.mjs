@@ -3,8 +3,9 @@ export default class TCrypto {
     static #CRYPTOPREFIX = "encrypted"
     static #CHARSET = "0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz+*&%$#!?.:=@<>,;/[]{}()"
     static #DEFAULT_LENGTH = 100
+    static #DELIMITER_VALUE = String.fromCharCode(5);
 
-    constructor(cryptoKey = TCrypto.#GenerateCryptokey()) {
+    constructor(cryptoKey = TCrypto.GenerateCryptokey()) {
         this.#CryptoKey = cryptoKey
     }
     static #GetChar() {
@@ -12,7 +13,7 @@ export default class TCrypto {
 
         return this.#CHARSET.slice(position, position + 1)
     }
-    static #GenerateCryptokey(length = this.#DEFAULT_LENGTH) {
+    static GenerateCryptokey(length = this.#DEFAULT_LENGTH) {
         let result = ""
 
         for (let i = 0; i < length; i++) {
@@ -37,15 +38,13 @@ export default class TCrypto {
             prefix = ""
         }
         else {
-            for (let i = 0; i < value.length; i++) {
-                if (value[i] === "#")
-                    throw new Error("Encrypt: Valor não pode conter #.")
-            }
-            value += "#";
+            if (value.includes(TCrypto.#DELIMITER_VALUE))
+                throw new Error("Valor não pode conter delimitador de valores.")
+            value += TCrypto.#DELIMITER_VALUE;
             for (let i = value.length; i <= TCrypto.#DEFAULT_LENGTH; i++) {
                 value += TCrypto.#GetChar()
             }
-            value = btoa(value)
+            //value = btoa(value)
         }
         for (let i = 0; i < value.length; i++) {
             let ascii = value.charCodeAt(i)
@@ -61,8 +60,8 @@ export default class TCrypto {
             result += String.fromCharCode(ascii)
         }
         if (encrypted) {
-            result = atob(result)
-            result = result.slice(0, result.indexOf("#"))
+            //result = atob(result)
+            result = result.slice(0, result.indexOf(TCrypto.#DELIMITER_VALUE))
         }
 
         return prefix + result

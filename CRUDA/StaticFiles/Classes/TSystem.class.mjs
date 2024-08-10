@@ -36,7 +36,6 @@ export default class TSystem {
     static Run(withBackgroundImage = true) {
         TConfig.GetAPI(TActions.CONFIG)
             .then(config => {
-                //debugger
                 Object.defineProperty(Object.prototype, "ClassName", {
                     get: function ClassName() {
                         return this.constructor.name

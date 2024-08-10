@@ -4,9 +4,11 @@ import TActions from "./TActions.class.mjs"
 import TConfig from "./TConfig.class.mjs"
 import TScreen from "./TScreen.class.mjs"
 import TSystem from "./TSystem.class.mjs"
+import TCrypto from "./TCrypto.class.mjs"
 
 export default class TLogin {
-    static #LogId = 0
+    static #LoginId = 0
+    static #PublicKey = ""
     static #HTML = {
         Container: null,
         UserName: null,
@@ -69,9 +71,10 @@ export default class TLogin {
                 this.#HTML.Password.focus()
             }
             else {
+                this.#PublicKey = TCrypto.GenerateCryptokey()
                 TConfig.GetAPI(TActions.LOGIN)
                     .then((result) => {
-                        TLogin.LogId = result.Parameters.ReturnValue
+                        this.#LoginId = result.Parameters.ReturnValue
                         TSystem.Action = TActions.MENU
                     })
                     .catch(error => {
@@ -98,17 +101,20 @@ export default class TLogin {
         this.#HTML.UserName.focus()
     }
     static Logout() {
-        if (this.#LogId){
+        if (this.#LoginId){
             TConfig.GetAPI(TActions.LOGOUT)
-                .then((result) => this.#LogId = result.ReturnValue)
+                .then((result) => this.#LoginId = result.ReturnValue)
                 .catch(error => TScreen.ShowError(error.Message, error.Action))
         }
     }
-    static set LogId(value) {
-        this.#LogId = value
+    static set LoginId(value) {
+        this.#LoginId = value
     }
-    static get LogId() {
-        return this.#LogId
+    static get LoginId() {
+        return this.#LoginId
+    }
+    static get PublicKey() {
+        return this.#PublicKey
     }
     static set UserName(value) {
         this.#HTML.UserName.value = TScreen.UserName = value
@@ -121,5 +127,8 @@ export default class TLogin {
     }
     static get Password() {
         return this.#HTML.Password.value
+    }
+    static get PublicKey() {
+        return this.#PublicKey
     }
 }
