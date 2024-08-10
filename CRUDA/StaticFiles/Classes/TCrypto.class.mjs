@@ -44,7 +44,7 @@ export default class TCrypto {
             for (let i = value.length; i <= TCrypto.#DEFAULT_LENGTH; i++) {
                 value += TCrypto.#GetChar()
             }
-            //value = btoa(value)
+            value = btoa(value)
         }
         for (let i = 0; i < value.length; i++) {
             let ascii = value.charCodeAt(i)
@@ -60,7 +60,7 @@ export default class TCrypto {
             result += String.fromCharCode(ascii)
         }
         if (encrypted) {
-            //result = atob(result)
+            result = atob(result)
             result = result.slice(0, result.indexOf(TCrypto.#DELIMITER_VALUE))
         }
 

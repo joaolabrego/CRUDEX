@@ -47,7 +47,7 @@ namespace CRUDA_LIB
             if (encrypted)
             {
                 factor = 1;
-                value = value[CryptoPrefix.Length..] + DELIMITER_VALUE;
+                value = value[prefix.Length..];
                 prefix = "";
             }
             else
@@ -57,7 +57,7 @@ namespace CRUDA_LIB
                 value += DELIMITER_VALUE;
                 for (var i = value.Length; i <= DEFAULT_LENGTH; i++)
                     value += CHARSET[Rnd.Next(0, CHARSET.Length)];
-                //value = Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+                value = Convert.ToBase64String(Encoding.ASCII.GetBytes(value));
             }
             for (var i = 0; i < value.Length; i++)
             {
@@ -79,7 +79,7 @@ namespace CRUDA_LIB
 
             if (encrypted)
             {
-                //result = Encoding.UTF8.GetString(Convert.FromBase64String(result));
+                result = Encoding.ASCII.GetString(Convert.FromBase64String(result));
                 result = result[..result.IndexOf(DELIMITER_VALUE)];
             }
                 
