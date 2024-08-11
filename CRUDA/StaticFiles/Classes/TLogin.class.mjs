@@ -4,7 +4,6 @@ import TActions from "./TActions.class.mjs"
 import TConfig from "./TConfig.class.mjs"
 import TScreen from "./TScreen.class.mjs"
 import TSystem from "./TSystem.class.mjs"
-import TCrypto from "./TCrypto.class.mjs"
 
 export default class TLogin {
     static #LoginId = 0
@@ -71,10 +70,10 @@ export default class TLogin {
                 this.#HTML.Password.focus()
             }
             else {
-                this.#PublicKey = TCrypto.GenerateCryptokey()
                 TConfig.GetAPI(TActions.LOGIN)
                     .then((result) => {
                         this.#LoginId = result.Parameters.ReturnValue
+                        this.#PublicKey = result.Tables[0][0].PublicKey
                         TSystem.Action = TActions.MENU
                     })
                     .catch(error => {
@@ -101,11 +100,10 @@ export default class TLogin {
         this.#HTML.UserName.focus()
     }
     static Logout() {
-        if (this.#LoginId){
+        if (this.#LoginId)
             TConfig.GetAPI(TActions.LOGOUT)
                 .then((result) => this.#LoginId = result.ReturnValue)
                 .catch(error => TScreen.ShowError(error.Message, error.Action))
-        }
     }
     static set LoginId(value) {
         this.#LoginId = value

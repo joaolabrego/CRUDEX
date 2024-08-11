@@ -16919,6 +16919,7 @@ BEGIN
 		SELECT [Id]
 				,[Name]
 				,[FullName]
+				,@PublicKey AS PublicKey
 			FROM [dbo].[Users] 
 			WHERE [Id] = @UserId
 

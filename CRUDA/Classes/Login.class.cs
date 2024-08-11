@@ -14,7 +14,8 @@ namespace CRUDA_LIB
                 if (login == null)
                     throw new Exception("Login requerido em Parameters.");
                 else if (login.ContainsKey("UserName") && login.ContainsKey("Password"))
-                    return SQLProcedure.Execute(
+                {
+                    var result = SQLProcedure.Execute(
                         Settings.ConnecionString(),
                         Settings.Get("LOGIN_PROCEDURE"),
                         Config.ToDictionary(new
@@ -24,10 +25,14 @@ namespace CRUDA_LIB
                                 SystemName = systemName,
                                 UserName = login["UserName"],
                                 Password = login["Password"],
-                                PublicKey = action == Actions.LOGIN ? login["PublicKey"] : null,
+                                PublicKey = action == Actions.LOGIN ? Crypto.GenerateCryptoKey() : null,
                                 Action = action,
                             }
                         }));
+
+                    return result;
+                }
+
                 else
                     throw new Exception("Parâmetro(s) UserName e/ou Password e/ou Action requeridos em Login.");
             }

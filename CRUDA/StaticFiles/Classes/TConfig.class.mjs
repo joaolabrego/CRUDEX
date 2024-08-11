@@ -22,10 +22,8 @@ export default class TConfig {
                 "Content-Type": "application/json",
             }
 
-        //debugger
-        if (action === TActions.CONFIG) {
+        if (action === TActions.CONFIG)
             headers.PublicKey = cryptoKey = TCrypto.GenerateCryptokey()
-        }
         else if (action === TActions.LOGIN) {
             headers.PublicKey = cryptoKey = TCrypto.GenerateCryptokey()
             body.Login = {
@@ -33,7 +31,6 @@ export default class TConfig {
                 SystemName: TSystem.Name,
                 UserName: TLogin.UserName,
                 Password: TLogin.Password,
-                PublicKey: TLogin.PublicKey
             }
         }
         else {
