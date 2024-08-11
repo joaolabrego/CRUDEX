@@ -16129,6 +16129,7 @@ CREATE TABLE [dbo].[Logs](
 [Id] bigint NOT NULL,
 [SystemId] bigint NOT NULL,
 [UserId] bigint NOT NULL,
+[PublicKey] [varchar](256) NULL,
 [Logged] bit NOT NULL,
 [CreatedAt] [datetime] NULL,
 [CreatedBy] [varchar](25) NULL,
@@ -16809,6 +16810,7 @@ GO
 ALTER PROCEDURE [dbo].[Login](@SystemName VARCHAR(25)
 							 ,@UserName VARCHAR(25)
 							 ,@Password VARCHAR(256)
+							 ,@PublicKey VARCHAR(256)
 							 ,@Action VARCHAR(15) = 'authenticate') AS
 BEGIN
 	DECLARE @SystemId BIGINT,
@@ -16881,12 +16883,14 @@ BEGIN
 				INSERT [dbo].[Logs]([Id],
 									[SystemId],
 									[UserId],
+									[PublicKey],
 									[Logged],
 									[CreatedAt],
 									[CreatedBy])
 							VALUES (@LogId,
 									@SystemId,
 									@UserId,
+									@PublicKey,
 									1,
 									GETDATE(),
 									@UserName)
@@ -16915,6 +16919,7 @@ BEGIN
 		SELECT [Id]
 				,[Name]
 				,[FullName]
+				,@PublicKey AS PublicKey
 			FROM [dbo].[Users] 
 			WHERE [Id] = @UserId
 
@@ -16925,6 +16930,28 @@ BEGIN
 	END CATCH
 END
 GO
+/**********************************************************************************
+Criar stored function GetPublicKey
+**********************************************************************************/
+USE [cruda]
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF(SELECT object_id('[dbo].[GetPublicKey]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[GetPublicKey] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT) AS 
+BEGIN 
+	SELECT [PublicKey]
+		FROM [dbo].[Logs]
+		WHERE [Id] = @LoginId
+
+	RETURN @LoginId
+END
+GO
+
 /**********************************************************************************
 Criar stored function NumberInWordsOfHundreds
 **********************************************************************************/
