@@ -56,7 +56,9 @@ namespace CRUDA_LIB
                     case Actions.LOGIN:
                     case Actions.LOGOUT:
                     case Actions.EXECUTE:
-                        var publicKey = action == Actions.LOGIN ? context.Request.Headers["PublicKey"].ToString() : Login.GetPublicKey(Convert.ToInt64(context.Request.Headers["LoginId"]));
+                        var publicKey = action == Actions.LOGIN 
+                            ? context.Request.Headers["PublicKey"].ToString() 
+                            : Login.GetPublicKey(Convert.ToInt64(context.Request.Headers["LoginId"]));
                         var request = Config.ToDictionary(JsonConvert.DeserializeObject(new Crypto(publicKey)
                             .Encrypt(Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body)))["Request"])));
                         var parameters = Config.ToDictionary(new
@@ -64,7 +66,10 @@ namespace CRUDA_LIB
                             Login = request["Login"],
                             Parameters = request["Parameters"],
                         });
-                        response = new Crypto(publicKey).Encrypt(JsonConvert.SerializeObject(action == Actions.EXECUTE ? SQLProcedure.Execute(systemName, parameters) : Login.Execute(systemName, action, parameters)));
+                        response = new Crypto(publicKey).Encrypt(JsonConvert.SerializeObject(
+                            action == Actions.EXECUTE 
+                            ? SQLProcedure.Execute(systemName, parameters) 
+                            : Login.Execute(systemName, action, parameters)));
                         context.Response.Headers.ContentType = "application/json";
                         context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
                         break;
