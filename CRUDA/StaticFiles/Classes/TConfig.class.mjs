@@ -13,7 +13,6 @@ export default class TConfig {
     static #MinusSignal = ""
     static #IdleTimeInMinutesLimit = 0
     static #Timer = null
-    static #Crypto = new TCrypto()
 
     static async GetAPI(action, parameters = {}) {
         let cryptoKey,
@@ -23,11 +22,12 @@ export default class TConfig {
                 "Content-Type": "application/json",
             }
 
+        //debugger
         if (action === TActions.CONFIG) {
-            cryptoKey = headers.PublicKey = this.#Crypto.CryptoKey
+            headers.PublicKey = cryptoKey = TCrypto.GenerateCryptokey()
         }
         else if (action === TActions.LOGIN) {
-            headers.PublicKey = cryptoKey = TLogin.PublicKey
+            headers.PublicKey = cryptoKey = TCrypto.GenerateCryptokey()
             body.Login = {
                 Action: action,
                 SystemName: TSystem.Name,
@@ -37,7 +37,7 @@ export default class TConfig {
             }
         }
         else {
-            headers.PublicKey = cryptoKey = TLogin.PublicKey
+            cryptoKey = TLogin.PublicKey;
             headers.LoginId = TLogin.LoginId
             body.Login = {
                 Action: action == TActions.LOGOUT ? action : TActions.AUTHENTICATE,
@@ -106,8 +106,5 @@ export default class TConfig {
     }
     static set IdleTimeInMinutesLimit(value) {
         this.#IdleTimeInMinutesLimit = value
-    }
-    static get Crypto() {
-        return this.#Crypto
     }
 }
