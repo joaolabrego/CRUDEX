@@ -16,9 +16,8 @@ export default class TCrypto {
     static GenerateCryptokey(length = this.#DEFAULT_LENGTH) {
         let result = ""
 
-        for (let i = 0; i < length; i++) {
+        for (let i = 0; i < length; i++)
             result += this.#GetChar()
-        }
 
         return result
     }
@@ -41,10 +40,8 @@ export default class TCrypto {
             if (value.includes(TCrypto.#DELIMITER_VALUE))
                 throw new Error("Valor não pode conter delimitador de valores.")
             value += TCrypto.#DELIMITER_VALUE;
-            for (let i = value.length; i <= TCrypto.#DEFAULT_LENGTH; i++) {
+            for (let i = value.length; i <= TCrypto.#DEFAULT_LENGTH; i++)
                 value += TCrypto.#GetChar()
-            }
-            value = btoa(value)
         }
         for (let i = 0; i < value.length; i++) {
             let ascii = value.charCodeAt(i)
@@ -52,17 +49,15 @@ export default class TCrypto {
             if (ascii >= SPACE) { // mantém controles intactos.
                 ascii -= SPACE // desconsidera controles (caracteres de 1 a 31).
                 ascii += keys.charCodeAt(i % keys.length) * factor
-                ascii %= (256 - SPACE) // 256 - 32 caracteres desconsiderados.
+                ascii %= 256 - SPACE // 256 - 32 caracteres desconsiderados.
                 if (ascii < 0)
                     ascii += (256 - SPACE)
                 ascii += SPACE // reajusta para caracteres normais.
             }
             result += String.fromCharCode(ascii)
         }
-        if (encrypted) {
-            result = atob(result)
+        if (encrypted)
             result = result.slice(0, result.indexOf(TCrypto.#DELIMITER_VALUE))
-        }
 
         return prefix + result
     }

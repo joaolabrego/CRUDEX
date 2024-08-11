@@ -50,10 +50,6 @@ namespace CRUDA_LIB
                     Tables = result.Tables[2].Rows[0].Table,
                 };
         }
-        override public string ToString()
-        {
-            return JsonConvert.SerializeObject(this, Formatting.Indented);
-        }
         public static string GetHTML(string systemName, string? message = null)
         {
             var favIcon = Images.ReadImageFile($"{Path.Combine(Directory.GetCurrentDirectory(), "Assets/Images", Settings.Get("FAVICON_IMAGE"))}");

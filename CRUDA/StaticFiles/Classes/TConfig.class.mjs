@@ -27,26 +27,26 @@ export default class TConfig {
             cryptoKey = headers.PublicKey = this.#Crypto.CryptoKey
         }
         else if (action === TActions.LOGIN) {
-            cryptoKey = headers.PublicKey = TLogin.PublicKey
-            body.Login = JSON.stringify({
+            headers.PublicKey = cryptoKey = TLogin.PublicKey
+            body.Login = {
                 Action: action,
                 SystemName: TSystem.Name,
                 UserName: TLogin.UserName,
                 Password: TLogin.Password,
                 PublicKey: TLogin.PublicKey
-            })
+            }
         }
         else {
-            cryptoKey = headers.PublicKey = TLogin.PublicKey
+            headers.PublicKey = cryptoKey = TLogin.PublicKey
             headers.LoginId = TLogin.LoginId
-            body.Login = JSON.stringify({
+            body.Login = {
                 Action: action == TActions.LOGOUT ? action : TActions.AUTHENTICATE,
                 SystemName: TSystem.Name,
                 UserName: TLogin.UserName,
                 Password: TLogin.Password,
-            })
+            }
         }
-        body.Parameters = JSON.stringify(parameters)
+        body.Parameters = parameters
 
         let crypto = new TCrypto(cryptoKey)
         const response = await fetch(`${location}/${action}`, {
@@ -55,7 +55,7 @@ export default class TConfig {
             body: JSON.stringify({ Request: crypto.Encrypt(JSON.stringify(body)) }),
         })
 
-        let result = (await response.json()).Response
+        let result = JSON.parse(crypto.Encrypt((await response.json()).Response))
 
         if (result.ClassName === "Error")
             throw result

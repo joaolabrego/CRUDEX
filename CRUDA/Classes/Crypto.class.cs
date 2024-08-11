@@ -57,7 +57,6 @@ namespace CRUDA_LIB
                 value += DELIMITER_VALUE;
                 for (var i = value.Length; i <= DEFAULT_LENGTH; i++)
                     value += CHARSET[Rnd.Next(0, CHARSET.Length)];
-                value = Convert.ToBase64String(Encoding.ASCII.GetBytes(value));
             }
             for (var i = 0; i < value.Length; i++)
             {
@@ -78,10 +77,7 @@ namespace CRUDA_LIB
             var result = res.ToString();
 
             if (encrypted)
-            {
-                result = Encoding.ASCII.GetString(Convert.FromBase64String(result));
                 result = result[..result.IndexOf(DELIMITER_VALUE)];
-            }
                 
             return prefix + result;
         }
