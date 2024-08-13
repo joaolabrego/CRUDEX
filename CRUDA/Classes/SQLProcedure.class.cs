@@ -1,14 +1,14 @@
 ﻿using System.Data;
 using System.Data.SqlClient;
 using CRUDA.Classes.Models;
-using Dictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
+using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
 namespace CRUDA_LIB
 {
     public static class SQLProcedure
     {
         public readonly static string ClassName = "SQLProcedure";
-        public static SQLResult Execute(string? connectionString, string? procedureName, Dictionary? parameters = null)
+        public static TResult Execute(string? connectionString, string? procedureName, TDictionary? parameters = null)
         {
             using var dataset = new DataSet();
             using var connection = new SqlConnection(connectionString);
@@ -32,9 +32,9 @@ namespace CRUDA_LIB
             
             new SqlDataAdapter(command).Fill(dataset);
 
-            return new SQLResult(dataset.Tables, command.Parameters);
+            return new TResult(dataset.Tables, command.Parameters);
         }
-        public static SQLResult GetConfig(string systemName, string? databaseName = null, string? tableName = null)
+        public static TResult GetConfig(string systemName, string? databaseName = null, string? tableName = null)
         {
             var parameters = Config.ToDictionary(new
             {
@@ -48,7 +48,7 @@ namespace CRUDA_LIB
 
             return Execute(Settings.ConnecionString(), Settings.Get("CONFIG_PROCEDURE"), parameters);
         }
-        public static SQLResult Execute(string systemName, Dictionary? parameters)
+        public static TResult Execute(string systemName, TDictionary? parameters)
         {
             var parms = parameters?["Parameters"];
             var databaseName = parms?["DatabaseName"];

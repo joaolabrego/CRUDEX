@@ -73,7 +73,7 @@ export default class TLogin {
                 TConfig.GetAPI(TActions.LOGIN)
                     .then((result) => {
                         this.#LoginId = result.Parameters.ReturnValue
-                        this.#PublicKey = result.Tables[0][0].PublicKey
+                        this.#PublicKey = result.Parameters.PublicKey
                         TSystem.Action = TActions.MENU
                     })
                     .catch(error => {

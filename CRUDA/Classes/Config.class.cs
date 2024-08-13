@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Data;
-using Dictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
+using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
 namespace CRUDA_LIB
 {
@@ -12,7 +12,7 @@ namespace CRUDA_LIB
         public readonly int IdleTimeInMinutesLimit = Convert.ToInt32(Settings.Get("IDLE_TIME_IN_MINUTES_LIMIT"));
         public readonly bool PaddingBrowseLastPage = Convert.ToBoolean(Settings.Get("PADDING_GRID_LAST_PAGE"));
         public readonly dynamic Data;
-        public readonly Dictionary? Parameters;
+        public readonly TDictionary? Parameters;
         public readonly Styles? Styles;
         public readonly Images? Images;
 
@@ -80,9 +80,9 @@ namespace CRUDA_LIB
                    $"    </body>\n" +
                    $"</html>";
         }
-        public static Dictionary ToDictionary(object json)
+        public static TDictionary ToDictionary(object json)
         {
-            var result = JsonConvert.DeserializeObject<Dictionary>(JsonConvert.SerializeObject(json, Formatting.Indented)) ?? [];
+            var result = JsonConvert.DeserializeObject<TDictionary>(JsonConvert.SerializeObject(json, Formatting.Indented)) ?? [];
 
             foreach (var item in result.Where(item => item.Value is JObject))
                 result[item.Key] = ToDictionary(item.Value);

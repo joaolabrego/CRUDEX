@@ -7,31 +7,29 @@ GO
 IF(SELECT object_id('[dbo].[P_Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[P_Login] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[P_Login](@Login VARCHAR(MAX)) AS
-BEGIN
+ALTER PROCEDURE [dbo].[P_Login](@Parameters VARCHAR(MAX)) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-		IF @@TRANCOUNT = 0 BEGIN
+		IF @@TRANCOUNT = 0
 			BEGIN TRANSACTION P_Login
-		END ELSE
+		ELSE
 			SAVE TRANSACTION P_Login
 
 		DECLARE @ErrorMessage VARCHAR(256)
 
-		IF ISJSON(@Login) = 0 BEGIN
+		IF ISJSON(@Parameters) = 0 BEGIN
 			SET @ErrorMessage = 'Parâmetro login não está no formato JSON.';
 			THROW 51000, @ErrorMessage, 1
 		END
 	
-		DECLARE	@Action VARCHAR(15) = CAST(JSON_VALUE(@Login, '$.Action') AS VARCHAR(15))
-				,@SystemName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.SystemName') AS VARCHAR(25))
-				,@LoginId BIGINT = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-				,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
-				,@Password VARCHAR(256) = CAST(JSON_VALUE(@Login, '$.Password') AS VARCHAR(256))
-				,@PublicKey VARCHAR(256) = CAST(JSON_VALUE(@Login, '$.PublicKey') AS VARCHAR(256))
+		DECLARE	@Action VARCHAR(15) = CAST(JSON_VALUE(@Parameters, '$.Action') AS VARCHAR(15))
+				,@LoginId BIGINT = CAST(JSON_VALUE(@Parameters, '$.LoginId') AS BIGINT)
+				,@SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+				,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.UserName') AS VARCHAR(25))
+				,@Password VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.Password') AS VARCHAR(256))
+				,@PublicKey VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.PublicKey') AS VARCHAR(256))
 				,@PasswordAux VARCHAR(256)
-				,@LoginIdAux BIGINT
 				,@SystemId BIGINT
 				,@SystemIdAux BIGINT
 				,@UserId BIGINT
@@ -41,6 +39,10 @@ BEGIN
 				,@IsLogged BIT
 				,@IsActive BIT
 	
+		IF @Action IS NULL BEGIN
+			SET @ErrorMessage = 'Ação de login requerida.';
+			THROW 51000, @ErrorMessage, 1
+		END
 		IF @Action NOT IN ('login','logout','authenticate') BEGIN
 			SET @ErrorMessage = 'Ação de login inválida.';
 			THROW 51000, @ErrorMessage, 1
@@ -86,6 +88,10 @@ BEGIN
 			SET @ErrorMessage = 'Usuário não autorizado.';
 			THROW 51000, @ErrorMessage, 1
 		END
+		IF @Password IS NULL BEGIN
+			SET @ErrorMessage = 'Senha requerida.';
+			THROW 51000, @ErrorMessage, 1
+		END
 		IF CAST(@PasswordAux AS VARBINARY(MAX)) <> CAST(@Password AS VARBINARY(MAX)) BEGIN
 			SET @RetryLogins = @RetryLogins + 1
 			UPDATE [dbo].[Users] 
@@ -114,62 +120,41 @@ BEGIN
 								  1,
 								  GETDATE(),
 								  @UserName)
-			SELECT [Id]
-					,[Name]
-					,[FullName]
-					,[PublicKey]
-				FROM [dbo].[Users] 
-				WHERE [Id] = @UserId
-			GOTO RESET_LOGINS
-		END
-		IF @LoginId IS NULL BEGIN
+		END ELSE IF @LoginId IS NULL BEGIN
 			SET @ErrorMessage = 'Id de login requerido.';
 			THROW 51000, @ErrorMessage, 1
-		END
-		SELECT @LoginIdAux = [Id],
-			   @SystemIdAux = [SystemId],
-			   @UserIdAux = [UserId],
-			   @IsLogged = [IsLogged]
-			FROM [dbo].[Logins]
-			WHERE [Id] = @LoginId
-		IF @LoginIdAux IS NULL BEGIN
-			SET @ErrorMessage = 'Id de login inválido.';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @SystemId <> @SystemIdAux BEGIN
-			SET @ErrorMessage = 'Sistema inválido para este login.';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @UserId <> @UserIdAux BEGIN
-			SET @ErrorMessage = 'Usuário inválido para este login.';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @IsLogged = 0 BEGIN
-			SET @ErrorMessage = 'Login já encerrado.';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @action = 'logout' BEGIN
-			UPDATE [dbo].[Logins]
-				SET [IsLogged] = 0,
-					[UpdatedAt] = GETDATE(),
-					[UpdatedBy] = @UserName
-				WHERE [Id] = @LoginId
-			GOTO EXIT_PROCEDURE
-		END ELSE
-			SELECT [SystemId],
-				   [UserId],
-				   [PublicKey]
+		END ELSE BEGIN
+			SELECT @SystemIdAux = [SystemId],
+				   @UserIdAux = [UserId],
+				   @IsLogged = [IsLogged]
 				FROM [dbo].[Logins]
 				WHERE [Id] = @LoginId
-
-		RESET_LOGINS:
-
+			IF @SystemIdAux IS NULL BEGIN
+				SET @ErrorMessage = 'Login não cadastrado.';
+				THROW 51000, @ErrorMessage, 1
+			END
+			IF @SystemId <> @SystemIdAux BEGIN
+				SET @ErrorMessage = 'Sistema inválido para este login.';
+				THROW 51000, @ErrorMessage, 1
+			END
+			IF @UserId <> @UserIdAux BEGIN
+				SET @ErrorMessage = 'Usuário inválido para este login.';
+				THROW 51000, @ErrorMessage, 1
+			END
+			IF @IsLogged = 0 BEGIN
+				SET @ErrorMessage = 'Login já encerrado.';
+				THROW 51000, @ErrorMessage, 1
+			END
+			IF @action = 'logout'
+				UPDATE [dbo].[Logins]
+					SET [IsLogged] = 0,
+						[UpdatedAt] = GETDATE(),
+						[UpdatedBy] = @UserName
+					WHERE [Id] = @LoginId
+		END
 		UPDATE [dbo].[Users]
 			SET [RetryLogins] = 0
 			WHERE [Id] = @UserId
-
-		EXIT_PROCEDURE:
-
 		COMMIT TRANSACTION P_Login
 
 		RETURN @LoginId

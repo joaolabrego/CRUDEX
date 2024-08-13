@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using CRUDA.Classes;
 using CRUDA.Classes.Models;
 using Newtonsoft.Json;
 using NPOI.XWPF.UserModel;
@@ -69,7 +70,7 @@ namespace CRUDA_LIB
                         response = new Crypto(publicKey).Encrypt(JsonConvert.SerializeObject(
                             action == Actions.EXECUTE 
                             ? SQLProcedure.Execute(systemName, parameters) 
-                            : Login.Execute(systemName, action, parameters)));
+                            : Login.Execute(systemName, parameters)));
                         context.Response.Headers.ContentType = "application/json";
                         context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
                         break;

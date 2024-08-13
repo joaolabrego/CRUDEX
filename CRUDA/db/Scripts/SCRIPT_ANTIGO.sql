@@ -133,7 +133,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure CategoriesRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id tinyint = CAST(JSON_VALUE(@Record, '$.Id') AS tinyint),
@@ -154,7 +154,7 @@ IF @W_Id IS NOT NULL AND @W_Id > CAST('255' AS tinyint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''255''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Categories', @UserName, 'create')
@@ -173,7 +173,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.AskMaximum') AS bit) AS [AskMaximum]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -882,7 +882,7 @@ ALTER PROCEDURE[dbo].[TypesRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure TypesRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id tinyint = CAST(JSON_VALUE(@Record, '$.Id') AS tinyint),
@@ -907,7 +907,7 @@ IF @W_Id IS NOT NULL AND @W_Id > CAST('255' AS tinyint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''255''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Types', @UserName, 'create')
@@ -931,7 +931,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.IsActive') AS bit) AS [IsActive]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -2412,7 +2412,7 @@ ALTER PROCEDURE[dbo].[MasksRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure MasksRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -2427,7 +2427,7 @@ IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Masks', @UserName, 'create')
@@ -2439,7 +2439,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.Mask') AS varchar(MAX)) AS [Mask]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -2878,7 +2878,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure DomainsRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -2913,7 +2913,7 @@ IF @W_MaskId IS NOT NULL AND @W_MaskId > CAST('9007199254740990' AS bigint) BEGI
 SET @ErrorMessage = @ErrorMessage + 'Valor de @MaskId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Domains', @UserName, 'create')
@@ -2933,7 +2933,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.Codification') AS varchar(5)) AS [Codification]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -3798,7 +3798,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure SystemsRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -3814,7 +3814,7 @@ IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Systems', @UserName, 'create')
@@ -3828,7 +3828,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -4208,7 +4208,7 @@ ALTER PROCEDURE[dbo].[MenusRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure MenusRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -4232,7 +4232,7 @@ IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('9007199254740990' AS bigint) 
 SET @ErrorMessage = @ErrorMessage + 'Valor de @SystemId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Menus', @UserName, 'create')
@@ -4248,7 +4248,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.ParentMenuId') AS bigint) AS [ParentMenuId]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -4804,7 +4804,7 @@ ALTER PROCEDURE[dbo].[UsersRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure UsersRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -4821,7 +4821,7 @@ IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Users', @UserName, 'create')
@@ -4836,7 +4836,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.IsActive') AS bit) AS [IsActive]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -5193,7 +5193,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure SystemsUsersRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -5226,7 +5226,7 @@ IF @W_UserId IS NOT NULL AND @W_UserId > CAST('9007199254740990' AS bigint) BEGI
 SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'SystemsUsers', @UserName, 'create')
@@ -5239,7 +5239,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.Description') AS varchar(50)) AS [Description]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -5602,7 +5602,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure DatabasesRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -5618,7 +5618,7 @@ IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
 SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Databases', @UserName, 'create')
@@ -5637,7 +5637,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.Folder') AS varchar(256)) AS [Folder]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -6017,7 +6017,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure SystemsDatabasesRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -6050,7 +6050,7 @@ IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId > CAST('9007199254740990' AS bigi
 SET @ErrorMessage = @ErrorMessage + 'Valor de @DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'SystemsDatabases', @UserName, 'create')
@@ -6063,7 +6063,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.Description') AS varchar(50)) AS [Description]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -6468,7 +6468,7 @@ ALTER PROCEDURE[dbo].[TablesRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure TablesRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -6494,7 +6494,7 @@ IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId > CAST('9007199254740990' A
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ParentTableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Tables', @UserName, 'create')
@@ -6515,7 +6515,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.LastId') AS bigint) AS [LastId]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -7357,7 +7357,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure DatabasesTablesRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -7390,7 +7390,7 @@ IF @W_TableId IS NOT NULL AND @W_TableId > CAST('9007199254740990' AS bigint) BE
 SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'DatabasesTables', @UserName, 'create')
@@ -7403,7 +7403,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.Description') AS varchar(50)) AS [Description]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -8124,7 +8124,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure ColumnsRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -8174,7 +8174,7 @@ IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('9007199254740
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ReferenceTableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Columns', @UserName, 'create')
@@ -8204,7 +8204,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.IsCalculated') AS bit) AS [IsCalculated]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -14221,7 +14221,7 @@ CreatedAt, CreatedBy) VALUES (
 '10', 
 '1', 
 '15', 
-'LogId', 
+'LoginId', 
 'ID do Log de Acesso', 
 'Log de Acesso', 
 'Log de Acesso', 
@@ -14734,7 +14734,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure IndexesRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -14759,7 +14759,7 @@ IF @W_TableId IS NOT NULL AND @W_TableId > CAST('9007199254740990' AS bigint) BE
 SET @ErrorMessage = @ErrorMessage + 'Valor de @TableId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Indexes', @UserName, 'create')
@@ -14773,7 +14773,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.IsUnique') AS bit) AS [IsUnique]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -15478,7 +15478,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure IndexkeysRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @offset INT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
@@ -15511,7 +15511,7 @@ IF @W_ColumnId IS NOT NULL AND @W_ColumnId > CAST('9007199254740990' AS bigint) 
 SET @ErrorMessage = @ErrorMessage + 'Valor de @ColumnId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Indexkeys', @UserName, 'create')
@@ -15525,7 +15525,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.IsDescending') AS bit) AS [IsDescending]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -16311,7 +16311,7 @@ ALTER PROCEDURE[dbo].[LogsRead](
 BEGIN TRY
 DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure LogsRead: ',
 @ROWCOUNT BIGINT,
-@LogId BIGINT,
+@LoginId BIGINT,
 @TableId BIGINT,
 @W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
 @W_SystemId bigint = CAST(JSON_VALUE(@Record, '$.SystemId') AS bigint),
@@ -16343,7 +16343,7 @@ IF @W_UserId IS NOT NULL AND @W_UserId > CAST('9007199254740990' AS bigint) BEGI
 SET @ErrorMessage = @ErrorMessage + 'Valor de @UserId deve ser menor que ou igual à ''9007199254740990''.';
 THROW 51000, @ErrorMessage, 1
 END
-SELECT @LogId = [LogId],
+SELECT @LoginId = [LoginId],
 @TableId = [TableId],
 @ErrorMessage = [ErrorMessage]
 FROM [dbo].[TransactionsActions]('cruda', 'cruda', 'Logs', @UserName, 'create')
@@ -16356,7 +16356,7 @@ SELECT [Action] AS [_]
 ,CAST(JSON_VALUE([Record], '$.Logged') AS bit) AS [Logged]
 INTO [dbo].[#tmp]
 FROM [dbo].[Transactions]
-WHERE [LogId] = @LogId
+WHERE [LoginId] = @LoginId
 AND [TableId] = @TableId
 AND [IsConfirmed] IS NULL
 SELECT 
@@ -16419,7 +16419,7 @@ IF (SELECT object_id('[dbo].[Transactions]', 'U')) IS NOT NULL
 DROP TABLE [dbo].[Transactions]
 CREATE TABLE [dbo].[Transactions](
 [Id] bigint NOT NULL,
-[LogId] bigint NOT NULL,
+[LoginId] bigint NOT NULL,
 [TableId] bigint NOT NULL,
 [PrimarykeyId] bigint NOT NULL,
 [Action] varchar(15) NOT NULL,
@@ -16430,7 +16430,7 @@ CREATE TABLE [dbo].[Transactions](
 [UpdatedAt] [datetime] NULL,
 [UpdatedBy] [varchar](25) NULL)
 ALTER TABLE [dbo].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED ([Id])
-CREATE INDEX [UNQ_Transactions_Log_Table_Primarykey] ON [dbo].[Transactions]([LogId] ASC,[TableId] ASC,[PrimarykeyId] ASC)
+CREATE INDEX [UNQ_Transactions_Log_Table_Primarykey] ON [dbo].[Transactions]([LoginId] ASC,[TableId] ASC,[PrimarykeyId] ASC)
 GO
 /**********************************************************************************
 Inserir dados na tabela Transactions
@@ -16820,7 +16820,7 @@ BEGIN
 			@MaxRetryLogins TINYINT,
 			@RetryLogins TINYINT,
 			@IsActive BIT,
-			@LogId BIGINT
+			@LoginId BIGINT
 
 	SET NOCOUNT ON
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -16871,14 +16871,14 @@ BEGIN
 			THROW 51000, @ErrorMessage, 1
 		END
 		
-		SELECT @LogId = [Id]
+		SELECT @LoginId = [Id]
 			FROM [dbo].[Logs]
 			WHERE [SystemId] = @SystemId
 				  AND [UserId] = @UserId
 				  AND [Logged] = 1
-		IF @LogId IS NULL BEGIN
+		IF @LoginId IS NULL BEGIN
 			IF @action = 'login' BEGIN
-				EXEC @LogId = [dbo].[GenerateId] 'cruda', 'cruda', 'Logs'
+				EXEC @LoginId = [dbo].[GenerateId] 'cruda', 'cruda', 'Logs'
 
 				INSERT [dbo].[Logs]([Id],
 									[SystemId],
@@ -16887,7 +16887,7 @@ BEGIN
 									[Logged],
 									[CreatedAt],
 									[CreatedBy])
-							VALUES (@LogId,
+							VALUES (@LoginId,
 									@SystemId,
 									@UserId,
 									@PublicKey,
@@ -16906,8 +16906,8 @@ BEGIN
 				SET [Logged] = 0,
 					[UpdatedAt] = GETDATE(),
 					[UpdatedBy] = @UserName
-				WHERE [Id] = @LogId
-			RETURN @LogId
+				WHERE [Id] = @LoginId
+			RETURN @LoginId
 		END ELSE IF @action <> 'authenticate' BEGIN
 			SET @ErrorMessage = 'Valor inválido para o parâmetro @Action.';
 			THROW 51000, @ErrorMessage, 1
@@ -16916,14 +16916,7 @@ BEGIN
 			SET [RetryLogins] = 0
 			WHERE [Id] = @UserId
 
-		SELECT [Id]
-				,[Name]
-				,[FullName]
-				,@PublicKey AS PublicKey
-			FROM [dbo].[Users] 
-			WHERE [Id] = @UserId
-
-		RETURN @LogId
+		RETURN @LoginId
 	END TRY
 	BEGIN CATCH
 		THROW
@@ -17261,7 +17254,7 @@ RETURNS @result TABLE ([SystemId] BIGINT,
 						[DatabaseId] BIGINT,
 						[TableId] BIGINT,
 						[UserId] BIGINT,
-						[LogId] BIGINT,
+						[LoginId] BIGINT,
 						[ProcedureCreate] VARCHAR(50),
 						[ProcedureUpdate] VARCHAR(50),
 						[ProcedureDelete] VARCHAR(50),
@@ -17276,7 +17269,7 @@ BEGIN
 			@DatabaseId BIGINT,
 			@TableId BIGINT,
 			@UserId BIGINT,
-			@LogId BIGINT,
+			@LoginId BIGINT,
 			@ProcedureCreate VARCHAR(50),
 			@ProcedureUpdate VARCHAR(50),
 			@ProcedureDelete VARCHAR(50),
@@ -17374,7 +17367,7 @@ BEGIN
 							@DatabaseId,
 							@TableId,
 							@UserId,
-							@LogId,
+							@LoginId,
 							@ProcedureCreate,
 							@ProcedureUpdate,
 							@ProcedureDelete,
@@ -17412,7 +17405,7 @@ BEGIN
 			@DatabaseId BIGINT,
 			@TableId BIGINT,
 			@UserId BIGINT,
-			@LogId BIGINT,
+			@LoginId BIGINT,
 			@TransactionId BIGINT,
 			@TransactionAction VARCHAR(15),
 			@PrimarykeyId BIGINT,
@@ -17444,7 +17437,7 @@ BEGIN
 				@DatabaseId = [DatabaseId],
 				@TableId = [TableId],
 				@UserId = [UserId],
-				@LogId = [LogId],
+				@LoginId = [LoginId],
 				@ProcedureCreate = [ProcedureCreate],
 				@ProcedureUpdate = [ProcedureUpdate],
 				@ProcedureDelete = [ProcedureDelete],
@@ -17466,7 +17459,7 @@ BEGIN
 		END	IF @Action = 'rollback' BEGIN
 			UPDATE [dbo].[Transactions]
 				SET [IsConfirmed] = 0
-				WHERE [LogId] = @LogId
+				WHERE [LoginId] = @LoginId
 						AND [IsConfirmed] IS NULL
 		END ELSE BEGIN
 			SELECT @PrimarykeyName = [C].[Name]
@@ -17482,7 +17475,7 @@ BEGIN
 			SELECT @TransactionId = [Id],
 					@TransactionAction = [Action]
 				FROM [dbo].[Transactions]
-				WHERE [LogId] = @LogId
+				WHERE [LoginId] = @LoginId
 						AND [TableId] = @TableId
 						AND [PrimarykeyId] = @PrimarykeyId
 						AND [IsConfirmed] IS NULL
@@ -17490,7 +17483,7 @@ BEGIN
 			IF @TransactionId IS NULL BEGIN
 				EXEC @TransactionId = [dbo].[GenerateId] 'cruda', 'cruda', 'Transactions'
 				INSERT [dbo].[Transactions]([Id],
-											[LogId],
+											[LoginId],
 											[TableId],
 											[PrimarykeyId],
 											[Action],
@@ -17501,7 +17494,7 @@ BEGIN
 											[UpdatedAt],
 											[UpdatedBy])
 									VALUES (@TransactionId, 
-											@LogId,
+											@LoginId,
 											@TableId,
 											@PrimarykeyId,
 											@Action,

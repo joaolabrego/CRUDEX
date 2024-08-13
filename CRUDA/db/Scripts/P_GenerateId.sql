@@ -28,14 +28,14 @@ BEGIN
 		SELECT @SystemId = [Id]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
-		IF @@ROWCOUNT = 0 BEGIN
+		IF @SystemId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Sistema não encontrado.';
 			THROW 51000, @ErrorMessage, 1
 		END
 		SELECT @DatabaseId = [Id]
 			FROM [dbo].[Databases]
 			WHERE [Name] = @DatabaseName
-		IF @@ROWCOUNT = 0 BEGIN
+		IF @DatabaseId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Banco-de-dados não encontrado.';
 			THROW 51000, @ErrorMessage, 1
 		END
@@ -49,7 +49,7 @@ BEGIN
 		SELECT @TableId = [Id]
 			FROM [dbo].[Tables]
 			WHERE [Name] = @TableName
-		IF @@ROWCOUNT = 0 BEGIN
+		IF @TableId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Tabela não encontrada.';
 			THROW 51000, @ErrorMessage, 1
 		END

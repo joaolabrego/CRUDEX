@@ -9,6 +9,8 @@ using TDataTable = System.Collections.Generic.List<System.Collections.Generic.Di
 using TDataSet = System.Collections.Generic.Dictionary<string,
                  System.Collections.Generic.List<System.Collections.Generic.Dictionary<string, dynamic?>>>;
 using CRUDA.Classes.Models;
+using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
+using MathNet.Numerics;
 
 namespace CRUDA.Classes
 {
@@ -37,13 +39,13 @@ namespace CRUDA.Classes
                 var table = tables.First(table => table["Id"] == databaseTable["TableId"]);
                 if (firstTime)
                 {
-                    stream.Write(GetCreateDatabaseScript(database));
+                    stream.Write(GetCreateDatabase(database));
                     stream.Write(GetCreatePrerequisites());
                     firstTime = false;
                 }
-                stream.Write(GetCreateTableScript(table, columns, indexes, indexkeys, domains, types));
+                stream.Write(GetCreateTable(table, columns, indexes, indexkeys, domains, types));
                 if (ToString(table["ProcedureCreate"]) != string.Empty)
-                    stream.Write(GetScriptCreate(table, tables, columns, domains, types, categories, indexes, indexkeys));
+                    stream.Write(GettCreate(table, tables, columns, domains, types, categories, indexes, indexkeys));
                 if (ToString(table["ProcedureUpdate"]) != string.Empty)
                     stream.Write(GetScriptUpdate(table, tables, columns, domains, types, categories, indexes, indexkeys));
                 if (ToString(table["ProcedureDelete"]) != string.Empty)
@@ -51,11 +53,11 @@ namespace CRUDA.Classes
                 if (ToString(table["ProcedureRead"]) != string.Empty)
                     stream.Write(GetScriptRead(table, tables, columns, domains, types, categories, indexes, indexkeys));
             }
-            stream.Write(GetScriptCreateReferences(tables, columns));
+            stream.Write(GetCreateReferences(tables, columns));
             foreach (var table in tables)
                 stream.Write(GetDmlScript(table, columns, domains, types, categories, dataSet[ToString(table["Name"])] ?? new DataTable()));
         }
-        private static string GetCreateDatabaseScript(TDataRow database)
+        private static string GetCreateDatabase(TDataRow database)
         {
             var result = new StringBuilder();
             var name = database["Name"];
@@ -191,7 +193,7 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static string GetCreateTableScript(TDataRow table, TDataTable columns, TDataTable indexes, TDataTable indexkeys, TDataTable domains, TDataTable types)
+        private static string GetCreateTable(TDataRow table, TDataTable columns, TDataTable indexes, TDataTable indexkeys, TDataTable domains, TDataTable types)
         {
             var result = new StringBuilder();
             var columnsPrimaryKey = new StringBuilder();
@@ -263,7 +265,7 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static string GetScriptCreateReferences(TDataTable tables, TDataTable columns)
+        private static string GetCreateReferences(TDataTable tables, TDataTable columns)
         {
             var result = new StringBuilder();
             var listColumns = columns.Where(column => column["ReferenceTableId"] != null);
@@ -549,7 +551,159 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static string GetScriptCreate(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
+
+        private static TDictionary GetValidations(TDataRow type, TDataRow domain, TDataRow column)
+        {
+            var result = new TDictionary();
+            var columnName = ToString(column["Name"]);
+            var value = string.Empty;
+
+            if (ToBoolean(column["IsRequired"]))
+                result.Add("IsRequired", "");
+            if ((value = ToString(column["Minimum"])) == string.Empty)
+                if ((value = ToString(domain["Minimum"])) == string.Empty)
+                    value = ToString(type["Minimum"]);
+            if (value != string.Empty)
+                result.Add("Minimum", value);
+            if ((value = ToString(column["Maximum"])) == string.Empty)
+                if ((value = ToString(domain["Maximum"])) == string.Empty)
+                    value = ToString(type["Maximum"]);
+            if (value != string.Empty)
+                result.Add("Maximum", value);
+
+            return result;
+        }
+        private static string GetCommit(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
+        {
+            var result = new StringBuilder();
+
+            result.AppendLine($"IF(SELECT object_id('[dbo].[ColumnsCommit]', 'P')) IS NULL");
+            result.AppendLine($"EXEC('CREATE PROCEDURE [dbo].[ColumnsCommit] AS PRINT 1')");
+            result.AppendLine($"ALTER PROCEDURE[dbo].[{table["Name"]}Commit](@OperationId BIGINT) AS BEGIN");
+            result.AppendLine($"    BEGIN TRY");
+            result.AppendLine($"        SET NOCOUNT ON");
+            result.AppendLine($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
+            result.AppendLine($"");
+            result.AppendLine($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure ColumnsCommit: '");
+            result.AppendLine($"");
+            result.AppendLine($"        IF @OperationId IS NULL BEGIN");
+            result.AppendLine($"            SET @ErrorMessage = @ErrorMessage + 'Id de operação requerido.';");
+            result.AppendLine($"            THROW 51000, @ErrorMessage, 1");
+            result.AppendLine($"        END");
+            result.AppendLine($"");
+            result.AppendLine($"        DECLARE @TransactionId BIGINT,\r\n\t\t\t\t,\r\n\t\t\t\t");
+            result.AppendLine($"                ,@LastRecord VARCHAR(MAX)");
+            result.AppendLine($"                ,@ActualRecord VARCHAR(MAX)");
+            result.AppendLine($"                ,@IsConfirmed BIT");
+            result.AppendLine($"                ,@Action VARCHAR(15)");
+            result.AppendLine($"");
+            result.AppendLine($"        SELECT @TransactionId = [TransactionId]");
+            result.AppendLine($"              ,@LastRecord = [LastRecord]");
+            result.AppendLine($"              ,@ActualRecord = [ActualRecord]");
+            result.AppendLine($"              ,@IsConfirmed = [IsConfirmed]");
+            result.AppendLine($"              ,@Action = [Action]");
+            result.AppendLine($"            FROM [dbo].[Operations]");
+            result.AppendLine($"            WHERE [Id] = @OperationId");
+            result.AppendLine($"        IF @TransactionId IS NULL BEGIN");
+            result.AppendLine($"            SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';");
+            result.AppendLine($"            THROW 51000, @ErrorMessage, 1");
+            result.AppendLine($"        END");
+            result.AppendLine($"        IF @IsConfirmed IS NOT NULL BEGIN");
+            result.AppendLine($"            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';");
+            result.AppendLine($"            THROW 51000, @ErrorMessage, 1");
+            result.AppendLine($"        END");
+            result.AppendLine($"        IF @Action NOT IN ('create', 'update', 'delete') BEGIN");
+            result.AppendLine($"            SET @ErrorMessage = @ErrorMessage + 'Ação da operação é inválida.';");
+            result.AppendLine($"            THROW 51000, @ErrorMessage, 1");
+            result.AppendLine($"        END");
+            result.AppendLine($"");
+            result.AppendLine($"        DECLARE @LoginId BIGINT");
+            result.AppendLine($"");
+            result.AppendLine($"        SELECT @LoginId = [LoginId]");
+            result.AppendLine($"              ,@IsConfirmed = [IsConfirmed]");
+            result.AppendLine($"            FROM [dbo].[Transactions]");
+            result.AppendLine($"            WHERE [Id] = @TransactionId");
+            result.AppendLine($"        IF @LoginId IS NULL BEGIN");
+            result.AppendLine($"            SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';");
+            result.AppendLine($"            THROW 51000, @ErrorMessage, 1");
+            result.AppendLine($"        END");
+            result.AppendLine($"        IF @IsConfirmed IS NOT NULL BEGIN");
+            result.AppendLine($"            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';");
+            result.AppendLine($"            THROW 51000, @ErrorMessage, 1");
+            result.AppendLine($"        END");
+            result.AppendLine($"");
+            {
+                var columnRows = columns.Where(row => ToBoolean(row["IsPrimarykey"]));
+
+                if (columnRows.Any())
+                {
+                    var comma = String.Empty;
+
+                    result.Append($"        DECLARE ");
+                    foreach (var columnRow in columnRows)
+                    {
+                        TDataRow domainRow = domains.First(d => d["Id"] == columnRow["DomainId"]);
+                        TDataRow typeRow = types.First(t => t["Id"] == domainRow["TypeId"]);
+
+                        result.AppendLine($"               {comma}@W_{columnRow["Name"]} {typeRow["Name"]} = CAST(JSON_VALUE(@ActualRecord, '$.{columnRow["Name"]}') AS {typeRow["Name"]})");
+                        comma = ",";
+                    }
+                    foreach (var columnRow in columnRows)
+                    {
+                        var domainRow = domains.First(d => d["Id"] == columnRow["DomainId"]);
+                        var typeRow = types.First(t => t["Id"] == domainRow["TypeId"]);
+                        var validation = GetValidations(typeRow, domainRow, columnRow);
+
+                        if (validation.ContainsKey("IsRequired"))
+                        {
+                            result.AppendLine($"        IF @W_{columnRow["Name"]} IS NULL BEGIN");
+                            result.AppendLine($"            SET @ErrorMessage = @ErrorMessage + 'Valor de [{columnRow["Name"]}] é requerido.';");
+                            result.AppendLine($"            THROW 51000, @ErrorMessage, 1");
+                            result.AppendLine($"        END");
+                        }
+
+                        if (validation.TryGetValue("Minimum", out dynamic? value))
+                        {
+                            result.AppendLine($"        IF @W_{columnRow["Name"]} < CAST('{value}' AS {GetDataType(typeRow, domainRow)}) BEGIN");
+                            result.AppendLine($"            SET @ErrorMessage = @ErrorMessage + 'Valor de [{columnRow["Name"]}] deve ser maior que ou igual à ''{value}''.';");
+                            result.AppendLine($"            THROW 51000, @ErrorMessage, 1");
+                            result.AppendLine($"        END");
+                        }
+                        if (validation.TryGetValue("Maximum", out value))
+                        {
+                            result.AppendLine($"        IF @W_{columnRow["Name"]} > CAST('{value}' AS {GetDataType(typeRow, domainRow)}) BEGIN");
+                            result.AppendLine($"            SET @ErrorMessage = @ErrorMessage + 'Valor de [{columnRow["Name"]}] deve ser menor que ou igual à ''{value}''.';");
+                            result.AppendLine($"            THROW 51000, @ErrorMessage, 1");
+                            result.AppendLine($"        END");
+                        }
+                    }
+                    {
+                        var and = string.Empty;
+
+                        result.Append($"        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE ");
+                        foreach (var columnRow in columnRows)
+                        {
+                            result.Append($"{and}[{columnRow["Name"]}] = @W_{columnRow["Name"]}");
+                            and = " AND ";
+                        }
+                        result.AppendLine($") BEGIN");
+                        result.AppendLine($"            IF @Action = '{Actions.CREATE}' BEGIN);");
+                        result.AppendLine($"                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe na tabela {table["Name"]}.';");
+                        result.AppendLine($"                THROW 51000, @ErrorMessage, 1");
+                        result.AppendLine($"            END");
+                        result.AppendLine($"        END ELSE IF @Action <> '{Actions.CREATE}' BEGIN");
+                        result.AppendLine($"            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe na tabela {table["Name"]}.';");
+                        result.AppendLine($"            THROW 51000, @ErrorMessage, 1");
+                        result.AppendLine($"        END");
+                        result.AppendLine($"        IF @Action <> '{Actions.DELETE}' BEGIN");
+
+                    }
+                }
+            }
+
+            return result.ToString();
+        }
+        private static string GettCreate(TDataRow table, TDataTable tables, TDataTable columns, TDataTable domains, TDataTable types, TDataTable categories, TDataTable indexes, TDataTable indexkeys)
         {
             var result = new StringBuilder();
             var listColumns = columns.Where(column => column["TableId"] == table["Id"]);

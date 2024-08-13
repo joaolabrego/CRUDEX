@@ -1,21 +1,21 @@
 ﻿using CRUDA.Classes.Models;
 using System;
-using Dictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
+using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
 namespace CRUDA_LIB
 {
     public static class Login
     {
         public readonly static string ClassName = "Login";
-        public static SQLResult Execute(string systemName, string action, Dictionary? parameters)
+        public static TResult Execute(string systemName, TDictionary? parameters)
         {
             if (parameters != null && parameters.TryGetValue("Login", out dynamic? login))
             {
                 if (login == null)
                     throw new Exception("Login requerido em Parameters.");
-                else if (login.ContainsKey("UserName") && login.ContainsKey("Password"))
+                else if (login.ContainsKey("UserName") && login.ContainsKey("Password") && login.ContainsKey("Action"))
                 {
-                    var result = SQLProcedure.Execute(
+                    return SQLProcedure.Execute(
                         Settings.ConnecionString(),
                         Settings.Get("LOGIN_PROCEDURE"),
                         Config.ToDictionary(new
@@ -25,14 +25,11 @@ namespace CRUDA_LIB
                                 SystemName = systemName,
                                 UserName = login["UserName"],
                                 Password = login["Password"],
-                                PublicKey = action == Actions.LOGIN ? Crypto.GenerateCryptoKey() : null,
-                                Action = action,
-                            }
+                                PublicKey = login["Action"] == Actions.LOGIN ? Crypto.GenerateCryptoKey() : null,
+                                Action = login["Action"],
+                            },
                         }));
-
-                    return result;
                 }
-
                 else
                     throw new Exception("Parâmetro(s) UserName e/ou Password e/ou Action requeridos em Login.");
             }
