@@ -633,20 +633,25 @@ namespace CRUDA.Classes
             result.AppendLine($"        END");
             result.AppendLine($"");
             {
-                var columnRows = columns.Where(row => ToBoolean(row["IsPrimarykey"]));
+                var columnRows = columns.Where(row => ToBoolean(row["IsPrimarykey"]) && !ToBoolean(row["IsAutoIncrement"]));
 
                 if (columnRows.Any())
                 {
-                    var comma = String.Empty;
-
-                    result.Append($"        DECLARE ");
+                    var separator = String.Empty;
+                    var firstTime = true;
+                    
                     foreach (var columnRow in columnRows)
                     {
-                        TDataRow domainRow = domains.First(d => d["Id"] == columnRow["DomainId"]);
-                        TDataRow typeRow = types.First(t => t["Id"] == domainRow["TypeId"]);
+                        var domainRow = domains.First(d => d["Id"] == columnRow["DomainId"]);
+                        var typeRow = types.First(t => t["Id"] == domainRow["TypeId"]);
 
-                        result.AppendLine($"               {comma}@W_{columnRow["Name"]} {typeRow["Name"]} = CAST(JSON_VALUE(@ActualRecord, '$.{columnRow["Name"]}') AS {typeRow["Name"]})");
-                        comma = ",";
+                        if (firstTime)
+                        {
+                            result.Append($"        DECLARE ");
+                            firstTime = false;
+                        }
+                        result.AppendLine($"               {separator}@W_{columnRow["Name"]} {typeRow["Name"]} = CAST(JSON_VALUE(@ActualRecord, '$.{columnRow["Name"]}') AS {typeRow["Name"]})");
+                        separator = ",";
                     }
                     foreach (var columnRow in columnRows)
                     {
@@ -678,13 +683,12 @@ namespace CRUDA.Classes
                         }
                     }
                     {
-                        var and = string.Empty;
-
+                        separator = string.Empty;
                         result.Append($"        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE ");
                         foreach (var columnRow in columnRows)
                         {
-                            result.Append($"{and}[{columnRow["Name"]}] = @W_{columnRow["Name"]}");
-                            and = " AND ";
+                            result.Append($"{separator}[{columnRow["Name"]}] = @W_{columnRow["Name"]}");
+                            separator = " AND ";
                         }
                         result.AppendLine($") BEGIN");
                         result.AppendLine($"            IF @Action = '{Actions.CREATE}' BEGIN);");
@@ -696,6 +700,76 @@ namespace CRUDA.Classes
                         result.AppendLine($"            THROW 51000, @ErrorMessage, 1");
                         result.AppendLine($"        END");
                         result.AppendLine($"        IF @Action <> '{Actions.DELETE}' BEGIN");
+                        columnRows = columns.Where(row => ToBoolean(!row["IsPrimarykey"]) && !ToBoolean(row["IsAutoIncrement"]));
+                        separator = String.Empty;
+                        firstTime = true;
+                        foreach (var columnRow in columnRows)
+                        {
+                            var domainRow = domains.First(d => d["Id"] == columnRow["DomainId"]);
+                            var typeRow = types.First(t => t["Id"] == domainRow["TypeId"]);
+
+                            if (firstTime)
+                            {
+                                result.Append($"            DECLARE ");
+                                firstTime = false;
+                            }
+                            result.AppendLine($"                    {separator}@W_{columnRow["Name"]} {typeRow["Name"]} = CAST(JSON_VALUE(@ActualRecord, '$.{columnRow["Name"]}') AS {typeRow["Name"]})");
+                            separator = ",";
+                        }
+                        foreach (var columnRow in columnRows)
+                        {
+                            var domainRow = domains.First(d => d["Id"] == columnRow["DomainId"]);
+                            var typeRow = types.First(t => t["Id"] == domainRow["TypeId"]);
+                            var validation = GetValidations(typeRow, domainRow, columnRow);
+
+                            if (validation.ContainsKey("IsRequired"))
+                            {
+                                result.AppendLine($"            IF @W_{columnRow["Name"]} IS NULL BEGIN");
+                                result.AppendLine($"                SET @ErrorMessage = @ErrorMessage + 'Valor de [{columnRow["Name"]}] é requerido.';");
+                                result.AppendLine($"                THROW 51000, @ErrorMessage, 1");
+                                result.AppendLine($"            END");
+                            }
+
+                            if (validation.TryGetValue("Minimum", out dynamic? value))
+                            {
+                                result.AppendLine($"            IF @W_{columnRow["Name"]} < CAST('{value}' AS {GetDataType(typeRow, domainRow)}) BEGIN");
+                                result.AppendLine($"                SET @ErrorMessage = @ErrorMessage + 'Valor de [{columnRow["Name"]}] deve ser maior que ou igual à ''{value}''.';");
+                                result.AppendLine($"                THROW 51000, @ErrorMessage, 1");
+                                result.AppendLine($"            END");
+                            }
+                            if (validation.TryGetValue("Maximum", out value))
+                            {
+                                result.AppendLine($"            IF @W_{columnRow["Name"]} > CAST('{value}' AS {GetDataType(typeRow, domainRow)}) BEGIN");
+                                result.AppendLine($"                SET @ErrorMessage = @ErrorMessage + 'Valor de [{columnRow["Name"]}] deve ser menor que ou igual à ''{value}''.';");
+                                result.AppendLine($"                THROW 51000, @ErrorMessage, 1");
+                                result.AppendLine($"            END");
+                            }
+                        }
+
+                        var indexRows = indexes.Where(index => index["TableId"] == table["Id"]);
+                        
+                        result.AppendLine($"            IF @Action = 'create' BEGIN");
+                        foreach (var indexRow in indexRows)
+                        {
+                            var indexkeyRows = indexkeys.Where(row => row["IndexId"] == indexRow["Id"]);
+
+                            result.Append($"                    IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE ");
+                            separator = string.Empty;
+                            foreach(var indexkeyRow in indexkeyRows)
+                            {
+                                var columnRow = domains.First(row => row["Id"] == indexkeyRow["ColumnId"]);
+
+                                result.Append($"[{separator}{columnRow["Name"]}] = @W_{columnRow["Name"]}");
+                                separator = " AND ";
+                            }
+                            result.AppendLine();
+                            result.AppendLine($") BEGIN");
+                            result.AppendLine($"                        SET @ErrorMessage = @ErrorMessage + 'Chave única de índice UNQ_Columns_Table_Name já existe.';");
+                            result.AppendLine($"                        THROW 51000, @ErrorMessage, 1");
+                            result.AppendLine($"                    END");
+                        }
+                        
+                        
 
                     }
                 }

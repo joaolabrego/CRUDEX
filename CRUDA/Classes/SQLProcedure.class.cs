@@ -69,6 +69,7 @@ namespace CRUDA_LIB
                 Actions.GEN_ID => "Gen_Id",
                 _ => throw new Exception($"Ação inválida."),
             };
+            Login.Execute(systemName, parameters);
 
             return Execute(connectionString, procedureName, parameters?["Parameters"]);
         }
