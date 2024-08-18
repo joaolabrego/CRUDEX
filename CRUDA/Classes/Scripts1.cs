@@ -1,4 +1,4 @@
-﻿using ClosedXML.Excel;
+﻿using ExcelDataReader;
 using CRUDA.Classes.Models;
 using CRUDA_LIB;
 using System.Data;
@@ -250,29 +250,20 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static DataSet ExcelToDataSet()
+        public static DataSet ExcelToDataSet()
         {
-            var workbook = new XLWorkbook(Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL")));
-            var dataSet = new DataSet();
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-            foreach (IXLWorksheet worksheet in workbook.Worksheets)
+            using var stream = File.Open(Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL")), FileMode.Open, FileAccess.Read);
+            using var reader = ExcelReaderFactory.CreateReader(stream);
+            var dataSet = reader.AsDataSet(new ExcelDataSetConfiguration()
             {
-                var dataTable = new DataTable(worksheet.Name);
-                var usedRange = worksheet.RangeUsed();
-
-                foreach (IXLCell cell in usedRange.Row(1).Cells(1, usedRange.ColumnCount()))
-                    dataTable.Columns.Add(cell.GetValue<string>());
-                for (int rowIndex = 2; rowIndex <= usedRange.RowCount(); rowIndex++) // Começar do 2 porque a linha 1 é o cabeçalho
+                UseColumnDataType = true,
+                ConfigureDataTable = (_) => new ExcelDataTableConfiguration()
                 {
-                    var row = usedRange.Row(rowIndex);
-                    object[] rowData = new object[usedRange.ColumnCount()];
-
-                    for (int colIndex = 1; colIndex <= usedRange.ColumnCount(); colIndex++)
-                        rowData[colIndex - 1] = row.Cell(colIndex).CachedValue;
-                    dataTable.Rows.Add(rowData);
+                    UseHeaderRow = true // Indica que a primeira linha contém os cabeçalhos das colunas
                 }
-                dataSet.Tables.Add(dataTable);
-            }
+            });
 
             return dataSet;
         }
