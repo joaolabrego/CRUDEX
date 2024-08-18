@@ -1,6 +1,4 @@
 ﻿using CRUDA_LIB;
-using NPOI;
-using NPOI.SS.Formula.Functions;
 using System.Reflection;
 
 namespace CRUDA.Classes.Models

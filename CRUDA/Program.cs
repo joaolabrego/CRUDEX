@@ -1,9 +1,6 @@
-using System;
 using System.Text;
-using CRUDA.Classes;
 using CRUDA.Classes.Models;
 using Newtonsoft.Json;
-using NPOI.XWPF.UserModel;
 
 namespace CRUDA_LIB
 {
@@ -15,7 +12,6 @@ namespace CRUDA_LIB
 
             app.Use(async (context, next) =>
             {
-                //Scripts.GenerateScript("cruda", "cruda");
                 await next.Invoke();
             });
 
@@ -40,6 +36,7 @@ namespace CRUDA_LIB
                 switch (action)
                 {
                     case null:
+                        //Scripts1.GenerateScript("cruda", "cruda");
                         context.Request.Headers.ContentType = "text/html;";
                         context.Response.WriteAsync(Config.GetHTML("cruda", "Nome do sistema é requerido na URL."), Encoding.UTF8);
                         break;
