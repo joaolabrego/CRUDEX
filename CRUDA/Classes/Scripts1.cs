@@ -1,6 +1,6 @@
-﻿using CRUDA.Classes.Models;
+﻿using ClosedXML.Excel;
+using CRUDA.Classes.Models;
 using CRUDA_LIB;
-using ExcelDataReader;
 using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
@@ -44,8 +44,8 @@ namespace CRUDA.Classes
                 foreach (var table in tables)
                     stream.Write(GetDmlScript(table, columns, domains, types, categories, (dataSet.Tables[ToString(table["Name"])] ?? new DataTable()).Select()));
             }
-            catch (Exception ex) 
-            { 
+            catch (Exception ex)
+            {
                 Console.WriteLine(ex.ToString());
             }
         }
@@ -250,22 +250,31 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-
         private static DataSet ExcelToDataSet()
         {
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            var workbook = new XLWorkbook(Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL")));
+            var dataSet = new DataSet();
 
-            using var stream = File.Open(Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL")), FileMode.Open, FileAccess.Read);
-            using var reader = ExcelReaderFactory.CreateReader(stream);
-            var result = reader.AsDataSet(new ExcelDataSetConfiguration()
+            foreach (IXLWorksheet worksheet in workbook.Worksheets)
             {
-                ConfigureDataTable = (_) => new ExcelDataTableConfiguration()
-                {
-                    UseHeaderRow = true
-                }
-            });
+                var dataTable = new DataTable(worksheet.Name);
+                var usedRange = worksheet.RangeUsed();
 
-            return result;
+                foreach (IXLCell cell in usedRange.Row(1).Cells(1, usedRange.ColumnCount()))
+                    dataTable.Columns.Add(cell.GetValue<string>());
+                for (int rowIndex = 2; rowIndex <= usedRange.RowCount(); rowIndex++) // Começar do 2 porque a linha 1 é o cabeçalho
+                {
+                    var row = usedRange.Row(rowIndex);
+                    object[] rowData = new object[usedRange.ColumnCount()];
+
+                    for (int colIndex = 1; colIndex <= usedRange.ColumnCount(); colIndex++)
+                        rowData[colIndex - 1] = row.Cell(colIndex).CachedValue;
+                    dataTable.Rows.Add(rowData);
+                }
+                dataSet.Tables.Add(dataTable);
+            }
+
+            return dataSet;
         }
         private static string GetCreateTable(DataRow table, DataRow[] columns, DataRow[] indexes, DataRow[] indexkeys, DataRow[] domains, DataRow[] types)
         {
@@ -505,7 +514,7 @@ namespace CRUDA.Classes
                         else
                             result.AppendLine($"               ,@W_{columnRow["Name"]} {typeRow["Name"]} = CAST(JSON_VALUE(@ActualRecord, '$.{columnRow["Name"]}') AS {typeRow["Name"]})");
                     }
-                    
+
                     columnRows = columns.Where(row => Convert.ToInt64(row["TableId"]) == Convert.ToInt64(table["Id"]) && !ToBoolean(row["IsPrimarykey"]) && !ToBoolean(row["IsAutoIncrement"]));
                     foreach (var columnRow in columnRows)
                     {
