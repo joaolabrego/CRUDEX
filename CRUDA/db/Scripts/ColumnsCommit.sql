@@ -4,93 +4,49 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[CommitOperation]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [dbo].[CommitOperation] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ColumnsCommit]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[ColumnsCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[CommitOperation](@OperationId BIGINT = NULL) AS BEGIN
+ALTER PROCEDURE[dbo].[ColumnsCommit](@Action VARCHAR(15),
+									 @LastRecord VARCHAR(MAX),
+									 @ActualRecord VARCHAR(MAX),
+									 @UserName VARCHAR(25)) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure ColumnsCommit: '
 
-		IF @OperationId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Id de operação requerido.';
-			THROW 51000, @ErrorMessage, 1
-		END
 		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION CommitOperation
+			BEGIN TRANSACTION ColumnsCommit
 		ELSE
-			SAVE TRANSACTION CommitOperation
-
-		DECLARE @TransactionId BIGINT
-				,@TableId BIGINT
-				,@Action VARCHAR(15)
-				,@LastRecord VARCHAR(MAX)
-				,@ActualRecord VARCHAR(MAX)
-				,@IsConfirmed BIT
-				
-
-		SELECT @TransactionId = [TransactionId]
-				,@TableId = [TableId]
-				,@Action = [Action]
-				,@LastRecord = [LastRecord]
-				,@ActualRecord = [ActualRecord]
-				,@IsConfirmed = [IsConfirmed]
-			FROM [dbo].[Operations]
-			WHERE [Id] = @OperationId
-		IF @TransactionId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Operação não cadastrada.';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @IsConfirmed IS NOT NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @Action NOT IN ('create', 'update', 'delete') BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Ação da operação é inválida.';
-			THROW 51000, @ErrorMessage, 1
-		END
-
-		DECLARE @LoginId BIGINT
-
-		SELECT @LoginId = [LoginId]
-				,@IsConfirmed = [IsConfirmed]
-			FROM [dbo].[Transactions]
-			WHERE [Id] = @TransactionId
-		IF @LoginId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transação não cadastrada.';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @IsConfirmed IS NOT NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END + '.';
-			THROW 51000, @ErrorMessage, 1
-		END
-
-		DECLARE @UserName VARCHAR(25)
-
-		SELECT @UserName = [Name]
-			FROM [dbo].[Users]
-			WHERE [Id] = @UserId
-		IF @UserName IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Usuário não cadastrado.';
-			THROW 51000, @ErrorMessage, 1
-		END
-
-		DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+			SAVE TRANSACTION ColumnsCommit
+		EXEC [dbo].[ColumnsValid] @Action, @LastRecord. @ActualRecord
 		IF @Action = 'delete' BEGIN
 			DELETE FROM [dbo].[Columns] WHERE [Id] = @W_Id
 		END ELSE BEGIN
-			IF @Action = 'create' BEGIN
-				IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name) BEGIN
-					SET @ErrorMessage = @ErrorMessage + 'Chave única de índice UNQ_Columns_Table_Name já existe.';
-					THROW 51000, @ErrorMessage, 1
-				END
-				IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence) BEGIN
-					SET @ErrorMessage = @ErrorMessage + 'Chave única de índice UNQ_Columns_Table_Sequence já existe.';
-					THROW 51000, @ErrorMessage, 1
-				END
+			DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+					,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+					,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
+					,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
+					,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+					,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+					,@W_Title varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
+					,@W_Caption varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
+					,@W_ValidValues varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
+					,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
+					,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
+					,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
+					,@W_IsPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPrimarykey') AS bit)
+					,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@ActualRecord, '$.IsAutoIncrement') AS bit)
+					,@W_IsRequired bit = CAST(JSON_VALUE(@ActualRecord, '$.IsRequired') AS bit)
+					,@W_IsListable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit)
+					,@W_IsFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit)
+					,@W_IsEditable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit)
+					,@W_IsBrowseable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBrowseable') AS bit)
+					,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
+					,@W_IsCalculated bit = CAST(JSON_VALUE(@ActualRecord, '$.IsCalculated') AS bit)
+			IF @Action = 'create'
 				INSERT INTO [dbo].[Columns] ([Id]
 											,[TableId]
 											,[Sequence]
@@ -140,13 +96,7 @@ ALTER PROCEDURE[dbo].[CommitOperation](@OperationId BIGINT = NULL) AS BEGIN
 											,CAST(JSON_VALUE(@ActualRecord, '$.IsCalculated') AS bit)
 											,GETDATE()
 											,@UserName)
-			END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
-				SET @ErrorMessage = @ErrorMessage + 'Chave única de índice UNQ_Columns_Table_Name já existe.';
-				THROW 51000, @ErrorMessage, 1
-			END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence AND [Id] <> @W_Id) BEGIN
-				SET @ErrorMessage = @ErrorMessage + 'Chave única de índice UNQ_Columns_Table_Sequence já existe.';
-				THROW 51000, @ErrorMessage, 1
-			END ELSE BEGIN
+			ELSE
 				UPDATE [dbo].[Columns] 
 					SET [TableId] = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
 						,[Sequence] = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
@@ -172,15 +122,13 @@ ALTER PROCEDURE[dbo].[CommitOperation](@OperationId BIGINT = NULL) AS BEGIN
 						,[UpdatedBy] = @UserName
 						,[UpdatedAt] = GETDATE()
 					WHERE [Id] = @W_Id
-			END
 		END
-		UPDATE[dbo].[Operations] SET [IsConfirmed] = 1, [UpdatedAt] = GETDATE(), [UpdatedBy] = @UserName WHERE [Id] = @OperationId
-		COMMIT TRANSACTION CommitOperation
+		COMMIT TRANSACTION ColumnsCommit
 
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION CommitOperation;
+		ROLLBACK TRANSACTION ColumnsCommit;
 		THROW
 	END CATCH
 END
