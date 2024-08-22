@@ -3,13 +3,13 @@
     public class Styles
     {
         public readonly string ClassName = "Styles";
-        public readonly string Body = "";
-        public readonly string Screen = "";
-        public readonly string Dialog = "";
-        public readonly string Login = "";
-        public readonly string Menu = "";
-        public readonly string Grid = "";
-        public readonly string Form = "";
+        public readonly string Body = string.Empty;
+        public readonly string Screen = string.Empty;
+        public readonly string Dialog = string.Empty;
+        public readonly string Login = string.Empty;
+        public readonly string Menu = string.Empty;
+        public readonly string Grid = string.Empty;
+        public readonly string Form = string.Empty;
         public Styles()
         {
             var directory = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_STYLES"));

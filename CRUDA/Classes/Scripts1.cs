@@ -99,7 +99,7 @@ namespace CRUDA.Classes
             var value = string.Empty;
 
             if (ToBoolean(column["IsRequired"]))
-                result.Add("IsRequired", "");
+                result.Add("IsRequired", string.Empty);
             if ((value = ToString(column["Minimum"])) == string.Empty)
                 if ((value = ToString(domain["Minimum"])) == string.Empty)
                     value = ToString(type["Minimum"]);
@@ -256,6 +256,7 @@ namespace CRUDA.Classes
 
             using var stream = File.Open(Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL")), FileMode.Open, FileAccess.Read);
             using var reader = ExcelReaderFactory.CreateReader(stream);
+
             var dataSet = reader.AsDataSet(new ExcelDataSetConfiguration()
             {
                 UseColumnDataType = true,

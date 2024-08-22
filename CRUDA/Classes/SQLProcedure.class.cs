@@ -12,27 +12,37 @@ namespace CRUDA_LIB
         {
             using var dataset = new DataSet();
             using var connection = new SqlConnection(connectionString);
-            using var command = new SqlCommand(procedureName, connection);
-
-            command.CommandType = CommandType.StoredProcedure;
-            if (parameters != null)
+            connection.Open();
+            using var transaction = connection.BeginTransaction();
+            using var command = new SqlCommand(procedureName, connection, transaction);
+            try
             {
-                foreach (var item in parameters.Where(item => "InputParams;OutputParams;IOParams".Contains(item.Key)))
+                command.CommandType = CommandType.StoredProcedure;
+                if (parameters != null)
                 {
-                    var listParameters = parameters[item.Key];
-                    var direction = item.Key == "InputParams" ? ParameterDirection.Input :
-                        item.Key == "OutputParams" ? ParameterDirection.Output : ParameterDirection.InputOutput;
+                    foreach (var item in parameters.Where(item => "InputParams;OutputParams;IOParams".Contains(item.Key)))
+                    {
+                        var listParameters = parameters[item.Key];
+                        var direction = item.Key == "InputParams" ? ParameterDirection.Input :
+                            item.Key == "OutputParams" ? ParameterDirection.Output : ParameterDirection.InputOutput;
 
-                    if (listParameters != null)
-                        foreach (var subItem in listParameters)
-                            command.Parameters.Add(new SqlParameter(subItem.Key, subItem.Value ?? DBNull.Value) { Direction = direction });
+                        if (listParameters != null)
+                            foreach (var subItem in listParameters)
+                                command.Parameters.Add(new SqlParameter(subItem.Key, subItem.Value ?? DBNull.Value) { Direction = direction });
+                    }
                 }
-            }
-            command.Parameters.Add(new SqlParameter("ReturnValue", DBNull.Value) { Direction = ParameterDirection.ReturnValue });
-            
-            new SqlDataAdapter(command).Fill(dataset);
+                command.Parameters.Add(new SqlParameter("ReturnValue", DBNull.Value) { Direction = ParameterDirection.ReturnValue });
 
-            return new TResult(dataset.Tables, command.Parameters);
+                new SqlDataAdapter(command).Fill(dataset);
+                transaction.Commit();
+
+                return new TResult(dataset.Tables, command.Parameters);
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
         public static TResult GetConfig(string systemName, string? databaseName = null, string? tableName = null)
         {
@@ -69,7 +79,6 @@ namespace CRUDA_LIB
                 Actions.GEN_ID => "Gen_Id",
                 _ => throw new Exception($"Ação inválida."),
             };
-            Login.Execute(systemName, parameters);
 
             return Execute(connectionString, procedureName, parameters?["Parameters"]);
         }

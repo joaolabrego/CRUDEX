@@ -21,7 +21,7 @@ ALTER PROCEDURE[dbo].[ColumnsCommit](@Action VARCHAR(15),
 			BEGIN TRANSACTION ColumnsCommit
 		ELSE
 			SAVE TRANSACTION ColumnsCommit
-		EXEC [dbo].[ColumnsValid] @Action, @LastRecord. @ActualRecord
+		EXEC [dbo].[ColumnsValid] @Action, @LastRecord, @ActualRecord
 		IF @Action = 'delete' BEGIN
 			DELETE FROM [dbo].[Columns] WHERE [Id] = @W_Id
 		END ELSE BEGIN

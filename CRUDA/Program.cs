@@ -47,10 +47,10 @@ namespace CRUDA_LIB
                         context.Response.WriteAsync(Config.GetHTML(systemName), Encoding.UTF8);
                         break;
                     case Actions.CONFIG:
-                        var response = new Crypto(context.Request.Headers["PublicKey"]).Encrypt(JsonConvert.SerializeObject(new Config(systemName, "all")));
+                        var response = JsonConvert.SerializeObject(new Config(systemName, "all"));
 
                         context.Response.Headers.ContentType = "application/json";
-                        context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response }), Encoding.UTF8);
+                        context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(context.Request.Headers["PublicKey"]).Encrypt(response), }), Encoding.UTF8);
                         break;
                     case Actions.LOGIN:
                     case Actions.LOGOUT:
@@ -65,12 +65,15 @@ namespace CRUDA_LIB
                             Login = request["Login"],
                             Parameters = request["Parameters"],
                         });
-                        response = new Crypto(publicKey).Encrypt(JsonConvert.SerializeObject(
-                            action == Actions.EXECUTE 
-                            ? SQLProcedure.Execute(systemName, parameters) 
-                            : Login.Execute(systemName, parameters)));
+                        if (action == Actions.EXECUTE)
+                        {
+                            Login.Execute(systemName, parameters, true);
+                            response = JsonConvert.SerializeObject(SQLProcedure.Execute(systemName, parameters));
+                        }
+                        else
+                            response = JsonConvert.SerializeObject(Login.Execute(systemName, parameters));
                         context.Response.Headers.ContentType = "application/json";
-                        context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
+                        context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(publicKey).Encrypt(response), }), Encoding.UTF8);
                         break;
                     default:
                         throw new Exception($"Ação '{action}' desconhecida em rota.");

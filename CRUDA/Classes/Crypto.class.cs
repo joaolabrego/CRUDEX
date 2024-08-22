@@ -6,7 +6,7 @@ namespace CRUDA_LIB
     {
         public readonly string ClassName = "Crypto";
         private readonly static string CryptoPrefix = "encrypted";
-        public readonly string CryptoKey = "";
+        public readonly string CryptoKey = string.Empty;
         private static readonly string CHARSET = "0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz+*&%$#!?.:=@<>,;/[]{}()";
         private static readonly Random Rnd = new();
         private static readonly int DEFAULT_LENGTH = 100;
@@ -21,7 +21,7 @@ namespace CRUDA_LIB
         }
         public static string GenerateCryptoKey(int? length = null)
         {
-            var result = "";
+            var result = string.Empty;
 
             if (length == null || length <= 0)
                 length = DEFAULT_LENGTH;
@@ -48,7 +48,7 @@ namespace CRUDA_LIB
             {
                 factor = 1;
                 value = value[prefix.Length..];
-                prefix = "";
+                prefix = string.Empty;
             }
             else
             {

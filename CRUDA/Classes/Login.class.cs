@@ -7,7 +7,7 @@ namespace CRUDA_LIB
     public static class Login
     {
         public readonly static string ClassName = "Login";
-        public static TResult Execute(string systemName, TDictionary? parameters)
+        public static TResult Execute(string systemName, TDictionary? parameters, bool forceAuthenticate = false)
         {
             if (parameters != null && parameters.TryGetValue("Login", out dynamic? login))
             {
@@ -26,7 +26,7 @@ namespace CRUDA_LIB
                                 UserName = login["UserName"],
                                 Password = login["Password"],
                                 PublicKey = login["Action"] == Actions.LOGIN ? Crypto.GenerateCryptoKey() : null,
-                                Action = login["Action"],
+                                Action = forceAuthenticate ? Actions.AUTHENTICATE : login["Action"],
                             },
                         }));
                 }
@@ -46,7 +46,7 @@ namespace CRUDA_LIB
                     {
                         LoginId = loginId,
                     }
-                })).Tables[0].Rows[0]["PublicKey"].ToString() ?? "";
+                })).Tables[0].Rows[0]["PublicKey"].ToString() ?? string.Empty;
         }
     }
 }
