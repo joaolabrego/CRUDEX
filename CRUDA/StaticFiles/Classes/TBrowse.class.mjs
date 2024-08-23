@@ -38,7 +38,7 @@ export default class TBrowse {
         if (table.ClassName !== "TTable")
             throw new Error("Argumento table não é do tipo TTable.")
         this.#HTML.Container = document.createElement("table")
-        this.#HTML.Container.className = "grid box"
+        this.#HTML.Container.className = "browse box"
 
         let style = document.createElement("style")
         style.innerText = TBrowse.#Style
@@ -61,7 +61,7 @@ export default class TBrowse {
             throw new Error("Argumento styles não é do tipo Styles.")
         if (images.ClassName !== "Images")
             throw new Error("Argumento images não é do tipo Images.")
-        this.#Style = styles.Grid
+        this.#Style = styles.Browse
         this.#Images.Delete = images.Delete
         this.#Images.Query = images.Query
         this.#Images.Edit = images.Edit

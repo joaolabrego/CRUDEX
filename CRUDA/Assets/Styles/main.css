@@ -8,7 +8,8 @@
     --main-height: 85vmin;
     --control-height: 5vmin;
     --control-border-radius: 2vmin;
-    --opacity-screen: 0.5
+    --opacity-screen: 0.5;
+    --font-size-browse: 1.5vmin;
 }
 
 * {

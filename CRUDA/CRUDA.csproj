@@ -15,7 +15,7 @@
     <UserSecretsId>6d2b2f40-ad3b-41f8-b3ec-38b8a1ccc336</UserSecretsId>
     <Platforms>AnyCPU</Platforms>
     <StartupObject>CRUDA_LIB.Program</StartupObject>
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget>x64</PlatformTarget>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
@@ -24,14 +24,6 @@
     <Content Remove="StaticFiles\TypeScripts\**" />
     <EmbeddedResource Remove="StaticFiles\TypeScripts\**" />
     <None Remove="StaticFiles\TypeScripts\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="Classes\ConfigSQL.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Remove="db\Scripts\config.json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -55,7 +47,6 @@
     <Content Include="Assets\Styles\3th\normalize.css" />
     <Content Include="Assets\Styles\dialog.css" />
     <Content Include="Assets\Styles\form.css" />
-    <Content Include="Assets\Styles\grid.css" />
     <Content Include="Assets\Styles\login.css" />
     <Content Include="Assets\Styles\main.css" />
     <Content Include="Assets\Styles\menu.css" />
@@ -77,12 +68,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ExcelDataReader" Version="3.7.0" />
-    <PackageReference Include="ExcelDataReader.DataSet" Version="3.7.0" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Collections" Version="4.3.0" />
-    <PackageReference Include="System.Data.OleDb" Version="8.0.0" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+        <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
   </ItemGroup>
 
 </Project>

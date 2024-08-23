@@ -7,13 +7,18 @@
 .form fieldset {
     border: none;
     color: black;
-    font-size: 2vmin;
+    font-size: 1.5vmin;
     margin: 2vmin;
     text-align: center;
 }
 
 .form input {
-    height: 2.5vmin;
+    height: calc(var(--background-color-control) + 0.5vmin);
+    font-size: inherit;
+}
+
+.form textarea {
+    font-size: var(--background-color-control);
 }
 
 .buttonsBar {
@@ -26,7 +31,7 @@
     margin-right: 5vmin;
     width: 20vmin;
     height: 3.5vmin;
-    font-size: 2vmin;
+    font-size: 1.5vmin;
     background: var(--background-color-control);
     background-position: left;
     background-repeat: no-repeat;

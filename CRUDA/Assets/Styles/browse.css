@@ -3,7 +3,7 @@
     height: 100%;
     border-collapse: collapse;
     text-align: center;
-    font-size: 2vmin;
+    font-size: var(--font-size-browse);
     color: black;
     border: solid 0.1vmin black;
     font-weight: normal;
