@@ -7,7 +7,7 @@ namespace CRUDA.Classes
     {
         public static void Read(string? connectionString, string action, TDictionary? parameters = null)
         {
-            
+
         }
     }
 }

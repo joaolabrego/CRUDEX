@@ -4,6 +4,7 @@ using CRUDA_LIB;
 using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
+using System.Data.OleDb;
 
 namespace CRUDA.Classes
 {
@@ -117,8 +118,10 @@ namespace CRUDA.Classes
         private static string GetCreateDatabase(DataRow database)
         {
             var result = new StringBuilder();
-            var name = database["Name"];
+            var folder = database["Folder"].ToString() ?? string.Empty;
+            var name = database["Name"].ToString() ?? string.Empty;
             var alias = database["Alias"];
+            var filename = Path.Combine(folder, name);
 
             result.AppendLine($"/**********************************************************************************");
             result.AppendLine($"Criar banco-de-dados {name}");
@@ -131,9 +134,9 @@ namespace CRUDA.Classes
             result.AppendLine($"CREATE DATABASE [{alias}]");
             result.AppendLine($"CONTAINMENT = NONE");
             result.AppendLine($"ON PRIMARY");
-            result.AppendLine($"(NAME = N'cruda', FILENAME = N'{database["Folder"]}{name}.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)");
+            result.AppendLine($"(NAME = N'cruda', FILENAME = N'{filename}.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)");
             result.AppendLine($"LOG ON");
-            result.AppendLine($"(NAME = N'cruda_log', FILENAME = N'{database["Folder"]}{name}_log.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)");
+            result.AppendLine($"(NAME = N'cruda_log', FILENAME = N'{filename}.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)");
             result.AppendLine($"WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF");
             result.AppendLine($"GO");
             result.AppendLine($"ALTER DATABASE[{alias}] SET COMPATIBILITY_LEVEL = 160");
@@ -250,10 +253,9 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
+
         public static DataSet ExcelToDataSet()
         {
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
             using var stream = File.Open(Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL")), FileMode.Open, FileAccess.Read);
             using var reader = ExcelReaderFactory.CreateReader(stream);
 

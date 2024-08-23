@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.FileProviders;
 using System.Globalization;
+using System.Text;
 
 namespace CRUDA_LIB
 {
@@ -10,6 +11,7 @@ namespace CRUDA_LIB
         private static readonly WebApplication app = builder.Build();
         public static WebApplication Initialize()
         {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             CultureInfo.DefaultThreadCurrentCulture = 
                 CultureInfo.DefaultThreadCurrentUICulture = 
                 new CultureInfo("pt-BR");
