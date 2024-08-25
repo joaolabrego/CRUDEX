@@ -32,7 +32,6 @@ body {
     border: 0.2vmin solid black;
     background-color: var(--background-color);
     border-radius: 2vmin;
-    margin-top: 0.5vmin;
-    box-shadow: 0 0 1vmin 0 rgba(0, 0, 0, 0.2),
-        0 1vmin 1vmin 0 rgba(0, 0, 0, 0.24);
+    margin-top: 0;
+    box-shadow: 0 0 1vmin 0 rgba(0, 0, 0, 0.2), 0 1vmin 1vmin 0 rgba(0, 0, 0, 0.24);
 }

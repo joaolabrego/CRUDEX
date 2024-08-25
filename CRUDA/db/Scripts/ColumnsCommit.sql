@@ -4,27 +4,47 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[ColumnsCommit]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [dbo].[ColumnsCommit] AS PRINT 1')
+IF(SELECT object_id('[cruda].[ColumnsCommit]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [cruda].[ColumnsCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[ColumnsCommit](@Action VARCHAR(15),
-									 @LastRecord VARCHAR(MAX),
-									 @ActualRecord VARCHAR(MAX),
-									 @UserName VARCHAR(25)) AS BEGIN
+ALTER PROCEDURE[cruda.[ColumnsCommit](@OperationId BIGINT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure ColumnsCommit: '
+		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsCommit]: '
+				,@TransactionId	BIGINT
+				,@TableId BIGINT
+				,@Action VARCHAR(15)
+				,@LastRecord VARCHAR(MAX)
+				,@ActualRecord VARCHAR(MAX)
+				,@IsConfirmed BIT
 
 		IF @@TRANCOUNT = 0
 			BEGIN TRANSACTION ColumnsCommit
 		ELSE
 			SAVE TRANSACTION ColumnsCommit
+		IF @OperationId IS NULL BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId é requerido';
+			THROW 51000, @ErrorMessage, 1
+		END
+		SELECT @TransactionId = [TransactionId]
+				,@TableId = [TableId]
+				,@Action = [Action]
+				,@LastRecord = [LastRecord]
+				,@ActualRecord = [ActualRecord]
+				,@IsConfirmed = [IsConfirmed]
+			FROM [cruda].[Operations]
+			WHERE [Id] = @OperationId
+		IF @TransactionId IS NULL BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+			THROW 51000, @ErrorMessage, 1
+		END
 		EXEC [dbo].[ColumnsValid] @Action, @LastRecord, @ActualRecord
 		IF @Action = 'delete' BEGIN
 			DELETE FROM [dbo].[Columns] WHERE [Id] = @W_Id
 		END ELSE BEGIN
+
 			DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
 					,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
 					,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
@@ -46,6 +66,7 @@ ALTER PROCEDURE[dbo].[ColumnsCommit](@Action VARCHAR(15),
 					,@W_IsBrowseable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBrowseable') AS bit)
 					,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
 					,@W_IsCalculated bit = CAST(JSON_VALUE(@ActualRecord, '$.IsCalculated') AS bit)
+
 			IF @Action = 'create'
 				INSERT INTO [dbo].[Columns] ([Id]
 											,[TableId]

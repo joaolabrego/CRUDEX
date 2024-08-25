@@ -94,6 +94,8 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+CREATE SCHEMA cruda AUTHORIZATION [dbo]
+GO
 /**********************************************************************************
 Criar function F_IsEquals
 **********************************************************************************/
@@ -1437,8 +1439,8 @@ ALTER PROCEDURE[dbo].[CategoriesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -1697,7 +1699,7 @@ ALTER PROCEDURE[dbo].[CategoriesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -2287,8 +2289,8 @@ ALTER PROCEDURE[dbo].[TypesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -2547,7 +2549,7 @@ ALTER PROCEDURE[dbo].[TypesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -3089,8 +3091,8 @@ ALTER PROCEDURE[dbo].[MasksCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -3349,7 +3351,7 @@ ALTER PROCEDURE[dbo].[MasksCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -3923,8 +3925,8 @@ ALTER PROCEDURE[dbo].[DomainsCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -4183,7 +4185,7 @@ ALTER PROCEDURE[dbo].[DomainsCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -4741,8 +4743,8 @@ ALTER PROCEDURE[dbo].[SystemsCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -5001,7 +5003,7 @@ ALTER PROCEDURE[dbo].[SystemsCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -5575,8 +5577,8 @@ ALTER PROCEDURE[dbo].[MenusCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -5835,7 +5837,7 @@ ALTER PROCEDURE[dbo].[MenusCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -6397,8 +6399,8 @@ ALTER PROCEDURE[dbo].[UsersCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -6657,7 +6659,7 @@ ALTER PROCEDURE[dbo].[UsersCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -7219,8 +7221,8 @@ ALTER PROCEDURE[dbo].[SystemsUsersCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -7479,7 +7481,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -7630,8 +7632,8 @@ ALTER PROCEDURE[dbo].[DatabasesCommit](@OperationId BIGINT) AS BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Port > CAST('2147483647' AS int) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+        IF @W_Port > CAST('65535' AS int) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Name] = @W_Name AND [Description] = @W_Description AND [Alias] = @W_Alias AND [ServerName] = @W_ServerName AND [HostName] = @W_HostName AND [Port] = @W_Port AND [Logon] = @W_Logon AND [Password] = @W_Password AND [Folder] = @W_Folder) BEGIN
@@ -8033,8 +8035,8 @@ ALTER PROCEDURE[dbo].[DatabasesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -8293,7 +8295,7 @@ ALTER PROCEDURE[dbo].[DatabasesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -8855,8 +8857,8 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -9115,7 +9117,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -9685,8 +9687,8 @@ ALTER PROCEDURE[dbo].[TablesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -9945,7 +9947,7 @@ ALTER PROCEDURE[dbo].[TablesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -10507,8 +10509,8 @@ ALTER PROCEDURE[dbo].[DatabasesTablesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -10767,7 +10769,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -11365,8 +11367,8 @@ ALTER PROCEDURE[dbo].[ColumnsCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -11625,7 +11627,7 @@ ALTER PROCEDURE[dbo].[ColumnsCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -12191,8 +12193,8 @@ ALTER PROCEDURE[dbo].[IndexesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -12451,7 +12453,7 @@ ALTER PROCEDURE[dbo].[IndexesCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -13025,8 +13027,8 @@ ALTER PROCEDURE[dbo].[IndexkeysCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -13285,7 +13287,7 @@ ALTER PROCEDURE[dbo].[IndexkeysCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -13448,7 +13450,7 @@ ALTER PROCEDURE[dbo].[LoginsCommit](@OperationId BIGINT) AS BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+        IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
@@ -13855,8 +13857,8 @@ ALTER PROCEDURE[dbo].[LoginsCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -14115,7 +14117,7 @@ ALTER PROCEDURE[dbo].[LoginsCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -14685,8 +14687,8 @@ ALTER PROCEDURE[dbo].[TransactionsCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -14945,7 +14947,7 @@ ALTER PROCEDURE[dbo].[TransactionsCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -15511,8 +15513,8 @@ ALTER PROCEDURE[dbo].[OperationsCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_Port > CAST('2147483647' AS int) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''2147483647''.';
+            IF @W_Port > CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de [Port] deve ser menor que ou igual à ''65535''.';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_SystemId IS NULL BEGIN
@@ -15771,7 +15773,7 @@ ALTER PROCEDURE[dbo].[OperationsCommit](@OperationId BIGINT) AS BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] é requerido.';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_PublicKey < CAST('1' AS varchar(MAX)) BEGIN
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de [PublicKey] deve ser maior que ou igual à ''1''.';
                 THROW 51000, @ErrorMessage, 1
             END

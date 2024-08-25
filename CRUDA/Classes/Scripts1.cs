@@ -1,10 +1,9 @@
 ﻿using CRUDA.Classes.Models;
 using CRUDA_LIB;
+using ExcelDataReader;
 using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace CRUDA.Classes
 {
@@ -72,12 +71,7 @@ namespace CRUDA.Classes
             if (value == DBNull.Value || value == null)
                 return false;
 
-            var strValue = value.ToString();
-
-            if (string.IsNullOrEmpty(strValue) || string.IsNullOrWhiteSpace(strValue))
-                return false;
-
-            return Convert.ToBoolean(Convert.ToUInt16(strValue));
+            return Convert.ToBoolean(Convert.ToUInt16(value));
         }
         private static double ToDouble(object? value)
         {
@@ -223,6 +217,8 @@ namespace CRUDA.Classes
             result.AppendLine($"SET ANSI_NULLS ON");
             result.AppendLine($"GO");
             result.AppendLine($"SET QUOTED_IDENTIFIER ON");
+            result.AppendLine($"GO");
+            result.AppendLine($"CREATE SCHEMA cruda AUTHORIZATION [dbo]");
             result.AppendLine($"GO");
 
             return result.ToString();
@@ -622,64 +618,21 @@ namespace CRUDA.Classes
 
             return result.ToString();
         }
-        private static DataSet ExcelToDataSet()
+        public static DataSet ExcelToDataSet()
         {
-            var dataSet = new DataSet();
-
-            using (var spreadSheetDocument = SpreadsheetDocument.Open(Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL")), false))
+            using var stream = File.Open(Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL")), FileMode.Open, FileAccess.Read);
+            // Criar um reader para o arquivo Excel
+            using var reader = ExcelReaderFactory.CreateReader(stream);
+            // Converter para DataSet
+            var result = reader.AsDataSet(new ExcelDataSetConfiguration()
             {
-                WorkbookPart workbookPart = spreadSheetDocument.WorkbookPart ?? throw new Exception();
-
-                foreach (var sheet in workbookPart.Workbook.Descendants<Sheet>() ?? throw new Exception())
+                ConfigureDataTable = _ => new ExcelDataTableConfiguration()
                 {
-                    var dataTable = new DataTable(sheet.Name);
-                    var worksheetPart = (WorksheetPart)workbookPart.GetPartById(Convert.ToString(sheet.Id ?? throw new Exception()));
-                    var worksheet = worksheetPart.Worksheet;
-                    var sheetData = worksheet.GetFirstChild<SheetData>() ?? throw new Exception();
-                    var rows = sheetData.Descendants<Row>() ?? throw new Exception();
-                    var firstRow = true;
-
-                    foreach (Row row in rows)
-                    {
-                        var dataRow = dataTable.NewRow();
-                        int cellIndex = 0;
-                        foreach (Cell cell in row)
-                        {
-                            string cellValue = GetCellValue(workbookPart, cell);
-
-                            if (firstRow)
-                                dataTable.Columns.Add(cellValue);
-                            else
-                            {
-                                if (cellIndex >= dataTable.Columns.Count)
-                                    dataTable.Columns.Add($"Column{cellIndex + 1}");
-                                dataRow[cellIndex] = cellValue;
-                            }
-                            cellIndex++;
-                        }
-
-                        if (!firstRow)
-                        {
-                            dataTable.Rows.Add(dataRow);
-                        }
-                        firstRow = false;
-                    }
-
-                    dataSet.Tables.Add(dataTable);
+                    UseHeaderRow = true // Usar a primeira linha como cabeçalho
                 }
-            }
+            });
 
-            return dataSet;
-        }
-        private static string GetCellValue(WorkbookPart workbookPart, Cell cell)
-        {
-
-            if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString)
-                return (workbookPart.SharedStringTablePart ?? throw new Exception()).SharedStringTable.ElementAt(int.Parse(cell.InnerText)).InnerText;
-            else if (cell.CellValue != null)
-                return cell.CellValue.Text;
-
-            return string.Empty;
+            return result;
         }
     }
 }

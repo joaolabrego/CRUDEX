@@ -12,6 +12,11 @@
     text-align: center;
 }
 
+.form input[type="checkbox"] {
+    width: var(--font-size-browse);
+    height: var(--font-size-browse);
+}
+
 .form input {
     height: calc(var(--background-color-control) + 0.5vmin);
     font-size: inherit;

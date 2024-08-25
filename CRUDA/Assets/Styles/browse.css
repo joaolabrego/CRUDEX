@@ -11,6 +11,11 @@
     max-width: 100%;
 }
 
+.browse input[type="checkbox"] {
+    width: var(--font-size-browse);
+    height: var(--font-size-browse);
+}
+
 .browse tbody tr:nth-of-type(odd) {
     background-color: var(--background-color-active);
 }
@@ -75,7 +80,7 @@
     cursor: pointer;
     border-radius: 2.5vmin;
     background-size: 100% 100%;
-    margin: 0.5vmin 3vmin;
+    margin: 0.5vmin 2.5vmin;
 }
 
 .browse th button:hover {
