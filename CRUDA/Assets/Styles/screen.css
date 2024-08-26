@@ -14,6 +14,7 @@
 }
 
 .footer {
+    font-size: calc(var(--font-size-body) - 0.5vmin);
     height: var(--text-height);
     line-height: var(--text-height);
     text-align: center;

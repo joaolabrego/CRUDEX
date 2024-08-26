@@ -4,7 +4,7 @@ import TActions from "./TActions.class.mjs"
 import TScreen from "./TScreen.class.mjs"
 
 export default class TForm {
-    #Grid = null
+    #Browse = null
 
     #Action = ""
     #ReturnAction = ""
@@ -24,12 +24,12 @@ export default class TForm {
         CancelButton: null,
     }
 
-    constructor(grid, action) {
-        if (grid.ClassName !== "TBrowse")
-            throw new Error("Argumento grid não é do tipo TBrowse.")
-        this.#Grid = grid
+    constructor(browse, action) {
+        if (browse.ClassName !== "TBrowse")
+            throw new Error("Argumento browse não é do tipo TBrowse.")
+        this.#Browse = browse
         this.#Action = action
-        this.#ReturnAction = `grid/${this.#Grid.Table.Database.Name}/${this.#Grid.Table.Name}`
+        this.#ReturnAction = `browsebro/${this.#Browse.Table.Database.Name}/${this.#Browse.Table.Name}`
         this.#HTML.Container = document.createDocumentFragment()
         this.#BuildForm()
         this.#BuildButtonsBar()
@@ -46,10 +46,10 @@ export default class TForm {
     }
     async Configure() {
         if (this.#Action === TActions.CREATE)
-            this.#Grid.Table.ClearValues()
+            this.#Browse.Table.ClearValues()
         else if (this.#Action === TActions.FILTER)
-            this.#Grid.Table.MoveFilters()
-        this.#Grid.Table.Columns.forEach(column => {
+            this.#Browse.Table.MoveFilters()
+        this.#Browse.Table.Columns.forEach(column => {
             this.#HTML.Form.appendChild(column.GetFormControl(this.#Action))
             if (!(this.#HTML.FirstInput || column.InputControl.readOnly)) {
                 this.#HTML.FirstInput = column.InputControl
@@ -85,7 +85,7 @@ export default class TForm {
                 message = "Visualize as informações e clique sair para retornar..."
                 break
         }
-        TScreen.Title = `${title} de ${this.#Grid.Table.Description}`
+        TScreen.Title = `${title} de ${this.#Browse.Table.Description}`
         TScreen.LastMessage = TScreen.Message = message
         TScreen.WithBackgroundImage = false
         TScreen.Main = this.#HTML.Container
@@ -122,8 +122,8 @@ export default class TForm {
         this.#HTML.ConfirmButton.type = "button"
         this.#HTML.ConfirmButton.onclick = () => {
             if (this.#Action === TActions.FILTER)
-                this.#Grid.Table.SaveFilters()
-            this.#Grid.Renderize()
+                this.#Browse.Table.SaveFilters()
+            this.#Browse.Renderize()
                 .catch(error => TScreen.ShowError(error.Message, error.Action || this.#ReturnAction))
         }
 
@@ -137,9 +137,9 @@ export default class TForm {
             this.#HTML.CancelButton.style.backgroundImage = TForm.#Images.Cancel
             this.#HTML.CancelButton.onclick = () => {
                 if (this.#Action === TActions.FILTER)
-                    this.#Grid.Table.Columns.forEach(column =>
+                    this.#Browse.Table.Columns.forEach(column =>
                         column.FilterValue = column.LastValue)
-                this.#Grid.Renderize()
+                this.#Browse.Renderize()
                     .catch(error => TScreen.ShowError(error.Message, error.Action || this.#ReturnAction))
             }
             this.#HTML.ButtonsBar.appendChild(this.#HTML.CancelButton)

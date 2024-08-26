@@ -52,22 +52,22 @@ BEGIN
 				SET [RetryLogins] = [RetryLogins] + 1
 				WHERE [Id] = @UserId 
 						AND @RetryLogins < @MaxRetryLogins
-			SET @ErrorMessage = 'Senha inválida.';
+			SET @ErrorMessage = 'Senha inválida';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @IsActive = 0 BEGIN
-			SET @ErrorMessage = 'Usuário inativo.';
+			SET @ErrorMessage = 'Usuário inativo';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @RetryLogins >= @MaxRetryLogins BEGIN
-			SET @ErrorMessage = 'Usuário bloqueado.';
+			SET @ErrorMessage = 'Usuário bloqueado';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF NOT EXISTS(SELECT TOP 1 1
 						FROM [dbo].[SystemsUsers] [SU]
 						WHERE	[UserId] =  @UserId
 								AND [SystemId] = @SystemId) BEGIN
-			SET @ErrorMessage = 'Usuário não autorizado.';
+			SET @ErrorMessage = 'Usuário não autorizado';
 			THROW 51000, @ErrorMessage, 1
 		END
 		

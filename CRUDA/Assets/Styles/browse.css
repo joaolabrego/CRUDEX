@@ -78,7 +78,7 @@
     color: inherit;
     font-weight: inherit;
     cursor: pointer;
-    border-radius: 2.5vmin;
+    border-radius: var(--border-radius);
     background-size: 100% 100%;
     margin: 0.5vmin 2.5vmin;
 }

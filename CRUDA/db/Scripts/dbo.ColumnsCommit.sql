@@ -4,40 +4,82 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[cruda].[ColumnsCommit]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [cruda].[ColumnsCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ColumnsCommit]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[ColumnsCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda.[ColumnsCommit](@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[ColumnsCommit](@LoginId BIGINT,
+									 @OperationId BIGINT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsCommit]: '
 				,@TransactionId	BIGINT
-				,@TableId BIGINT
+				,@TransactionIdAux	BIGINT
+				,@SystemName VARCHAR(25)
+				,@DatabaseName VARCHAR(25)
+				,@TableName VARCHAR(25)
 				,@Action VARCHAR(15)
 				,@LastRecord VARCHAR(MAX)
 				,@ActualRecord VARCHAR(MAX)
 				,@IsConfirmed BIT
 
 		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION ColumnsCommit
+			BEGIN TRANSACTION [ColumnsCommit]
 		ELSE
-			SAVE TRANSACTION ColumnsCommit
+			SAVE TRANSACTION [ColumnsCommit]
+		IF @LoginId IS NULL BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @LoginId é requerido';
+			THROW 51000, @ErrorMessage, 1
+		END
 		IF @OperationId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId é requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
 		SELECT @TransactionId = [TransactionId]
-				,@TableId = [TableId]
+				,@SystemName = [SystemName]
+				,@DatabaseName = [DatabaseName]
+				,@IsConfirmed = [IsConfirmed]
+			FROM [cruda].[Transactions]
+			WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+		IF @TransactionId IS NULL BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Transação inexistente para login fornecido';
+			THROW 51000, @ErrorMessage, 1
+		END
+		IF @SystemName <> 'cruda' BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Sistema da transação é inválido';
+			THROW 51000, @ErrorMessage, 1
+		END
+		IF @DatabaseName <> 'cruda' BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Banco-de-dados da transação é inválido';
+			THROW 51000, @ErrorMessage, 1
+		END
+		IF @IsConfirmed IS NOT NULL BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+			THROW 51000, @ErrorMessage, 1
+		END
+		SELECT @TransactionIdAux = [TransactionId]
+				,@TableName = [TableName]
 				,@Action = [Action]
 				,@LastRecord = [LastRecord]
 				,@ActualRecord = [ActualRecord]
 				,@IsConfirmed = [IsConfirmed]
 			FROM [cruda].[Operations]
 			WHERE [Id] = @OperationId
-		IF @TransactionId IS NULL BEGIN
+		IF @TransactionIdAux IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+			THROW 51000, @ErrorMessage, 1
+		END
+		IF @TransactionIdAux <> @TransactionId BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
+			THROW 51000, @ErrorMessage, 1
+		END
+		IF @TableName <> 'Columns' BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Tabela da operação é inválida';
+			THROW 51000, @ErrorMessage, 1
+		END
+		IF @IsConfirmed IS NOT NULL BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
 		EXEC [dbo].[ColumnsValid] @Action, @LastRecord, @ActualRecord
@@ -144,12 +186,12 @@ ALTER PROCEDURE[cruda.[ColumnsCommit](@OperationId BIGINT) AS BEGIN
 						,[UpdatedAt] = GETDATE()
 					WHERE [Id] = @W_Id
 		END
-		COMMIT TRANSACTION ColumnsCommit
+		COMMIT TRANSACTION [ColumnsCommit]
 
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION ColumnsCommit;
+		ROLLBACK TRANSACTION [ColumnsCommit];
 		THROW
 	END CATCH
 END

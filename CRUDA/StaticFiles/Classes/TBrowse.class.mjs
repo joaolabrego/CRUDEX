@@ -97,7 +97,7 @@ export default class TBrowse {
                 TScreen.Main = this.#HTML.Container
             })
             .catch(error => {
-                TScreen.ShowError(error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
+                TScreen.ShowError(error.Message, error.Action || `browse/${this.#Table.Database.Name}/${this.#Table.Name}`)
             })
         globalThis.$ = new Proxy(this.#Table, {
             get: (target, key) => {

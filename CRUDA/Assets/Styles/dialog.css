@@ -26,7 +26,7 @@
     background-color: var(--background-color);
     font-weight: inherit;
     cursor: pointer;
-    border-radius: 2vmin;
+    border-radius: var(--border-radius);
     margin-top: 3vmin;
     margin-right: 2vmin;
 }
