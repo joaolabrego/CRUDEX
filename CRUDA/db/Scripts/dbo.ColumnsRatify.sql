@@ -4,16 +4,17 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[ColumnsCommit]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [dbo].[ColumnsCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ColumnsRatify]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[ColumnsRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[ColumnsCommit](@LoginId BIGINT,
-									 @OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
+									 ,@UserName VARCHAR(25)
+									 ,@OperationId BIGINT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsCommit]: '
+		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
 				,@TransactionId	BIGINT
 				,@TransactionIdAux	BIGINT
 				,@SystemName VARCHAR(25)
@@ -25,9 +26,9 @@ ALTER PROCEDURE[dbo].[ColumnsCommit](@LoginId BIGINT,
 				,@IsConfirmed BIT
 
 		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION [ColumnsCommit]
+			BEGIN TRANSACTION [ColumnsRatify]
 		ELSE
-			SAVE TRANSACTION [ColumnsCommit]
+			SAVE TRANSACTION [ColumnsRatify]
 		IF @LoginId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @LoginId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -186,12 +187,17 @@ ALTER PROCEDURE[dbo].[ColumnsCommit](@LoginId BIGINT,
 						,[UpdatedAt] = GETDATE()
 					WHERE [Id] = @W_Id
 		END
-		COMMIT TRANSACTION [ColumnsCommit]
+		UPDATE [cruda].[Operations] 
+			SET [IsConfirmed] = 1
+				,[UpdatedBy] = @UserName
+				,[UpdatedAt] = GETDATE()
+			WHERE [Id] = @OperationId
+		COMMIT TRANSACTION [ColumnsRatify]
 
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION [ColumnsCommit];
+		ROLLBACK TRANSACTION [ColumnsRatify];
 		THROW
 	END CATCH
 END

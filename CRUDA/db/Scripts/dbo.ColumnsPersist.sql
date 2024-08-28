@@ -20,7 +20,7 @@ ALTER PROCEDURE[cruda].[ColumnsPersist](@LoginId BIGINT
 
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsPersist]: '
 				,@TransactionId	BIGINT
-				,@TransactionIdAux	BIGINT
+				,@TransactionIdAux BIGINT
 				,@OperationId BIGINT
 				,@Action VARCHAR(15)
 				,@ActionAux VARCHAR(15)
@@ -91,28 +91,9 @@ ALTER PROCEDURE[cruda].[ColumnsPersist](@LoginId BIGINT
 												,NULL
 												,GETDATE()
 												,@UserName)
-		END ELSE IF @ActionAux = 'delete' BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Registro já persistido na tabela Columns como exclusão';
+		END ELSE BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Registro pendente de efetivação';
 			THROW 51000, @ErrorMessage, 1
-		END ELSE IF @Action = 'update' BEGIN
-			UPDATE [cruda].[Operations]
-				SET [LastRecord] = @LastRecord
-					,[ActualRecord] = @ActualRecord
-					,[UpdatedAt] = GETDATE()
-					,[UpdatedBy] = @UserName
-				WHERE [Id] = @OperationId
-		END ELSE BEGIN -- IF @Action = 'delete'
-			IF @ActionAux = 'update' BEGIN
-				UPDATE [cruda].[Operations]
-					SET [Action] = @Action
-						,[LastRecord] = @LastRecord
-						,[ActualRecord] = @ActualRecord
-						,[UpdatedAt] = GETDATE()
-						,[UpdatedBy] = @UserName
-					WHERE [Id] = @OperationId
-			END ELSE BEGIN
-				DELETE FROM [cruda].[Operations] WHERE [Id] = @OperationId
-			END
 		END
 		COMMIT TRANSACTION [ColumnsPersist]
 
