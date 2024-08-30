@@ -13,7 +13,7 @@ BEGIN
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure ColumnsRead: ',
-				@ROWCOUNT BIGINT,
+				@RowCount BIGINT,
 				@LogId BIGINT,
 				@TableId BIGINT,
 				@offset INT,
@@ -133,10 +133,10 @@ BEGIN
 		AND (@W_IsEncrypted IS NULL OR [tab].[IsEncrypted] = @W_IsEncrypted)
 		AND [tab].[IsCalculated] = ISNULL(@W_IsCalculated, [tab].[IsCalculated])
 		ORDER BY [tab].[Id]
-		SET @ROWCOUNT = @@ROWCOUNT
+		SET @RowCount = @@ROWCOUNT
 		DELETE [tab] FROM [dbo].[#tab] [tab] WHERE EXISTS(SELECT 1 FROM [dbo].[#tmp] [tmp] WHERE [tmp].[_] = 'delete' 
 		AND [tmp].[Id] = [tab].[Id])
-		SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
+		SET @RowCount = @RowCount - @@ROWCOUNT
 		INSERT [dbo].[#tab] SELECT 
 		[Id]
 		,[TableId]
@@ -161,7 +161,7 @@ BEGIN
 		,[IsCalculated]
 		FROM [dbo].[#tmp]
 		WHERE [_] = 'create'
-		SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
+		SET @RowCount = @RowCount + @@ROWCOUNT
 		UPDATE [tab] SET
 		[tab].[Id] = [tmp].[Id]
 		,[tab].[TableId] = [tmp].[TableId]
@@ -187,20 +187,20 @@ BEGIN
 		FROM [dbo].[#tab] [tab], [dbo].[#tmp] [tmp]
 		WHERE [tmp].[_] = 'update' 
 		AND [tmp].[Id] = [tab].[Id]
-		IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+		IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
 		SET @offset = 0
-		SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
+		SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
 		SET @PageNumber = 1
 		SET @MaxPage = 1
 		END ELSE BEGIN
-		SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
+		SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
 		IF ABS(@PageNumber) > @MaxPage
 		SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
 		IF @PageNumber < 0
 		SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
 		SET @offset = (@PageNumber - 1) * @LimitRows
-		IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
-		SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT -@LimitRows ELSE 0 END
+		IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+		SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
 		END
 		SELECT 'RecordColumn' AS [ClassName],
 		[tab].[Id]
@@ -228,7 +228,7 @@ BEGIN
 		ORDER BY [tab].[Id]
 		OFFSET @offset ROWS
 		FETCH NEXT @LimitRows ROWS ONLY
-		RETURN @ROWCOUNT
+		RETURN @RowCount
 	END TRY
 	BEGIN CATCH
 	THROW

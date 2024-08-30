@@ -621,18 +621,14 @@ namespace CRUDA.Classes
         public static DataSet ExcelToDataSet()
         {
             using var stream = File.Open(Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL")), FileMode.Open, FileAccess.Read);
-            // Criar um reader para o arquivo Excel
             using var reader = ExcelReaderFactory.CreateReader(stream);
-            // Converter para DataSet
-            var result = reader.AsDataSet(new ExcelDataSetConfiguration()
+            return reader.AsDataSet(new ExcelDataSetConfiguration()
             {
                 ConfigureDataTable = _ => new ExcelDataTableConfiguration()
                 {
                     UseHeaderRow = true // Usar a primeira linha como cabeçalho
                 }
             });
-
-            return result;
         }
     }
 }

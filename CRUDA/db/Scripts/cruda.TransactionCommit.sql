@@ -17,6 +17,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 				,@LoginId BIGINT
 				,@OperationId BIGINT
 				,@TableName VARCHAR(25)
+				,@sql VARCHAR(MAX)
 
 		IF @@TRANCOUNT = 0
 			BEGIN TRANSACTION [TransactionsCommit]
@@ -41,10 +42,8 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 						AND [IsConfirmed] IS NULL
 			IF @OperationId IS NULL
 				BREAK
-			
-			DECLARE @sql VARCHAR(MAX) = '[dbo].[' + @TableName + 'Ratify] @LoginId = ' + CAST(@LoginId AS VARCHAR) + ', @UserName = ''' + @UserName + ''', @OperationId = ' + CAST(@OperationId AS VARCHAR)
-			
-			EXEC(@sql)
+			SET @sql = '[dbo].[' + @TableName + 'Ratify] @LoginId = ' + CAST(@LoginId AS VARCHAR) + ', @UserName = ''' + @UserName + ''', @OperationId = ' + CAST(@OperationId AS VARCHAR)
+			EXEC @sql
 		END
 		UPDATE [cruda].[Transactions]
 			SET [IsConfirmed] = 1

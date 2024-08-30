@@ -13,7 +13,7 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionCommit]: '
+		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionRollback]: '
 				,@LoginId BIGINT
 				,@OperationId BIGINT
 
@@ -25,7 +25,7 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
 			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
-		IF NOT EXISTS(SELECT @LoginId = [LoginId]
+		IF NOT EXISTS(SELECT 1
 						FROM [cruda].[Transactions]
 						WHERE [TransactionId] = @TransactionId) BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @TransactionId é inválido';

@@ -17,13 +17,12 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
 				,@TransactionId	BIGINT
 				,@TransactionIdAux	BIGINT
-				,@SystemName VARCHAR(25)
-				,@DatabaseName VARCHAR(25)
 				,@TableName VARCHAR(25)
 				,@Action VARCHAR(15)
 				,@LastRecord VARCHAR(MAX)
 				,@ActualRecord VARCHAR(MAX)
 				,@IsConfirmed BIT
+				,@ValidOk BIT
 
 		IF @@TRANCOUNT = 0
 			BEGIN TRANSACTION [ColumnsRatify]
@@ -38,21 +37,11 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 			THROW 51000, @ErrorMessage, 1
 		END
 		SELECT @TransactionId = [TransactionId]
-				,@SystemName = [SystemName]
-				,@DatabaseName = [DatabaseName]
 				,@IsConfirmed = [IsConfirmed]
 			FROM [cruda].[Transactions]
 			WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
 		IF @TransactionId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Transação inexistente para login fornecido';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @SystemName <> 'cruda' BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Sistema da transação é inválido';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @DatabaseName <> 'cruda' BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Banco-de-dados da transação é inválido';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @IsConfirmed IS NOT NULL BEGIN
@@ -83,10 +72,12 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 			SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
-		EXEC [dbo].[ColumnsValid] @Action, @LastRecord, @ActualRecord
-		IF @Action = 'delete' BEGIN
+		EXEC @ValidOk = [dbo].[ColumnsValid] @Action, @LastRecord, @ActualRecord
+		IF @ValidOk = 0
+			RETURN 0
+		ELSE IF @Action = 'delete'
 			DELETE FROM [dbo].[Columns] WHERE [Id] = @W_Id
-		END ELSE BEGIN
+		ELSE BEGIN
 
 			DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
 					,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
