@@ -166,9 +166,9 @@
 //            var result = new StringBuilder();
 
 //            result.AppendLine($"/**********************************************************************************");
-//            result.AppendLine($"Criar function F_IsEquals");
+//            result.AppendLine($"Criar function IsEquals");
 //            result.AppendLine($"**********************************************************************************/");
-//            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "F_IsEquals.sql")));
+//            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "IsEquals.sql")));
 //            result.AppendLine($"/**********************************************************************************");
 //            result.AppendLine($"Criar function F_NumberInWordsOfHundreds");
 //            result.AppendLine($"**********************************************************************************/");

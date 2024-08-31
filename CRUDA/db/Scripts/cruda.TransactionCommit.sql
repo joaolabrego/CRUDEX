@@ -8,7 +8,7 @@ IF(SELECT object_id('[cruda].[TransactionCommit]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
-										   ,@UserName VARCHAR(25)) AS BEGIN
+										  ,@UserName VARCHAR(25)) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -17,6 +17,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 				,@LoginId BIGINT
 				,@OperationId BIGINT
 				,@TableName VARCHAR(25)
+				,@IsConfirmed BIT
 				,@sql VARCHAR(MAX)
 
 		IF @@TRANCOUNT = 0
@@ -28,10 +29,15 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 			THROW 51000, @ErrorMessage, 1
 		END
 		SELECT @LoginId = [LoginId]
+			  ,@IsConfirmed = [IsConfirmed]
 			FROM [cruda].[Transactions]
 			WHERE [TransactionId] = @TransactionId
 		IF @LoginId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @TransactionId é inválido';
+			SET @ErrorMessage = @ErrorMessage + 'Transação é inexistente';
+			THROW 51000, @ErrorMessage, 1
+		END
+		IF @IsConfirmed IS NOT NULL BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
 		WHILE 1 = 1 BEGIN

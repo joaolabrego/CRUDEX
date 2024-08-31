@@ -4,13 +4,12 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
--- [dbo].[Config] 'cruda','all',null
 IF(SELECT object_id('[dbo].[Config]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[Config] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25),
-							   @DatabaseName VARCHAR(25) = NULL,
-							   @TableName VARCHAR(25) = NULL) AS
+ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
+							  ,@DatabaseName VARCHAR(25) = NULL
+							  ,@TableName VARCHAR(25) = NULL) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(50)
 
@@ -74,6 +73,7 @@ BEGIN
 				,[T].[ProcedureUpdate]
 				,[T].[ProcedureDelete]
 				,[T].[ProcedureList]
+				,[T].[FunctionValid]
 				,[T].[IsPaged]
 			INTO [dbo].[#Tables]
 			FROM [dbo].[Tables] [T]

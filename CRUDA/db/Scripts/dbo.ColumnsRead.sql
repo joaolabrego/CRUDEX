@@ -2,11 +2,11 @@ IF(SELECT object_id('ColumnsRead', 'P')) IS NULL
 EXEC('CREATE PROCEDURE [dbo].[ColumnsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[ColumnsRead](@PageNumber INT OUT
-									,@LimitRows BIGINT OUT
-									,@MaxPage INT OUT
-									,@PaddingBrowseLastPage BIT OUT
-									,@UserName VARCHAR(25)
-									,@Record VARCHAR(MAX)) AS 
+								  ,@LimitRows BIGINT OUT
+								  ,@MaxPage INT OUT
+								  ,@PaddingBrowseLastPage BIT OUT
+								  ,@UserName VARCHAR(25)
+								  ,@Record VARCHAR(MAX)) AS 
 BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON

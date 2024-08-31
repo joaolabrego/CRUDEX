@@ -38,6 +38,7 @@ ALTER PROCEDURE [dbo].[P_Login](@Parameters VARCHAR(MAX)) AS BEGIN
 				,@RetryLogins TINYINT
 				,@IsLogged BIT
 				,@IsActive BIT
+				,@IsOffAir BIT
 	
 		IF @Action IS NULL BEGIN
 			SET @ErrorMessage = 'Ação de login é requerida';
@@ -53,10 +54,15 @@ ALTER PROCEDURE [dbo].[P_Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		END
 		SELECT @SystemId = [Id]
 			   ,@MaxRetryLogins = [MaxRetryLogins]
+			   ,@IsOffAir = [IsOffAir]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
 		IF @SystemId IS NULL BEGIN
 			SET @ErrorMessage = 'Sistema não cadastrado';
+			THROW 51000, @ErrorMessage, 1
+		END
+		IF @IsOffAir = 1 BEGIN
+			SET @ErrorMessage = 'Sistema fora do ar';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @UserName IS NULL BEGIN

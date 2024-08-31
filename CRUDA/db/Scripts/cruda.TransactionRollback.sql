@@ -16,6 +16,8 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionRollback]: '
 				,@LoginId BIGINT
 				,@OperationId BIGINT
+				,@TransactionIdAux BIGINT
+				,@IsConfirmed BIT
 
 		IF @@TRANCOUNT = 0
 			BEGIN TRANSACTION [TransactionRollback]
@@ -25,10 +27,16 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
 			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
-		IF NOT EXISTS(SELECT 1
-						FROM [cruda].[Transactions]
-						WHERE [TransactionId] = @TransactionId) BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @TransactionId é inválido';
+		SELECT @TransactionIdAux = [Id]
+			  ,@IsConfirmed = [IsConfirmed]
+			FROM [cruda].[Transactions]
+			WHERE [TransactionId] = @TransactionId
+		IF @TransactionIdAux IS NULL BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Transação é inexistente';
+			THROW 51000, @ErrorMessage, 1
+		END
+		IF @IsConfirmed IS NOT NULL BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
 		UPDATE [cruda].[Operations]

@@ -228,29 +228,35 @@ namespace CRUDA.Classes
             var result = new StringBuilder();
 
             result.AppendLine($"/**********************************************************************************");
-            result.AppendLine($"Criar function F_IsEquals");
+            result.AppendLine($"Criar function [cruda].[IsEquals]");
             result.AppendLine($"**********************************************************************************/");
-            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "F_IsEquals.sql")));
+            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.IsEquals.sql")));
             result.AppendLine($"/**********************************************************************************");
-            result.AppendLine($"Criar function F_NumberInWordsOfHundreds");
+            result.AppendLine($"Criar function [cruda].[NumberInWordsOfHundreds]");
             result.AppendLine($"**********************************************************************************/");
-            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "F_NumberInWordsOfHundreds.sql")));
+            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.NumberInWordsOfHundreds.sql")));
             result.AppendLine($"/**********************************************************************************");
-            result.AppendLine($"Criar function F_NumberInWords");
+            result.AppendLine($"Criar function [cruda].[NumberInWords]");
             result.AppendLine($"**********************************************************************************/");
-            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "F_NumberInWords.sql")));
+            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.NumberInWords.sql")));
             result.AppendLine($"/**********************************************************************************");
-            result.AppendLine($"Criar stored procedure P_Config");
+            result.AppendLine($"Criar stored procedure [cruda].[Config]");
             result.AppendLine($"**********************************************************************************/");
-            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "P_Config.sql")));
+            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.Config.sql")));
             result.AppendLine($"/**********************************************************************************");
-            result.AppendLine($"Criar stored procedure P_GenerateId");
+            result.AppendLine($"Criar stored procedure [cruda].[GenerateId]");
             result.AppendLine($"**********************************************************************************/");
-            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "P_GenerateId.sql")));
+            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.GenerateId.sql")));
             result.AppendLine($"/**********************************************************************************");
-            result.AppendLine($"Criar stored procedure P_Login");
+            result.AppendLine($"Criar stored procedure [cruda].[Login]");
             result.AppendLine($"**********************************************************************************/");
-            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "P_Login.sql")));
+            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.Login.sql")));
+            result.AppendLine($"/**********************************************************************************");
+            result.AppendLine($"Criar stored procedure [cruda].[GetPublicKey]");
+            result.AppendLine($"**********************************************************************************/");
+            result.AppendLine(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.GetPublicKey.sql")));
+            result.AppendLine($"**********************************************************************************/");
+
 
             return result.ToString();
         }
@@ -622,6 +628,7 @@ namespace CRUDA.Classes
         {
             using var stream = File.Open(Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL")), FileMode.Open, FileAccess.Read);
             using var reader = ExcelReaderFactory.CreateReader(stream);
+
             return reader.AsDataSet(new ExcelDataSetConfiguration()
             {
                 ConfigureDataTable = _ => new ExcelDataTableConfiguration()

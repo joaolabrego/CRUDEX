@@ -97,7 +97,7 @@ GO
 CREATE SCHEMA cruda AUTHORIZATION [dbo]
 GO
 /**********************************************************************************
-Criar function F_IsEquals
+Criar function IsEquals
 **********************************************************************************/
 USE [cruda]
 GO
@@ -105,10 +105,10 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF (SELECT object_id('[dbo].[F_IsEquals]', 'FN')) IS NOT NULL
-	DROP FUNCTION [dbo].[F_IsEquals]
+IF (SELECT object_id('[dbo].[IsEquals]', 'FN')) IS NOT NULL
+	DROP FUNCTION [dbo].[IsEquals]
 GO
-CREATE FUNCTION [dbo].[F_IsEquals](@LeftValue SQL_VARIANT,
+CREATE FUNCTION [dbo].[IsEquals](@LeftValue SQL_VARIANT,
 								   @RightValue SQL_VARIANT)
 RETURNS BIT AS
 BEGIN

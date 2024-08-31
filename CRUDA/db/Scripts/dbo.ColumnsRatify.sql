@@ -8,8 +8,8 @@ IF(SELECT object_id('[dbo].[ColumnsRatify]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[ColumnsRatify] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
-									 ,@UserName VARCHAR(25)
-									 ,@OperationId BIGINT) AS BEGIN
+									,@UserName VARCHAR(25)
+									,@OperationId BIGINT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -57,7 +57,7 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 			FROM [cruda].[Operations]
 			WHERE [Id] = @OperationId
 		IF @TransactionIdAux IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+			SET @ErrorMessage = @ErrorMessage + 'Operação é inexistente';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @TransactionIdAux <> @TransactionId BEGIN

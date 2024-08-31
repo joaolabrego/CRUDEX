@@ -4,11 +4,11 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF (SELECT object_id('[dbo].[F_IsEquals]', 'FN')) IS NOT NULL
-	DROP FUNCTION [dbo].[F_IsEquals]
+IF (SELECT object_id('[cruda].[IsEquals]', 'FN')) IS NOT NULL
+	EXEC('CREATE FUNCTION [cruda].[IsEquals]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
-CREATE FUNCTION [dbo].[F_IsEquals](@LeftValue SQL_VARIANT,
-								   @RightValue SQL_VARIANT)
+ALTER FUNCTION [cruda].[IsEquals](@LeftValue SQL_VARIANT
+							     ,@RightValue SQL_VARIANT)
 RETURNS BIT AS
 BEGIN
 	DECLARE @Result BIT = 0,
