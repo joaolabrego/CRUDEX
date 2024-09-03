@@ -85,6 +85,8 @@ ALTER DATABASE[cruda] SET QUERY_STORE = ON
 GO
 ALTER DATABASE[cruda] SET QUERY_STORE(OPERATION_MODE = READ_WRITE, CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 30), DATA_FLUSH_INTERVAL_SECONDS = 900, INTERVAL_LENGTH_MINUTES = 60, MAX_STORAGE_SIZE_MB = 1000, QUERY_CAPTURE_MODE = AUTO, SIZE_BASED_CLEANUP_MODE = AUTO, MAX_PLANS_PER_QUERY = 200, WAIT_STATS_CAPTURE_MODE = ON)
 GO
+CREATE SCHEMA cruda AUTHORIZATION [dbo]
+GO
 /**********************************************************************************
 Início da criação dos scripts
 **********************************************************************************/

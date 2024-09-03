@@ -8,7 +8,7 @@ IF(SELECT object_id('[dbo].[NumberInWords]', 'FN')) IS NULL
 	EXEC('CREATE FUNCTION [dbo].[NumberInWords]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
 ALTER FUNCTION [dbo].[NumberInWords](@Value AS DECIMAL(18,2)
-									,@PortugueseOrEnglish BIT = 0
+									,@EnglishOrPortuguese BIT = 1
 									,@CurrencyInSingular VARCHAR(50) = NULL
 									,@CurrencyInPlural VARCHAR(50) = NULL
 									,@CentsInSingular VARCHAR(50) = NULL
@@ -28,7 +28,7 @@ BEGIN
 			@ValueOfThousands INT = 0
 	DECLARE @Powers TABLE (Id INT, NomeSingular VARCHAR(50), NomePlural VARCHAR(50))
 
-	IF @PortugueseOrEnglish = 1 BEGIN
+	IF @EnglishOrPortuguese = 1 BEGIN
 		IF @CurrencyInSingular IS NULL
 			SET @CurrencyInSingular = 'Real'
 		IF @CurrencyInPlural IS NULL
@@ -76,20 +76,20 @@ BEGIN
 		END	
 		INSERT @Powers
 			VALUES(0,'', ''),
-				  (1,'Thousand', 'Thousands'),
-				  (2,'Million', 'Millions'),
-				  (3,'Billion', 'Billions'),
-				  (4,'Trillion', 'Trillions'),
-				  (5,'Quadrillion', 'Quadrillions'),
-				  (6,'Quintillion', 'Quintillions'),
-				  (7,'Sextillion', 'Sextillions'),
-				  (8,'Septillion', 'Septillions'),
-				  (9,'Octillion', 'Octillions'),
-				  (10,'Nonillion', 'Nonillions'),
+				  (1,'Thousand', 'Thousand'),
+				  (2,'Million', 'Million'),
+				  (3,'Billion', 'Billion'),
+				  (4,'Trillion', 'Trillion'),
+				  (5,'Quadrillion', 'Quadrillion'),
+				  (6,'Quintillion', 'Quintillion'),
+				  (7,'Sextillion', 'Sextillion'),
+				  (8,'Septillion', 'Septillion'),
+				  (9,'Octillion', 'Octillion'),
+				  (10,'Nonillion', 'Nonillion'),
 				  (11,'Decillion', 'Decillion'),
-				  (12,'Undecillion', 'Undecillions'),
-				  (13,'Duodecillion', 'Duodecillions'),
-				  (14,'Tredecillion', 'Tredecillions')
+				  (12,'Undecillion', 'Undecillion'),
+				  (13,'Duodecillion', 'Duodecillion'),
+				  (14,'Tredecillion', 'Tredecillion')
 	END
 	SET @PartialValue = FLOOR(@Value)
 	WHILE @PartialValue > 0 BEGIN
@@ -101,18 +101,18 @@ BEGIN
 			SET @ValueOfThousands = @Digito
 		END
 		IF @Digito = 1 BEGIN
-			 SET @Result = [cruda].[NumberInWordsOfHundreds](@Digito, @PortugueseOrEnglish) + ' ' + 
+			 SET @Result = [cruda].[NumberInWordsOfHundreds](@Digito, @EnglishOrPortuguese) + ' ' + 
 							  (SELECT NomeSingular FROM @Powers WHERE Id = @Power) + 
 							  @Separator + @Result
 		END ELSE IF @Digito > 0 BEGIN
-			 SET @Result = [cruda].[NumberInWordsOfHundreds](@Digito, @PortugueseOrEnglish) + ' ' + 
+			 SET @Result = [cruda].[NumberInWordsOfHundreds](@Digito, @EnglishOrPortuguese) + ' ' + 
 							  (SELECT NomePlural FROM @Powers WHERE Id = @Power) + 
 							  @Separator + @Result
 		END
 		SET @PartialValue = @PartialValue / 1000
 		IF @Digito > 0 BEGIN
 			IF (@Power = 0) BEGIN
-				SET @Separator = @And
+				SET @Separator = CASE WHEN @EnglishOrPortuguese = 1 THEN @And ELSE ', ' END
 			END ELSE BEGIN
 				SET @Separator = ', '
 			END
@@ -141,15 +141,15 @@ BEGIN
 	IF @PartialValue > 0 BEGIN
 		IF @PartialValue = 1 BEGIN
 			IF @Result = '' BEGIN
-				SET @Result = [cruda].[NumberInWordsOfHundreds](@PartialValue, @PortugueseOrEnglish) + ' ' + @CentsInSingular + @Of + @CurrencyInSingular
+				SET @Result = [cruda].[NumberInWordsOfHundreds](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular + @Of + @CurrencyInSingular
 			END ELSE BEGIN
-				SET @Result = @Result + @And + [cruda].[NumberInWordsOfHundreds](@PartialValue, @PortugueseOrEnglish) + ' ' + @CentsInSingular 
+				SET @Result = @Result + @And + [cruda].[NumberInWordsOfHundreds](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular 
 			END
 		END ELSE BEGIN
 			IF @Result = '' BEGIN
-				SET @Result = [cruda].[NumberInWordsOfHundreds](@PartialValue, @PortugueseOrEnglish) + ' ' + @CentsInPlural + @Of + @CurrencyInPlural
+				SET @Result = [cruda].[NumberInWordsOfHundreds](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural + @Of + @CurrencyInPlural
 			END ELSE BEGIN
-				SET @Result = @Result + @And + [cruda].[NumberInWordsOfHundreds](@PartialValue, @PortugueseOrEnglish) + ' ' + @CentsInPlural
+				SET @Result = @Result + @And + [cruda].[NumberInWordsOfHundreds](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural
 			END
 		END
 	END		

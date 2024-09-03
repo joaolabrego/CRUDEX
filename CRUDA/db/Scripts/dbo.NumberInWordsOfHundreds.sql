@@ -4,23 +4,24 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[NumberInWordsOfHundreds]', 'P')) IS NULL
+IF(SELECT object_id('[dbo].[NumberInWordsOfHundreds]', 'FN')) IS NULL
 	EXEC('CREATE FUNCTION [dbo].[NumberInWordsOfHundreds]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
-ALTER FUNCTION [dbo].[NumberInWordsOfHundreds](@Value AS DECIMAL(18),
-												@PortugueseOrEnglish BIT = 0)
+ALTER FUNCTION [dbo].[NumberInWordsOfHundreds](@Value AS SMALLINT
+											  ,@EnglishOrPortuguese BIT)
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
 	DECLARE @ThirdDigit INT = @Value / 100,
-			@SecondDigit INT = @Value / 10 % 10,
+			@SecondDigit INT = CAST(@Value / 10 AS INT) % 10,
 			@FirstDigit INT = @Value % 10,
 			@And VARCHAR(10),
-			@Result VARCHAR(MAX) = ''
+			@Result VARCHAR(MAX) = '',
+			@Separator VARCHAR(5)
 	DECLARE @Units TABLE (Id INT, Nome VARCHAR(50))
 	DECLARE @Dozens TABLE (Id INT, Nome VARCHAR(50))
 	DECLARE @Hundreds TABLE (Id INT, Nome VARCHAR(50))
 
-	IF @PortugueseOrEnglish = 1 BEGIN
+	IF @EnglishOrPortuguese = 1 BEGIN
 		SET @And = ' e '
 		INSERT @Units
 			VALUES(0, ''),
@@ -94,7 +95,7 @@ BEGIN
 		INSERT @Dozens
 			VALUES(0, ''),
 				  (1, 'Ten'),
-				  (2, 'Vinte'),
+				  (2, 'Twenty'),
 				  (3, 'Thirty'),
 				  (4, 'Forty'),
 				  (5, 'Fifty'),
@@ -115,24 +116,24 @@ BEGIN
 				  (8, 'Eight Hundred'),
 				  (9, 'Nine Hundred')
 	END
-	
+	SET  @Separator = CASE WHEN @EnglishOrPortuguese = 1 THEN @And ELSE ' ' END
 	IF @Value < 20 BEGIN
 		SET @Result = (SELECT Nome FROM @Units WHERE Id = @Value)
 	END ELSE IF @Value < 100 BEGIN
 		SET @Result = (SELECT Nome FROM @Dozens WHERE Id = @SecondDigit) +
-						 CASE WHEN @FirstDigit = 0 THEN '' ELSE @And + (SELECT Nome FROM @Units WHERE Id = @FirstDigit) END
+						 CASE WHEN @FirstDigit = 0 THEN '' ELSE CASE WHEN @EnglishOrPortuguese = 1 THEN @And ELSE '-' END + (SELECT Nome FROM @Units WHERE Id = @FirstDigit) END
 	END ELSE IF @Value = 100 BEGIN
-		SET @Result = CASE WHEN @PortugueseOrEnglish = 1 THEN 'Cem' ELSE 'One Hundred' END
+		SET @Result = CASE WHEN @EnglishOrPortuguese = 1 THEN 'Cem' ELSE 'One Hundred' END
 	END ELSE IF @Value % 100 = 0 BEGIN
 		SET @Result = (SELECT Nome FROM @Hundreds WHERE Id = @ThirdDigit)
 	END ELSE BEGIN
 		SET @Result = (SELECT Nome FROM @Hundreds WHERE Id = @ThirdDigit) +
-						 CASE WHEN @SecondDigit < 2 
-							  THEN @And + (SELECT Nome FROM @Units WHERE Id = @SecondDigit * 10 + @FirstDigit)
-						      ELSE @And + (SELECT Nome FROM @Dozens WHERE Id = @SecondDigit) + CASE WHEN @FirstDigit = 0 
-																									 THEN '' 
-																									 ELSE @And + (SELECT Nome FROM @Units WHERE Id = @FirstDigit)
-																								END
+						 CASE WHEN @Value < 20
+							  THEN @Separator + (SELECT Nome FROM @Units WHERE Id = @SecondDigit * 10 + @FirstDigit)
+						      ELSE @Separator + (SELECT Nome FROM @Dozens WHERE Id = @SecondDigit) + CASE WHEN @FirstDigit = 0 
+																										  THEN '' 
+																										  ELSE CASE WHEN @EnglishOrPortuguese = 1 THEN @And ELSE '-' END + (SELECT Nome FROM @Units WHERE Id = @FirstDigit)
+																									 END
 						 END
 	END
 

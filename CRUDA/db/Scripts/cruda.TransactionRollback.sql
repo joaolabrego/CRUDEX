@@ -59,3 +59,4 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
 		THROW
 	END CATCH
 END
+GO

@@ -104,3 +104,4 @@ ALTER PROCEDURE[dbo].[ColumnsPersist](@LoginId BIGINT
 		THROW
 	END CATCH
 END
+GO

@@ -7,7 +7,8 @@ GO
 IF(SELECT object_id('[cruda].[TransactionBegin]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionBegin] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
+										 ,@UserName VARCHAR(25)) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -44,3 +45,4 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT) AS BEGIN
 		THROW
 	END CATCH
 END
+GO

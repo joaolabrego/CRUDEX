@@ -4,7 +4,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF (SELECT object_id('[cruda].[IsEquals]', 'FN')) IS NOT NULL
+IF (SELECT object_id('[cruda].[IsEquals]', 'FN')) IS NULL
 	EXEC('CREATE FUNCTION [cruda].[IsEquals]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
 ALTER FUNCTION [cruda].[IsEquals](@LeftValue SQL_VARIANT

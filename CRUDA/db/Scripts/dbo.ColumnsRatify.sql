@@ -16,7 +16,7 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
 				,@TransactionId	BIGINT
-				,@TransactionIdAux	BIGINT
+				,@TransactionIdAux BIGINT
 				,@TableName VARCHAR(25)
 				,@Action VARCHAR(15)
 				,@LastRecord VARCHAR(MAX)
@@ -29,11 +29,11 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 		ELSE
 			SAVE TRANSACTION [ColumnsRatify]
 		IF @LoginId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @LoginId é requerido';
+			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @LoginId requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @OperationId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId é requerido';
+			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
 		SELECT @TransactionId = [TransactionId]
@@ -41,7 +41,7 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 			FROM [cruda].[Transactions]
 			WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
 		IF @TransactionId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transação inexistente para login fornecido';
+			SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @IsConfirmed IS NOT NULL BEGIN
@@ -75,7 +75,10 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 		EXEC @ValidOk = [dbo].[ColumnsValid] @Action, @LastRecord, @ActualRecord
 		IF @ValidOk = 0
 			RETURN 0
-		ELSE IF @Action = 'delete'
+
+		DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+		IF @Action = 'delete'
 			DELETE FROM [dbo].[Columns] WHERE [Id] = @W_Id
 		ELSE BEGIN
 
@@ -87,7 +90,6 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 					,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
 					,@W_Title varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
 					,@W_Caption varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
-					,@W_ValidValues varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
 					,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
 					,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
 					,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
@@ -111,7 +113,6 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 											,[Description]
 											,[Title]
 											,[Caption]
-											,[ValidValues]
 											,[Default]
 											,[Minimum]
 											,[Maximum]
@@ -136,7 +137,6 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 											,CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
 											,CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
 											,CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
-											,CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
 											,CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
 											,CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
 											,CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
@@ -161,7 +161,6 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 						,[Description] = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
 						,[Title] = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
 						,[Caption] = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
-						,ValidValues = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
 						,[Default] = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
 						,[Minimum] = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
 						,[Maximum] = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
@@ -192,3 +191,4 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
 		THROW
 	END CATCH
 END
+GO

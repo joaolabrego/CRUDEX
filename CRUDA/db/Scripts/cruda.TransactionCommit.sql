@@ -65,3 +65,4 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 		THROW
 	END CATCH
 END
+GO

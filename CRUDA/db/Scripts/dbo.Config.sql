@@ -113,7 +113,7 @@ BEGIN
 				FROM [dbo].[Columns] [C]
 					INNER JOIN [dbo].[#Tables] [T] ON [T].[Id]= [C].[TableId] 
 			IF @@ROWCOUNT = 0 BEGIN
-				SET @ErrorMessage = 'Colunas não cadastradas.';
+				SET @ErrorMessage = 'Colunas de tabelas não cadastradas.';
 				THROW 51000, @ErrorMessage, 1
 			END
 			ALTER TABLE [dbo].[#Columns] ADD PRIMARY KEY CLUSTERED([Id])
@@ -136,7 +136,7 @@ BEGIN
 				FROM [dbo].[Domains] [D]
 				WHERE EXISTS(SELECT TOP 1 1 FROM [dbo].[#Columns] WHERE [DomainId] = [D].[Id])
 			IF @@ROWCOUNT = 0 BEGIN
-				SET @ErrorMessage = 'Domínios não cadastrados.';
+				SET @ErrorMessage = 'Domínios de colunas não cadastrados.';
 				THROW 51000, @ErrorMessage, 1
 			END
 			ALTER TABLE [dbo].[#Domains] ADD PRIMARY KEY NONCLUSTERED([Id])
@@ -163,7 +163,7 @@ BEGIN
 				FROM [dbo].[Types] [T]
 				WHERE EXISTS(SELECT TOP 1 1 FROM [dbo].[#Domains] WHERE [TypeId] = [T].[Id])
 			IF @@ROWCOUNT = 0 BEGIN
-				SET @ErrorMessage = 'Tipos não cadastrados.';
+				SET @ErrorMessage = 'Tipos de domínios não cadastrados.';
 				THROW 51000, @ErrorMessage, 1
 			END
 			CREATE INDEX [#TypesCategoryId] ON [dbo].[#Types]([CategoryId])
@@ -184,7 +184,7 @@ BEGIN
 				FROM [dbo].[Categories] [C]
 				WHERE EXISTS(SELECT TOP 1 1 FROM [dbo].[#Types] WHERE [CategoryId] = [C].[Id])
 			IF @@ROWCOUNT = 0 BEGIN
-			   SET @ErrorMessage = 'Categoria(s) não cadastrada(s).';
+			   SET @ErrorMessage = 'Categoria(s) de tipos não cadastrada(s).';
 			   THROW 51000, @ErrorMessage, 1
 			END
 
@@ -201,7 +201,7 @@ BEGIN
 				FROM [dbo].[Menus] [M]
 					INNER JOIN [dbo].[#Systems] [S] ON [S].[Id] = [M].[SystemId]
 			IF @@ROWCOUNT = 0 BEGIN
-			   SET @ErrorMessage = 'Menu(s) não cadastrado(s).';
+			   SET @ErrorMessage = 'Menu(s) de sistema não cadastrado(s).';
 			   THROW 51000, @ErrorMessage, 1
 			END
 
