@@ -1,12 +1,18 @@
-IF(SELECT object_id('ColumnsRead', 'P')) IS NULL
-EXEC('CREATE PROCEDURE [dbo].[ColumnsRead] AS PRINT 1')
+USE [cruda]
 GO
-ALTER PROCEDURE[dbo].[ColumnsRead](@PageNumber INT OUT
-								  ,@LimitRows BIGINT OUT
-								  ,@MaxPage INT OUT
-								  ,@PaddingBrowseLastPage BIT OUT
-								  ,@UserName VARCHAR(25)
-								  ,@Record VARCHAR(MAX)) AS 
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF(SELECT object_id('[cruda].[ColumnsRead]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [cruda].[ColumnsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[ColumnsRead](@PageNumber INT OUT
+									,@LimitRows BIGINT OUT
+									,@MaxPage INT OUT
+									,@PaddingBrowseLastPage BIT OUT
+									,@UserName VARCHAR(25)
+									,@Record VARCHAR(MAX)) AS 
 BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON

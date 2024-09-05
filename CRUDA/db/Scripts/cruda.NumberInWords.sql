@@ -4,15 +4,15 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[NumberInWords]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [dbo].[NumberInWords]() RETURNS BIT AS BEGIN RETURN 1 END')
+IF(SELECT object_id('[cruda].[NumberInWords]', 'FN')) IS NULL
+	EXEC('CREATE FUNCTION [cruda].[NumberInWords]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
-ALTER FUNCTION [dbo].[NumberInWords](@Value AS DECIMAL(18,2)
-									,@EnglishOrPortuguese BIT = 1
-									,@CurrencyInSingular VARCHAR(50) = NULL
-									,@CurrencyInPlural VARCHAR(50) = NULL
-									,@CentsInSingular VARCHAR(50) = NULL
-									,@CentsInPlural VARCHAR(50) = NULL)
+ALTER FUNCTION [cruda].[NumberInWords](@Value AS DECIMAL(18,2)
+									  ,@EnglishOrPortuguese BIT = 1
+									  ,@CurrencyInSingular VARCHAR(50) = NULL
+									  ,@CurrencyInPlural VARCHAR(50) = NULL
+									  ,@CentsInSingular VARCHAR(50) = NULL
+									  ,@CentsInPlural VARCHAR(50) = NULL)
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
 	DECLARE @Power INT = 0,

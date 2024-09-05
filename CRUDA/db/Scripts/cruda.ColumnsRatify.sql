@@ -4,12 +4,12 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[ColumnsRatify]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [dbo].[ColumnsRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[ColumnsRatify]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [cruda].[ColumnsRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
-									,@UserName VARCHAR(25)
-									,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[ColumnsRatify](@LoginId BIGINT
+									  ,@UserName VARCHAR(25)
+									  ,@OperationId BIGINT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED

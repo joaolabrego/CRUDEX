@@ -4,12 +4,12 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[GenerateId]','P')) IS NULL
-	EXEC('CREATE PROCEDURE [dbo].[GenerateId] AS PRINT 1')
+IF(SELECT object_id('[cruda].[GenerateId]','P')) IS NULL
+	EXEC('CREATE PROCEDURE [cruda].[GenerateId] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[GenerateId](@SystemName VARCHAR(25)
-								  ,@DatabaseName VARCHAR(25)
-								  ,@TableName VARCHAR(25)) AS
+ALTER PROCEDURE [cruda].[GenerateId](@SystemName VARCHAR(25)
+									,@DatabaseName VARCHAR(25)
+									,@TableName VARCHAR(25)) AS
 BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON

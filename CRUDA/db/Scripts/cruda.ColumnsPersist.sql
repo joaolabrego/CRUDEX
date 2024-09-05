@@ -4,15 +4,15 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[ColumnsPersist]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [dbo].[ColumnsPersist] AS PRINT 1')
+IF(SELECT object_id('[cruda].[ColumnsPersist]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [cruda].[ColumnsPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[ColumnsPersist](@LoginId BIGINT
-									 ,@UserName VARCHAR(25)
-									 ,@Action VARCHAR(15)
-									 ,@LastRecord VARCHAR(MAX)
-									 ,@ActualRecord VARCHAR(MAX)
-									 ,@IsBeginTransaction BIT = 0) AS BEGIN
+ALTER PROCEDURE [cruda].[ColumnsPersist](@LoginId BIGINT
+										,@UserName VARCHAR(25)
+										,@Action VARCHAR(15)
+										,@LastRecord VARCHAR(MAX)
+										,@ActualRecord VARCHAR(MAX)
+										,@IsBeginTransaction BIT = 0) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED

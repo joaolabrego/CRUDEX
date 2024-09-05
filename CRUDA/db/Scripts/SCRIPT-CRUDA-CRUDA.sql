@@ -97,7 +97,7 @@ GO
 CREATE SCHEMA cruda AUTHORIZATION [dbo]
 GO
 /**********************************************************************************
-Criar stored procedure [dbo].[Config]
+Criar stored procedure [cruda].[Config]
 **********************************************************************************/
 USE [cruda]
 GO
@@ -105,12 +105,12 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[Config]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [dbo].[Config] AS PRINT 1')
+IF(SELECT object_id('[cruda].[Config]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [cruda].[Config] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
-							  ,@DatabaseName VARCHAR(25) = NULL
-							  ,@TableName VARCHAR(25) = NULL) AS
+ALTER PROCEDURE [cruda].[Config](@SystemName VARCHAR(25)
+								,@DatabaseName VARCHAR(25) = NULL
+								,@TableName VARCHAR(25) = NULL) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(50)
 
@@ -369,7 +369,7 @@ BEGIN
 END
 GO
 /**********************************************************************************
-Criar stored procedure [dbo].[GenerateId]
+Criar stored procedure [cruda].[GenerateId]
 **********************************************************************************/
 USE [cruda]
 GO
@@ -377,12 +377,12 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[GenerateId]','P')) IS NULL
-	EXEC('CREATE PROCEDURE [dbo].[GenerateId] AS PRINT 1')
+IF(SELECT object_id('[cruda].[GenerateId]','P')) IS NULL
+	EXEC('CREATE PROCEDURE [cruda].[GenerateId] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[GenerateId](@SystemName VARCHAR(25)
-								  ,@DatabaseName VARCHAR(25)
-								  ,@TableName VARCHAR(25)) AS
+ALTER PROCEDURE [cruda].[GenerateId](@SystemName VARCHAR(25)
+									,@DatabaseName VARCHAR(25)
+									,@TableName VARCHAR(25)) AS
 BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
@@ -448,7 +448,7 @@ BEGIN
 END
 GO
 /**********************************************************************************
-Criar stored procedure [dbo].[Login]
+Criar stored procedure [cruda].[Login]
 **********************************************************************************/
 USE [cruda]
 GO
@@ -456,10 +456,10 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[P_Login]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [dbo].[P_Login] AS PRINT 1')
+IF(SELECT object_id('[cruda].[P_Login]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [cruda].[P_Login] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[P_Login](@Parameters VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE [cruda].[P_Login](@Parameters VARCHAR(MAX)) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -624,7 +624,7 @@ ALTER PROCEDURE [dbo].[P_Login](@Parameters VARCHAR(MAX)) AS BEGIN
 END
 GO
 /**********************************************************************************
-Criar stored procedure [dbo].[GetPublicKey]
+Criar stored procedure [cruda].[GetPublicKey]
 **********************************************************************************/
 USE [cruda]
 GO
@@ -632,11 +632,10 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[GetPublicKey]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [dbo].[GetPublicKey] AS PRINT 1')
+IF(SELECT object_id('[cruda].[GetPublicKey]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [cruda].[GetPublicKey] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT) AS 
-BEGIN
+ALTER PROCEDURE[cruda].[GetPublicKey](@LoginId BIGINT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -663,7 +662,7 @@ BEGIN
 END
 GO
 /**********************************************************************************
-Criar function [dbo].[NumberInWordsOfHundreds]
+Criar function [cruda].[NumberInWordsOfHundreds]
 **********************************************************************************/
 USE [cruda]
 GO
@@ -671,11 +670,11 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[NumberInWordsOfHundreds]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [dbo].[NumberInWordsOfHundreds]() RETURNS BIT AS BEGIN RETURN 1 END')
+IF(SELECT object_id('[cruda].[NumberInWordsOfHundreds]', 'FN')) IS NULL
+	EXEC('CREATE FUNCTION [cruda].[NumberInWordsOfHundreds]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
-ALTER FUNCTION [dbo].[NumberInWordsOfHundreds](@Value AS SMALLINT
-											  ,@EnglishOrPortuguese BIT)
+ALTER FUNCTION [cruda].[NumberInWordsOfHundreds](@Value AS SMALLINT
+												,@EnglishOrPortuguese BIT)
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
 	DECLARE @ThirdDigit INT = @Value / 100,
@@ -808,7 +807,7 @@ BEGIN
 END
 GO
 /**********************************************************************************
-Criar function [dbo].[NumberInWords]
+Criar function [cruda].[NumberInWords]
 **********************************************************************************/
 USE [cruda]
 GO
@@ -816,15 +815,15 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-IF(SELECT object_id('[dbo].[NumberInWords]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [dbo].[NumberInWords]() RETURNS BIT AS BEGIN RETURN 1 END')
+IF(SELECT object_id('[cruda].[NumberInWords]', 'FN')) IS NULL
+	EXEC('CREATE FUNCTION [cruda].[NumberInWords]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
-ALTER FUNCTION [dbo].[NumberInWords](@Value AS DECIMAL(18,2)
-									,@EnglishOrPortuguese BIT = 1
-									,@CurrencyInSingular VARCHAR(50) = NULL
-									,@CurrencyInPlural VARCHAR(50) = NULL
-									,@CentsInSingular VARCHAR(50) = NULL
-									,@CentsInPlural VARCHAR(50) = NULL)
+ALTER FUNCTION [cruda].[NumberInWords](@Value AS DECIMAL(18,2)
+									  ,@EnglishOrPortuguese BIT = 1
+									  ,@CurrencyInSingular VARCHAR(50) = NULL
+									  ,@CurrencyInPlural VARCHAR(50) = NULL
+									  ,@CentsInSingular VARCHAR(50) = NULL
+									  ,@CentsInPlural VARCHAR(50) = NULL)
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
 	DECLARE @Power INT = 0,
@@ -1207,19 +1206,19 @@ ALTER TABLE [dbo].[Categories] ADD CONSTRAINT PK_Categories PRIMARY KEY CLUSTERE
 CREATE UNIQUE INDEX [UNQ_Categories_Name] ON [dbo].[Categories]([Name] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Categories]
+Ratificar dados na tabela [cruda].[Categories]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[CategoriesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[CategoriesRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[CategoriesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[CategoriesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[CategoriesRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[CategoriesRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [CategoriesRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -1277,7 +1276,7 @@ ALTER PROCEDURE[dbo].[CategoriesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[CategoriesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[CategoriesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -1287,9 +1286,9 @@ ALTER PROCEDURE[dbo].[CategoriesRatify](@LoginId BIGINT
             DELETE FROM [dbo].[Categories] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name varchar = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar)
-                   ,@W_HtmlInputType varchar = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS varchar)
-                   ,@W_HtmlInputAlign varchar = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS varchar)
+            DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_HtmlInputType varchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS varchar(10))
+                   ,@W_HtmlInputAlign varchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS varchar(6))
                    ,@W_AskEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit)
                    ,@W_AskMask bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit)
                    ,@W_AskListable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskListable') AS bit)
@@ -1375,19 +1374,19 @@ ALTER TABLE [dbo].[Types] ADD CONSTRAINT PK_Types PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Types_Name] ON [dbo].[Types]([Name] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Types]
+Ratificar dados na tabela [cruda].[Types]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TypesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TypesRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[TypesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[TypesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[TypesRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[TypesRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TypesRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -1445,7 +1444,7 @@ ALTER PROCEDURE[dbo].[TypesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[TypesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[TypesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -1456,7 +1455,7 @@ ALTER PROCEDURE[dbo].[TypesRatify](@LoginId BIGINT
         ELSE BEGIN
 
             DECLARE @W_CategoryId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS tinyint)
-                   ,@W_Name varchar = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar)
+                   ,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
                    ,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
                    ,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
                    ,@W_AskLength bit = CAST(JSON_VALUE(@ActualRecord, '$.AskLength') AS bit)
@@ -1551,19 +1550,19 @@ ALTER TABLE [dbo].[Masks] ADD CONSTRAINT PK_Masks PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Masks_Name] ON [dbo].[Masks]([Name] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Masks]
+Ratificar dados na tabela [cruda].[Masks]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MasksRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MasksRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[MasksRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[MasksRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[MasksRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[MasksRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MasksRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -1621,7 +1620,7 @@ ALTER PROCEDURE[dbo].[MasksRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[MasksValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[MasksValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -1631,8 +1630,8 @@ ALTER PROCEDURE[dbo].[MasksRatify](@LoginId BIGINT
             DELETE FROM [dbo].[Masks] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name varchar = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar)
-                   ,@W_Mask varchar = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS varchar)
+            DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Mask varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS varchar(MAX))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Masks] ([Id]
@@ -1687,19 +1686,19 @@ ALTER TABLE [dbo].[Domains] ADD CONSTRAINT PK_Domains PRIMARY KEY CLUSTERED ([Id
 CREATE UNIQUE INDEX [UNQ_Domains_Name] ON [dbo].[Domains]([Name] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Domains]
+Ratificar dados na tabela [cruda].[Domains]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DomainsRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DomainsRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[DomainsRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[DomainsRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DomainsRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[DomainsRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DomainsRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -1757,7 +1756,7 @@ ALTER PROCEDURE[dbo].[DomainsRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[DomainsValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[DomainsValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -1769,14 +1768,14 @@ ALTER PROCEDURE[dbo].[DomainsRatify](@LoginId BIGINT
 
             DECLARE @W_TypeId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.TypeId') AS tinyint)
                    ,@W_MaskId bigint = CAST(JSON_VALUE(@ActualRecord, '$.MaskId') AS bigint)
-                   ,@W_Name varchar = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar)
+                   ,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
                    ,@W_Length smallint = CAST(JSON_VALUE(@ActualRecord, '$.Length') AS smallint)
                    ,@W_Decimals tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Decimals') AS tinyint)
-                   ,@W_ValidValues varchar = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar)
+                   ,@W_ValidValues varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
                    ,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
                    ,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
                    ,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
-                   ,@W_Codification varchar = CAST(JSON_VALUE(@ActualRecord, '$.Codification') AS varchar)
+                   ,@W_Codification varchar(5) = CAST(JSON_VALUE(@ActualRecord, '$.Codification') AS varchar(5))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Domains] ([Id]
@@ -1850,19 +1849,19 @@ ALTER TABLE [dbo].[Systems] ADD CONSTRAINT PK_Systems PRIMARY KEY CLUSTERED ([Id
 CREATE UNIQUE INDEX [UNQ_Systems_Name] ON [dbo].[Systems]([Name] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Systems]
+Ratificar dados na tabela [cruda].[Systems]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemsRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemsRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[SystemsRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[SystemsRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemsRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[SystemsRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemsRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -1920,7 +1919,7 @@ ALTER PROCEDURE[dbo].[SystemsRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[SystemsValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[SystemsValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -1930,9 +1929,9 @@ ALTER PROCEDURE[dbo].[SystemsRatify](@LoginId BIGINT
             DELETE FROM [dbo].[Systems] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name varchar = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar)
-                   ,@W_Description varchar = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar)
-                   ,@W_ClientName varchar = CAST(JSON_VALUE(@ActualRecord, '$.ClientName') AS varchar)
+            DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+                   ,@W_ClientName varchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.ClientName') AS varchar(15))
                    ,@W_MaxRetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.MaxRetryLogins') AS tinyint)
                    ,@W_IsOffAir bit = CAST(JSON_VALUE(@ActualRecord, '$.IsOffAir') AS bit)
 
@@ -1994,19 +1993,19 @@ ALTER TABLE [dbo].[Menus] ADD CONSTRAINT PK_Menus PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Sequence] ON [dbo].[Menus]([SystemId] ASC                                                                                                          ,[Sequence] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Menus]
+Ratificar dados na tabela [cruda].[Menus]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MenusRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MenusRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[MenusRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[MenusRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[MenusRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[MenusRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MenusRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -2064,7 +2063,7 @@ ALTER PROCEDURE[dbo].[MenusRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[MenusValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[MenusValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -2076,9 +2075,9 @@ ALTER PROCEDURE[dbo].[MenusRatify](@LoginId BIGINT
 
             DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
                    ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_Caption varchar = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar)
-                   ,@W_Message varchar = CAST(JSON_VALUE(@ActualRecord, '$.Message') AS varchar)
-                   ,@W_Action varchar = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS varchar)
+                   ,@W_Caption varchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(20))
+                   ,@W_Message varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Message') AS varchar(50))
+                   ,@W_Action varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS varchar(50))
                    ,@W_ParentMenuId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentMenuId') AS bigint)
 
             IF @Action = 'create'
@@ -2141,19 +2140,19 @@ ALTER TABLE [dbo].[Users] ADD CONSTRAINT PK_Users PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Users_Name] ON [dbo].[Users]([Name] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Users]
+Ratificar dados na tabela [cruda].[Users]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UsersRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UsersRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[UsersRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[UsersRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[UsersRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[UsersRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [UsersRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -2211,7 +2210,7 @@ ALTER PROCEDURE[dbo].[UsersRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[UsersValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[UsersValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -2221,9 +2220,9 @@ ALTER PROCEDURE[dbo].[UsersRatify](@LoginId BIGINT
             DELETE FROM [dbo].[Users] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name varchar = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar)
-                   ,@W_Password varchar = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar)
-                   ,@W_FullName varchar = CAST(JSON_VALUE(@ActualRecord, '$.FullName') AS varchar)
+            DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Password varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(256))
+                   ,@W_FullName varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.FullName') AS varchar(50))
                    ,@W_RetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint)
                    ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 
@@ -2283,19 +2282,19 @@ CREATE UNIQUE INDEX [UNQ_SystemsUsers_SystemId_UserId] ON [dbo].[SystemsUsers]([
 CREATE UNIQUE INDEX [UNQ_SystemsUsers_Description] ON [dbo].[SystemsUsers]([Description] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[SystemsUsers]
+Ratificar dados na tabela [cruda].[SystemsUsers]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemsUsersRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemsUsersRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[SystemsUsersRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[SystemsUsersRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemsUsersRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[SystemsUsersRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemsUsersRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -2353,7 +2352,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[SystemsUsersValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[SystemsUsersValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -2365,7 +2364,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRatify](@LoginId BIGINT
 
             DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
                    ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
-                   ,@W_Description varchar = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar)
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[SystemsUsers] ([Id]
@@ -2423,19 +2422,19 @@ CREATE UNIQUE INDEX [UNQ_Databases_Name] ON [dbo].[Databases]([Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Databases_Alias] ON [dbo].[Databases]([Alias] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Databases]
+Ratificar dados na tabela [cruda].[Databases]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabasesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabasesRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[DatabasesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[DatabasesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DatabasesRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[DatabasesRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabasesRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -2493,7 +2492,7 @@ ALTER PROCEDURE[dbo].[DatabasesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[DatabasesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[DatabasesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -2503,15 +2502,15 @@ ALTER PROCEDURE[dbo].[DatabasesRatify](@LoginId BIGINT
             DELETE FROM [dbo].[Databases] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name varchar = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar)
-                   ,@W_Description varchar = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar)
-                   ,@W_Alias varchar = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar)
-                   ,@W_ServerName varchar = CAST(JSON_VALUE(@ActualRecord, '$.ServerName') AS varchar)
-                   ,@W_HostName varchar = CAST(JSON_VALUE(@ActualRecord, '$.HostName') AS varchar)
+            DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+                   ,@W_Alias varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25))
+                   ,@W_ServerName varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ServerName') AS varchar(50))
+                   ,@W_HostName varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.HostName') AS varchar(25))
                    ,@W_Port int = CAST(JSON_VALUE(@ActualRecord, '$.Port') AS int)
-                   ,@W_Logon varchar = CAST(JSON_VALUE(@ActualRecord, '$.Logon') AS varchar)
-                   ,@W_Password varchar = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar)
-                   ,@W_Folder varchar = CAST(JSON_VALUE(@ActualRecord, '$.Folder') AS varchar)
+                   ,@W_Logon varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Logon') AS varchar(256))
+                   ,@W_Password varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(256))
+                   ,@W_Folder varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Folder') AS varchar(256))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Databases] ([Id]
@@ -2581,19 +2580,19 @@ CREATE UNIQUE INDEX [UNQ_SystemsDatabases_SystemId_DatabaseId] ON [dbo].[Systems
 CREATE UNIQUE INDEX [UNQ_SystemsDatabases_Description] ON [dbo].[SystemsDatabases]([Description] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[SystemsDatabases]
+Ratificar dados na tabela [cruda].[SystemsDatabases]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemsDatabasesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[SystemsDatabasesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[SystemsDatabasesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemsDatabasesRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[SystemsDatabasesRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemsDatabasesRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -2651,7 +2650,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[SystemsDatabasesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[SystemsDatabasesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -2663,7 +2662,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRatify](@LoginId BIGINT
 
             DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
                    ,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
-                   ,@W_Description varchar = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar)
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[SystemsDatabases] ([Id]
@@ -2717,19 +2716,19 @@ CREATE UNIQUE INDEX [UNQ_Tables_Name] ON [dbo].[Tables]([Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Tables_Alias] ON [dbo].[Tables]([Alias] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Tables]
+Ratificar dados na tabela [cruda].[Tables]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TablesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TablesRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[TablesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[TablesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[TablesRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[TablesRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TablesRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -2787,7 +2786,7 @@ ALTER PROCEDURE[dbo].[TablesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[TablesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[TablesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -2797,9 +2796,9 @@ ALTER PROCEDURE[dbo].[TablesRatify](@LoginId BIGINT
             DELETE FROM [dbo].[Tables] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name varchar = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar)
-                   ,@W_Alias varchar = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar)
-                   ,@W_Description varchar = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar)
+            DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Alias varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25))
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
                    ,@W_IsPaged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPaged') AS bit)
                    ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
 
@@ -2859,19 +2858,19 @@ CREATE UNIQUE INDEX [UNQ_DatabasesTables_DatabaseId_TableId] ON [dbo].[Databases
 CREATE UNIQUE INDEX [UNQ_DatabasesTables_Description] ON [dbo].[DatabasesTables]([Description] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[DatabasesTables]
+Ratificar dados na tabela [cruda].[DatabasesTables]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabasesTablesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[DatabasesTablesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[DatabasesTablesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DatabasesTablesRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[DatabasesTablesRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabasesTablesRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -2929,7 +2928,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[DatabasesTablesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[DatabasesTablesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -2941,7 +2940,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRatify](@LoginId BIGINT
 
             DECLARE @W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
                    ,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
-                   ,@W_Description varchar = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar)
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[DatabasesTables] ([Id]
@@ -3010,14 +3009,14 @@ CREATE UNIQUE INDEX [UNQ_Columns_TableId_Name] ON [dbo].[Columns]([TableId] ASC 
 CREATE UNIQUE INDEX [UNQ_Columns_TableId_Sequence] ON [dbo].[Columns]([TableId] ASC                                                                                                          ,[Sequence] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Columns]
+Ratificar dados na tabela [cruda].[Columns]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ColumnsRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ColumnsRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[ColumnsRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[ColumnsRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[ColumnsRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3080,7 +3079,7 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[ColumnsValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[ColumnsValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -3094,11 +3093,11 @@ ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
                    ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
                    ,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
                    ,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
-                   ,@W_Name varchar = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar)
-                   ,@W_Description varchar = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar)
-                   ,@W_Title varchar = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar)
-                   ,@W_Caption varchar = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar)
-                   ,@W_ValidValues varchar = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar)
+                   ,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+                   ,@W_Title varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
+                   ,@W_Caption varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
+                   ,@W_ValidValues varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
                    ,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
                    ,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
                    ,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
@@ -3212,19 +3211,19 @@ ALTER TABLE [dbo].[Indexes] ADD CONSTRAINT PK_Indexes PRIMARY KEY CLUSTERED ([Id
 CREATE UNIQUE INDEX [UNQ_Indexes_DatabaseId_Name] ON [dbo].[Indexes]([DatabaseId] ASC                                                                                                          ,[Name] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Indexes]
+Ratificar dados na tabela [cruda].[Indexes]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexesRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[IndexesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[IndexesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[IndexesRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[IndexesRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexesRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -3282,7 +3281,7 @@ ALTER PROCEDURE[dbo].[IndexesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[IndexesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[IndexesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -3294,7 +3293,7 @@ ALTER PROCEDURE[dbo].[IndexesRatify](@LoginId BIGINT
 
             DECLARE @W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
                    ,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
-                   ,@W_Name varchar = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar)
+                   ,@W_Name varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(50))
                    ,@W_IsUnique bit = CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit)
 
             IF @Action = 'create'
@@ -3351,19 +3350,19 @@ CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_Sequence] ON [dbo].[Indexkeys]([Index
 CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_ColumnId] ON [dbo].[Indexkeys]([IndexId] ASC                                                                                                          ,[ColumnId] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Indexkeys]
+Ratificar dados na tabela [cruda].[Indexkeys]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexkeysRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexkeysRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[IndexkeysRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[IndexkeysRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[IndexkeysRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[IndexkeysRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexkeysRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -3421,7 +3420,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[IndexkeysValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[IndexkeysValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -3489,19 +3488,19 @@ ALTER TABLE [dbo].[Logins] ADD CONSTRAINT PK_Logins PRIMARY KEY CLUSTERED ([Id])
 CREATE  INDEX [UNQ_Logins_SystemId_UserId_IsLogged] ON [dbo].[Logins]([SystemId] ASC                                                                                                          ,[UserId] ASC                                                                                                          ,[IsLogged] ASC)
 GO
 /**********************************************************************************
-Ratificar dados na tabela [dbo].[Logins]
+Ratificar dados na tabela [cruda].[Logins]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[LoginsRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[LoginsRatify] AS PRINT 1')
+IF(SELECT object_id('[cruda].[LoginsRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[LoginsRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[LoginsRatify](@LoginId BIGINT
-                                    ,@UserName VARCHAR(25)
-                                    ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[cruda].[LoginsRatify](@LoginId BIGINT
+                                          ,@UserName VARCHAR(25)
+                                          ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRatify]: '
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [LoginsRatify]: '
                ,@TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
@@ -3559,7 +3558,7 @@ ALTER PROCEDURE[dbo].[LoginsRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [dbo].[LoginsValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [cruda].[LoginsValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
 
@@ -3571,7 +3570,7 @@ ALTER PROCEDURE[dbo].[LoginsRatify](@LoginId BIGINT
 
             DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
                    ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
-                   ,@W_PublicKey varchar = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS varchar)
+                   ,@W_PublicKey varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS varchar(256))
                    ,@W_IsLogged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit)
 
             IF @Action = 'create'
@@ -6202,6 +6201,1057 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Systems]
+**********************************************************************************/
+INSERT INTO [dbo].[Systems] ([Id]
+                                ,[Name]
+                                ,[Description]
+                                ,[ClientName]
+                                ,[MaxRetryLogins]
+                                ,[IsOffAir]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('cruda' AS varchar(25))
+                                ,CAST('CRUD Automático' AS varchar(50))
+                                ,CAST('DAYCOVAL' AS varchar(15))
+                                ,CAST('5' AS tinyint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Menus]
+**********************************************************************************/
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('Cadastros' AS varchar(20))
+                                ,CAST('Cadastros' AS varchar(50))
+                                ,NULL
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('Usuários' AS varchar(20))
+                                ,CAST('Cadastro de Usuários' AS varchar(50))
+                                ,CAST('browse/cruda/Users' AS varchar(50))
+                                ,CAST('1' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('3' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('Tabelas' AS varchar(20))
+                                ,CAST('Cadastro de tabelas' AS varchar(50))
+                                ,CAST('browse/cruda/Tables' AS varchar(50))
+                                ,CAST('1' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('4' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('Menus' AS varchar(20))
+                                ,CAST('Cadastro de menus' AS varchar(50))
+                                ,CAST('browse/cruda/Menus' AS varchar(50))
+                                ,CAST('1' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('5' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('Sistemas' AS varchar(20))
+                                ,CAST('Cadastro de sistemas' AS varchar(50))
+                                ,CAST('browse/cruda/Systems' AS varchar(50))
+                                ,CAST('3' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('6' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('Banco de Dados' AS varchar(20))
+                                ,CAST('Cadastro de bancos de dados' AS varchar(50))
+                                ,CAST('browse/cruda/Databases' AS varchar(50))
+                                ,CAST('3' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('7' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('35' AS smallint)
+                                ,CAST('Colunas' AS varchar(20))
+                                ,CAST('Cadastro de colunas de tabelas' AS varchar(50))
+                                ,CAST('browse/cruda/Columns' AS varchar(50))
+                                ,CAST('7' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('8' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('40' AS smallint)
+                                ,CAST('Tipos' AS varchar(20))
+                                ,CAST('Cadastro de tipos' AS varchar(50))
+                                ,CAST('browse/cruda/Types' AS varchar(50))
+                                ,CAST('7' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('9' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('45' AS smallint)
+                                ,CAST('Associações' AS varchar(20))
+                                ,CAST('Associações entre tabelas' AS varchar(50))
+                                ,NULL
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('10' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('50' AS smallint)
+                                ,CAST('Sistemas x BD' AS varchar(20))
+                                ,CAST('Associação entre sistemas e bancos de dados' AS varchar(50))
+                                ,CAST('browse/cruda/SystemsDatabases' AS varchar(50))
+                                ,CAST('9' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('11' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('55' AS smallint)
+                                ,CAST('Usuários x Sistemas' AS varchar(20))
+                                ,CAST('Associação entre usuários e sistemas' AS varchar(50))
+                                ,CAST('browse/cruda/SystemsUsers' AS varchar(50))
+                                ,CAST('9' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('12' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('60' AS smallint)
+                                ,CAST('Sair' AS varchar(20))
+                                ,CAST('Retornar ao login' AS varchar(50))
+                                ,CAST('exit/login' AS varchar(50))
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Users]
+**********************************************************************************/
+INSERT INTO [dbo].[Users] ([Id]
+                                ,[Name]
+                                ,[Password]
+                                ,[FullName]
+                                ,[RetryLogins]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('adm' AS varchar(25))
+                                ,CAST('adm' AS varchar(256))
+                                ,CAST('Administrador' AS varchar(50))
+                                ,CAST('0' AS tinyint)
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Users] ([Id]
+                                ,[Name]
+                                ,[Password]
+                                ,[FullName]
+                                ,[RetryLogins]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,CAST('labrego' AS varchar(25))
+                                ,CAST('diva' AS varchar(256))
+                                ,CAST('João da Rocha Labrego' AS varchar(50))
+                                ,CAST('0' AS tinyint)
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+/**********************************************************************************
+Inserir dados na tabela [dbo].[SystemsUsers]
+**********************************************************************************/
+INSERT INTO [dbo].[SystemsUsers] ([Id]
+                                ,[SystemId]
+                                ,[UserId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('cruda x adm' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[SystemsUsers] ([Id]
+                                ,[SystemId]
+                                ,[UserId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('cruda x labrego' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Databases]
+**********************************************************************************/
+INSERT INTO [dbo].[Databases] ([Id]
+                                ,[Name]
+                                ,[Description]
+                                ,[Alias]
+                                ,[ServerName]
+                                ,[HostName]
+                                ,[Port]
+                                ,[Logon]
+                                ,[Password]
+                                ,[Folder]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('cruda' AS varchar(25))
+                                ,CAST('CRUD Automático' AS varchar(50))
+                                ,CAST('cruda' AS varchar(25))
+                                ,CAST('NOTEBOOK-DELL' AS varchar(50))
+                                ,CAST('localhost' AS varchar(25))
+                                ,CAST('1433' AS int)
+                                ,CAST('sa' AS varchar(256))
+                                ,CAST('diva' AS varchar(256))
+                                ,CAST('D:\CRUDA-C#\CRUDA-CORE\CRUDA\db\' AS varchar(256))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+/**********************************************************************************
+Inserir dados na tabela [dbo].[SystemsDatabases]
+**********************************************************************************/
+INSERT INTO [dbo].[SystemsDatabases] ([Id]
+                                ,[SystemId]
+                                ,[DatabaseId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('cruda x cruda' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Tables]
+**********************************************************************************/
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('Categories' AS varchar(25))
+                                ,CAST('Category' AS varchar(25))
+                                ,CAST('Categorias de tipos de dados' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('10' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,CAST('Types' AS varchar(25))
+                                ,CAST('Type' AS varchar(25))
+                                ,CAST('Tipos' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('34' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('3' AS bigint)
+                                ,CAST('Masks' AS varchar(25))
+                                ,CAST('Mask' AS varchar(25))
+                                ,CAST('Máscaras de Edição' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('6' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('4' AS bigint)
+                                ,CAST('Domains' AS varchar(25))
+                                ,CAST('Domain' AS varchar(25))
+                                ,CAST('Domínios' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('21' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('5' AS bigint)
+                                ,CAST('Systems' AS varchar(25))
+                                ,CAST('System' AS varchar(25))
+                                ,CAST('Sistemas' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('6' AS bigint)
+                                ,CAST('Menus' AS varchar(25))
+                                ,CAST('Menu' AS varchar(25))
+                                ,CAST('Menus' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('12' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('7' AS bigint)
+                                ,CAST('Users' AS varchar(25))
+                                ,CAST('User' AS varchar(25))
+                                ,CAST('Usuários' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('2' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('8' AS bigint)
+                                ,CAST('SystemsUsers' AS varchar(25))
+                                ,CAST('SystemUser' AS varchar(25))
+                                ,CAST('Sistemas x Usuários' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('2' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('9' AS bigint)
+                                ,CAST('Databases' AS varchar(25))
+                                ,CAST('Database' AS varchar(25))
+                                ,CAST('Bancos-de-Dados' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('10' AS bigint)
+                                ,CAST('SystemsDatabases' AS varchar(25))
+                                ,CAST('SystemDatabase' AS varchar(25))
+                                ,CAST('Sistemas x Bancos-de-Dados' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('11' AS bigint)
+                                ,CAST('Tables' AS varchar(25))
+                                ,CAST('Table' AS varchar(25))
+                                ,CAST('Tabelas' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('16' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('12' AS bigint)
+                                ,CAST('DatabasesTables' AS varchar(25))
+                                ,CAST('DatabaseTable' AS varchar(25))
+                                ,CAST('Bancos-de-Dados x Tabelas' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('16' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('13' AS bigint)
+                                ,CAST('Columns' AS varchar(25))
+                                ,CAST('Column' AS varchar(25))
+                                ,CAST('Colunas' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('122' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('14' AS bigint)
+                                ,CAST('Indexes' AS varchar(25))
+                                ,CAST('Index' AS varchar(25))
+                                ,CAST('Índices' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('23' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('15' AS bigint)
+                                ,CAST('Indexkeys' AS varchar(25))
+                                ,CAST('Indexkey' AS varchar(25))
+                                ,CAST('Chaves de índices' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,CAST('34' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[IsPaged]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('16' AS bigint)
+                                ,CAST('Logins' AS varchar(25))
+                                ,CAST('Login' AS varchar(25))
+                                ,CAST('Logins de Acesso aos Sistemas' AS varchar(50))
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bigint)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+/**********************************************************************************
+Inserir dados na tabela [dbo].[DatabasesTables]
+**********************************************************************************/
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('cruda x Categories' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('cruda x Types' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('3' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('3' AS bigint)
+                                ,CAST('cruda x Masks' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('4' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('cruda x Domains' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('5' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('cruda x Systems' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('6' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST('cruda x Menus' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('7' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('7' AS bigint)
+                                ,CAST('cruda x Users' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('8' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('8' AS bigint)
+                                ,CAST('cruda x SystemsUsers' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('9' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('cruda x Databases' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('10' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('10' AS bigint)
+                                ,CAST('cruda x SystemsDatabases' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('11' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('cruda x Tables' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('12' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('12' AS bigint)
+                                ,CAST('cruda x DatabasesTables' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('13' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('cruda x Columns' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('14' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('14' AS bigint)
+                                ,CAST('cruda x Indexes' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('15' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('15' AS bigint)
+                                ,CAST('cruda x Indexkeys' AS varchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Description]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('16' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('16' AS bigint)
+                                ,CAST('cruda x Logins' AS varchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
