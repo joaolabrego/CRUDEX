@@ -1,9 +1,3 @@
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF(SELECT object_id('[cruda].[TransactionBegin]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionBegin] AS PRINT 1')
 GO
@@ -27,15 +21,15 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		SELECT @TransactionId = MAX([TransactionId]) + 1
 			FROM [cruda].[Transactions]
 		INSERT [cruda].[Transactions] ([Id]
-										,[LoginId]
-										,[IsConfirmed]
-										,[CreatedAt]
-										,[CreatedBy])
+									  ,[LoginId]
+									  ,[IsConfirmed]
+									  ,[CreatedAt]
+									  ,[CreatedBy])
 								VALUES (ISNULL(@TransactionId, 1)
-										,@LoginId
-										,NULL
-										,GETDATE()
-										,@UserName)
+									   ,@LoginId
+									   ,NULL
+									   ,GETDATE()
+									   ,@UserName)
 		COMMIT TRANSACTION [TransactionBegin]
 
 		RETURN @TransactionId

@@ -1,10 +1,4 @@
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-IF(SELECT object_id('[cruda].[TransactionCommit]', 'P')) IS NULL
+ÔªøIF(SELECT object_id('[cruda].[TransactionCommit]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
@@ -25,7 +19,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 		ELSE
 			SAVE TRANSACTION [TransactionsCommit]
 		IF @TransactionId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor do par‚metro @TransactionId È requerido';
+			SET @ErrorMessage = @ErrorMessage + 'Valor do par√¢metro @TransactionId √© requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
 		SELECT @LoginId = [LoginId]
@@ -33,11 +27,11 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 			FROM [cruda].[Transactions]
 			WHERE [TransactionId] = @TransactionId
 		IF @LoginId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'TransaÁ„o È inexistente';
+			SET @ErrorMessage = @ErrorMessage + 'Transa√ß√£o √© inexistente';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @IsConfirmed IS NOT NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'TransaÁ„o j· ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluÌda' END;
+			SET @ErrorMessage = @ErrorMessage + 'Transa√ß√£o j√° ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'conclu√≠da' END;
 			THROW 51000, @ErrorMessage, 1
 		END
 		WHILE 1 = 1 BEGIN

@@ -1,9 +1,3 @@
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF(SELECT object_id('[cruda].[NumberInWords]', 'FN')) IS NULL
 	EXEC('CREATE FUNCTION [cruda].[NumberInWords]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO

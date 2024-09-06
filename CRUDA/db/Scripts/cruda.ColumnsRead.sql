@@ -1,9 +1,3 @@
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF(SELECT object_id('[cruda].[ColumnsRead]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[ColumnsRead] AS PRINT 1')
 GO

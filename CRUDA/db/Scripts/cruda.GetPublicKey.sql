@@ -1,10 +1,4 @@
-﻿USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-IF(SELECT object_id('[cruda].[GetPublicKey]', 'P')) IS NULL
+﻿IF(SELECT object_id('[cruda].[GetPublicKey]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[GetPublicKey] AS PRINT 1')
 GO
 ALTER PROCEDURE[cruda].[GetPublicKey](@LoginId BIGINT) AS BEGIN

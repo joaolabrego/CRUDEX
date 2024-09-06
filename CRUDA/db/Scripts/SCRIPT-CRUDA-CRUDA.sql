@@ -99,12 +99,6 @@ GO
 /**********************************************************************************
 Criar stored procedure [cruda].[Config]
 **********************************************************************************/
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF(SELECT object_id('[cruda].[Config]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[Config] AS PRINT 1')
 GO
@@ -371,12 +365,6 @@ GO
 /**********************************************************************************
 Criar stored procedure [cruda].[GenerateId]
 **********************************************************************************/
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF(SELECT object_id('[cruda].[GenerateId]','P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[GenerateId] AS PRINT 1')
 GO
@@ -450,12 +438,6 @@ GO
 /**********************************************************************************
 Criar stored procedure [cruda].[Login]
 **********************************************************************************/
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF(SELECT object_id('[cruda].[P_Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[P_Login] AS PRINT 1')
 GO
@@ -626,12 +608,6 @@ GO
 /**********************************************************************************
 Criar stored procedure [cruda].[GetPublicKey]
 **********************************************************************************/
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF(SELECT object_id('[cruda].[GetPublicKey]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[GetPublicKey] AS PRINT 1')
 GO
@@ -664,12 +640,6 @@ GO
 /**********************************************************************************
 Criar function [cruda].[NumberInWordsOfHundreds]
 **********************************************************************************/
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF(SELECT object_id('[cruda].[NumberInWordsOfHundreds]', 'FN')) IS NULL
 	EXEC('CREATE FUNCTION [cruda].[NumberInWordsOfHundreds]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
@@ -809,12 +779,6 @@ GO
 /**********************************************************************************
 Criar function [cruda].[NumberInWords]
 **********************************************************************************/
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF(SELECT object_id('[cruda].[NumberInWords]', 'FN')) IS NULL
 	EXEC('CREATE FUNCTION [cruda].[NumberInWords]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
@@ -971,12 +935,6 @@ GO
 /**********************************************************************************
 Criar stored procedure [cruda].[IsEquals]
 **********************************************************************************/
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF (SELECT object_id('[cruda].[IsEquals]', 'FN')) IS NULL
 	EXEC('CREATE FUNCTION [cruda].[IsEquals]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
@@ -998,12 +956,6 @@ GO
 /**********************************************************************************
 Criar stored procedure [cruda].TransactionBegin]
 **********************************************************************************/
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF(SELECT object_id('[cruda].[TransactionBegin]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionBegin] AS PRINT 1')
 GO
@@ -1027,15 +979,15 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		SELECT @TransactionId = MAX([TransactionId]) + 1
 			FROM [cruda].[Transactions]
 		INSERT [cruda].[Transactions] ([Id]
-										,[LoginId]
-										,[IsConfirmed]
-										,[CreatedAt]
-										,[CreatedBy])
+									  ,[LoginId]
+									  ,[IsConfirmed]
+									  ,[CreatedAt]
+									  ,[CreatedBy])
 								VALUES (ISNULL(@TransactionId, 1)
-										,@LoginId
-										,NULL
-										,GETDATE()
-										,@UserName)
+									   ,@LoginId
+									   ,NULL
+									   ,GETDATE()
+									   ,@UserName)
 		COMMIT TRANSACTION [TransactionBegin]
 
 		RETURN @TransactionId
@@ -1049,12 +1001,6 @@ GO
 /**********************************************************************************
 Criar stored procedure [cruda].[TransactionCommit]
 **********************************************************************************/
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF(SELECT object_id('[cruda].[TransactionCommit]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionCommit] AS PRINT 1')
 GO
@@ -1076,7 +1022,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 		ELSE
 			SAVE TRANSACTION [TransactionsCommit]
 		IF @TransactionId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor do par�metro @TransactionId � requerido';
+			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
 		SELECT @LoginId = [LoginId]
@@ -1084,11 +1030,11 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 			FROM [cruda].[Transactions]
 			WHERE [TransactionId] = @TransactionId
 		IF @LoginId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transa��o � inexistente';
+			SET @ErrorMessage = @ErrorMessage + 'Transação é inexistente';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @IsConfirmed IS NOT NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transa��o j� ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'conclu�da' END;
+			SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
 		WHILE 1 = 1 BEGIN
@@ -1120,12 +1066,6 @@ GO
 /**********************************************************************************
 Criar stored procedure [cruda].[TransactionRollback]
 **********************************************************************************/
-USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 IF(SELECT object_id('[cruda].[TransactionRollback]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionRollback] AS PRINT 1')
 GO
@@ -1146,7 +1086,7 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
 		ELSE
 			SAVE TRANSACTION [TransactionRollback]
 		IF @TransactionId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor do par�metro @TransactionId � requerido';
+			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
 		SELECT @TransactionIdAux = [Id]
@@ -1154,11 +1094,11 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
 			FROM [cruda].[Transactions]
 			WHERE [TransactionId] = @TransactionId
 		IF @TransactionIdAux IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transa��o � inexistente';
+			SET @ErrorMessage = @ErrorMessage + 'Transação é inexistente';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @IsConfirmed IS NOT NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transa��o j� ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'conclu�da' END;
+			SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
 		UPDATE [cruda].[Operations]
@@ -1182,6 +1122,36 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
 	END CATCH
 END
 GO
+/**********************************************************************************
+Criar tabela [cruda].[Transactions]
+**********************************************************************************/
+IF (SELECT object_id('[cruda].[Transactions]', 'U')) IS NOT NULL
+    DROP TABLE [cruda].[Transactions]
+CREATE TABLE [cruda].[Transactions]([Id] [bigint] NOT NULL
+                                   ,[LoginId] [bigint] NOT NULL
+                                   ,[IsConfirmed] [bit] NULL
+                                   ,[CreatedAt] datetime NOT NULL
+                                   ,[CreatedBy] varchar(25) NOT NULL
+                                   ,[UpdatedAt] datetime NULL
+                                   ,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [cruda].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED([Id])CREATE INDEX [IDX_Transactions_LoginId_IsConfirmed] ON [dbo].[Transactions]([LoginId], [IsConfirmed])GO
+/**********************************************************************************
+Criar tabela [cruda].[Operations]
+**********************************************************************************/
+IF (SELECT object_id('[cruda].[Operations]', 'U')) IS NOT NULL
+    DROP TABLE [cruda].[Operations]
+CREATE TABLE [cruda].[Operations]([Id] [bigint] NOT NULL
+                                 ,[TransactionId] [bigint] NOT NULL
+                                 ,[TableName] [varchar](25) NOT NULL
+                                 ,[Action] [varchar](15) NOT NULL
+                                 ,[LastRecord] [varchar](max) NULL
+                                 ,[ActualRecord] [varchar](max) NOT NULL
+                                 ,[IsConfirmed] [bit] NULL
+                                 ,[CreatedAt] datetime NOT NULL
+                                 ,[CreatedBy] varchar(25) NOT NULL
+                                 ,[UpdatedAt] datetime NULL
+                                 ,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [cruda].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED([Id])CREATE INDEX [IDX_Operations_TransactionId_TableName_Action_IsConfirmed] ON [dbo].[Operations]([TransactionId], [TableName], [Action], [IsConfirmed])GO
 /**********************************************************************************
 Criar tabela [dbo].[Categories]
 **********************************************************************************/
@@ -1990,7 +1960,7 @@ CREATE TABLE [dbo].[Menus]([Id] bigint NOT NULL
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Menus] ADD CONSTRAINT PK_Menus PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Sequence] ON [dbo].[Menus]([SystemId] ASC                                                                                                          ,[Sequence] ASC)
+CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Sequence] ON [dbo].[Menus]([SystemId] ASC, [Sequence] ASC)
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Menus]
@@ -2278,7 +2248,7 @@ CREATE TABLE [dbo].[SystemsUsers]([Id] bigint NOT NULL
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[SystemsUsers] ADD CONSTRAINT PK_SystemsUsers PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_SystemsUsers_SystemId_UserId] ON [dbo].[SystemsUsers]([SystemId] ASC                                                                                                          ,[UserId] ASC)
+CREATE UNIQUE INDEX [UNQ_SystemsUsers_SystemId_UserId] ON [dbo].[SystemsUsers]([SystemId] ASC, [UserId] ASC)
 CREATE UNIQUE INDEX [UNQ_SystemsUsers_Description] ON [dbo].[SystemsUsers]([Description] ASC)
 GO
 /**********************************************************************************
@@ -2576,7 +2546,7 @@ CREATE TABLE [dbo].[SystemsDatabases]([Id] bigint NOT NULL
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[SystemsDatabases] ADD CONSTRAINT PK_SystemsDatabases PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_SystemsDatabases_SystemId_DatabaseId] ON [dbo].[SystemsDatabases]([SystemId] ASC                                                                                                          ,[DatabaseId] ASC)
+CREATE UNIQUE INDEX [UNQ_SystemsDatabases_SystemId_DatabaseId] ON [dbo].[SystemsDatabases]([SystemId] ASC, [DatabaseId] ASC)
 CREATE UNIQUE INDEX [UNQ_SystemsDatabases_Description] ON [dbo].[SystemsDatabases]([Description] ASC)
 GO
 /**********************************************************************************
@@ -2854,7 +2824,7 @@ CREATE TABLE [dbo].[DatabasesTables]([Id] bigint NOT NULL
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[DatabasesTables] ADD CONSTRAINT PK_DatabasesTables PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_DatabasesTables_DatabaseId_TableId] ON [dbo].[DatabasesTables]([DatabaseId] ASC                                                                                                          ,[TableId] ASC)
+CREATE UNIQUE INDEX [UNQ_DatabasesTables_DatabaseId_TableId] ON [dbo].[DatabasesTables]([DatabaseId] ASC, [TableId] ASC)
 CREATE UNIQUE INDEX [UNQ_DatabasesTables_Description] ON [dbo].[DatabasesTables]([Description] ASC)
 GO
 /**********************************************************************************
@@ -3005,8 +2975,8 @@ CREATE TABLE [dbo].[Columns]([Id] bigint NOT NULL
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Columns] ADD CONSTRAINT PK_Columns PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Columns_TableId_Name] ON [dbo].[Columns]([TableId] ASC                                                                                                          ,[Name] ASC)
-CREATE UNIQUE INDEX [UNQ_Columns_TableId_Sequence] ON [dbo].[Columns]([TableId] ASC                                                                                                          ,[Sequence] ASC)
+CREATE UNIQUE INDEX [UNQ_Columns_TableId_Name] ON [dbo].[Columns]([TableId] ASC, [Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Columns_TableId_Sequence] ON [dbo].[Columns]([TableId] ASC, [Sequence] ASC)
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Columns]
@@ -3208,7 +3178,7 @@ CREATE TABLE [dbo].[Indexes]([Id] bigint NOT NULL
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Indexes] ADD CONSTRAINT PK_Indexes PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Indexes_DatabaseId_Name] ON [dbo].[Indexes]([DatabaseId] ASC                                                                                                          ,[Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Indexes_DatabaseId_Name] ON [dbo].[Indexes]([DatabaseId] ASC, [Name] ASC)
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Indexes]
@@ -3346,8 +3316,8 @@ CREATE TABLE [dbo].[Indexkeys]([Id] bigint NOT NULL
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Indexkeys] ADD CONSTRAINT PK_Indexkeys PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_Sequence] ON [dbo].[Indexkeys]([IndexId] ASC                                                                                                          ,[Sequence] ASC)
-CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_ColumnId] ON [dbo].[Indexkeys]([IndexId] ASC                                                                                                          ,[ColumnId] ASC)
+CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_Sequence] ON [dbo].[Indexkeys]([IndexId] ASC, [Sequence] ASC)
+CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_ColumnId] ON [dbo].[Indexkeys]([IndexId] ASC, [ColumnId] ASC)
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Indexkeys]
@@ -3485,7 +3455,7 @@ CREATE TABLE [dbo].[Logins]([Id] bigint NOT NULL
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Logins] ADD CONSTRAINT PK_Logins PRIMARY KEY CLUSTERED ([Id])
-CREATE  INDEX [UNQ_Logins_SystemId_UserId_IsLogged] ON [dbo].[Logins]([SystemId] ASC                                                                                                          ,[UserId] ASC                                                                                                          ,[IsLogged] ASC)
+CREATE  INDEX [IDX_Logins_SystemId_UserId_IsLogged] ON [dbo].[Logins]([SystemId] ASC, [UserId] ASC, [IsLogged] ASC)
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Logins]
@@ -13495,7 +13465,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('UNQ_Categories_Name' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13514,7 +13484,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('2' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('2' AS bigint)
                                 ,CAST('UNQ_Types_Name' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13533,7 +13503,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('3' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('3' AS bigint)
                                 ,CAST('UNQ_Masks_Name' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13552,7 +13522,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('4' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('4' AS bigint)
                                 ,CAST('UNQ_Domains_Name' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13571,7 +13541,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('5' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('5' AS bigint)
                                 ,CAST('UNQ_Systems_Name' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13590,7 +13560,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('6' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('6' AS bigint)
                                 ,CAST('UNQ_Menus_SystemId_Sequence' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13609,7 +13579,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('7' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('7' AS bigint)
                                 ,CAST('UNQ_Users_Name' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13628,7 +13598,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('8' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('8' AS bigint)
                                 ,CAST('UNQ_SystemsUsers_SystemId_UserId' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13647,7 +13617,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('9' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('8' AS bigint)
                                 ,CAST('UNQ_SystemsUsers_Description' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13666,7 +13636,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('10' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('9' AS bigint)
                                 ,CAST('UNQ_Databases_Name' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13685,7 +13655,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('11' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('9' AS bigint)
                                 ,CAST('UNQ_Databases_Alias' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13704,7 +13674,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('12' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('UNQ_SystemsDatabases_SystemId_DatabaseId' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13723,7 +13693,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('13' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('UNQ_SystemsDatabases_Description' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13742,7 +13712,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('14' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('UNQ_Tables_Name' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13761,7 +13731,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('15' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('UNQ_Tables_Alias' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13780,7 +13750,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('16' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('UNQ_DatabasesTables_DatabaseId_TableId' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13799,7 +13769,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('17' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('UNQ_DatabasesTables_Description' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13818,7 +13788,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('18' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('UNQ_Columns_TableId_Name' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13837,7 +13807,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('19' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('UNQ_Columns_TableId_Sequence' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13856,7 +13826,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('20' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('UNQ_Indexes_DatabaseId_Name' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13875,7 +13845,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('21' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('UNQ_Indexkeys_IndexId_Sequence' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13894,7 +13864,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('22' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('UNQ_Indexkeys_IndexId_ColumnId' AS varchar(50))
                                 ,CAST('1' AS bit)
@@ -13913,9 +13883,9 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('23' AS bigint)
-                                ,NULL
+                                ,CAST('1' AS bigint)
                                 ,CAST('16' AS bigint)
-                                ,CAST('UNQ_Logins_SystemId_UserId_IsLogged' AS varchar(50))
+                                ,CAST('IDX_Logins_SystemId_UserId_IsLogged' AS varchar(50))
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'

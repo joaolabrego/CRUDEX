@@ -34,12 +34,11 @@ namespace CRUDA.Classes
                 {
                     stream.Write(GetScriptDatabase(database));
                     stream.Write(GetScriptOthers(systemName == "cruda"));
-                    GetScriptTableTransactions();
-                    GetScriptTableOperations();
+                    stream.Write(GetScriptTableTransactions());
+                    stream.Write(GetScriptTableOperations());
                     firstTime = false;
                 }
                 stream.Write(GetScriptTable(table, columns, indexes, indexkeys, domains, types));
-
                 stream.Write(GetScriptRatify(table, columns, domains, types, categories, indexes, indexkeys));
 
             }
@@ -116,7 +115,7 @@ namespace CRUDA.Classes
 
             return result;
         }
-        private static string GetScriptDatabase(DataRow database)
+        private static StringBuilder GetScriptDatabase(DataRow database)
         {
             var result = new StringBuilder();
             var folder = database["Folder"].ToString() ?? string.Empty;
@@ -221,9 +220,9 @@ namespace CRUDA.Classes
             result.Append($"CREATE SCHEMA cruda AUTHORIZATION [dbo]\r\n");
             result.Append($"GO\r\n");
 
-            return result.ToString();
+            return result;
         }
-        private static string GetScriptOthers(bool all)
+        private static StringBuilder GetScriptOthers(bool all)
         {
             var result = new StringBuilder();
 
@@ -271,9 +270,9 @@ namespace CRUDA.Classes
             result.Append($"**********************************************************************************/\r\n");
             result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.TransactionRollback.sql")));
 
-            return result.ToString();
+            return result;
         }
-        private static string GetScriptTableTransactions()
+        private static StringBuilder GetScriptTableTransactions()
         {
             var result = new StringBuilder();
 
@@ -293,9 +292,9 @@ namespace CRUDA.Classes
             result.Append($"CREATE INDEX [IDX_Transactions_LoginId_IsConfirmed] ON [dbo].[Transactions]([LoginId], [IsConfirmed])");
             result.Append($"GO\r\n");
 
-            return result.ToString();
+            return result;
         }
-        private static string GetScriptTableOperations()
+        private static StringBuilder GetScriptTableOperations()
         {
             var result = new StringBuilder();
 
@@ -304,7 +303,7 @@ namespace CRUDA.Classes
             result.Append($"**********************************************************************************/\r\n");
             result.Append($"IF (SELECT object_id('[cruda].[Operations]', 'U')) IS NOT NULL\r\n");
             result.Append($"    DROP TABLE [cruda].[Operations]\r\n");
-            result.Append($"CREATE TABLE [cruda].[Operations]([Id] [bigint] NOT NULL,\r\n");
+            result.Append($"CREATE TABLE [cruda].[Operations]([Id] [bigint] NOT NULL\r\n");
             result.Append($"                                 ,[TransactionId] [bigint] NOT NULL\r\n");
             result.Append($"                                 ,[TableName] [varchar](25) NOT NULL\r\n");
             result.Append($"                                 ,[Action] [varchar](15) NOT NULL\r\n");
@@ -319,15 +318,15 @@ namespace CRUDA.Classes
             result.Append($"CREATE INDEX [IDX_Operations_TransactionId_TableName_Action_IsConfirmed] ON [dbo].[Operations]([TransactionId], [TableName], [Action], [IsConfirmed])");
             result.Append($"GO\r\n");
 
-            return result.ToString();
+            return result;
         }
-        private static string GetScriptTable(DataRow table, TDataRows columns, TDataRows indexes, TDataRows indexkeys, TDataRows domains, TDataRows types)
+        private static StringBuilder GetScriptTable(DataRow table, TDataRows columns, TDataRows indexes, TDataRows indexkeys, TDataRows domains, TDataRows types)
         {
             var result = new StringBuilder();
             var firstTime = true;
-            var rows = columns.FindAll(column => ToLong(column["TableId"]) == ToLong(table["Id"]));
+            var columnRows = columns.FindAll(column => ToLong(column["TableId"]) == ToLong(table["Id"]));
 
-            if (rows.Count > 0)
+            if (columnRows.Count > 0)
             {
                 result.Append($"/**********************************************************************************\r\n");
                 result.Append($"Criar tabela [dbo].[{table["Name"]}]\r\n");
@@ -335,7 +334,7 @@ namespace CRUDA.Classes
                 result.Append($"IF (SELECT object_id('[dbo].[{table["Name"]}]', 'U')) IS NOT NULL\r\n");
                 result.Append($"    DROP TABLE [dbo].[{table["Name"]}]\r\n");
 
-                foreach (DataRow column in rows)
+                foreach (DataRow column in columnRows)
                 {
                     var typeName = ToString(column["#DataType"]);
                     var definition = $"[{column["Name"]}] {typeName} {(ToBoolean(column["IsRequired"]) ? "NOT NULL" : "NULL")}";
@@ -358,25 +357,29 @@ namespace CRUDA.Classes
                 result.Append($"                                    ,[UpdatedAt] datetime NULL\r\n");
                 result.Append($"                                    ,[UpdatedBy] varchar(25) NULL)\r\n");
                 firstTime = true;
-                rows = columns.FindAll(column => ToLong(column["TableId"]) == ToLong(table["Id"]) && ToBoolean(column["IsPrimarykey"]));
-                if (rows.Count > 0)
+
+                var pkColumnRows = columns.FindAll(column => ToLong(column["TableId"]) == ToLong(table["Id"]) && ToBoolean(column["IsPrimarykey"]));
+
+                if (pkColumnRows.Count > 0)
                 {
-                    foreach (DataRow column in rows)
+                    foreach (DataRow pkColumnRow in pkColumnRows)
                     {
                         if (firstTime)
                         {
-                            result.Append($"ALTER TABLE [dbo].[{table["Name"]}] ADD CONSTRAINT PK_{table["Name"]} PRIMARY KEY CLUSTERED ([{column["Name"]}]");
+                            result.Append($"ALTER TABLE [dbo].[{table["Name"]}] ADD CONSTRAINT PK_{table["Name"]} PRIMARY KEY CLUSTERED ([{pkColumnRow["Name"]}]");
                             firstTime = false;
                         }
                         else
-                            result.Append($", [{column["Name"]}]");
+                            result.Append($", [{pkColumnRow["Name"]}]");
                     }
                     result.Append($")\r\n");
                 }
-                rows = indexes.FindAll(index => ToLong(index["TableId"]) == ToLong(table["Id"]));
-                if (rows.Count > 0)
+
+                var indexRows = indexes.FindAll(index => ToLong(index["TableId"]) == ToLong(table["Id"]));
+
+                if (indexRows.Count > 0)
                 {
-                    foreach (var index in rows)
+                    foreach (var index in indexRows)
                     {
                         var indexkeyRows = indexkeys.FindAll(indexkey => ToLong(indexkey["IndexId"]) == ToLong(index["Id"]));
 
@@ -386,15 +389,15 @@ namespace CRUDA.Classes
                             foreach (var indexkey in indexkeyRows)
                             {
                                 var column = columns.First(column => ToLong(column["Id"]) == ToLong(indexkey["ColumnId"]));
-                                var columnName = $"[{column["Name"]}] {(ToBoolean(indexkey["IsDescending"]) ? "DESC" : "ASC")}";
+                                var definition = $"[{column["Name"]}] {(ToBoolean(indexkey["IsDescending"]) ? "DESC" : "ASC")}";
 
                                 if (firstTime)
                                 {
-                                    result.Append($"CREATE {(ToBoolean(index["IsUnique"]) ? "UNIQUE" : "")} INDEX [{index["Name"]}] ON [dbo].[{table["Name"]}]({columnName}");
+                                    result.Append($"CREATE {(ToBoolean(index["IsUnique"]) ? "UNIQUE" : "")} INDEX [{index["Name"]}] ON [dbo].[{table["Name"]}]({definition}");
                                     firstTime = false;
                                 }
                                 else
-                                    result.Append($"                                                                                                          ,{columnName}");
+                                    result.Append($", {definition}");
                             }
                             result.Append($")\r\n");
                         }
@@ -403,22 +406,22 @@ namespace CRUDA.Classes
                 }
             }
 
-            return result.ToString();
+            return result;
         }
-        private static string GetScriptReferences(TDataRows tables, TDataRows columns)
+        private static StringBuilder GetScriptReferences(TDataRows tables, TDataRows columns)
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(column => !string.IsNullOrEmpty(column["ReferenceTableId"].ToString()));
             var lastTableName = string.Empty;
+            var foreignRows = columns.FindAll(column => ToString(column["ReferenceTableId"]) != string.Empty);
 
-            if (columnRows.Count > 0)
+            if (foreignRows.Count > 0)
             {
-                foreach (var columnRow in columnRows)
+                foreach (var foreignRow in foreignRows)
                 {
-                    var primaryTable = tables.First(table => ToLong(table["Id"]) == ToLong(columnRow["TableId"]));
-                    var referencedTable = tables.First(table => ToLong(table["Id"]) == ToLong(columnRow["ReferenceTableId"]));
-                    var referencedPrimarykey = columns.First(column => ToLong(column["TableId"]) == ToLong(referencedTable["Id"]) && ToBoolean(column["IsPrimarykey"]));
-                    var foreignKeyName = $"FK_{primaryTable["Name"]}_{referencedTable["Name"]}";
+                    var primaryTable = tables.First(table => ToLong(table["Id"]) == ToLong(foreignRow["TableId"]));
+                    var foreignTable = tables.First(table => ToLong(table["Id"]) == ToLong(foreignRow["ReferenceTableId"]));
+                    var foreignKey = columns.First(column => ToLong(column["TableId"]) == ToLong(foreignTable["Id"]) && ToBoolean(column["IsPrimarykey"]));
+                    var foreignName = $"FK_{primaryTable["Name"]}_{foreignTable["Name"]}";
 
                     if (primaryTable["Name"].ToString() != lastTableName)
                     {
@@ -427,22 +430,22 @@ namespace CRUDA.Classes
                         result.Append($"**********************************************************************************/\r\n");
                         lastTableName = primaryTable["Name"].ToString();
                     }
-                    result.Append($"IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = '{foreignKeyName}')\r\n");
-                    result.Append($"    ALTER TABLE [dbo].[{primaryTable["Name"]}] DROP CONSTRAINT {foreignKeyName}\r\n");
+                    result.Append($"IF EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = '{foreignName}')\r\n");
+                    result.Append($"    ALTER TABLE [dbo].[{primaryTable["Name"]}] DROP CONSTRAINT {foreignName}\r\n");
                     result.Append($"GO\r\n");
                     result.Append($"ALTER TABLE [dbo].[{primaryTable["Name"]}] WITH CHECK \r\n");
-                    result.Append($"    ADD CONSTRAINT [{foreignKeyName}] \r\n");
-                    result.Append($"    FOREIGN KEY([{columnRow["Name"]}]) \r\n");
-                    result.Append($"    REFERENCES [dbo].[{referencedTable["Name"]}] ([{referencedPrimarykey["Name"]}])\r\n");
+                    result.Append($"    ADD CONSTRAINT [{foreignName}] \r\n");
+                    result.Append($"    FOREIGN KEY([{foreignRow["Name"]}]) \r\n");
+                    result.Append($"    REFERENCES [dbo].[{foreignTable["Name"]}] ([{foreignKey["Name"]}])\r\n");
                     result.Append($"GO\r\n");
-                    result.Append($"ALTER TABLE [dbo].[{primaryTable["Name"]}] CHECK CONSTRAINT [{foreignKeyName}]\r\n");
+                    result.Append($"ALTER TABLE [dbo].[{primaryTable["Name"]}] CHECK CONSTRAINT [{foreignName}]\r\n");
                     result.Append($"GO\r\n");
                 }
             }
 
-            return result.ToString();
+            return result;
         }
-        private static string GetScriptDml(DataRow table, TDataRows columns, TDataRows domains, TDataRows types, TDataRows categories, TDataRows dataRows)
+        private static StringBuilder GetScriptDml(DataRow table, TDataRows columns, TDataRows domains, TDataRows types, TDataRows categories, TDataRows dataRows)
         {
             var result = new StringBuilder();
 
@@ -515,9 +518,9 @@ namespace CRUDA.Classes
                 }
             }
 
-            return result.ToString();
+            return result;
         }
-        private static string GetScriptRatify(DataRow table, TDataRows columns, TDataRows domains, TDataRows types, TDataRows categories, TDataRows indexes, TDataRows indexkeys)
+        private static StringBuilder GetScriptRatify(DataRow table, TDataRows columns, TDataRows domains, TDataRows types, TDataRows categories, TDataRows indexes, TDataRows indexkeys)
         {
             var result = new StringBuilder();
 
@@ -731,7 +734,7 @@ namespace CRUDA.Classes
                 }
             }
 
-            return result.ToString();
+            return result;
         }
     }
 }

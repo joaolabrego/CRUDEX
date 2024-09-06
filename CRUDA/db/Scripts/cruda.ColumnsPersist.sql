@@ -1,10 +1,4 @@
-﻿USE [cruda]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-IF(SELECT object_id('[cruda].[ColumnsPersist]', 'P')) IS NULL
+﻿IF(SELECT object_id('[cruda].[ColumnsPersist]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[ColumnsPersist] AS PRINT 1')
 GO
 ALTER PROCEDURE [cruda].[ColumnsPersist](@LoginId BIGINT
