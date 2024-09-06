@@ -1,7 +1,7 @@
-﻿IF(SELECT object_id('[cruda].[GetPublicKey]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [cruda].[GetPublicKey] AS PRINT 1')
+﻿IF(SELECT object_id('[dbo].[GetPublicKey]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[GetPublicKey] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[GetPublicKey](@LoginId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED

@@ -1,9 +1,9 @@
-IF(SELECT object_id('[cruda].[Config]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [cruda].[Config] AS PRINT 1')
+IF(SELECT object_id('[dbo].[Config]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[Config] AS PRINT 1')
 GO
-ALTER PROCEDURE [cruda].[Config](@SystemName VARCHAR(25)
-								,@DatabaseName VARCHAR(25) = NULL
-								,@TableName VARCHAR(25) = NULL) AS
+ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
+							  ,@DatabaseName VARCHAR(25) = NULL
+							  ,@TableName VARCHAR(25) = NULL) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(50)
 

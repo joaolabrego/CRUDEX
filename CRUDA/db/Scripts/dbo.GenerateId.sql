@@ -1,9 +1,9 @@
-﻿IF(SELECT object_id('[cruda].[GenerateId]','P')) IS NULL
-	EXEC('CREATE PROCEDURE [cruda].[GenerateId] AS PRINT 1')
+﻿IF(SELECT object_id('[dbo].[GenerateId]','P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[GenerateId] AS PRINT 1')
 GO
-ALTER PROCEDURE [cruda].[GenerateId](@SystemName VARCHAR(25)
-									,@DatabaseName VARCHAR(25)
-									,@TableName VARCHAR(25)) AS
+ALTER PROCEDURE [dbo].[GenerateId](@SystemName VARCHAR(25)
+								  ,@DatabaseName VARCHAR(25)
+								  ,@TableName VARCHAR(25)) AS
 BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
@@ -16,9 +16,9 @@ BEGIN
 				@ErrorMessage VARCHAR(255) = 'Stored Procedure GenerateId: '
 
 		IF @@TRANCOUNT = 0 BEGIN
-			BEGIN TRANSACTION GenerateId
+			BEGIN TRANSACTION [GenerateId]
 		END ELSE
-			SAVE TRANSACTION GenerateId
+			SAVE TRANSACTION [GenerateId]
 		SELECT @SystemId = [Id]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
@@ -58,12 +58,12 @@ BEGIN
 		UPDATE [dbo].[Tables] 
 			SET [CurrentId] = @NextId
 			WHERE [Id] = @TableId
-		COMMIT TRANSACTION GenerateId
+		COMMIT TRANSACTION [GenerateId]
 
 		RETURN @NextId
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION GenerateId;
+		ROLLBACK TRANSACTION [GenerateId];
 		THROW
 	END CATCH
 END

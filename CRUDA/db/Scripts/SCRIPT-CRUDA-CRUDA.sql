@@ -4,22 +4,20 @@ Criar banco-de-dados cruda
 USE [master]
 SET NOCOUNT ON
 IF EXISTS(SELECT 1 FROM sys.databases where name = 'cruda')
-DROP DATABASE cruda
+    DROP DATABASE cruda
 GO
 CREATE DATABASE [cruda]
-CONTAINMENT = NONE
-ON PRIMARY
-(NAME = N'cruda', FILENAME = N'D:\CRUDA-C#\CRUDA-CORE\CRUDA\db\cruda.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)
-LOG ON
-(NAME = N'cruda_log', FILENAME = N'D:\CRUDA-C#\CRUDA-CORE\CRUDA\db\cruda.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)
-WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF
+    CONTAINMENT = NONE
+    ON PRIMARY
+    (NAME = N'cruda', FILENAME = N'D:\CRUDA-C#\CRUDA-CORE\CRUDA\db\cruda.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)
+    LOG ON
+    (NAME = N'cruda_log', FILENAME = N'D:\CRUDA-C#\CRUDA-CORE\CRUDA\db\cruda.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)
+    WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF
 GO
 ALTER DATABASE[cruda] SET COMPATIBILITY_LEVEL = 160
 GO
 IF(1 = FULLTEXTSERVICEPROPERTY('IsFullTextInstalled'))
-BEGIN
-EXEC[cruda].[dbo].[sp_fulltext_database] @action = 'enable'
-END
+    EXEC[cruda].[dbo].[sp_fulltext_database] @action = 'enable'
 GO
 ALTER DATABASE[cruda] SET ANSI_NULL_DEFAULT OFF
 GO
@@ -97,14 +95,14 @@ GO
 CREATE SCHEMA cruda AUTHORIZATION [dbo]
 GO
 /**********************************************************************************
-Criar stored procedure [cruda].[Config]
+Criar stored procedure [dbo].[Config]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[Config]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [cruda].[Config] AS PRINT 1')
+IF(SELECT object_id('[dbo].[Config]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[Config] AS PRINT 1')
 GO
-ALTER PROCEDURE [cruda].[Config](@SystemName VARCHAR(25)
-								,@DatabaseName VARCHAR(25) = NULL
-								,@TableName VARCHAR(25) = NULL) AS
+ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
+							  ,@DatabaseName VARCHAR(25) = NULL
+							  ,@TableName VARCHAR(25) = NULL) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(50)
 
@@ -363,14 +361,14 @@ BEGIN
 END
 GO
 /**********************************************************************************
-Criar stored procedure [cruda].[GenerateId]
+Criar stored procedure [dbo].[GenerateId]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[GenerateId]','P')) IS NULL
-	EXEC('CREATE PROCEDURE [cruda].[GenerateId] AS PRINT 1')
+IF(SELECT object_id('[dbo].[GenerateId]','P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[GenerateId] AS PRINT 1')
 GO
-ALTER PROCEDURE [cruda].[GenerateId](@SystemName VARCHAR(25)
-									,@DatabaseName VARCHAR(25)
-									,@TableName VARCHAR(25)) AS
+ALTER PROCEDURE [dbo].[GenerateId](@SystemName VARCHAR(25)
+								  ,@DatabaseName VARCHAR(25)
+								  ,@TableName VARCHAR(25)) AS
 BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
@@ -383,9 +381,9 @@ BEGIN
 				@ErrorMessage VARCHAR(255) = 'Stored Procedure GenerateId: '
 
 		IF @@TRANCOUNT = 0 BEGIN
-			BEGIN TRANSACTION GenerateId
+			BEGIN TRANSACTION [GenerateId]
 		END ELSE
-			SAVE TRANSACTION GenerateId
+			SAVE TRANSACTION [GenerateId]
 		SELECT @SystemId = [Id]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
@@ -425,30 +423,30 @@ BEGIN
 		UPDATE [dbo].[Tables] 
 			SET [CurrentId] = @NextId
 			WHERE [Id] = @TableId
-		COMMIT TRANSACTION GenerateId
+		COMMIT TRANSACTION [GenerateId]
 
 		RETURN @NextId
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION GenerateId;
+		ROLLBACK TRANSACTION [GenerateId];
 		THROW
 	END CATCH
 END
 GO
 /**********************************************************************************
-Criar stored procedure [cruda].[Login]
+Criar stored procedure [dbo].[Login]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[P_Login]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [cruda].[P_Login] AS PRINT 1')
+IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[Login] AS PRINT 1')
 GO
-ALTER PROCEDURE [cruda].[P_Login](@Parameters VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION P_Login
+			BEGIN TRANSACTION [Login]
 		ELSE
-			SAVE TRANSACTION P_Login
+			SAVE TRANSACTION [Login]
 
 		DECLARE @ErrorMessage VARCHAR(256)
 
@@ -595,23 +593,23 @@ ALTER PROCEDURE [cruda].[P_Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		UPDATE [dbo].[Users]
 			SET [RetryLogins] = 0
 			WHERE [Id] = @UserId
-		COMMIT TRANSACTION P_Login
+		COMMIT TRANSACTION [Login]
 
 		RETURN @LoginId
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION P_Login;
+		ROLLBACK TRANSACTION [Login];
 		THROW
 	END CATCH
 END
 GO
 /**********************************************************************************
-Criar stored procedure [cruda].[GetPublicKey]
+Criar stored procedure [dbo].[GetPublicKey]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[GetPublicKey]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [cruda].[GetPublicKey] AS PRINT 1')
+IF(SELECT object_id('[dbo].[GetPublicKey]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[GetPublicKey] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[GetPublicKey](@LoginId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -638,13 +636,13 @@ ALTER PROCEDURE[cruda].[GetPublicKey](@LoginId BIGINT) AS BEGIN
 END
 GO
 /**********************************************************************************
-Criar function [cruda].[NumberInWordsOfHundreds]
+Criar function [dbo].[NumberInWordsOfHundreds]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[NumberInWordsOfHundreds]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [cruda].[NumberInWordsOfHundreds]() RETURNS BIT AS BEGIN RETURN 1 END')
+IF(SELECT object_id('[dbo].[NumberInWordsOfHundreds]', 'FN')) IS NULL
+	EXEC('CREATE FUNCTION [dbo].[NumberInWordsOfHundreds]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
-ALTER FUNCTION [cruda].[NumberInWordsOfHundreds](@Value AS SMALLINT
-												,@EnglishOrPortuguese BIT)
+ALTER FUNCTION [dbo].[NumberInWordsOfHundreds](@Value AS SMALLINT
+											  ,@EnglishOrPortuguese BIT)
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
 	DECLARE @ThirdDigit INT = @Value / 100,
@@ -777,17 +775,17 @@ BEGIN
 END
 GO
 /**********************************************************************************
-Criar function [cruda].[NumberInWords]
+Criar function [dbo].[NumberInWords]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[NumberInWords]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [cruda].[NumberInWords]() RETURNS BIT AS BEGIN RETURN 1 END')
+IF(SELECT object_id('[dbo].[NumberInWords]', 'FN')) IS NULL
+	EXEC('CREATE FUNCTION [dbo].[NumberInWords]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
-ALTER FUNCTION [cruda].[NumberInWords](@Value AS DECIMAL(18,2)
-									  ,@EnglishOrPortuguese BIT = 1
-									  ,@CurrencyInSingular VARCHAR(50) = NULL
-									  ,@CurrencyInPlural VARCHAR(50) = NULL
-									  ,@CentsInSingular VARCHAR(50) = NULL
-									  ,@CentsInPlural VARCHAR(50) = NULL)
+ALTER FUNCTION [dbo].[NumberInWords](@Value AS DECIMAL(18,2)
+								    ,@EnglishOrPortuguese BIT = 1
+									,@CurrencyInSingular VARCHAR(50) = NULL
+									,@CurrencyInPlural VARCHAR(50) = NULL
+									,@CentsInSingular VARCHAR(50) = NULL
+									,@CentsInPlural VARCHAR(50) = NULL)
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
 	DECLARE @Power INT = 0,
@@ -1179,15 +1177,15 @@ ALTER TABLE [dbo].[Categories] ADD CONSTRAINT PK_Categories PRIMARY KEY CLUSTERE
 CREATE UNIQUE INDEX [UNQ_Categories_Name] ON [dbo].[Categories]([Name] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Categories]
+Validar dados na tabela [dbo].[Categories]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[CategoriesValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[CategoriesValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CategoriesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CategoriesValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[CategoriesValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[CategoriesValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1248,6 +1246,22 @@ ALTER PROCEDURE[cruda].[CategoriesValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
         IF @W_Id IS NULL BEGIN
@@ -1266,10 +1280,13 @@ ALTER PROCEDURE[cruda].[CategoriesValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Categories';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Categories';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Categories' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Categories';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -1332,12 +1349,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Categories]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[CategoriesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[CategoriesRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CategoriesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CategoriesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[CategoriesRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[CategoriesRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1347,8 +1364,8 @@ ALTER PROCEDURE[cruda].[CategoriesRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -1400,7 +1417,7 @@ ALTER PROCEDURE[cruda].[CategoriesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[CategoriesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[CategoriesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
@@ -1496,15 +1513,15 @@ ALTER TABLE [dbo].[Types] ADD CONSTRAINT PK_Types PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Types_Name] ON [dbo].[Types]([Name] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Types]
+Validar dados na tabela [dbo].[Types]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[TypesValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[TypesValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TypesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TypesValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[TypesValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[TypesValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1575,6 +1592,22 @@ ALTER PROCEDURE[cruda].[TypesValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
         IF @W_Id IS NULL BEGIN
@@ -1593,10 +1626,13 @@ ALTER PROCEDURE[cruda].[TypesValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Types';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Types';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Types' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Types';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -1696,12 +1732,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Types]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[TypesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[TypesRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TypesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TypesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[TypesRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[TypesRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1711,8 +1747,8 @@ ALTER PROCEDURE[cruda].[TypesRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -1764,7 +1800,7 @@ ALTER PROCEDURE[cruda].[TypesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[TypesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[TypesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
@@ -1868,15 +1904,15 @@ ALTER TABLE [dbo].[Masks] ADD CONSTRAINT PK_Masks PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Masks_Name] ON [dbo].[Masks]([Name] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Masks]
+Validar dados na tabela [dbo].[Masks]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[MasksValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[MasksValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MasksValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MasksValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[MasksValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[MasksValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1923,6 +1959,22 @@ ALTER PROCEDURE[cruda].[MasksValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -1941,10 +1993,13 @@ ALTER PROCEDURE[cruda].[MasksValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Masks';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Masks';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Masks' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Masks';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -1980,12 +2035,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Masks]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[MasksRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[MasksRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MasksRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MasksRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[MasksRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[MasksRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1995,8 +2050,8 @@ ALTER PROCEDURE[cruda].[MasksRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -2048,7 +2103,7 @@ ALTER PROCEDURE[cruda].[MasksRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[MasksValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[MasksValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -2112,15 +2167,15 @@ ALTER TABLE [dbo].[Domains] ADD CONSTRAINT PK_Domains PRIMARY KEY CLUSTERED ([Id
 CREATE UNIQUE INDEX [UNQ_Domains_Name] ON [dbo].[Domains]([Name] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Domains]
+Validar dados na tabela [dbo].[Domains]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[DomainsValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[DomainsValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DomainsValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DomainsValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[DomainsValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[DomainsValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2183,6 +2238,22 @@ ALTER PROCEDURE[cruda].[DomainsValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -2201,10 +2272,13 @@ ALTER PROCEDURE[cruda].[DomainsValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Domains';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Domains';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Domains' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Domains';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -2288,12 +2362,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Domains]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[DomainsRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[DomainsRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DomainsRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DomainsRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[DomainsRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[DomainsRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2303,8 +2377,8 @@ ALTER PROCEDURE[cruda].[DomainsRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -2356,7 +2430,7 @@ ALTER PROCEDURE[cruda].[DomainsRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[DomainsValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[DomainsValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -2447,15 +2521,15 @@ ALTER TABLE [dbo].[Systems] ADD CONSTRAINT PK_Systems PRIMARY KEY CLUSTERED ([Id
 CREATE UNIQUE INDEX [UNQ_Systems_Name] ON [dbo].[Systems]([Name] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Systems]
+Validar dados na tabela [dbo].[Systems]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[SystemsValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[SystemsValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SystemsValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemsValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[SystemsValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[SystemsValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2508,6 +2582,22 @@ ALTER PROCEDURE[cruda].[SystemsValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -2526,10 +2616,13 @@ ALTER PROCEDURE[cruda].[SystemsValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Systems';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Systems';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Systems' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Systems';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -2588,12 +2681,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Systems]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[SystemsRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[SystemsRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SystemsRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemsRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[SystemsRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[SystemsRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2603,8 +2696,8 @@ ALTER PROCEDURE[cruda].[SystemsRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -2656,7 +2749,7 @@ ALTER PROCEDURE[cruda].[SystemsRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[SystemsValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[SystemsValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -2728,15 +2821,15 @@ ALTER TABLE [dbo].[Menus] ADD CONSTRAINT PK_Menus PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Sequence] ON [dbo].[Menus]([SystemId] ASC, [Sequence] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Menus]
+Validar dados na tabela [dbo].[Menus]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[MenusValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[MenusValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MenusValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MenusValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[MenusValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[MenusValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2791,6 +2884,22 @@ ALTER PROCEDURE[cruda].[MenusValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -2809,10 +2918,13 @@ ALTER PROCEDURE[cruda].[MenusValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Menus';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Menus';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Menus' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Menus';
+            THROW 51000, @ErrorMessage, 1
         END
     IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [ParentMenuId] = @W_Id) BEGIN
@@ -2897,12 +3009,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Menus]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[MenusRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[MenusRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MenusRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MenusRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[MenusRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[MenusRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2912,8 +3024,8 @@ ALTER PROCEDURE[cruda].[MenusRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -2965,7 +3077,7 @@ ALTER PROCEDURE[cruda].[MenusRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[MenusValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[MenusValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -3040,15 +3152,15 @@ ALTER TABLE [dbo].[Users] ADD CONSTRAINT PK_Users PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Users_Name] ON [dbo].[Users]([Name] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Users]
+Validar dados na tabela [dbo].[Users]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[UsersValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[UsersValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UsersValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UsersValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[UsersValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[UsersValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3101,6 +3213,22 @@ ALTER PROCEDURE[cruda].[UsersValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -3119,10 +3247,13 @@ ALTER PROCEDURE[cruda].[UsersValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Users';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Users';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Users' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Users';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -3181,12 +3312,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Users]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[UsersRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[UsersRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UsersRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UsersRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[UsersRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[UsersRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3196,8 +3327,8 @@ ALTER PROCEDURE[cruda].[UsersRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -3249,7 +3380,7 @@ ALTER PROCEDURE[cruda].[UsersRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[UsersValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[UsersValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -3319,15 +3450,15 @@ CREATE UNIQUE INDEX [UNQ_SystemsUsers_SystemId_UserId] ON [dbo].[SystemsUsers]([
 CREATE UNIQUE INDEX [UNQ_SystemsUsers_Description] ON [dbo].[SystemsUsers]([Description] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[SystemsUsers]
+Validar dados na tabela [dbo].[SystemsUsers]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[SystemsUsersValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[SystemsUsersValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SystemsUsersValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemsUsersValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[SystemsUsersValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[SystemsUsersValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3376,6 +3507,22 @@ ALTER PROCEDURE[cruda].[SystemsUsersValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -3394,10 +3541,13 @@ ALTER PROCEDURE[cruda].[SystemsUsersValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em SystemsUsers';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em SystemsUsers';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'SystemsUsers' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em SystemsUsers';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -3469,12 +3619,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[SystemsUsers]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[SystemsUsersRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[SystemsUsersRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SystemsUsersRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemsUsersRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[SystemsUsersRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[SystemsUsersRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3484,8 +3634,8 @@ ALTER PROCEDURE[cruda].[SystemsUsersRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -3537,7 +3687,7 @@ ALTER PROCEDURE[cruda].[SystemsUsersRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[SystemsUsersValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[SystemsUsersValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -3605,15 +3755,15 @@ CREATE UNIQUE INDEX [UNQ_Databases_Name] ON [dbo].[Databases]([Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Databases_Alias] ON [dbo].[Databases]([Alias] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Databases]
+Validar dados na tabela [dbo].[Databases]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[DatabasesValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[DatabasesValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DatabasesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabasesValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[DatabasesValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[DatabasesValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3674,6 +3824,22 @@ ALTER PROCEDURE[cruda].[DatabasesValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -3692,10 +3858,13 @@ ALTER PROCEDURE[cruda].[DatabasesValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Databases';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Databases';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Databases' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Databases';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -3757,12 +3926,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Databases]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[DatabasesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[DatabasesRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DatabasesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabasesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[DatabasesRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[DatabasesRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3772,8 +3941,8 @@ ALTER PROCEDURE[cruda].[DatabasesRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -3825,7 +3994,7 @@ ALTER PROCEDURE[cruda].[DatabasesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[DatabasesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[DatabasesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -3911,15 +4080,15 @@ CREATE UNIQUE INDEX [UNQ_SystemsDatabases_SystemId_DatabaseId] ON [dbo].[Systems
 CREATE UNIQUE INDEX [UNQ_SystemsDatabases_Description] ON [dbo].[SystemsDatabases]([Description] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[SystemsDatabases]
+Validar dados na tabela [dbo].[SystemsDatabases]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[SystemsDatabasesValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[SystemsDatabasesValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SystemsDatabasesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[SystemsDatabasesValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[SystemsDatabasesValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3968,6 +4137,22 @@ ALTER PROCEDURE[cruda].[SystemsDatabasesValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -3986,10 +4171,13 @@ ALTER PROCEDURE[cruda].[SystemsDatabasesValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em SystemsDatabases';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em SystemsDatabases';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'SystemsDatabases' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em SystemsDatabases';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -4061,12 +4249,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[SystemsDatabases]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[SystemsDatabasesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[SystemsDatabasesRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SystemsDatabasesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[SystemsDatabasesRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[SystemsDatabasesRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4076,8 +4264,8 @@ ALTER PROCEDURE[cruda].[SystemsDatabasesRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -4129,7 +4317,7 @@ ALTER PROCEDURE[cruda].[SystemsDatabasesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[SystemsDatabasesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[SystemsDatabasesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -4193,15 +4381,15 @@ CREATE UNIQUE INDEX [UNQ_Tables_Name] ON [dbo].[Tables]([Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Tables_Alias] ON [dbo].[Tables]([Alias] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Tables]
+Validar dados na tabela [dbo].[Tables]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[TablesValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[TablesValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TablesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TablesValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[TablesValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[TablesValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4254,6 +4442,22 @@ ALTER PROCEDURE[cruda].[TablesValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -4272,10 +4476,13 @@ ALTER PROCEDURE[cruda].[TablesValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Tables';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Tables';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Tables' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Tables';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -4341,12 +4548,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Tables]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[TablesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[TablesRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TablesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TablesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[TablesRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[TablesRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4356,8 +4563,8 @@ ALTER PROCEDURE[cruda].[TablesRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -4409,7 +4616,7 @@ ALTER PROCEDURE[cruda].[TablesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[TablesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[TablesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -4479,15 +4686,15 @@ CREATE UNIQUE INDEX [UNQ_DatabasesTables_DatabaseId_TableId] ON [dbo].[Databases
 CREATE UNIQUE INDEX [UNQ_DatabasesTables_Description] ON [dbo].[DatabasesTables]([Description] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[DatabasesTables]
+Validar dados na tabela [dbo].[DatabasesTables]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[DatabasesTablesValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[DatabasesTablesValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DatabasesTablesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[DatabasesTablesValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[DatabasesTablesValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4536,6 +4743,22 @@ ALTER PROCEDURE[cruda].[DatabasesTablesValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -4554,10 +4777,13 @@ ALTER PROCEDURE[cruda].[DatabasesTablesValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em DatabasesTables';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em DatabasesTables';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'DatabasesTables' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em DatabasesTables';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -4629,12 +4855,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[DatabasesTables]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[DatabasesTablesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[DatabasesTablesRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DatabasesTablesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[DatabasesTablesRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[DatabasesTablesRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4644,8 +4870,8 @@ ALTER PROCEDURE[cruda].[DatabasesTablesRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -4697,7 +4923,7 @@ ALTER PROCEDURE[cruda].[DatabasesTablesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[DatabasesTablesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[DatabasesTablesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -4776,15 +5002,15 @@ CREATE UNIQUE INDEX [UNQ_Columns_TableId_Name] ON [dbo].[Columns]([TableId] ASC,
 CREATE UNIQUE INDEX [UNQ_Columns_TableId_Sequence] ON [dbo].[Columns]([TableId] ASC, [Sequence] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Columns]
+Validar dados na tabela [dbo].[Columns]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[ColumnsValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[ColumnsValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ColumnsValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ColumnsValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[ColumnsValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[ColumnsValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4867,6 +5093,22 @@ ALTER PROCEDURE[cruda].[ColumnsValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -4885,10 +5127,13 @@ ALTER PROCEDURE[cruda].[ColumnsValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Columns';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Columns';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Columns' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Columns';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -5017,12 +5262,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Columns]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[ColumnsRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[ColumnsRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ColumnsRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ColumnsRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[ColumnsRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[ColumnsRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5032,8 +5277,8 @@ ALTER PROCEDURE[cruda].[ColumnsRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -5085,7 +5330,7 @@ ALTER PROCEDURE[cruda].[ColumnsRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[ColumnsValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[ColumnsValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -5215,15 +5460,15 @@ ALTER TABLE [dbo].[Indexes] ADD CONSTRAINT PK_Indexes PRIMARY KEY CLUSTERED ([Id
 CREATE UNIQUE INDEX [UNQ_Indexes_DatabaseId_Name] ON [dbo].[Indexes]([DatabaseId] ASC, [Name] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Indexes]
+Validar dados na tabela [dbo].[Indexes]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[IndexesValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[IndexesValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IndexesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IndexesValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[IndexesValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[IndexesValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5274,6 +5519,22 @@ ALTER PROCEDURE[cruda].[IndexesValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -5292,10 +5553,13 @@ ALTER PROCEDURE[cruda].[IndexesValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Indexes';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Indexes';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Indexes' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Indexes';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -5365,12 +5629,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Indexes]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[IndexesRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[IndexesRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IndexesRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IndexesRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[IndexesRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[IndexesRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5380,8 +5644,8 @@ ALTER PROCEDURE[cruda].[IndexesRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -5433,7 +5697,7 @@ ALTER PROCEDURE[cruda].[IndexesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[IndexesValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[IndexesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -5500,15 +5764,15 @@ CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_Sequence] ON [dbo].[Indexkeys]([Index
 CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_ColumnId] ON [dbo].[Indexkeys]([IndexId] ASC, [ColumnId] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Indexkeys]
+Validar dados na tabela [dbo].[Indexkeys]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[IndexkeysValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[IndexkeysValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IndexkeysValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IndexkeysValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[IndexkeysValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[IndexkeysValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5559,6 +5823,22 @@ ALTER PROCEDURE[cruda].[IndexkeysValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -5577,10 +5857,13 @@ ALTER PROCEDURE[cruda].[IndexkeysValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Indexkeys';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Indexkeys';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Indexkeys' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Indexkeys';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -5665,12 +5948,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Indexkeys]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[IndexkeysRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[IndexkeysRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IndexkeysRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IndexkeysRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[IndexkeysRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[IndexkeysRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5680,8 +5963,8 @@ ALTER PROCEDURE[cruda].[IndexkeysRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -5733,7 +6016,7 @@ ALTER PROCEDURE[cruda].[IndexkeysRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[IndexkeysValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[IndexkeysValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -5799,15 +6082,15 @@ ALTER TABLE [dbo].[Logins] ADD CONSTRAINT PK_Logins PRIMARY KEY CLUSTERED ([Id])
 CREATE  INDEX [IDX_Logins_SystemId_UserId_IsLogged] ON [dbo].[Logins]([SystemId] ASC, [UserId] ASC, [IsLogged] ASC)
 GO
 /**********************************************************************************
-Validar dados na tabela [cruda].[Logins]
+Validar dados na tabela [dbo].[Logins]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[LoginsValid]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[LoginsValid] AS PRINT 1')
+IF(SELECT object_id('[dbo].[LoginsValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[LoginsValid] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[LoginsValid](@LoginId BIGINT
-                                     ,@Action VARCHAR(15)
-                                     ,@LastRecord VARCHAR(MAX)
-                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE[dbo].[LoginsValid](@LoginId BIGINT
+                                   ,@Action VARCHAR(15)
+                                   ,@LastRecord VARCHAR(max)
+                                   ,@ActualRecord VARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5858,6 +6141,22 @@ ALTER PROCEDURE[cruda].[LoginsValid](@LoginId BIGINT
             END
         END
 
+        DECLARE @TransactionId BIGINT
+                ,@IsConfirmed BIT
+
+        SELECT @TransactionId = [Id]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [cruda].[Transactions]
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        IF @TransactionId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @W_Id IS NULL BEGIN
@@ -5876,10 +6175,13 @@ ALTER PROCEDURE[cruda].[LoginsValid](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Logins';
                THROW 51000, @ErrorMessage, 1
-            END ELSE IF @Action <> 'create' BEGIN
-               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Logins';
-               THROW 51000, @ErrorMessage, 1
             END
+        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = 'Logins' AND [IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @Action <> 'create' BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Logins';
+            THROW 51000, @ErrorMessage, 1
         END
         IF @Action <> 'delete' BEGIN
 
@@ -5944,12 +6246,12 @@ GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Logins]
 **********************************************************************************/
-IF(SELECT object_id('[cruda].[LoginsRatify]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [cruda].[LoginsRatify] AS PRINT 1')
+IF(SELECT object_id('[dbo].[LoginsRatify]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[LoginsRatify] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[LoginsRatify](@LoginId BIGINT
-                                          ,@UserName VARCHAR(25)
-                                          ,@OperationId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[LoginsRatify](@LoginId BIGINT
+                                            ,@UserName VARCHAR(25)
+                                            ,@OperationId BIGINT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5959,8 +6261,8 @@ ALTER PROCEDURE[cruda].[LoginsRatify](@LoginId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName VARCHAR(25)
                ,@Action VARCHAR(15)
-               ,@LastRecord VARCHAR(MAX)
-               ,@ActualRecord VARCHAR(MAX)
+               ,@LastRecord VARCHAR(max)
+               ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
                ,@ValidOk BIT
 
@@ -6012,7 +6314,7 @@ ALTER PROCEDURE[cruda].[LoginsRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @ValidOk = [cruda].[LoginsValid] @Action, @LastRecord, @ActualRecord
+        EXEC @ValidOk = [dbo].[LoginsValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -9752,7 +10054,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -10262,7 +10564,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -11027,7 +11329,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -11180,7 +11482,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -11741,7 +12043,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -12047,7 +12349,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -12404,7 +12706,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -12710,7 +13012,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -12914,7 +13216,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -13424,7 +13726,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -13628,7 +13930,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -13934,7 +14236,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -14138,7 +14440,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -15209,7 +15511,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -15464,7 +15766,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -15719,7 +16021,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
