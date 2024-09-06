@@ -81,7 +81,7 @@ namespace CRUDA_LIB
             }
             catch (Exception ex)
             {
-                if (action == Actions.CHECK_SYSTEM)
+                if (action == null || action == Actions.CHECK_SYSTEM)
                 {
                     context.Response.Headers.ContentType = "text/html";
                     context.Response.WriteAsync(Config.GetHTML(systemName, ex.Message), Encoding.UTF8);

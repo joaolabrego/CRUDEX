@@ -12,50 +12,43 @@ namespace CRUDA.Classes
         static readonly string DirectoryScripts = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_SCRIPTS"));
         public static void GenerateScript(string systemName, string databaseName)
         {
-            try
+            var dataSet = ExcelToDataSet();
+            var columns = (dataSet.Tables["Columns"] ?? throw new Exception("Tabela Columns não existe.")).AsEnumerable().ToList();
+            var indexes = (dataSet.Tables["Indexes"] ?? throw new Exception("Tabela Indexes não existe.")).AsEnumerable().ToList();
+            var indexkeys = (dataSet.Tables["Indexkeys"] ?? throw new Exception("Tabela Indexkeys não existe.")).AsEnumerable().ToList();
+            var domains = (dataSet.Tables["Domains"] ?? throw new Exception("Tabela Domains não existe.")).AsEnumerable().ToList();
+            var categories = (dataSet.Tables["Categories"] ?? throw new Exception("Tabela Categories não existe.")).AsEnumerable().ToList();
+            var types = (dataSet.Tables["Types"] ?? throw new Exception("Tabela Types não existe.")).AsEnumerable().ToList();
+            var system = (dataSet.Tables["Systems"] ?? throw new Exception("Tabela Systems não existe.")).AsEnumerable().ToList().First(row => ToString(row["Name"]) == systemName);
+            var database = (dataSet.Tables["Databases"] ?? throw new Exception("Tabela Databases não existe.")).AsEnumerable().ToList().First(row => ToString(row["Name"]) == databaseName);
+            var databasesTables = (dataSet.Tables["DatabasesTables"] ?? throw new Exception("Tabela DatabasesTables não existe.")).AsEnumerable().ToList().FindAll(row => ToLong(row["DatabaseId"]) == ToLong(database?["Id"]));
+            var tables = (dataSet.Tables["Tables"] ?? throw new Exception("Tabela Tables não existe.")).AsEnumerable().ToList();
+            var filename = Path.Combine(DirectoryScripts, $"SCRIPT-{systemName.ToUpper()}-{databaseName.ToUpper()}.sql");
+            var firstTime = true;
+
+            using var stream = new StreamWriter(path: filename, append: false, encoding: Encoding.UTF8);
+            foreach (DataRow databaseTable in databasesTables)
             {
-                var dataSet = ExcelToDataSet();
-                var columns = (dataSet.Tables["Columns"] ?? throw new Exception("Tabela Columns não existe.")).AsEnumerable().ToList();
-                var indexes = (dataSet.Tables["Indexes"] ?? throw new Exception("Tabela Indexes não existe.")).AsEnumerable().ToList();
-                var indexkeys = (dataSet.Tables["Indexkeys"] ?? throw new Exception("Tabela Indexkeys não existe.")).AsEnumerable().ToList();
-                var domains = (dataSet.Tables["Domains"] ?? throw new Exception("Tabela Domains não existe.")).AsEnumerable().ToList();
-                var categories = (dataSet.Tables["Categories"] ?? throw new Exception("Tabela Categories não existe.")).AsEnumerable().ToList();
-                var types = (dataSet.Tables["Types"] ?? throw new Exception("Tabela Types não existe.")).AsEnumerable().ToList();
-                var system = (dataSet.Tables["Systems"] ?? throw new Exception("Tabela Systems não existe.")).AsEnumerable().ToList().First(row => ToString(row["Name"]) == systemName);
-                var database = (dataSet.Tables["Databases"] ?? throw new Exception("Tabela Databases não existe.")).AsEnumerable().ToList().First(row => ToString(row["Name"]) == databaseName);
-                var databasesTables = (dataSet.Tables["DatabasesTables"] ?? throw new Exception("Tabela DatabasesTables não existe.")).AsEnumerable().ToList().FindAll(row => ToLong(row["DatabaseId"]) == ToLong(database?["Id"]));
-                var tables = (dataSet.Tables["Tables"] ?? throw new Exception("Tabela Tables não existe.")).AsEnumerable().ToList();
-                var filename = Path.Combine(DirectoryScripts, $"SCRIPT-{systemName.ToUpper()}-{databaseName.ToUpper()}.sql");
-                var firstTime = true;
-
-                using var stream = new StreamWriter(path: filename, append: false, encoding: Encoding.UTF8);
-                foreach (DataRow databaseTable in databasesTables)
+                var table = tables.First(table => ToLong(table["Id"]) == ToLong(databaseTable["TableId"]));
+                if (firstTime)
                 {
-                    var table = tables.First(table => ToLong(table["Id"]) == ToLong(databaseTable["TableId"]));
-                    if (firstTime)
-                    {
-                        stream.Write(GetScriptDatabase(database));
-                        stream.Write(GetScriptOthers(systemName == "cruda"));
-                        GetScriptTableTransactions();
-                        GetScriptTableOperations();
-                        firstTime = false;
-                    }
-                    stream.Write(GetScriptTable(table, columns, indexes, indexkeys, domains, types));
-
-                    stream.Write(GetScriptRatify(table, columns, domains, types, categories, indexes, indexkeys));
-
+                    stream.Write(GetScriptDatabase(database));
+                    stream.Write(GetScriptOthers(systemName == "cruda"));
+                    GetScriptTableTransactions();
+                    GetScriptTableOperations();
+                    firstTime = false;
                 }
-                stream.Write(GetScriptReferences(tables, columns));
-                foreach (var table in tables)
-                {
-                    var datatable = (dataSet.Tables[ToString(table["Name"])] ?? throw new Exception($"Tabela {table["Name"]} não encontrada")).AsEnumerable().ToList();
+                stream.Write(GetScriptTable(table, columns, indexes, indexkeys, domains, types));
 
-                    stream.Write(GetScriptDml(table, columns, domains, types, categories, datatable));
-                }
+                stream.Write(GetScriptRatify(table, columns, domains, types, categories, indexes, indexkeys));
+
             }
-            catch (Exception ex)
+            stream.Write(GetScriptReferences(tables, columns));
+            foreach (var table in tables)
             {
-                Console.WriteLine(ex.ToString());
+                var datatable = (dataSet.Tables[ToString(table["Name"])] ?? throw new Exception($"Tabela {table["Name"]} não encontrada")).AsEnumerable().ToList();
+
+                stream.Write(GetScriptDml(table, columns, domains, types, categories, datatable));
             }
         }
         public static DataSet ExcelToDataSet()
@@ -71,40 +64,34 @@ namespace CRUDA.Classes
                 }
             });
         }
+        private static bool IsNull(object? value)
+        {
+            return value == DBNull.Value || value == null;
+        }
         private static bool ToBoolean(object? value)
         {
-            if (value == DBNull.Value || value == null)
+            if (IsNull(value))
                 return false;
 
             return Convert.ToBoolean(Convert.ToUInt16(value));
         }
         private static long ToLong(object? value)
         {
-            if (value == DBNull.Value || value == null)
+            if (IsNull(value))
                 return 0;
 
-            var strValue = value.ToString();
-
-            if (string.IsNullOrEmpty(strValue) || string.IsNullOrWhiteSpace(strValue))
-                return 0;
-
-            return Convert.ToInt64(value);
+            return Convert.ToInt64((value ?? 0).ToString());
         }
         private static double ToDouble(object? value)
         {
-            if (value == DBNull.Value || value == null)
+            if (IsNull(value))
                 return 0.0;
 
-            var strValue = value.ToString();
-
-            if (string.IsNullOrEmpty(strValue) || string.IsNullOrWhiteSpace(strValue))
-                return 0.0;
-
-            return Convert.ToDouble(value);
+            return Convert.ToDouble(value ?? 0);
         }
         private static string ToString(object? value)
         {
-            if (value == DBNull.Value || value == null)
+            if (IsNull(value))
                 return string.Empty;
 
             return Convert.ToString(value) ?? string.Empty;
@@ -116,7 +103,6 @@ namespace CRUDA.Classes
 
             if (ToBoolean(column["IsRequired"]))
                 result.Add("IsRequired", true);
-
             if ((value = ToString(column["Minimum"])) == string.Empty)
                 if ((value = ToString(domain["Minimum"])) == string.Empty)
                     value = ToString(type["Minimum"]);
@@ -303,11 +289,7 @@ namespace CRUDA.Classes
             result.Append($"                                   ,[CreatedBy] varchar(25) NOT NULL\r\n");
             result.Append($"                                   ,[UpdatedAt] datetime NULL\r\n");
             result.Append($"                                   ,[UpdatedBy] varchar(25) NULL)\r\n");
-            result.Append($"                                   ,CONSTRAINT [PK_Transactions] PRIMARY KEY CLUSTERED([Id] ASC)\r\n");
-            result.Append($"                                           WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON,)\r\n");
-            result.Append($"                                           ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF)\r\n");
-            result.Append($"                                           ON [PRIMARY]) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]\r\n");
-            result.Append($"GO\r\n");
+            result.Append($"ALTER TABLE [cruda].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED([Id])");
             result.Append($"CREATE INDEX [IDX_Transactions_LoginId_IsConfirmed] ON [dbo].[Transactions]([LoginId], [IsConfirmed])");
             result.Append($"GO\r\n");
 
@@ -333,11 +315,7 @@ namespace CRUDA.Classes
             result.Append($"                                 ,[CreatedBy] varchar(25) NOT NULL\r\n");
             result.Append($"                                 ,[UpdatedAt] datetime NULL\r\n");
             result.Append($"                                 ,[UpdatedBy] varchar(25) NULL)\r\n");
-            result.Append($"                                 ,CONSTRAINT [PK_Operations] PRIMARY KEY CLUSTERED([Id] ASC)\r\n");
-            result.Append($"                                        WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON,\r\n");
-            result.Append($"                                        ALLOW_PAGE_LOCKS = ON), OPTIMIZE_FOR_SEQUENTIAL_KEY = OFFOPTIMIZE_FOR_SEQUENTIAL_KEY = OFF)\r\n");
-            result.Append($"                                        ON [PRIMARY]) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]\r\n");
-            result.Append($"GO\r\n");
+            result.Append($"ALTER TABLE [cruda].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED([Id])");
             result.Append($"CREATE INDEX [IDX_Operations_TransactionId_TableName_Action_IsConfirmed] ON [dbo].[Operations]([TransactionId], [TableName], [Action], [IsConfirmed])");
             result.Append($"GO\r\n");
 
@@ -347,9 +325,9 @@ namespace CRUDA.Classes
         {
             var result = new StringBuilder();
             var firstTime = true;
-            var rows = columns.Where(column => Convert.ToInt64(column["TableId"]) == Convert.ToInt64(table["Id"]));
+            var rows = columns.FindAll(column => ToLong(column["TableId"]) == ToLong(table["Id"]));
 
-            if (rows.Any())
+            if (rows.Count > 0)
             {
                 result.Append($"/**********************************************************************************\r\n");
                 result.Append($"Criar tabela [dbo].[{table["Name"]}]\r\n");
@@ -380,8 +358,8 @@ namespace CRUDA.Classes
                 result.Append($"                                    ,[UpdatedAt] datetime NULL\r\n");
                 result.Append($"                                    ,[UpdatedBy] varchar(25) NULL)\r\n");
                 firstTime = true;
-                rows = columns.Where(column => Convert.ToInt64(column["TableId"]) == Convert.ToInt64(table["Id"]) && ToBoolean(column["IsPrimarykey"]));
-                if (rows.Any())
+                rows = columns.FindAll(column => ToLong(column["TableId"]) == ToLong(table["Id"]) && ToBoolean(column["IsPrimarykey"]));
+                if (rows.Count > 0)
                 {
                     foreach (DataRow column in rows)
                     {
@@ -395,19 +373,19 @@ namespace CRUDA.Classes
                     }
                     result.Append($")\r\n");
                 }
-                rows = indexes.Where(index => Convert.ToInt64(index["TableId"]) == Convert.ToInt64(table["Id"]));
-                if (rows.Any())
+                rows = indexes.FindAll(index => ToLong(index["TableId"]) == ToLong(table["Id"]));
+                if (rows.Count > 0)
                 {
                     foreach (var index in rows)
                     {
-                        var indexkeyRows = indexkeys.Where(indexkey => Convert.ToInt64(indexkey["IndexId"]) == Convert.ToInt64(index["Id"]));
+                        var indexkeyRows = indexkeys.FindAll(indexkey => ToLong(indexkey["IndexId"]) == ToLong(index["Id"]));
 
-                        if (indexkeyRows.Any())
+                        if (indexkeyRows.Count > 0)
                         {
                             firstTime = true;
                             foreach (var indexkey in indexkeyRows)
                             {
-                                var column = columns.First(column => Convert.ToInt64(column["Id"]) == Convert.ToInt64(indexkey["ColumnId"]));
+                                var column = columns.First(column => ToLong(column["Id"]) == ToLong(indexkey["ColumnId"]));
                                 var columnName = $"[{column["Name"]}] {(ToBoolean(indexkey["IsDescending"]) ? "DESC" : "ASC")}";
 
                                 if (firstTime)
@@ -430,7 +408,7 @@ namespace CRUDA.Classes
         private static string GetScriptReferences(TDataRows tables, TDataRows columns)
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(column => ToString(column["ReferenceTableId"]) != string.Empty);
+            var columnRows = columns.FindAll(column => !string.IsNullOrEmpty(column["ReferenceTableId"].ToString()));
             var lastTableName = string.Empty;
 
             if (columnRows.Count > 0)
@@ -470,8 +448,7 @@ namespace CRUDA.Classes
 
             if (dataRows.Count > 0)
             {
-                var tableId = ToLong(table["Id"]);
-                var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == tableId && !ToBoolean(row["IsAutoIncrement"]));
+                var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]) && !ToBoolean(row["IsAutoIncrement"]));
 
                 result.Append($"/**********************************************************************************\r\n");
                 result.Append($"Inserir dados na tabela [dbo].[{table["Name"]}]\r\n");
@@ -512,7 +489,7 @@ namespace CRUDA.Classes
                             if (categoryName == "numeric")
                                 value ??= null;
                             else if (categoryName == "boolean")
-                                value = value == null ? null : value ? 1 : 0;
+                                value = IsNull(value) ? null : value ? 1 : 0;
                             if ((value = ToString(value)) == string.Empty)
                                 value = "NULL";
                             else
@@ -546,25 +523,23 @@ namespace CRUDA.Classes
 
             if (columns.Count > 0)
             {
-                var tableId = Convert.ToInt64(table["Id"]);
-                var tableName = ToString(table["Name"]);
-                var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == tableId && ToBoolean(row["IsPrimarykey"]));
+                var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]) && ToBoolean(row["IsPrimarykey"]));
                 var firstTime = true;
 
                 result.Append($"/**********************************************************************************\r\n");
-                result.Append($"Ratificar dados na tabela [cruda].[{tableName}]\r\n");
+                result.Append($"Ratificar dados na tabela [cruda].[{table["Name"]}]\r\n");
                 result.Append($"**********************************************************************************/\r\n");
-                result.Append($"IF(SELECT object_id('[cruda].[{tableName}Ratify]', 'P')) IS NULL\r\n");
-                result.Append($"    EXEC('CREATE PROCEDURE [cruda].[{tableName}Ratify] AS PRINT 1')\r\n");
+                result.Append($"IF(SELECT object_id('[cruda].[{table["Name"]}Ratify]', 'P')) IS NULL\r\n");
+                result.Append($"    EXEC('CREATE PROCEDURE [cruda].[{table["Name"]}Ratify] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE[cruda].[{tableName}Ratify](@LoginId BIGINT\r\n");
+                result.Append($"ALTER PROCEDURE[cruda].[{table["Name"]}Ratify](@LoginId BIGINT\r\n");
                 result.Append($"                                          ,@UserName VARCHAR(25)\r\n");
                 result.Append($"                                          ,@OperationId BIGINT) AS BEGIN\r\n");
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [{tableName}Ratify]: '\r\n");
+                result.Append($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [{table["Name"]}Ratify]: '\r\n");
                 result.Append($"               ,@TransactionId BIGINT\r\n");
                 result.Append($"               ,@TransactionIdAux BIGINT\r\n");
                 result.Append($"               ,@TableName VARCHAR(25)\r\n");
@@ -614,7 +589,7 @@ namespace CRUDA.Classes
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
-                result.Append($"        IF @TableName <> '{tableName}' BEGIN\r\n");
+                result.Append($"        IF @TableName <> '{table["Name"]}' BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Tabela da operação é inválida';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
@@ -622,7 +597,7 @@ namespace CRUDA.Classes
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
-                result.Append($"        EXEC @ValidOk = [cruda].[{tableName}Valid] @Action, @LastRecord, @ActualRecord\r\n");
+                result.Append($"        EXEC @ValidOk = [cruda].[{table["Name"]}Valid] @Action, @LastRecord, @ActualRecord\r\n");
                 result.Append($"        IF @ValidOk = 0\r\n");
                 result.Append($"            RETURN 0\r\n");
                 if (columnRows.Count > 0)
@@ -645,7 +620,7 @@ namespace CRUDA.Classes
                         if (firstTime)
                         {
                             result.Append($"        IF @Action = 'delete'\r\n");
-                            result.Append($"            DELETE FROM [dbo].[{tableName}] WHERE [{columnRow["Name"]}] = @W_{columnRow["Name"]}\r\n");
+                            result.Append($"            DELETE FROM [dbo].[{table["Name"]}] WHERE [{columnRow["Name"]}] = @W_{columnRow["Name"]}\r\n");
                             firstTime = false;
                         }
                         else
@@ -653,7 +628,7 @@ namespace CRUDA.Classes
                     }
                 }
                 firstTime = true;
-                columnRows = columns.FindAll(row => ToLong(row["TableId"]) == tableId && !ToBoolean(row["IsPrimarykey"]) && !ToBoolean(row["IsAutoIncrement"]));
+                columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]) && !ToBoolean(row["IsPrimarykey"]) && !ToBoolean(row["IsAutoIncrement"]));
                 if (columnRows.Count > 0)
                 {
                     foreach (var columnRow in columnRows)
@@ -671,7 +646,7 @@ namespace CRUDA.Classes
                     result.Append($"\r\n");
                 }
                 firstTime = true;
-                columnRows = columns.FindAll(row => ToLong(row["TableId"]) == tableId && !ToBoolean(row["IsAutoIncrement"]));
+                columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]) && !ToBoolean(row["IsAutoIncrement"]));
                 if (columnRows.Count > 0)
                 {
                     foreach (var columnRow in columnRows)
@@ -682,7 +657,7 @@ namespace CRUDA.Classes
                         if (firstTime)
                         {
                             result.Append($"            IF @Action = 'create'\r\n");
-                            result.Append($"                INSERT INTO [dbo].[{tableName}] ([{columnName}]");
+                            result.Append($"                INSERT INTO [dbo].[{table["Name"]}] ([{columnName}]");
                             firstTime = false;
                         }
                         else
@@ -717,14 +692,14 @@ namespace CRUDA.Classes
 
                         if (firstTime)
                         {
-                            result.Append($"                UPDATE [dbo].[{tableName}] SET [{columnName}] = @W_{columnName}\r\n");
+                            result.Append($"                UPDATE [dbo].[{table["Name"]}] SET [{columnName}] = @W_{columnName}\r\n");
                             firstTime = false;
                         }
                         else
                             result.Append($"                                              ,[{columnName}] = @W_{columnName}\r\n");
                     }
                     firstTime = true;
-                    columnRows = columns.FindAll(row => ToLong(row["TableId"]) == tableId && ToBoolean(row["IsPrimarykey"]));
+                    columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]) && ToBoolean(row["IsPrimarykey"]));
                     foreach (var columnRow in columnRows)
                     {
                         var columnName = ToString(columnRow["Name"]);

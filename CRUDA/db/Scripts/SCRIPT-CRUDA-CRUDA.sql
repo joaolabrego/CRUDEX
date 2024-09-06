@@ -7257,3 +7257,7317 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Columns]
+**********************************************************************************/
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('5' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('Id da categoria' AS varchar(50))
+                                ,CAST('Categoria' AS varchar(25))
+                                ,CAST('Categoria' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Name' AS varchar(25))
+                                ,CAST('Nome da categoria' AS varchar(50))
+                                ,CAST('Nome' AS varchar(25))
+                                ,CAST('Nome' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('3' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('19' AS bigint)
+                                ,NULL
+                                ,CAST('HtmlInputType' AS varchar(25))
+                                ,CAST('Tipo do input HTML' AS varchar(50))
+                                ,CAST('Tipo input HTML' AS varchar(25))
+                                ,CAST('Tipo input HTML' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('4' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('20' AS bigint)
+                                ,NULL
+                                ,CAST('HtmlInputAlign' AS varchar(25))
+                                ,CAST('Alinhamento do input HTML' AS varchar(50))
+                                ,CAST('Alinhamento input HTML' AS varchar(25))
+                                ,CAST('Alinhamento input HTML' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('5' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskEncrypted' AS varchar(25))
+                                ,CAST('Tipo pede criptografia?' AS varchar(50))
+                                ,CAST('Pede criptografia?' AS varchar(25))
+                                ,CAST('Pede criptografia?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('6' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskMask' AS varchar(25))
+                                ,CAST('Tipo pede máscara?' AS varchar(50))
+                                ,CAST('Pede máscara?' AS varchar(25))
+                                ,CAST('Pede máscara?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('7' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('35' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskListable' AS varchar(25))
+                                ,CAST('Tipo pede listável?' AS varchar(50))
+                                ,CAST('Pede listável?' AS varchar(25))
+                                ,CAST('Pede listável?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('8' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('40' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskDefault' AS varchar(25))
+                                ,CAST('Tipo pede valor padrão?' AS varchar(50))
+                                ,CAST('Pede valor padrão?' AS varchar(25))
+                                ,CAST('Pede valor padrão?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('9' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('45' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskMinimum' AS varchar(25))
+                                ,CAST('Tipo pede valor mínimo?' AS varchar(50))
+                                ,CAST('Pede valor mínimo?' AS varchar(25))
+                                ,CAST('Pede valor mínimo?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('10' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('50' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskMaximum' AS varchar(25))
+                                ,CAST('Tipo pede valor máximo?' AS varchar(50))
+                                ,CAST('Pede valor máximo?' AS varchar(25))
+                                ,CAST('Pede valor máximo?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('11' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('5' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID do tipo' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('12' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('CategoryId' AS varchar(25))
+                                ,CAST('Categoria do tipo' AS varchar(50))
+                                ,CAST('Categoria' AS varchar(25))
+                                ,CAST('Categoria' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('13' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Name' AS varchar(25))
+                                ,CAST('Nome do tipo' AS varchar(50))
+                                ,CAST('Nome' AS varchar(25))
+                                ,CAST('Nome' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('14' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('17' AS bigint)
+                                ,NULL
+                                ,CAST('Minimum' AS varchar(25))
+                                ,CAST('Valor mínimo do tipo' AS varchar(50))
+                                ,CAST('Mínimo' AS varchar(25))
+                                ,CAST('Mínimo' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('15' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('17' AS bigint)
+                                ,NULL
+                                ,CAST('Maximum' AS varchar(25))
+                                ,CAST('Valor máximo do tipo' AS varchar(50))
+                                ,CAST('Máximo' AS varchar(25))
+                                ,CAST('Máximo' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('16' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskLength' AS varchar(25))
+                                ,CAST('Tipo pede tamanho?' AS varchar(50))
+                                ,CAST('Pede Tamanho?' AS varchar(25))
+                                ,CAST('Pede Tamanho?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('17' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('35' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskDecimals' AS varchar(25))
+                                ,CAST('Tipo pede decimais?' AS varchar(50))
+                                ,CAST('Pede decimais?' AS varchar(25))
+                                ,CAST('Pede decimais?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('18' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('40' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskPrimarykey' AS varchar(25))
+                                ,CAST('Tipo pede chave-primária?' AS varchar(50))
+                                ,CAST('Pede chave-primária?' AS varchar(25))
+                                ,CAST('Pede chave-primária?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('19' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('45' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskAutoincrement' AS varchar(25))
+                                ,CAST('Tipo pede autoincremento?' AS varchar(50))
+                                ,CAST('Pede autoincremento?' AS varchar(25))
+                                ,CAST('Pede autoincremento?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('20' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('50' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskFilterable' AS varchar(25))
+                                ,CAST('Tipo pede filtrável?' AS varchar(50))
+                                ,CAST('Pede filtrável?' AS varchar(25))
+                                ,CAST('Pede filtrável?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('21' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('55' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskBrowseable' AS varchar(25))
+                                ,CAST('Tipo pede navegável?' AS varchar(50))
+                                ,CAST('Pede navegável?' AS varchar(25))
+                                ,CAST('Pede navegável?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('22' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('60' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskCodification' AS varchar(25))
+                                ,CAST('Tipo pede codificação?' AS varchar(50))
+                                ,CAST('Pede codificação?' AS varchar(25))
+                                ,CAST('Pede codificação?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('23' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('65' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AskFormula' AS varchar(25))
+                                ,CAST('Tipo pede fórmula?' AS varchar(50))
+                                ,CAST('Pede fórmula?' AS varchar(25))
+                                ,CAST('Pede fórmula?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('24' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('70' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('AllowMaxLength' AS varchar(25))
+                                ,CAST('Tipo permite MAX no tamanho?' AS varchar(50))
+                                ,CAST('Permite MAX?' AS varchar(25))
+                                ,CAST('Permite MAX?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('25' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('75' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsActive' AS varchar(25))
+                                ,CAST('Tipo é ativo?' AS varchar(50))
+                                ,CAST('É ativo?' AS varchar(25))
+                                ,CAST('É ativo?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('26' AS bigint)
+                                ,CAST('3' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID da máscara de edição' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('27' AS bigint)
+                                ,CAST('3' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Name' AS varchar(25))
+                                ,CAST('Nome da máscara' AS varchar(50))
+                                ,CAST('Nome' AS varchar(25))
+                                ,CAST('Nome' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('28' AS bigint)
+                                ,CAST('3' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('12' AS bigint)
+                                ,NULL
+                                ,CAST('Mask' AS varchar(25))
+                                ,CAST('Máscara de edição' AS varchar(50))
+                                ,CAST('Máscara' AS varchar(25))
+                                ,CAST('Máscara' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('29' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID do domínio' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('30' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('TypeId' AS varchar(25))
+                                ,CAST('ID do tipo do domínio' AS varchar(50))
+                                ,CAST('Tipo' AS varchar(25))
+                                ,CAST('Tipo' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('31' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('3' AS bigint)
+                                ,CAST('MaskId' AS varchar(25))
+                                ,CAST('Id da máscara de edição do domínio' AS varchar(50))
+                                ,CAST('Máscara' AS varchar(25))
+                                ,CAST('Máscara' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('32' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Name' AS varchar(25))
+                                ,CAST('Nome do domínio' AS varchar(50))
+                                ,CAST('Nome' AS varchar(25))
+                                ,CAST('Nome' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('33' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('4' AS bigint)
+                                ,NULL
+                                ,CAST('Length' AS varchar(25))
+                                ,CAST('Tamanho do domínio' AS varchar(50))
+                                ,CAST('Tamanho' AS varchar(25))
+                                ,CAST('Tamanho' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('34' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('5' AS bigint)
+                                ,NULL
+                                ,CAST('Decimals' AS varchar(25))
+                                ,CAST('Decimais do domínio' AS varchar(50))
+                                ,CAST('Decimais' AS varchar(25))
+                                ,CAST('Decimais' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('35' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('35' AS smallint)
+                                ,CAST('12' AS bigint)
+                                ,NULL
+                                ,CAST('ValidValues' AS varchar(25))
+                                ,CAST('Valores válidos' AS varchar(50))
+                                ,CAST('Valores válidos' AS varchar(25))
+                                ,CAST('Valores válidos' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('36' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('40' AS smallint)
+                                ,CAST('17' AS bigint)
+                                ,NULL
+                                ,CAST('Default' AS varchar(25))
+                                ,CAST('Valor padrão do domínio' AS varchar(50))
+                                ,CAST('Padrão' AS varchar(25))
+                                ,CAST('Padrão' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('37' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('45' AS smallint)
+                                ,CAST('17' AS bigint)
+                                ,NULL
+                                ,CAST('Minimum' AS varchar(25))
+                                ,CAST('Valor mínimo do domínio' AS varchar(50))
+                                ,CAST('Mínimo' AS varchar(25))
+                                ,CAST('Mínimo' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('38' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('50' AS smallint)
+                                ,CAST('17' AS bigint)
+                                ,NULL
+                                ,CAST('Maximum' AS varchar(25))
+                                ,CAST('Valor máximo do domínio' AS varchar(50))
+                                ,CAST('Máximo' AS varchar(25))
+                                ,CAST('Máximo' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('39' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('55' AS smallint)
+                                ,CAST('18' AS bigint)
+                                ,NULL
+                                ,CAST('Codification' AS varchar(25))
+                                ,CAST('Codificação da coluna' AS varchar(50))
+                                ,CAST('Codificação' AS varchar(25))
+                                ,CAST('Codificação' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('40' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID do sistema' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('41' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Name' AS varchar(25))
+                                ,CAST('Nome do sistema' AS varchar(50))
+                                ,CAST('Nome' AS varchar(25))
+                                ,CAST('Nome' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('42' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('Description' AS varchar(25))
+                                ,CAST('Descrição do sistema' AS varchar(50))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('43' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('7' AS bigint)
+                                ,NULL
+                                ,CAST('ClientName' AS varchar(25))
+                                ,CAST('Cliente do sistema' AS varchar(50))
+                                ,CAST('Cliente' AS varchar(25))
+                                ,CAST('Cliente' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('44' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('5' AS bigint)
+                                ,NULL
+                                ,CAST('MaxRetryLogins' AS varchar(25))
+                                ,CAST('Máximo de tentativas de logins' AS varchar(50))
+                                ,CAST('Máximo de logins' AS varchar(25))
+                                ,CAST('Máximo de logins' AS varchar(25))
+                                ,NULL
+                                ,CAST('5' AS sql_variant)
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('45' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsOffAir' AS varchar(25))
+                                ,CAST('Sistema fora-do-ar' AS varchar(50))
+                                ,CAST('Fora-do-ar' AS varchar(25))
+                                ,CAST('Fora-do-ar' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('46' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID do menu' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('47' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('SystemId' AS varchar(25))
+                                ,CAST('ID do sistema do menu' AS varchar(50))
+                                ,CAST('Sistema' AS varchar(25))
+                                ,CAST('Sistema' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('48' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('4' AS bigint)
+                                ,NULL
+                                ,CAST('Sequence' AS varchar(25))
+                                ,CAST('Sequência do menu' AS varchar(50))
+                                ,CAST('Sequência' AS varchar(25))
+                                ,CAST('Sequência' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('49' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('8' AS bigint)
+                                ,NULL
+                                ,CAST('Caption' AS varchar(25))
+                                ,CAST('Opção do menu' AS varchar(50))
+                                ,CAST('Opção' AS varchar(25))
+                                ,CAST('Opção' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('50' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('Message' AS varchar(25))
+                                ,CAST('Mensagem do menu' AS varchar(50))
+                                ,CAST('Mensagem' AS varchar(25))
+                                ,CAST('Mensagem' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('51' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('Action' AS varchar(25))
+                                ,CAST('Ação do menu' AS varchar(50))
+                                ,CAST('Ação' AS varchar(25))
+                                ,CAST('Ação' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('52' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST('35' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST('ParentMenuId' AS varchar(25))
+                                ,CAST('ID do menu-pai' AS varchar(50))
+                                ,CAST('Menu-pai' AS varchar(25))
+                                ,CAST('Menu-pai' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('53' AS bigint)
+                                ,CAST('7' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID do usuário' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('54' AS bigint)
+                                ,CAST('7' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Name' AS varchar(25))
+                                ,CAST('Nome do usuário' AS varchar(50))
+                                ,CAST('Nome' AS varchar(25))
+                                ,CAST('Nome' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('55' AS bigint)
+                                ,CAST('7' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('11' AS bigint)
+                                ,NULL
+                                ,CAST('Password' AS varchar(25))
+                                ,CAST('Senha do usuário' AS varchar(50))
+                                ,CAST('Senha' AS varchar(25))
+                                ,CAST('Senha' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('56' AS bigint)
+                                ,CAST('7' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('FullName' AS varchar(25))
+                                ,CAST('Nome completo do usuário' AS varchar(50))
+                                ,CAST('Nome completo' AS varchar(25))
+                                ,CAST('Nome completo' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('57' AS bigint)
+                                ,CAST('7' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('5' AS bigint)
+                                ,NULL
+                                ,CAST('RetryLogins' AS varchar(25))
+                                ,CAST('Tentativas de login' AS varchar(50))
+                                ,CAST('Tentativas de login' AS varchar(25))
+                                ,CAST('Tentativas de login' AS varchar(25))
+                                ,NULL
+                                ,CAST('0' AS sql_variant)
+                                ,CAST('0' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('58' AS bigint)
+                                ,CAST('7' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsActive' AS varchar(25))
+                                ,CAST('Ativo?' AS varchar(50))
+                                ,CAST('Ativo?' AS varchar(25))
+                                ,CAST('Ativo?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('59' AS bigint)
+                                ,CAST('8' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID do sistema x usuário' AS varchar(50))
+                                ,CAST('Sistema' AS varchar(25))
+                                ,CAST('Sistema' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('60' AS bigint)
+                                ,CAST('8' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('SystemId' AS varchar(25))
+                                ,CAST('ID do sistema' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('61' AS bigint)
+                                ,CAST('8' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('7' AS bigint)
+                                ,CAST('UserId' AS varchar(25))
+                                ,CAST('ID do usuário' AS varchar(50))
+                                ,CAST('Usuário' AS varchar(25))
+                                ,CAST('Usuário' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('62' AS bigint)
+                                ,CAST('8' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('Description' AS varchar(25))
+                                ,CAST('Descrição do siistema x usuário' AS varchar(50))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('63' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID do banco-de-dados' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('64' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Name' AS varchar(25))
+                                ,CAST('Nome do banco-de-dados' AS varchar(50))
+                                ,CAST('Nome' AS varchar(25))
+                                ,CAST('Nome' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('65' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('Description' AS varchar(25))
+                                ,CAST('Descrição do banco-de-dados' AS varchar(50))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('66' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Alias' AS varchar(25))
+                                ,CAST('Alias  do banco-de-dados' AS varchar(50))
+                                ,CAST('Alias' AS varchar(25))
+                                ,CAST('Alias' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('67' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('ServerName' AS varchar(25))
+                                ,CAST('String de conexão do banco-de-dados' AS varchar(50))
+                                ,CAST('String de Conexão' AS varchar(25))
+                                ,CAST('String de Conexão' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('68' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('HostName' AS varchar(25))
+                                ,CAST('Hospedeiro do banco-de-dados' AS varchar(50))
+                                ,CAST('Hospedeiro' AS varchar(25))
+                                ,CAST('Hospedeiro' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('69' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('35' AS smallint)
+                                ,CAST('3' AS bigint)
+                                ,NULL
+                                ,CAST('Port' AS varchar(25))
+                                ,CAST('Porta TCP/IP do banco-de-dados' AS varchar(50))
+                                ,CAST('Porta TCP/IP' AS varchar(25))
+                                ,CAST('Porta TCP/IP' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('70' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('40' AS smallint)
+                                ,CAST('11' AS bigint)
+                                ,NULL
+                                ,CAST('Logon' AS varchar(25))
+                                ,CAST('Usuário do banco-de-dados' AS varchar(50))
+                                ,CAST('Usuário' AS varchar(25))
+                                ,CAST('Usuário' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('71' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('45' AS smallint)
+                                ,CAST('11' AS bigint)
+                                ,NULL
+                                ,CAST('Password' AS varchar(25))
+                                ,CAST('Senha do banco-de-dados' AS varchar(50))
+                                ,CAST('Senha' AS varchar(25))
+                                ,CAST('Senha' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('72' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('50' AS smallint)
+                                ,CAST('11' AS bigint)
+                                ,NULL
+                                ,CAST('Folder' AS varchar(25))
+                                ,CAST('Pasta diretório do banco-de-dados' AS varchar(50))
+                                ,CAST('Pasta' AS varchar(25))
+                                ,CAST('Pasta' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('73' AS bigint)
+                                ,CAST('10' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID do sistema x banco-de-dados' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('74' AS bigint)
+                                ,CAST('10' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('SystemId' AS varchar(25))
+                                ,CAST('ID do sistema' AS varchar(50))
+                                ,CAST('Sistema' AS varchar(25))
+                                ,CAST('Sistema' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('75' AS bigint)
+                                ,CAST('10' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('DatabaseId' AS varchar(25))
+                                ,CAST('ID do banco-de-dados' AS varchar(50))
+                                ,CAST('Banco-de-dados' AS varchar(25))
+                                ,CAST('Banco-de-dados' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('76' AS bigint)
+                                ,CAST('10' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('Description' AS varchar(25))
+                                ,CAST('Descrição do sistema x banco-de-dados' AS varchar(50))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('77' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID da tabela' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('78' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Name' AS varchar(25))
+                                ,CAST('Nome da tabela' AS varchar(50))
+                                ,CAST('Nome' AS varchar(25))
+                                ,CAST('Nome' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('79' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Alias' AS varchar(25))
+                                ,CAST('Alias da tabela' AS varchar(50))
+                                ,CAST('Alias' AS varchar(25))
+                                ,CAST('Alias' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('80' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('Description' AS varchar(25))
+                                ,CAST('Descrição da tabela' AS varchar(50))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('81' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsPaged' AS varchar(25))
+                                ,CAST('Consulta é paginada?' AS varchar(50))
+                                ,CAST('Paginado?' AS varchar(25))
+                                ,CAST('Paginado?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('82' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('CurrentId' AS varchar(25))
+                                ,CAST('Id atual' AS varchar(50))
+                                ,CAST('Id atual' AS varchar(25))
+                                ,CAST('Id atual' AS varchar(25))
+                                ,NULL
+                                ,CAST('CAST('0' AS bigint)' AS sql_variant)
+                                ,CAST('0' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('83' AS bigint)
+                                ,CAST('12' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID do banco-de-dados x tabela' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('84' AS bigint)
+                                ,CAST('12' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('DatabaseId' AS varchar(25))
+                                ,CAST('ID do banco-de-dados' AS varchar(50))
+                                ,CAST('Sistema' AS varchar(25))
+                                ,CAST('Sistema' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('85' AS bigint)
+                                ,CAST('12' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('TableId' AS varchar(25))
+                                ,CAST('ID da tabela' AS varchar(50))
+                                ,CAST('Banco-de-dados' AS varchar(25))
+                                ,CAST('Banco-de-dados' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('86' AS bigint)
+                                ,CAST('12' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('Description' AS varchar(25))
+                                ,CAST('Descrição do banco-de-dados x tabela' AS varchar(50))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('87' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID da coluna' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('88' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('TableId' AS varchar(25))
+                                ,CAST('Tabela' AS varchar(50))
+                                ,CAST('Tabela' AS varchar(25))
+                                ,CAST('Tabela' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('89' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('4' AS bigint)
+                                ,NULL
+                                ,CAST('Sequence' AS varchar(25))
+                                ,CAST('Sequência' AS varchar(50))
+                                ,CAST('Sequência' AS varchar(25))
+                                ,CAST('Sequência' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('90' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('DomainId' AS varchar(25))
+                                ,CAST('Domínio da coluna' AS varchar(50))
+                                ,CAST('Domínio' AS varchar(25))
+                                ,CAST('Domínio' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('91' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('ReferenceTableId' AS varchar(25))
+                                ,CAST('Tabela-referência' AS varchar(50))
+                                ,CAST('Referência' AS varchar(25))
+                                ,CAST('Referência' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('92' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Name' AS varchar(25))
+                                ,CAST('Nome da coluna' AS varchar(50))
+                                ,CAST('Nome' AS varchar(25))
+                                ,CAST('Nome' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('93' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('35' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('Description' AS varchar(25))
+                                ,CAST('Descrição da Coluna' AS varchar(50))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,CAST('Descrição' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('94' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('40' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Title' AS varchar(25))
+                                ,CAST('Título da Coluna' AS varchar(50))
+                                ,CAST('Título' AS varchar(25))
+                                ,CAST('Título' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('95' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('45' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('Caption' AS varchar(25))
+                                ,CAST('Legenda da Coluna' AS varchar(50))
+                                ,CAST('Legenda' AS varchar(25))
+                                ,CAST('Legenda' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('96' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('50' AS smallint)
+                                ,CAST('12' AS bigint)
+                                ,NULL
+                                ,CAST('ValidValues' AS varchar(25))
+                                ,CAST('Valores válidos' AS varchar(50))
+                                ,CAST('Valores válidos' AS varchar(25))
+                                ,CAST('Valores válidos' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('97' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('55' AS smallint)
+                                ,CAST('17' AS bigint)
+                                ,NULL
+                                ,CAST('Default' AS varchar(25))
+                                ,CAST('Valor padrão da coluna' AS varchar(50))
+                                ,CAST('Padrão' AS varchar(25))
+                                ,CAST('Padrão' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('98' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('60' AS smallint)
+                                ,CAST('17' AS bigint)
+                                ,NULL
+                                ,CAST('Minimum' AS varchar(25))
+                                ,CAST('Valor mínimo da coluna' AS varchar(50))
+                                ,CAST('Mínimo' AS varchar(25))
+                                ,CAST('Mínimo' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('99' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('65' AS smallint)
+                                ,CAST('17' AS bigint)
+                                ,NULL
+                                ,CAST('Maximum' AS varchar(25))
+                                ,CAST('Valor máximo da coluna' AS varchar(50))
+                                ,CAST('Máximo' AS varchar(25))
+                                ,CAST('Máximo' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('100' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('70' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsPrimarykey' AS varchar(25))
+                                ,CAST('Coluna é chave-primária?' AS varchar(50))
+                                ,CAST('É chave-primária?' AS varchar(25))
+                                ,CAST('É chave-primária?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('101' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('75' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsAutoIncrement' AS varchar(25))
+                                ,CAST('Coluna é autoincremento?' AS varchar(50))
+                                ,CAST('É autoincremento?' AS varchar(25))
+                                ,CAST('É autoincremento?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('102' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('80' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsRequired' AS varchar(25))
+                                ,CAST('Coluna é requerida?' AS varchar(50))
+                                ,CAST('É requerida?' AS varchar(25))
+                                ,CAST('É requerida?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('103' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('85' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsListable' AS varchar(25))
+                                ,CAST('Coluna é listável?' AS varchar(50))
+                                ,CAST('É listável?' AS varchar(25))
+                                ,CAST('É listável?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('104' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('90' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsFilterable' AS varchar(25))
+                                ,CAST('Coluna é filtrável?' AS varchar(50))
+                                ,CAST('É filtrável?' AS varchar(25))
+                                ,CAST('É filtrável?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('105' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('95' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsEditable' AS varchar(25))
+                                ,CAST('Coluna é editável?' AS varchar(50))
+                                ,CAST('É editável?' AS varchar(25))
+                                ,CAST('É editável?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('106' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('100' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsBrowseable' AS varchar(25))
+                                ,CAST('Coluna é navegável?' AS varchar(50))
+                                ,CAST('É navegável?' AS varchar(25))
+                                ,CAST('É navegável?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('107' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('105' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsEncrypted' AS varchar(25))
+                                ,CAST('Coluna é encriptada?' AS varchar(50))
+                                ,CAST('É encriptada?' AS varchar(25))
+                                ,CAST('É encriptada?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('108' AS bigint)
+                                ,CAST('14' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID do índice' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('109' AS bigint)
+                                ,CAST('14' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('DatabaseId' AS varchar(25))
+                                ,CAST('ID do banco-de-dados do índice' AS varchar(50))
+                                ,CAST('Banco-de-dados' AS varchar(25))
+                                ,CAST('Banco-de-dados' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('110' AS bigint)
+                                ,CAST('14' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('TableId' AS varchar(25))
+                                ,CAST('ID da tabela do índice' AS varchar(50))
+                                ,CAST('Tabela' AS varchar(25))
+                                ,CAST('Tabela' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('111' AS bigint)
+                                ,CAST('14' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('Name' AS varchar(25))
+                                ,CAST('Nome do índice' AS varchar(50))
+                                ,CAST('Nome' AS varchar(25))
+                                ,CAST('Nome' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('112' AS bigint)
+                                ,CAST('14' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsUnique' AS varchar(25))
+                                ,CAST('É índice único?' AS varchar(50))
+                                ,CAST('É único?' AS varchar(25))
+                                ,CAST('É único?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('113' AS bigint)
+                                ,CAST('15' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID da chave de índice' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('114' AS bigint)
+                                ,CAST('15' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('14' AS bigint)
+                                ,CAST('IndexId' AS varchar(25))
+                                ,CAST('ID do índice da chave' AS varchar(50))
+                                ,CAST('Índice' AS varchar(25))
+                                ,CAST('Índice' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('115' AS bigint)
+                                ,CAST('15' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('4' AS bigint)
+                                ,NULL
+                                ,CAST('Sequence' AS varchar(25))
+                                ,CAST('Sequência da chave' AS varchar(50))
+                                ,CAST('Sequência' AS varchar(25))
+                                ,CAST('Sequência' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('116' AS bigint)
+                                ,CAST('15' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('ColumnId' AS varchar(25))
+                                ,CAST('ID da coluna-chave do índice' AS varchar(50))
+                                ,CAST('Coluna' AS varchar(25))
+                                ,CAST('Coluna' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('117' AS bigint)
+                                ,CAST('15' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsDescending' AS varchar(25))
+                                ,CAST('Ordem descedente da chave?' AS varchar(50))
+                                ,CAST('Descendente?' AS varchar(25))
+                                ,CAST('Descendente?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('118' AS bigint)
+                                ,CAST('16' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS varchar(25))
+                                ,CAST('ID do Login de Acesso' AS varchar(50))
+                                ,CAST('ID' AS varchar(25))
+                                ,CAST('ID' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('119' AS bigint)
+                                ,CAST('16' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('SystemId' AS varchar(25))
+                                ,CAST('ID do Sistema' AS varchar(50))
+                                ,CAST('Sistema' AS varchar(25))
+                                ,CAST('Sistema' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('120' AS bigint)
+                                ,CAST('16' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('7' AS bigint)
+                                ,CAST('UserId' AS varchar(25))
+                                ,CAST('ID do usuário' AS varchar(50))
+                                ,CAST('Usuário' AS varchar(25))
+                                ,CAST('Usuário' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('121' AS bigint)
+                                ,CAST('16' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('11' AS bigint)
+                                ,NULL
+                                ,CAST('PublicKey' AS varchar(25))
+                                ,CAST('Chave pública do usuário' AS varchar(50))
+                                ,CAST('Chave pública' AS varchar(25))
+                                ,CAST('Chave pública' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('122' AS bigint)
+                                ,CAST('16' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsLogged' AS varchar(25))
+                                ,CAST('Logado?' AS varchar(50))
+                                ,CAST('Logado?' AS varchar(25))
+                                ,CAST('Logado?' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Indexes]
+**********************************************************************************/
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('1' AS bigint)
+                                ,CAST('UNQ_Categories_Name' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,NULL
+                                ,CAST('2' AS bigint)
+                                ,CAST('UNQ_Types_Name' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('3' AS bigint)
+                                ,NULL
+                                ,CAST('3' AS bigint)
+                                ,CAST('UNQ_Masks_Name' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('4' AS bigint)
+                                ,NULL
+                                ,CAST('4' AS bigint)
+                                ,CAST('UNQ_Domains_Name' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('5' AS bigint)
+                                ,NULL
+                                ,CAST('5' AS bigint)
+                                ,CAST('UNQ_Systems_Name' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('6' AS bigint)
+                                ,CAST('UNQ_Menus_SystemId_Sequence' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('7' AS bigint)
+                                ,NULL
+                                ,CAST('7' AS bigint)
+                                ,CAST('UNQ_Users_Name' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('8' AS bigint)
+                                ,NULL
+                                ,CAST('8' AS bigint)
+                                ,CAST('UNQ_SystemsUsers_SystemId_UserId' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST('8' AS bigint)
+                                ,CAST('UNQ_SystemsUsers_Description' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST('9' AS bigint)
+                                ,CAST('UNQ_Databases_Name' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('11' AS bigint)
+                                ,NULL
+                                ,CAST('9' AS bigint)
+                                ,CAST('UNQ_Databases_Alias' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('12' AS bigint)
+                                ,NULL
+                                ,CAST('10' AS bigint)
+                                ,CAST('UNQ_SystemsDatabases_SystemId_DatabaseId' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('13' AS bigint)
+                                ,NULL
+                                ,CAST('10' AS bigint)
+                                ,CAST('UNQ_SystemsDatabases_Description' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('14' AS bigint)
+                                ,NULL
+                                ,CAST('11' AS bigint)
+                                ,CAST('UNQ_Tables_Name' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('15' AS bigint)
+                                ,NULL
+                                ,CAST('11' AS bigint)
+                                ,CAST('UNQ_Tables_Alias' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('16' AS bigint)
+                                ,NULL
+                                ,CAST('12' AS bigint)
+                                ,CAST('UNQ_DatabasesTables_DatabaseId_TableId' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('17' AS bigint)
+                                ,NULL
+                                ,CAST('12' AS bigint)
+                                ,CAST('UNQ_DatabasesTables_Description' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('18' AS bigint)
+                                ,NULL
+                                ,CAST('13' AS bigint)
+                                ,CAST('UNQ_Columns_TableId_Name' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('19' AS bigint)
+                                ,NULL
+                                ,CAST('13' AS bigint)
+                                ,CAST('UNQ_Columns_TableId_Sequence' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('20' AS bigint)
+                                ,NULL
+                                ,CAST('14' AS bigint)
+                                ,CAST('UNQ_Indexes_DatabaseId_Name' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('21' AS bigint)
+                                ,NULL
+                                ,CAST('15' AS bigint)
+                                ,CAST('UNQ_Indexkeys_IndexId_Sequence' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('22' AS bigint)
+                                ,NULL
+                                ,CAST('15' AS bigint)
+                                ,CAST('UNQ_Indexkeys_IndexId_ColumnId' AS varchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('23' AS bigint)
+                                ,NULL
+                                ,CAST('16' AS bigint)
+                                ,CAST('UNQ_Logins_SystemId_UserId_IsLogged' AS varchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Indexkeys]
+**********************************************************************************/
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('3' AS bigint)
+                                ,CAST('3' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('27' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('4' AS bigint)
+                                ,CAST('4' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('32' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('5' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('41' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('6' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('47' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('7' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('48' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('8' AS bigint)
+                                ,CAST('7' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('54' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('9' AS bigint)
+                                ,CAST('8' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('60' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('10' AS bigint)
+                                ,CAST('8' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('61' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('11' AS bigint)
+                                ,CAST('9' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('62' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('12' AS bigint)
+                                ,CAST('10' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('64' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('13' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('66' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('14' AS bigint)
+                                ,CAST('12' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('74' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('15' AS bigint)
+                                ,CAST('12' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('75' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('16' AS bigint)
+                                ,CAST('13' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('76' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('17' AS bigint)
+                                ,CAST('14' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('78' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('18' AS bigint)
+                                ,CAST('15' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('79' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('19' AS bigint)
+                                ,CAST('16' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('84' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('20' AS bigint)
+                                ,CAST('16' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('85' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('21' AS bigint)
+                                ,CAST('17' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('86' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('22' AS bigint)
+                                ,CAST('18' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('88' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('23' AS bigint)
+                                ,CAST('18' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('92' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('24' AS bigint)
+                                ,CAST('19' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('88' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('25' AS bigint)
+                                ,CAST('19' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('89' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('26' AS bigint)
+                                ,CAST('20' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('109' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('27' AS bigint)
+                                ,CAST('20' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('111' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('28' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('114' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('29' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('115' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('30' AS bigint)
+                                ,CAST('22' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('114' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('31' AS bigint)
+                                ,CAST('22' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('116' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('32' AS bigint)
+                                ,CAST('23' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('119' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('33' AS bigint)
+                                ,CAST('23' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('120' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('34' AS bigint)
+                                ,CAST('23' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('122' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
