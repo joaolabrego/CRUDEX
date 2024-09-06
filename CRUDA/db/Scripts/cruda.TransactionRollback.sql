@@ -24,7 +24,7 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
 		SELECT @TransactionIdAux = [Id]
 			  ,@IsConfirmed = [IsConfirmed]
 			FROM [cruda].[Transactions]
-			WHERE [TransactionId] = @TransactionId
+			WHERE [Id] = @TransactionId
 		IF @TransactionIdAux IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Transação é inexistente';
 			THROW 51000, @ErrorMessage, 1

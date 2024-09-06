@@ -15,10 +15,10 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		ELSE
 			SAVE TRANSACTION [TransactionBegin]
 		IF @LoginId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @LoginId é requerido';
+			SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
-		SELECT @TransactionId = MAX([TransactionId]) + 1
+		SELECT @TransactionId = MAX([Id]) + 1
 			FROM [cruda].[Transactions]
 		INSERT [cruda].[Transactions] ([Id]
 									  ,[LoginId]

@@ -56,7 +56,7 @@ BEGIN
 			THROW 51000, @ErrorMessage, 1
 		END
 		UPDATE [dbo].[Tables] 
-			SET [LastId] = @NextId
+			SET [CurrentId] = @NextId
 			WHERE [Id] = @TableId
 		COMMIT TRANSACTION GenerateId
 

@@ -33,13 +33,14 @@ namespace CRUDA.Classes
                 if (firstTime)
                 {
                     stream.Write(GetScriptDatabase(database));
-                    stream.Write(GetScriptOthers(systemName == "cruda"));
+                    stream.Write(GetScriptOthers(systemName));
                     stream.Write(GetScriptTableTransactions());
                     stream.Write(GetScriptTableOperations());
                     firstTime = false;
                 }
-                stream.Write(GetScriptTable(table, columns, indexes, indexkeys, domains, types));
-                stream.Write(GetScriptRatify(table, columns, domains, types, categories, indexes, indexkeys));
+                stream.Write(GetScriptTable(table, columns, indexes, indexkeys));
+                stream.Write(GetScriptValid(table, tables, columns, domains, types, indexes, indexkeys));
+                stream.Write(GetScriptRatify(table, columns));
 
             }
             stream.Write(GetScriptReferences(tables, columns));
@@ -95,10 +96,12 @@ namespace CRUDA.Classes
 
             return Convert.ToString(value) ?? string.Empty;
         }
-        private static TDictionary GetValidations(DataRow type, DataRow domain, DataRow column)
+        private static TDictionary GetValidations(DataRow column, TDataRows domains, TDataRows types)
         {
             var result = new TDictionary();
             string value;
+            var domain = domains.First(domain => ToLong(domain["Id"]) == ToLong(column["DomainId"]));
+            var type = types.First(type => ToLong(type["Id"]) == ToLong(domain["TypeId"]));
 
             if (ToBoolean(column["IsRequired"]))
                 result.Add("IsRequired", true);
@@ -222,11 +225,11 @@ namespace CRUDA.Classes
 
             return result;
         }
-        private static StringBuilder GetScriptOthers(bool all)
+        private static StringBuilder GetScriptOthers(string systemName)
         {
             var result = new StringBuilder();
 
-            if (all)
+            if (systemName == "cruda")
             {
                 result.Append($"/**********************************************************************************\r\n");
                 result.Append($"Criar stored procedure [cruda].[Config]\r\n");
@@ -288,8 +291,8 @@ namespace CRUDA.Classes
             result.Append($"                                   ,[CreatedBy] varchar(25) NOT NULL\r\n");
             result.Append($"                                   ,[UpdatedAt] datetime NULL\r\n");
             result.Append($"                                   ,[UpdatedBy] varchar(25) NULL)\r\n");
-            result.Append($"ALTER TABLE [cruda].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED([Id])");
-            result.Append($"CREATE INDEX [IDX_Transactions_LoginId_IsConfirmed] ON [dbo].[Transactions]([LoginId], [IsConfirmed])");
+            result.Append($"ALTER TABLE [cruda].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED([Id])\r\n");
+            result.Append($"CREATE INDEX [IDX_Transactions_LoginId_IsConfirmed] ON [cruda].[Transactions]([LoginId], [IsConfirmed])\r\n");
             result.Append($"GO\r\n");
 
             return result;
@@ -314,13 +317,13 @@ namespace CRUDA.Classes
             result.Append($"                                 ,[CreatedBy] varchar(25) NOT NULL\r\n");
             result.Append($"                                 ,[UpdatedAt] datetime NULL\r\n");
             result.Append($"                                 ,[UpdatedBy] varchar(25) NULL)\r\n");
-            result.Append($"ALTER TABLE [cruda].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED([Id])");
-            result.Append($"CREATE INDEX [IDX_Operations_TransactionId_TableName_Action_IsConfirmed] ON [dbo].[Operations]([TransactionId], [TableName], [Action], [IsConfirmed])");
+            result.Append($"ALTER TABLE [cruda].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED([Id])\r\n");
+            result.Append($"CREATE INDEX [IDX_Operations_TransactionId_TableName_Action_IsConfirmed] ON [cruda].[Operations]([TransactionId], [TableName], [Action], [IsConfirmed])\r\n");
             result.Append($"GO\r\n");
 
             return result;
         }
-        private static StringBuilder GetScriptTable(DataRow table, TDataRows columns, TDataRows indexes, TDataRows indexkeys, TDataRows domains, TDataRows types)
+        private static StringBuilder GetScriptTable(DataRow table, TDataRows columns, TDataRows indexes, TDataRows indexkeys)
         {
             var result = new StringBuilder();
             var firstTime = true;
@@ -341,17 +344,12 @@ namespace CRUDA.Classes
 
                     if (firstTime)
                     {
-                        result.Append($"\r\n");
-                        result.Append($"CREATE TABLE [dbo].[{table["Name"]}]({definition}");
+                        result.Append($"CREATE TABLE [dbo].[{table["Name"]}]({definition}\r\n");
                         firstTime = false;
                     }
                     else
-                    {
-                        result.Append($"\r\n");
-                        result.Append($"                                    ,{definition}");
-                    }
+                        result.Append($"                                    ,{definition}\r\n");
                 }
-                result.Append($"\r\n");
                 result.Append($"                                    ,[CreatedAt] datetime NOT NULL\r\n");
                 result.Append($"                                    ,[CreatedBy] varchar(25) NOT NULL\r\n");
                 result.Append($"                                    ,[UpdatedAt] datetime NULL\r\n");
@@ -416,10 +414,10 @@ namespace CRUDA.Classes
 
             if (foreignRows.Count > 0)
             {
-                foreach (var foreignRow in foreignRows)
+                foreach (var foreign in foreignRows)
                 {
-                    var primaryTable = tables.First(table => ToLong(table["Id"]) == ToLong(foreignRow["TableId"]));
-                    var foreignTable = tables.First(table => ToLong(table["Id"]) == ToLong(foreignRow["ReferenceTableId"]));
+                    var primaryTable = tables.First(table => ToLong(table["Id"]) == ToLong(foreign["TableId"]));
+                    var foreignTable = tables.First(table => ToLong(table["Id"]) == ToLong(foreign["ReferenceTableId"]));
                     var foreignKey = columns.First(column => ToLong(column["TableId"]) == ToLong(foreignTable["Id"]) && ToBoolean(column["IsPrimarykey"]));
                     var foreignName = $"FK_{primaryTable["Name"]}_{foreignTable["Name"]}";
 
@@ -435,7 +433,7 @@ namespace CRUDA.Classes
                     result.Append($"GO\r\n");
                     result.Append($"ALTER TABLE [dbo].[{primaryTable["Name"]}] WITH CHECK \r\n");
                     result.Append($"    ADD CONSTRAINT [{foreignName}] \r\n");
-                    result.Append($"    FOREIGN KEY([{foreignRow["Name"]}]) \r\n");
+                    result.Append($"    FOREIGN KEY([{foreign["Name"]}]) \r\n");
                     result.Append($"    REFERENCES [dbo].[{foreignTable["Name"]}] ([{foreignKey["Name"]}])\r\n");
                     result.Append($"GO\r\n");
                     result.Append($"ALTER TABLE [dbo].[{primaryTable["Name"]}] CHECK CONSTRAINT [{foreignName}]\r\n");
@@ -451,43 +449,40 @@ namespace CRUDA.Classes
 
             if (dataRows.Count > 0)
             {
-                var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]) && !ToBoolean(row["IsAutoIncrement"]));
+                var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
 
                 result.Append($"/**********************************************************************************\r\n");
                 result.Append($"Inserir dados na tabela [dbo].[{table["Name"]}]\r\n");
                 result.Append($"**********************************************************************************/\r\n");
                 if (columnRows.Count > 0)
                 {
-                    foreach (var dataRow in dataRows)
+                    foreach (var data in dataRows)
                     {
                         var firstTime = true;
 
-                        foreach (var columnRow in columnRows)
+                        foreach (var column in columnRows)
                         {
                             if (firstTime)
                             {
-                                result.Append($"INSERT INTO [dbo].[{table["Name"]}] ([{columnRow["Name"]}]");
+                                result.Append($"INSERT INTO [dbo].[{table["Name"]}] ([{column["Name"]}]\r\n");
                                 firstTime = false;
                             }
                             else
-                            {
-                                result.Append("\r\n");
-                                result.Append($"                                ,[{columnRow["Name"]}]");
-                            }
+                                result.Append($"                                ,[{column["Name"]}]\r\n");
                         }
-                        result.Append("\r\n");
                         result.Append($"                                ,[CreatedAt]\r\n");
                         result.Append($"                                ,[CreatedBy]\r\n");
                         result.Append($"                                ,[UpdatedAt]\r\n");
                         result.Append($"                                ,[UpdatedBy])\r\n");
                         firstTime = true;
-                        foreach (var columnRow in columnRows)
+                        foreach (var column in columnRows)
                         {
-                            var domain = domains.First(domain => ToLong(domain["Id"]) == ToLong(columnRow["DomainId"]));
+                            var domain = domains.First(domain => ToLong(domain["Id"]) == ToLong(column["DomainId"]));
                             var type = types.First(type => ToLong(type["Id"]) == ToLong(domain["TypeId"]));
                             var category = categories.First(category => ToLong(category["Id"]) == ToLong(type["CategoryId"]));
                             var categoryName = ToString(category["Name"]);
-                            dynamic? value = dataRow[ToString(columnRow["Name"])];
+                            var columnName = ToString(column["Name"]);
+                            dynamic? value = data[columnName];
 
                             if (categoryName == "numeric")
                                 value ??= null;
@@ -496,7 +491,7 @@ namespace CRUDA.Classes
                             if ((value = ToString(value)) == string.Empty)
                                 value = "NULL";
                             else
-                                value = $"CAST('{value}' AS {columnRow["#DataType"]})";
+                                value = $"CAST('{value}' AS {column["#DataType"]})";
                             if (firstTime)
                             {
                                 result.Append($"                         VALUES ({value}");
@@ -520,15 +515,13 @@ namespace CRUDA.Classes
 
             return result;
         }
-        private static StringBuilder GetScriptRatify(DataRow table, TDataRows columns, TDataRows domains, TDataRows types, TDataRows categories, TDataRows indexes, TDataRows indexkeys)
+        private static StringBuilder GetScriptRatify(DataRow table, TDataRows columns)
         {
             var result = new StringBuilder();
+            var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
 
-            if (columns.Count > 0)
+            if (columnRows.Count > 0)
             {
-                var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]) && ToBoolean(row["IsPrimarykey"]));
-                var firstTime = true;
-
                 result.Append($"/**********************************************************************************\r\n");
                 result.Append($"Ratificar dados na tabela [cruda].[{table["Name"]}]\r\n");
                 result.Append($"**********************************************************************************/\r\n");
@@ -564,10 +557,10 @@ namespace CRUDA.Classes
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
-                result.Append($"        SELECT @TransactionId = [TransactionId]\r\n");
+                result.Append($"        SELECT @TransactionId = [Id]\r\n");
                 result.Append($"              ,@IsConfirmed = [IsConfirmed]\r\n");
                 result.Append($"            FROM [cruda].[Transactions]\r\n");
-                result.Append($"            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
+                result.Append($"            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
                 result.Append($"        IF @TransactionId IS NULL BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
@@ -603,135 +596,408 @@ namespace CRUDA.Classes
                 result.Append($"        EXEC @ValidOk = [cruda].[{table["Name"]}Valid] @Action, @LastRecord, @ActualRecord\r\n");
                 result.Append($"        IF @ValidOk = 0\r\n");
                 result.Append($"            RETURN 0\r\n");
-                if (columnRows.Count > 0)
+
+                var pkColumnRows = columnRows.FindAll(row => ToBoolean(row["IsPrimarykey"]));
+                var firstTime = true;
+
+                if (pkColumnRows.Count > 0)
                 {
-                    foreach (var columnRow in columnRows)
+                    foreach (var column in pkColumnRows)
                     {
                         if (firstTime)
                         {
-                            result.Append($"\r\n");
-                            result.Append($"        DECLARE @W_{columnRow["Name"]} {columnRow["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{columnRow["Name"]}') AS {columnRow["#DataType"]})\r\n");
+                            result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                             firstTime = false;
                         }
                         else
-                            result.Append($"               ,@W_{columnRow["Name"]} {columnRow["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{columnRow["Name"]}') AS {columnRow["#DataType"]})\r\n");
+                            result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                     }
                     result.Append($"\r\n");
                     firstTime = true;
-                    foreach (var columnRow in columnRows)
+                    foreach (var column in pkColumnRows)
                     {
                         if (firstTime)
                         {
                             result.Append($"        IF @Action = 'delete'\r\n");
-                            result.Append($"            DELETE FROM [dbo].[{table["Name"]}] WHERE [{columnRow["Name"]}] = @W_{columnRow["Name"]}\r\n");
+                            result.Append($"            DELETE FROM [dbo].[{table["Name"]}] WHERE [{column["Name"]}] = @W_{column["Name"]}\r\n");
                             firstTime = false;
                         }
                         else
-                            result.Append($"                                                  AND [{columnRow["Name"]}] = @W_{columnRow["Name"]}\r\n");
+                            result.Append($"                                                  AND [{column["Name"]}] = @W_{column["Name"]}\r\n");
                     }
                 }
+
+                var nonpkColumnRows = columnRows.FindAll(row => !ToBoolean(row["IsPrimarykey"]));
+
                 firstTime = true;
-                columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]) && !ToBoolean(row["IsPrimarykey"]) && !ToBoolean(row["IsAutoIncrement"]));
-                if (columnRows.Count > 0)
+                if (nonpkColumnRows.Count > 0)
                 {
-                    foreach (var columnRow in columnRows)
+                    foreach (var column in nonpkColumnRows)
                     {
                         if (firstTime)
                         {
                             result.Append($"        ELSE BEGIN\r\n");
                             result.Append($"\r\n");
-                            result.Append($"            DECLARE @W_{columnRow["Name"]} {columnRow["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{columnRow["Name"]}') AS {columnRow["#DataType"]})\r\n");
+                            result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                             firstTime = false;
                         }
                         else
-                            result.Append($"                   ,@W_{columnRow["Name"]} {columnRow["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{columnRow["Name"]}') AS {columnRow["#DataType"]})\r\n");
+                            result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                     }
                     result.Append($"\r\n");
                 }
                 firstTime = true;
-                columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]) && !ToBoolean(row["IsAutoIncrement"]));
-                if (columnRows.Count > 0)
+                foreach (var column in columnRows)
                 {
-                    foreach (var columnRow in columnRows)
+                    if (firstTime)
                     {
-                        var columnName = ToString(columnRow["Name"]);
-                        var typeName = ToString(columnRow["#DataType"]);
-
-                        if (firstTime)
-                        {
-                            result.Append($"            IF @Action = 'create'\r\n");
-                            result.Append($"                INSERT INTO [dbo].[{table["Name"]}] ([{columnName}]");
-                            firstTime = false;
-                        }
-                        else
-                        {
-                            result.Append($"\r\n");
-                            result.Append($"                                                ,[{columnName}]");
-                        }
+                        result.Append($"            IF @Action = 'create'\r\n");
+                        result.Append($"                INSERT INTO [dbo].[{table["Name"]}] ([{column["Name"]}]");
+                        firstTime = false;
                     }
-                    result.Append($")\r\n");
-                    firstTime = true;
-                    foreach (var columnRow in columnRows)
+                    else
                     {
-                        var columnName = ToString(columnRow["Name"]);
-
-                        if (firstTime)
-                        {
-                            result.Append($"                                          VALUES (@W_{columnName}");
-                            firstTime = false;
-                        }
-                        else
-                        {
-                            result.Append("\r\n");
-                            result.Append($"                                                 ,@W_{columnName}");
-                        }
+                        result.Append($"\r\n");
+                        result.Append($"                                                ,[{column["Name"]}]");
                     }
-                    result.Append($")\r\n");
-                    result.Append($"            ELSE\r\n");
-                    firstTime = true;
-                    foreach (var columnRow in columnRows)
-                    {
-                        var columnName = ToString(columnRow["Name"]);
-
-                        if (firstTime)
-                        {
-                            result.Append($"                UPDATE [dbo].[{table["Name"]}] SET [{columnName}] = @W_{columnName}\r\n");
-                            firstTime = false;
-                        }
-                        else
-                            result.Append($"                                              ,[{columnName}] = @W_{columnName}\r\n");
-                    }
-                    firstTime = true;
-                    columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]) && ToBoolean(row["IsPrimarykey"]));
-                    foreach (var columnRow in columnRows)
-                    {
-                        var columnName = ToString(columnRow["Name"]);
-
-                        if (firstTime)
-                        {
-                            result.Append($"                    WHERE [{columnName}] = @W_{columnName}\r\n");
-                            firstTime = false;
-                        }
-                        else
-                            result.Append($"                          AND [{columnName}] = @W_{columnName}\r\n");
-                    }
-                    result.Append($"        END\r\n");
-                    result.Append($"        UPDATE [cruda].[Operations]\r\n");
-                    result.Append($"            SET [IsConfirmed] = 1\r\n");
-                    result.Append($"                ,[UpdatedBy] = @UserName\r\n");
-                    result.Append($"                ,[UpdatedAt] = GETDATE()\r\n");
-                    result.Append($"            WHERE [Id] = @OperationId\r\n");
-                    result.Append($"        COMMIT TRANSACTION [ColumnsRatify]\r\n");
-                    result.Append("\r\n");
-                    result.Append($"        RETURN 1\r\n");
-                    result.Append($"    END TRY\r\n");
-                    result.Append($"    BEGIN CATCH\r\n");
-                    result.Append($"        ROLLBACK TRANSACTION [ColumnsRatify];\r\n");
-                    result.Append($"        THROW\r\n");
-                    result.Append($"    END CATCH\r\n");
-                    result.Append($"END\r\n");
-                    result.Append($"GO\r\n");
                 }
+                result.Append($")\r\n");
+                firstTime = true;
+                foreach (var column in columnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"                                          VALUES (@W_{column["Name"]}");
+                        firstTime = false;
+                    }
+                    else
+                    {
+                        result.Append("\r\n");
+                        result.Append($"                                                 ,@W_{column["Name"]}");
+                    }
+                }
+                result.Append($")\r\n");
+                result.Append($"            ELSE\r\n");
+                firstTime = true;
+                foreach (var column in columnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"                UPDATE [dbo].[{table["Name"]}] SET [{column["Name"]}] = @W_{column["Name"]}\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                                              ,[{column["Name"]}] = @W_{column["Name"]}\r\n");
+                }
+                firstTime = true;
+                foreach (var column in pkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"                    WHERE [{column["Name"]}] = @W_{column["Name"]}\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                          AND [{column["Name"]}] = @W_{column["Name"]}\r\n");
+                }
+                result.Append($"        END\r\n");
+                result.Append($"        UPDATE [cruda].[Operations]\r\n");
+                result.Append($"            SET [IsConfirmed] = 1\r\n");
+                result.Append($"                ,[UpdatedBy] = @UserName\r\n");
+                result.Append($"                ,[UpdatedAt] = GETDATE()\r\n");
+                result.Append($"            WHERE [Id] = @OperationId\r\n");
+                result.Append($"        COMMIT TRANSACTION [ColumnsRatify]\r\n");
+                result.Append("\r\n");
+                result.Append($"        RETURN 1\r\n");
+                result.Append($"    END TRY\r\n");
+                result.Append($"    BEGIN CATCH\r\n");
+                result.Append($"        ROLLBACK TRANSACTION [ColumnsRatify];\r\n");
+                result.Append($"        THROW\r\n");
+                result.Append($"    END CATCH\r\n");
+                result.Append($"END\r\n");
+                result.Append($"GO\r\n");
+            }
+
+            return result;
+        }
+        private static StringBuilder GetScriptValid(DataRow table, TDataRows tables, TDataRows columns, TDataRows domains, TDataRows types, TDataRows indexes, TDataRows indexkeys)
+        {
+            var result = new StringBuilder();
+            var firstTime = true;
+            var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
+
+            if (columnRows.Count > 0)
+            {
+                result.Append($"/**********************************************************************************\r\n");
+                result.Append($"Validar dados na tabela [cruda].[{table["Name"]}]\r\n");
+                result.Append($"**********************************************************************************/\r\n");
+                result.Append($"IF(SELECT object_id('[cruda].[{table["Name"]}Valid]', 'P')) IS NULL\r\n");
+                result.Append($"    EXEC('CREATE PROCEDURE [cruda].[{table["Name"]}Valid] AS PRINT 1')\r\n");
+                result.Append($"GO\r\n");
+                result.Append($"ALTER PROCEDURE[cruda].[{table["Name"]}Valid](@LoginId BIGINT\r\n");
+                result.Append($"                                     ,@Action VARCHAR(15)\r\n");
+                result.Append($"                                     ,@LastRecord VARCHAR(MAX)\r\n");
+                result.Append($"                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN\r\n");
+                result.Append($"    BEGIN TRY\r\n");
+                result.Append($"        SET NOCOUNT ON\r\n");
+                result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
+                result.Append($"\r\n");
+                result.Append($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [{table["Name"]}Valid]: '\r\n");
+                result.Append($"\r\n");
+                result.Append($"        IF @Action IS NULL BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';\r\n");
+                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"        END\r\n");
+                result.Append($"        IF @Action NOT IN ('create', 'update', 'delete') BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';\r\n");
+                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"        END\r\n");
+                result.Append($"        IF @ActualRecord IS NULL BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';\r\n");
+                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"        END\r\n");
+                result.Append($"        IF ISJSON(@ActualRecord) = 0 BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';\r\n");
+                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"        END\r\n");
+                result.Append($"        IF @Action <> 'create' BEGIN\r\n");
+                result.Append($"            IF @LastRecord IS NULL BEGIN\r\n");
+                result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';\r\n");
+                result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"            END\r\n");
+                result.Append($"            IF ISJSON(@LastRecord) = 0 BEGIN\r\n");
+                result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';\r\n");
+                result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"            END\r\n");
+                foreach(var column in columnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"            IF @Action = 'update'\r\n");
+                        firstTime = false;
+                    }
+                    result.Append($"                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@LastRecord, '$.{column["Name"]}') AS {column["#DataType"]})) = 1\r\n");
+                }
+                result.Append($"                RETURN 0\r\n");
+                firstTime = true;
+                foreach (var column in columnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"            IF NOT EXISTS(SELECT 1\r\n");
+                        result.Append($"                            FROM [dbo].[{table["Name"]}]\r\n");
+                        result.Append($"                            WHERE ");
+                        firstTime = false;
+                    }
+                    else
+                    {
+                        result.Append($"\r\n");
+                        result.Append($"                                  AND ");
+                    }
+                    if (ToBoolean(column["IsRequired"]))
+                        result.Append($"[{column["Name"]}] = CAST(JSON_VALUE(@LastRecord, '$.{column["Name"]}') AS {column["#DataType"]})");
+                    else
+                        result.Append($"[cruda].[IsEquals]([{column["Name"]}], CAST(JSON_VALUE(@LastRecord, '$.{column["Name"]}') AS {column["#DataType"]})) = 1");
+                }
+                result.Append($") BEGIN\r\n");
+                result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Registro de {table["Name"]} alterado por outro usuário';\r\n");
+                result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"            END\r\n");
+                result.Append($"        END\r\n");
+
+                var pkColumnRows = columnRows.FindAll(column => ToBoolean(column["IsPrimarykey"]));
+
+                firstTime = true;
+                foreach (var column in pkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"\r\n");
+                        result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"               ,W_{column["Name"]} AS {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                }
+                result.Append($"\r\n");
+                foreach (var column in pkColumnRows)
+                {
+                    var validations = GetValidations(column, domains, types);
+                    var isRequired = validations.ContainsKey("IsRequired");
+
+                    result.Append($"        IF @W_{column["Name"]} IS NULL BEGIN\r\n");
+                    result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} em @ActualRecord é requerido.';\r\n");
+                    result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                    result.Append($"        END\r\n");
+
+                    if (validations.TryGetValue("Minimum", out dynamic? value))
+                    {
+                        result.Append($"        IF @W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]}) BEGIN\r\n");
+                        result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} em @ActualRecord deve ser maior que ou igual à {value}';\r\n");
+                        result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                        result.Append($"        END\r\n");
+                    }
+                    if (validations.TryGetValue("Maximum", out value))
+                    {
+                        result.Append($"        IF @W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]}) BEGIN\r\n");
+                        result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} em @ActualRecord deve ser menor que ou igual à {value}';\r\n");
+                        result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                        result.Append($"        END\r\n");
+                    }
+                }
+                firstTime = true;
+                foreach (var column in pkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"        IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE {column["Name"]} = @W_{column["Name"]}");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($" AND {column["Name"]} = @W_{column["Name"]})");
+                }
+                result.Append($") BEGIN\r\n");
+                result.Append($"            IF @Action = 'create' BEGIN\r\n");
+                result.Append($"               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em {table["Name"]}';\r\n");
+                result.Append($"               THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"            END ELSE IF @Action <> 'create' BEGIN\r\n");
+                result.Append($"               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em {table["Name"]}';\r\n");
+                result.Append($"               THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"            END\r\n");
+                result.Append($"        END\r\n");
+
+                var referenceRows = columnRows.FindAll(column => ToLong(column["ReferenceTableId"]) == ToLong(table["Id"]));
+
+                if (referenceRows.Count > 0)
+                {
+                    result.Append($"    IF @Action = 'delete' BEGIN\r\n");
+                    foreach (var reference in referenceRows)
+                    {
+                        result.Append($"            IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE [{reference["Name"]}] = @W_{pkColumnRows[0]["Name"]}) BEGIN\r\n");
+                        result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Chave-primária referenciada em {table["Name"]}';\r\n");
+                        result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
+                        result.Append($"            END\r\n");
+                    }
+                    result.Append($"        END ELSE BEGIN\r\n");
+                }
+                else
+                    result.Append($"        IF @Action <> 'delete' BEGIN\r\n");
+                result.Append($"\r\n");
+
+                var nopkColumnRows = columnRows.FindAll(column => !ToBoolean(column["IsPrimarykey"]));
+
+                firstTime = true;
+                foreach (var column in nopkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                }
+                result.Append($"\r\n");
+                foreach (var column in nopkColumnRows)
+                {
+                    var validations = GetValidations(column, domains, types);
+                    var isRequired = validations.ContainsKey("IsRequired");
+
+                    if (isRequired)
+                    {
+                        result.Append($"            IF @W_{column["Name"]} IS NULL BEGIN\r\n");
+                        result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} em @ActualRecord é requerido.';\r\n");
+                        result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
+                        result.Append($"            END\r\n");
+                    }
+                    if (validations.TryGetValue("Minimum", out dynamic? value))
+                    {
+                        result.Append($"            IF {(isRequired ? "" : $"@W_{column["Name"]} IS NOT NULL AND ")}@W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]}) BEGIN\r\n");
+                        result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} em @ActualRecord deve ser maior que ou igual à {value}';\r\n");
+                        result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
+                        result.Append($"            END\r\n");
+                    }
+                    if (validations.TryGetValue("Maximum", out value))
+                    {
+                        result.Append($"            IF {(isRequired ? "" : $"@W_{column["Name"]} IS NOT NULL AND ")}@W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]}) BEGIN\r\n");
+                        result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} em @ActualRecord deve ser menor que ou igual à {value}';\r\n");
+                        result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
+                        result.Append($"            END\r\n");
+                    }
+                    if (!IsNull(column["ReferenceTableId"]))
+                    {
+                        var referenceTable = tables.First(table => ToLong(table["Id"]) == ToLong(column["ReferenceTableId"]));
+                        var pkColumn = columns.First(col => ToLong(col["TableId"]) == ToLong(referenceTable["Id"]) && ToBoolean(col["IsPrimarykey"]));
+
+                        result.Append($"            IF NOT EXISTS(SELECT 1 FROM [dbo].[{referenceTable["Name"]}] WHERE [{pkColumn["Name"]}] = @W_{column["Name"]}) BEGIN\r\n");
+                        result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Valor de {pkColumn["Name"]} em @ActualRecord inexiste em {referenceTable["Name"]}';\r\n");
+                        result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
+                        result.Append($"            END\r\n");
+                    }
+
+                }
+                var uniqueIndexRows = indexes.FindAll(index => ToLong(index["TableId"]) == ToLong(table["Id"]) && ToBoolean(index["IsUnique"]));
+
+                if (uniqueIndexRows.Count > 0)
+                {
+                    result.Append($"            IF @Action = 'create' BEGIN\r\n");
+                    foreach (var index in uniqueIndexRows)
+                    {
+                        var indexkeyRows = indexkeys.FindAll(indexkey => ToLong(indexkey["IndexId"]) == ToLong(index["Id"]));
+
+                        firstTime = true;
+                        foreach (var indexkey in indexkeyRows)
+                        {
+                            var column = columns.First(column => ToLong(column["Id"]) == ToLong(indexkey["ColumnId"]));
+
+                            if (firstTime)
+                            {
+                                result.Append($"                IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE [{column["Name"]}] = @W_{column["Name"]}");
+                                firstTime = false;
+                            }
+                            else
+                                result.Append($"                                                                  AND [{column["Name"]}] = @W_{column["Name"]}");
+                        }
+                        result.Append($") BEGIN\r\n");
+                        result.Append($"                    SET @ErrorMessage = @ErrorMessage + 'Chave única de {index["Name"]} já existe';\r\n");
+                        result.Append($"                    THROW 51000, @ErrorMessage, 1\r\n");
+                    }
+                    result.Append($"                END\r\n");
+                    foreach (var index in uniqueIndexRows)
+                    {
+                        var indexkeyRows = indexkeys.FindAll(indexkey => ToLong(indexkey["IndexId"]) == ToLong(index["Id"]));
+                        
+                        firstTime = true;
+                        foreach (var indexkey in indexkeyRows)
+                        {
+                            var column = columns.First(column => ToLong(column["Id"]) == ToLong(indexkey["ColumnId"]));
+
+                            if (firstTime)
+                            {
+                                result.Append($"            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE [{column["Name"]}] = @W_{column["Name"]}");
+                                firstTime = false;
+                            }
+                            else
+                                result.Append($"                                                              AND [{column["Name"]}] = @W_{column["Name"]}");
+                        }
+                        
+                        var pkColumn = columnRows.First(col => ToLong(col["TableId"]) == ToLong(table["Id"]) && ToBoolean(col["IsPrimarykey"]));
+
+                        result.Append($" AND [{pkColumn["Name"]}] <> @W_{pkColumn["Name"]}) BEGIN\r\n");
+                        result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Chave única de {index["Name"]} inexiste';\r\n");
+                        result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
+                        result.Append($"            END\r\n");
+                    }
+                }
+                result.Append($"        END\r\n");
+                result.Append($"\r\n");
+                result.Append($"        RETURN 1\r\n");
+                result.Append($"    END TRY\r\n");
+                result.Append($"    BEGIN CATCH\r\n");
+                result.Append($"        THROW\r\n");
+                result.Append($"    END CATCH\r\n");
+                result.Append($"END\r\n");
+                result.Append($"GO\r\n");
             }
 
             return result;

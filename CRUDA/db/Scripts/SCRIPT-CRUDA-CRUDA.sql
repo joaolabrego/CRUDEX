@@ -423,7 +423,7 @@ BEGIN
 			THROW 51000, @ErrorMessage, 1
 		END
 		UPDATE [dbo].[Tables] 
-			SET [LastId] = @NextId
+			SET [CurrentId] = @NextId
 			WHERE [Id] = @TableId
 		COMMIT TRANSACTION GenerateId
 
@@ -973,10 +973,10 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		ELSE
 			SAVE TRANSACTION [TransactionBegin]
 		IF @LoginId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor do par�metro @LoginId � requerido';
+			SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId � requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
-		SELECT @TransactionId = MAX([TransactionId]) + 1
+		SELECT @TransactionId = MAX([Id]) + 1
 			FROM [cruda].[Transactions]
 		INSERT [cruda].[Transactions] ([Id]
 									  ,[LoginId]
@@ -1028,7 +1028,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 		SELECT @LoginId = [LoginId]
 			  ,@IsConfirmed = [IsConfirmed]
 			FROM [cruda].[Transactions]
-			WHERE [TransactionId] = @TransactionId
+			WHERE [Id] = @TransactionId
 		IF @LoginId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Transação é inexistente';
 			THROW 51000, @ErrorMessage, 1
@@ -1038,7 +1038,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 			THROW 51000, @ErrorMessage, 1
 		END
 		WHILE 1 = 1 BEGIN
-			SELECT @OperationId = [OperationId]
+			SELECT @OperationId = [Id]
 					,@TableName = [TableName]
 				FROM [cruda].[Operations]
 				WHERE [TransactionId] = @TransactionId
@@ -1092,7 +1092,7 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
 		SELECT @TransactionIdAux = [Id]
 			  ,@IsConfirmed = [IsConfirmed]
 			FROM [cruda].[Transactions]
-			WHERE [TransactionId] = @TransactionId
+			WHERE [Id] = @TransactionId
 		IF @TransactionIdAux IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Transação é inexistente';
 			THROW 51000, @ErrorMessage, 1
@@ -1134,7 +1134,9 @@ CREATE TABLE [cruda].[Transactions]([Id] [bigint] NOT NULL
                                    ,[CreatedBy] varchar(25) NOT NULL
                                    ,[UpdatedAt] datetime NULL
                                    ,[UpdatedBy] varchar(25) NULL)
-ALTER TABLE [cruda].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED([Id])CREATE INDEX [IDX_Transactions_LoginId_IsConfirmed] ON [dbo].[Transactions]([LoginId], [IsConfirmed])GO
+ALTER TABLE [cruda].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED([Id])
+CREATE INDEX [IDX_Transactions_LoginId_IsConfirmed] ON [cruda].[Transactions]([LoginId], [IsConfirmed])
+GO
 /**********************************************************************************
 Criar tabela [cruda].[Operations]
 **********************************************************************************/
@@ -1151,13 +1153,14 @@ CREATE TABLE [cruda].[Operations]([Id] [bigint] NOT NULL
                                  ,[CreatedBy] varchar(25) NOT NULL
                                  ,[UpdatedAt] datetime NULL
                                  ,[UpdatedBy] varchar(25) NULL)
-ALTER TABLE [cruda].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED([Id])CREATE INDEX [IDX_Operations_TransactionId_TableName_Action_IsConfirmed] ON [dbo].[Operations]([TransactionId], [TableName], [Action], [IsConfirmed])GO
+ALTER TABLE [cruda].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED([Id])
+CREATE INDEX [IDX_Operations_TransactionId_TableName_Action_IsConfirmed] ON [cruda].[Operations]([TransactionId], [TableName], [Action], [IsConfirmed])
+GO
 /**********************************************************************************
 Criar tabela [dbo].[Categories]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Categories]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Categories]
-
 CREATE TABLE [dbo].[Categories]([Id] tinyint NOT NULL
                                     ,[Name] varchar(25) NOT NULL
                                     ,[HtmlInputType] varchar(10) NULL
@@ -1174,6 +1177,157 @@ CREATE TABLE [dbo].[Categories]([Id] tinyint NOT NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Categories] ADD CONSTRAINT PK_Categories PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Categories_Name] ON [dbo].[Categories]([Name] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Categories]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[CategoriesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[CategoriesValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[CategoriesValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [CategoriesValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS varchar(10)), CAST(JSON_VALUE(@LastRecord, '$.HtmlInputType') AS varchar(10))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS varchar(6)), CAST(JSON_VALUE(@LastRecord, '$.HtmlInputAlign') AS varchar(6))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskEncrypted') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskMask') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskListable') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskListable') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskDefault') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskDefault') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskMinimum') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskMinimum') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskMaximum') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskMaximum') AS bit)) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Categories]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+                                  AND [Name] = CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))
+                                  AND [cruda].[IsEquals]([HtmlInputType], CAST(JSON_VALUE(@LastRecord, '$.HtmlInputType') AS varchar(10))) = 1
+                                  AND [cruda].[IsEquals]([HtmlInputAlign], CAST(JSON_VALUE(@LastRecord, '$.HtmlInputAlign') AS varchar(6))) = 1
+                                  AND [AskEncrypted] = CAST(JSON_VALUE(@LastRecord, '$.AskEncrypted') AS bit)
+                                  AND [AskMask] = CAST(JSON_VALUE(@LastRecord, '$.AskMask') AS bit)
+                                  AND [AskListable] = CAST(JSON_VALUE(@LastRecord, '$.AskListable') AS bit)
+                                  AND [AskDefault] = CAST(JSON_VALUE(@LastRecord, '$.AskDefault') AS bit)
+                                  AND [AskMinimum] = CAST(JSON_VALUE(@LastRecord, '$.AskMinimum') AS bit)
+                                  AND [AskMaximum] = CAST(JSON_VALUE(@LastRecord, '$.AskMaximum') AS bit)) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Categories alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS tinyint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('255' AS tinyint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 255';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Categories';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Categories';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_HtmlInputType varchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS varchar(10))
+                   ,@W_HtmlInputAlign varchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS varchar(6))
+                   ,@W_AskEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit)
+                   ,@W_AskMask bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit)
+                   ,@W_AskListable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskListable') AS bit)
+                   ,@W_AskDefault bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDefault') AS bit)
+                   ,@W_AskMinimum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMinimum') AS bit)
+                   ,@W_AskMaximum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMaximum') AS bit)
+
+            IF @W_Name IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Name em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskEncrypted IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskEncrypted em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskMask IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskMask em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskListable IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskListable em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskDefault IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskDefault em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskMinimum IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskMinimum em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskMaximum IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskMaximum em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Name] = @W_Name) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Categories_Name já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Categories_Name inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Categories]
@@ -1210,10 +1364,10 @@ ALTER PROCEDURE[cruda].[CategoriesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -1249,7 +1403,6 @@ ALTER PROCEDURE[cruda].[CategoriesRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[CategoriesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
         IF @Action = 'delete'
@@ -1320,7 +1473,6 @@ Criar tabela [dbo].[Types]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Types]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Types]
-
 CREATE TABLE [dbo].[Types]([Id] tinyint NOT NULL
                                     ,[CategoryId] tinyint NOT NULL
                                     ,[Name] varchar(25) NOT NULL
@@ -1342,6 +1494,204 @@ CREATE TABLE [dbo].[Types]([Id] tinyint NOT NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Types] ADD CONSTRAINT PK_Types PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Types_Name] ON [dbo].[Types]([Name] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Types]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[TypesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[TypesValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[TypesValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TypesValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS tinyint), CAST(JSON_VALUE(@LastRecord, '$.CategoryId') AS tinyint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant), CAST(JSON_VALUE(@LastRecord, '$.Minimum') AS sql_variant)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant), CAST(JSON_VALUE(@LastRecord, '$.Maximum') AS sql_variant)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskLength') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskLength') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskDecimals') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskDecimals') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskPrimarykey') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskPrimarykey') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskAutoincrement') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskAutoincrement') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskFilterable') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskFilterable') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskBrowseable') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskBrowseable') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskCodification') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskCodification') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AskFormula') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AskFormula') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.AllowMaxLength') AS bit), CAST(JSON_VALUE(@LastRecord, '$.AllowMaxLength') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsActive') AS bit)) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Types]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+                                  AND [CategoryId] = CAST(JSON_VALUE(@LastRecord, '$.CategoryId') AS tinyint)
+                                  AND [Name] = CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))
+                                  AND [cruda].[IsEquals]([Minimum], CAST(JSON_VALUE(@LastRecord, '$.Minimum') AS sql_variant)) = 1
+                                  AND [cruda].[IsEquals]([Maximum], CAST(JSON_VALUE(@LastRecord, '$.Maximum') AS sql_variant)) = 1
+                                  AND [AskLength] = CAST(JSON_VALUE(@LastRecord, '$.AskLength') AS bit)
+                                  AND [AskDecimals] = CAST(JSON_VALUE(@LastRecord, '$.AskDecimals') AS bit)
+                                  AND [AskPrimarykey] = CAST(JSON_VALUE(@LastRecord, '$.AskPrimarykey') AS bit)
+                                  AND [AskAutoincrement] = CAST(JSON_VALUE(@LastRecord, '$.AskAutoincrement') AS bit)
+                                  AND [AskFilterable] = CAST(JSON_VALUE(@LastRecord, '$.AskFilterable') AS bit)
+                                  AND [AskBrowseable] = CAST(JSON_VALUE(@LastRecord, '$.AskBrowseable') AS bit)
+                                  AND [AskCodification] = CAST(JSON_VALUE(@LastRecord, '$.AskCodification') AS bit)
+                                  AND [AskFormula] = CAST(JSON_VALUE(@LastRecord, '$.AskFormula') AS bit)
+                                  AND [AllowMaxLength] = CAST(JSON_VALUE(@LastRecord, '$.AllowMaxLength') AS bit)
+                                  AND [IsActive] = CAST(JSON_VALUE(@LastRecord, '$.IsActive') AS bit)) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Types alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS tinyint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('255' AS tinyint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 255';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Types] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Types';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Types';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_CategoryId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS tinyint)
+                   ,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
+                   ,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
+                   ,@W_AskLength bit = CAST(JSON_VALUE(@ActualRecord, '$.AskLength') AS bit)
+                   ,@W_AskDecimals bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDecimals') AS bit)
+                   ,@W_AskPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.AskPrimarykey') AS bit)
+                   ,@W_AskAutoincrement bit = CAST(JSON_VALUE(@ActualRecord, '$.AskAutoincrement') AS bit)
+                   ,@W_AskFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFilterable') AS bit)
+                   ,@W_AskBrowseable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskBrowseable') AS bit)
+                   ,@W_AskCodification bit = CAST(JSON_VALUE(@ActualRecord, '$.AskCodification') AS bit)
+                   ,@W_AskFormula bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFormula') AS bit)
+                   ,@W_AllowMaxLength bit = CAST(JSON_VALUE(@ActualRecord, '$.AllowMaxLength') AS bit)
+                   ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
+
+            IF @W_CategoryId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de CategoryId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_CategoryId < CAST('0' AS tinyint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de CategoryId em @ActualRecord deve ser maior que ou igual à 0';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_CategoryId < CAST('255' AS tinyint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de CategoryId em @ActualRecord deve ser menor que ou igual à 255';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_CategoryId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Categories';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Name IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Name em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskLength IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskLength em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskDecimals IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskDecimals em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskPrimarykey IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskPrimarykey em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskAutoincrement IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskAutoincrement em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskFilterable IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskFilterable em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskBrowseable IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskBrowseable em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskCodification IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskCodification em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AskFormula IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AskFormula em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_AllowMaxLength IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de AllowMaxLength em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_IsActive IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de IsActive em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Name] = @W_Name) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Types_Name já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Types_Name inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Types]
@@ -1378,10 +1728,10 @@ ALTER PROCEDURE[cruda].[TypesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -1417,7 +1767,6 @@ ALTER PROCEDURE[cruda].[TypesRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[TypesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
         IF @Action = 'delete'
@@ -1508,16 +1857,125 @@ Criar tabela [dbo].[Masks]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Masks]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Masks]
-
 CREATE TABLE [dbo].[Masks]([Id] bigint NOT NULL
                                     ,[Name] varchar(25) NOT NULL
-                                    ,[Mask] varchar(MAX) NOT NULL
+                                    ,[Mask] varchar(8000) NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Masks] ADD CONSTRAINT PK_Masks PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Masks_Name] ON [dbo].[Masks]([Name] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Masks]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[MasksValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[MasksValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[MasksValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MasksValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS varchar(8000)), CAST(JSON_VALUE(@LastRecord, '$.Mask') AS varchar(8000))) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Masks]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [Name] = CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))
+                                  AND [Mask] = CAST(JSON_VALUE(@LastRecord, '$.Mask') AS varchar(8000))) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Masks alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('-9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à -9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Masks';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Masks';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Mask varchar(8000) = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS varchar(8000))
+
+            IF @W_Name IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Name em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Mask IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Mask em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Name] = @W_Name) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Masks_Name já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Masks_Name inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Masks]
@@ -1554,10 +2012,10 @@ ALTER PROCEDURE[cruda].[MasksRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -1593,7 +2051,6 @@ ALTER PROCEDURE[cruda].[MasksRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[MasksValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -1601,7 +2058,7 @@ ALTER PROCEDURE[cruda].[MasksRatify](@LoginId BIGINT
         ELSE BEGIN
 
             DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
-                   ,@W_Mask varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS varchar(MAX))
+                   ,@W_Mask varchar(8000) = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS varchar(8000))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Masks] ([Id]
@@ -1636,14 +2093,13 @@ Criar tabela [dbo].[Domains]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Domains]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Domains]
-
 CREATE TABLE [dbo].[Domains]([Id] bigint NOT NULL
                                     ,[TypeId] tinyint NOT NULL
                                     ,[MaskId] bigint NULL
                                     ,[Name] varchar(25) NOT NULL
                                     ,[Length] smallint NULL
                                     ,[Decimals] tinyint NULL
-                                    ,[ValidValues] varchar(MAX) NULL
+                                    ,[ValidValues] varchar(8000) NULL
                                     ,[Default] sql_variant NULL
                                     ,[Minimum] sql_variant NULL
                                     ,[Maximum] sql_variant NULL
@@ -1654,6 +2110,180 @@ CREATE TABLE [dbo].[Domains]([Id] bigint NOT NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Domains] ADD CONSTRAINT PK_Domains PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Domains_Name] ON [dbo].[Domains]([Name] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Domains]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[DomainsValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[DomainsValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[DomainsValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DomainsValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.TypeId') AS tinyint), CAST(JSON_VALUE(@LastRecord, '$.TypeId') AS tinyint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.MaskId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.MaskId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Length') AS smallint), CAST(JSON_VALUE(@LastRecord, '$.Length') AS smallint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Decimals') AS tinyint), CAST(JSON_VALUE(@LastRecord, '$.Decimals') AS tinyint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(8000)), CAST(JSON_VALUE(@LastRecord, '$.ValidValues') AS varchar(8000))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant), CAST(JSON_VALUE(@LastRecord, '$.Default') AS sql_variant)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant), CAST(JSON_VALUE(@LastRecord, '$.Minimum') AS sql_variant)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant), CAST(JSON_VALUE(@LastRecord, '$.Maximum') AS sql_variant)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Codification') AS varchar(5)), CAST(JSON_VALUE(@LastRecord, '$.Codification') AS varchar(5))) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Domains]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [TypeId] = CAST(JSON_VALUE(@LastRecord, '$.TypeId') AS tinyint)
+                                  AND [cruda].[IsEquals]([MaskId], CAST(JSON_VALUE(@LastRecord, '$.MaskId') AS bigint)) = 1
+                                  AND [Name] = CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))
+                                  AND [cruda].[IsEquals]([Length], CAST(JSON_VALUE(@LastRecord, '$.Length') AS smallint)) = 1
+                                  AND [cruda].[IsEquals]([Decimals], CAST(JSON_VALUE(@LastRecord, '$.Decimals') AS tinyint)) = 1
+                                  AND [cruda].[IsEquals]([ValidValues], CAST(JSON_VALUE(@LastRecord, '$.ValidValues') AS varchar(8000))) = 1
+                                  AND [cruda].[IsEquals]([Default], CAST(JSON_VALUE(@LastRecord, '$.Default') AS sql_variant)) = 1
+                                  AND [cruda].[IsEquals]([Minimum], CAST(JSON_VALUE(@LastRecord, '$.Minimum') AS sql_variant)) = 1
+                                  AND [cruda].[IsEquals]([Maximum], CAST(JSON_VALUE(@LastRecord, '$.Maximum') AS sql_variant)) = 1
+                                  AND [cruda].[IsEquals]([Codification], CAST(JSON_VALUE(@LastRecord, '$.Codification') AS varchar(5))) = 1) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Domains alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Domains';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Domains';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_TypeId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.TypeId') AS tinyint)
+                   ,@W_MaskId bigint = CAST(JSON_VALUE(@ActualRecord, '$.MaskId') AS bigint)
+                   ,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Length smallint = CAST(JSON_VALUE(@ActualRecord, '$.Length') AS smallint)
+                   ,@W_Decimals tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Decimals') AS tinyint)
+                   ,@W_ValidValues varchar(8000) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(8000))
+                   ,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
+                   ,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
+                   ,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
+                   ,@W_Codification varchar(5) = CAST(JSON_VALUE(@ActualRecord, '$.Codification') AS varchar(5))
+
+            IF @W_TypeId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TypeId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_TypeId < CAST('1' AS tinyint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TypeId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_TypeId < CAST('255' AS tinyint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TypeId em @ActualRecord deve ser menor que ou igual à 255';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_TypeId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Types';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_MaskId IS NOT NULL AND @W_MaskId < CAST('-9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de MaskId em @ActualRecord deve ser maior que ou igual à -9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_MaskId IS NOT NULL AND @W_MaskId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de MaskId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_MaskId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Masks';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Name IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Name em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Length IS NOT NULL AND @W_Length < CAST('0' AS smallint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Length em @ActualRecord deve ser maior que ou igual à 0';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Length IS NOT NULL AND @W_Length < CAST('32767' AS smallint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Length em @ActualRecord deve ser menor que ou igual à 32767';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Decimals IS NOT NULL AND @W_Decimals < CAST('0' AS tinyint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Decimals em @ActualRecord deve ser maior que ou igual à 0';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Decimals IS NOT NULL AND @W_Decimals < CAST('255' AS tinyint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Decimals em @ActualRecord deve ser menor que ou igual à 255';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Name] = @W_Name) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Domains_Name já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Domains_Name inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Domains]
@@ -1690,10 +2320,10 @@ ALTER PROCEDURE[cruda].[DomainsRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -1729,7 +2359,6 @@ ALTER PROCEDURE[cruda].[DomainsRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[DomainsValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -1741,7 +2370,7 @@ ALTER PROCEDURE[cruda].[DomainsRatify](@LoginId BIGINT
                    ,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
                    ,@W_Length smallint = CAST(JSON_VALUE(@ActualRecord, '$.Length') AS smallint)
                    ,@W_Decimals tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Decimals') AS tinyint)
-                   ,@W_ValidValues varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
+                   ,@W_ValidValues varchar(8000) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(8000))
                    ,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
                    ,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
                    ,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
@@ -1804,7 +2433,6 @@ Criar tabela [dbo].[Systems]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Systems]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Systems]
-
 CREATE TABLE [dbo].[Systems]([Id] bigint NOT NULL
                                     ,[Name] varchar(25) NOT NULL
                                     ,[Description] varchar(50) NOT NULL
@@ -1817,6 +2445,145 @@ CREATE TABLE [dbo].[Systems]([Id] bigint NOT NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Systems] ADD CONSTRAINT PK_Systems PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Systems_Name] ON [dbo].[Systems]([Name] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Systems]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[SystemsValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[SystemsValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[SystemsValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemsValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.ClientName') AS varchar(15)), CAST(JSON_VALUE(@LastRecord, '$.ClientName') AS varchar(15))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.MaxRetryLogins') AS tinyint), CAST(JSON_VALUE(@LastRecord, '$.MaxRetryLogins') AS tinyint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsOffAir') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsOffAir') AS bit)) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Systems]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [Name] = CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))
+                                  AND [Description] = CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))
+                                  AND [ClientName] = CAST(JSON_VALUE(@LastRecord, '$.ClientName') AS varchar(15))
+                                  AND [MaxRetryLogins] = CAST(JSON_VALUE(@LastRecord, '$.MaxRetryLogins') AS tinyint)
+                                  AND [IsOffAir] = CAST(JSON_VALUE(@LastRecord, '$.IsOffAir') AS bit)) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Systems alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Systems';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Systems';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+                   ,@W_ClientName varchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.ClientName') AS varchar(15))
+                   ,@W_MaxRetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.MaxRetryLogins') AS tinyint)
+                   ,@W_IsOffAir bit = CAST(JSON_VALUE(@ActualRecord, '$.IsOffAir') AS bit)
+
+            IF @W_Name IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Name em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Description IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Description em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_ClientName IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ClientName em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_MaxRetryLogins IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de MaxRetryLogins em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_MaxRetryLogins < CAST('1' AS tinyint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de MaxRetryLogins em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_MaxRetryLogins < CAST('255' AS tinyint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de MaxRetryLogins em @ActualRecord deve ser menor que ou igual à 255';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_IsOffAir IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de IsOffAir em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Name] = @W_Name) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Systems_Name já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Systems_Name inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Systems]
@@ -1853,10 +2620,10 @@ ALTER PROCEDURE[cruda].[SystemsRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -1892,7 +2659,6 @@ ALTER PROCEDURE[cruda].[SystemsRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[SystemsValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -1947,7 +2713,6 @@ Criar tabela [dbo].[Menus]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Menus]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Menus]
-
 CREATE TABLE [dbo].[Menus]([Id] bigint NOT NULL
                                     ,[SystemId] bigint NOT NULL
                                     ,[Sequence] smallint NOT NULL
@@ -1961,6 +2726,173 @@ CREATE TABLE [dbo].[Menus]([Id] bigint NOT NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Menus] ADD CONSTRAINT PK_Menus PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Sequence] ON [dbo].[Menus]([SystemId] ASC, [Sequence] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Menus]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[MenusValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[MenusValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[MenusValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MenusValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.SystemId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint), CAST(JSON_VALUE(@LastRecord, '$.Sequence') AS smallint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(20)), CAST(JSON_VALUE(@LastRecord, '$.Caption') AS varchar(20))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Message') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.Message') AS varchar(50))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Action') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.Action') AS varchar(50))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.ParentMenuId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.ParentMenuId') AS bigint)) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Menus]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [SystemId] = CAST(JSON_VALUE(@LastRecord, '$.SystemId') AS bigint)
+                                  AND [Sequence] = CAST(JSON_VALUE(@LastRecord, '$.Sequence') AS smallint)
+                                  AND [Caption] = CAST(JSON_VALUE(@LastRecord, '$.Caption') AS varchar(20))
+                                  AND [Message] = CAST(JSON_VALUE(@LastRecord, '$.Message') AS varchar(50))
+                                  AND [cruda].[IsEquals]([Action], CAST(JSON_VALUE(@LastRecord, '$.Action') AS varchar(50))) = 1
+                                  AND [cruda].[IsEquals]([ParentMenuId], CAST(JSON_VALUE(@LastRecord, '$.ParentMenuId') AS bigint)) = 1) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Menus alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Menus';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Menus';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+    IF @Action = 'delete' BEGIN
+            IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [ParentMenuId] = @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave-primária referenciada em Menus';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END ELSE BEGIN
+
+            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_Caption varchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(20))
+                   ,@W_Message varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Message') AS varchar(50))
+                   ,@W_Action varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS varchar(50))
+                   ,@W_ParentMenuId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentMenuId') AS bigint)
+
+            IF @W_SystemId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_SystemId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_SystemId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Systems';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Sequence IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Sequence < CAST('1' AS smallint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Sequence < CAST('32767' AS smallint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence em @ActualRecord deve ser menor que ou igual à 32767';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Caption IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Caption em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Message IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Message em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_ParentMenuId IS NOT NULL AND @W_ParentMenuId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ParentMenuId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_ParentMenuId IS NOT NULL AND @W_ParentMenuId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ParentMenuId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_ParentMenuId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Menus';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId                                                                  AND [Sequence] = @W_Sequence) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Menus_SystemId_Sequence já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId                                                              AND [Sequence] = @W_Sequence AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Menus_SystemId_Sequence inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Menus]
@@ -1997,10 +2929,10 @@ ALTER PROCEDURE[cruda].[MenusRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -2036,7 +2968,6 @@ ALTER PROCEDURE[cruda].[MenusRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[MenusValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -2095,7 +3026,6 @@ Criar tabela [dbo].[Users]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Users]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Users]
-
 CREATE TABLE [dbo].[Users]([Id] bigint NOT NULL
                                     ,[Name] varchar(25) NOT NULL
                                     ,[Password] varchar(256) NOT NULL
@@ -2108,6 +3038,145 @@ CREATE TABLE [dbo].[Users]([Id] bigint NOT NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Users] ADD CONSTRAINT PK_Users PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Users_Name] ON [dbo].[Users]([Name] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Users]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[UsersValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[UsersValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[UsersValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [UsersValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(256)), CAST(JSON_VALUE(@LastRecord, '$.Password') AS varchar(256))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.FullName') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.FullName') AS varchar(50))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint), CAST(JSON_VALUE(@LastRecord, '$.RetryLogins') AS tinyint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsActive') AS bit)) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Users]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [Name] = CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))
+                                  AND [Password] = CAST(JSON_VALUE(@LastRecord, '$.Password') AS varchar(256))
+                                  AND [FullName] = CAST(JSON_VALUE(@LastRecord, '$.FullName') AS varchar(50))
+                                  AND [RetryLogins] = CAST(JSON_VALUE(@LastRecord, '$.RetryLogins') AS tinyint)
+                                  AND [IsActive] = CAST(JSON_VALUE(@LastRecord, '$.IsActive') AS bit)) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Users alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Users';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Users';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Password varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(256))
+                   ,@W_FullName varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.FullName') AS varchar(50))
+                   ,@W_RetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint)
+                   ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
+
+            IF @W_Name IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Name em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Password IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Password em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_FullName IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de FullName em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_RetryLogins IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de RetryLogins em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_RetryLogins < CAST('0' AS tinyint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de RetryLogins em @ActualRecord deve ser maior que ou igual à 0';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_RetryLogins < CAST('255' AS tinyint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de RetryLogins em @ActualRecord deve ser menor que ou igual à 255';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_IsActive IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de IsActive em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Name] = @W_Name) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Users_Name já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Users_Name inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Users]
@@ -2144,10 +3213,10 @@ ALTER PROCEDURE[cruda].[UsersRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -2183,7 +3252,6 @@ ALTER PROCEDURE[cruda].[UsersRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[UsersValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -2238,7 +3306,6 @@ Criar tabela [dbo].[SystemsUsers]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[SystemsUsers]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[SystemsUsers]
-
 CREATE TABLE [dbo].[SystemsUsers]([Id] bigint NOT NULL
                                     ,[SystemId] bigint NOT NULL
                                     ,[UserId] bigint NOT NULL
@@ -2250,6 +3317,154 @@ CREATE TABLE [dbo].[SystemsUsers]([Id] bigint NOT NULL
 ALTER TABLE [dbo].[SystemsUsers] ADD CONSTRAINT PK_SystemsUsers PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_SystemsUsers_SystemId_UserId] ON [dbo].[SystemsUsers]([SystemId] ASC, [UserId] ASC)
 CREATE UNIQUE INDEX [UNQ_SystemsUsers_Description] ON [dbo].[SystemsUsers]([Description] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[SystemsUsers]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[SystemsUsersValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[SystemsUsersValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[SystemsUsersValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemsUsersValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.SystemId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.UserId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[SystemsUsers]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [SystemId] = CAST(JSON_VALUE(@LastRecord, '$.SystemId') AS bigint)
+                                  AND [UserId] = CAST(JSON_VALUE(@LastRecord, '$.UserId') AS bigint)
+                                  AND [Description] = CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de SystemsUsers alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em SystemsUsers';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em SystemsUsers';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+                   ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+
+            IF @W_SystemId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_SystemId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_SystemId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Systems';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_UserId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de UserId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_UserId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de UserId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_UserId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de UserId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Users';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Description IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Description em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId                                                                  AND [UserId] = @W_UserId) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsUsers_SystemId_UserId já existe';
+                    THROW 51000, @ErrorMessage, 1
+                IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Description] = @W_Description) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsUsers_Description já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId                                                              AND [UserId] = @W_UserId AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsUsers_SystemId_UserId inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Description] = @W_Description AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsUsers_Description inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[SystemsUsers]
@@ -2286,10 +3501,10 @@ ALTER PROCEDURE[cruda].[SystemsUsersRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -2325,7 +3540,6 @@ ALTER PROCEDURE[cruda].[SystemsUsersRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[SystemsUsersValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -2372,7 +3586,6 @@ Criar tabela [dbo].[Databases]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Databases]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Databases]
-
 CREATE TABLE [dbo].[Databases]([Id] bigint NOT NULL
                                     ,[Name] varchar(25) NOT NULL
                                     ,[Description] varchar(50) NOT NULL
@@ -2390,6 +3603,156 @@ CREATE TABLE [dbo].[Databases]([Id] bigint NOT NULL
 ALTER TABLE [dbo].[Databases] ADD CONSTRAINT PK_Databases PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Databases_Name] ON [dbo].[Databases]([Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Databases_Alias] ON [dbo].[Databases]([Alias] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Databases]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[DatabasesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[DatabasesValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[DatabasesValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabasesValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Alias') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.ServerName') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.ServerName') AS varchar(50))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.HostName') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.HostName') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Port') AS int), CAST(JSON_VALUE(@LastRecord, '$.Port') AS int)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Logon') AS varchar(256)), CAST(JSON_VALUE(@LastRecord, '$.Logon') AS varchar(256))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(256)), CAST(JSON_VALUE(@LastRecord, '$.Password') AS varchar(256))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Folder') AS varchar(256)), CAST(JSON_VALUE(@LastRecord, '$.Folder') AS varchar(256))) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Databases]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [Name] = CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))
+                                  AND [Description] = CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))
+                                  AND [Alias] = CAST(JSON_VALUE(@LastRecord, '$.Alias') AS varchar(25))
+                                  AND [cruda].[IsEquals]([ServerName], CAST(JSON_VALUE(@LastRecord, '$.ServerName') AS varchar(50))) = 1
+                                  AND [cruda].[IsEquals]([HostName], CAST(JSON_VALUE(@LastRecord, '$.HostName') AS varchar(25))) = 1
+                                  AND [cruda].[IsEquals]([Port], CAST(JSON_VALUE(@LastRecord, '$.Port') AS int)) = 1
+                                  AND [cruda].[IsEquals]([Logon], CAST(JSON_VALUE(@LastRecord, '$.Logon') AS varchar(256))) = 1
+                                  AND [cruda].[IsEquals]([Password], CAST(JSON_VALUE(@LastRecord, '$.Password') AS varchar(256))) = 1
+                                  AND [cruda].[IsEquals]([Folder], CAST(JSON_VALUE(@LastRecord, '$.Folder') AS varchar(256))) = 1) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Databases alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Databases';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Databases';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+                   ,@W_Alias varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25))
+                   ,@W_ServerName varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.ServerName') AS varchar(50))
+                   ,@W_HostName varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.HostName') AS varchar(25))
+                   ,@W_Port int = CAST(JSON_VALUE(@ActualRecord, '$.Port') AS int)
+                   ,@W_Logon varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Logon') AS varchar(256))
+                   ,@W_Password varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS varchar(256))
+                   ,@W_Folder varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Folder') AS varchar(256))
+
+            IF @W_Name IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Name em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Description IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Description em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Alias IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Alias em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Port IS NOT NULL AND @W_Port < CAST('1' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Port em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Port IS NOT NULL AND @W_Port < CAST('65535' AS int) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Port em @ActualRecord deve ser menor que ou igual à 65535';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Name] = @W_Name) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Databases_Name já existe';
+                    THROW 51000, @ErrorMessage, 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Alias] = @W_Alias) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Databases_Alias já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Databases_Name inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Alias] = @W_Alias AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Databases_Alias inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Databases]
@@ -2426,10 +3789,10 @@ ALTER PROCEDURE[cruda].[DatabasesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -2465,7 +3828,6 @@ ALTER PROCEDURE[cruda].[DatabasesRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[DatabasesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -2536,7 +3898,6 @@ Criar tabela [dbo].[SystemsDatabases]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[SystemsDatabases]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[SystemsDatabases]
-
 CREATE TABLE [dbo].[SystemsDatabases]([Id] bigint NOT NULL
                                     ,[SystemId] bigint NOT NULL
                                     ,[DatabaseId] bigint NOT NULL
@@ -2548,6 +3909,154 @@ CREATE TABLE [dbo].[SystemsDatabases]([Id] bigint NOT NULL
 ALTER TABLE [dbo].[SystemsDatabases] ADD CONSTRAINT PK_SystemsDatabases PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_SystemsDatabases_SystemId_DatabaseId] ON [dbo].[SystemsDatabases]([SystemId] ASC, [DatabaseId] ASC)
 CREATE UNIQUE INDEX [UNQ_SystemsDatabases_Description] ON [dbo].[SystemsDatabases]([Description] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[SystemsDatabases]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[SystemsDatabasesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[SystemsDatabasesValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[SystemsDatabasesValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemsDatabasesValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.SystemId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.DatabaseId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[SystemsDatabases]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [SystemId] = CAST(JSON_VALUE(@LastRecord, '$.SystemId') AS bigint)
+                                  AND [DatabaseId] = CAST(JSON_VALUE(@LastRecord, '$.DatabaseId') AS bigint)
+                                  AND [Description] = CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de SystemsDatabases alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em SystemsDatabases';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em SystemsDatabases';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+                   ,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+
+            IF @W_SystemId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_SystemId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_SystemId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Systems';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_DatabaseId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_DatabaseId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_DatabaseId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Databases';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Description IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Description em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId                                                                  AND [DatabaseId] = @W_DatabaseId) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsDatabases_SystemId_DatabaseId já existe';
+                    THROW 51000, @ErrorMessage, 1
+                IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Description] = @W_Description) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsDatabases_Description já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId                                                              AND [DatabaseId] = @W_DatabaseId AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsDatabases_SystemId_DatabaseId inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Description] = @W_Description AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsDatabases_Description inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[SystemsDatabases]
@@ -2584,10 +4093,10 @@ ALTER PROCEDURE[cruda].[SystemsDatabasesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -2623,7 +4132,6 @@ ALTER PROCEDURE[cruda].[SystemsDatabasesRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[SystemsDatabasesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -2670,7 +4178,6 @@ Criar tabela [dbo].[Tables]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Tables]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Tables]
-
 CREATE TABLE [dbo].[Tables]([Id] bigint NOT NULL
                                     ,[Name] varchar(25) NOT NULL
                                     ,[Alias] varchar(25) NOT NULL
@@ -2684,6 +4191,152 @@ CREATE TABLE [dbo].[Tables]([Id] bigint NOT NULL
 ALTER TABLE [dbo].[Tables] ADD CONSTRAINT PK_Tables PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Tables_Name] ON [dbo].[Tables]([Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Tables_Alias] ON [dbo].[Tables]([Alias] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Tables]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[TablesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[TablesValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[TablesValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TablesValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Alias') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsPaged') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsPaged') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.CurrentId') AS bigint)) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Tables]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [Name] = CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))
+                                  AND [Alias] = CAST(JSON_VALUE(@LastRecord, '$.Alias') AS varchar(25))
+                                  AND [Description] = CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))
+                                  AND [IsPaged] = CAST(JSON_VALUE(@LastRecord, '$.IsPaged') AS bit)
+                                  AND [CurrentId] = CAST(JSON_VALUE(@LastRecord, '$.CurrentId') AS bigint)) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Tables alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Tables';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Tables';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Alias varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25))
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+                   ,@W_IsPaged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPaged') AS bit)
+                   ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
+
+            IF @W_Name IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Name em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Alias IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Alias em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Description IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Description em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_IsPaged IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de IsPaged em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_CurrentId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de CurrentId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_CurrentId < CAST('0' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de CurrentId em @ActualRecord deve ser maior que ou igual à 0';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_CurrentId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de CurrentId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Tables_Name já existe';
+                    THROW 51000, @ErrorMessage, 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Tables_Alias já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Tables_Name inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Tables_Alias inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Tables]
@@ -2720,10 +4373,10 @@ ALTER PROCEDURE[cruda].[TablesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -2759,7 +4412,6 @@ ALTER PROCEDURE[cruda].[TablesRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[TablesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -2814,7 +4466,6 @@ Criar tabela [dbo].[DatabasesTables]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[DatabasesTables]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[DatabasesTables]
-
 CREATE TABLE [dbo].[DatabasesTables]([Id] bigint NOT NULL
                                     ,[DatabaseId] bigint NOT NULL
                                     ,[TableId] bigint NOT NULL
@@ -2826,6 +4477,154 @@ CREATE TABLE [dbo].[DatabasesTables]([Id] bigint NOT NULL
 ALTER TABLE [dbo].[DatabasesTables] ADD CONSTRAINT PK_DatabasesTables PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_DatabasesTables_DatabaseId_TableId] ON [dbo].[DatabasesTables]([DatabaseId] ASC, [TableId] ASC)
 CREATE UNIQUE INDEX [UNQ_DatabasesTables_Description] ON [dbo].[DatabasesTables]([Description] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[DatabasesTables]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[DatabasesTablesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[DatabasesTablesValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[DatabasesTablesValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabasesTablesValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.DatabaseId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.TableId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[DatabasesTables]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [DatabaseId] = CAST(JSON_VALUE(@LastRecord, '$.DatabaseId') AS bigint)
+                                  AND [TableId] = CAST(JSON_VALUE(@LastRecord, '$.TableId') AS bigint)
+                                  AND [Description] = CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de DatabasesTables alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em DatabasesTables';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em DatabasesTables';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+                   ,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+
+            IF @W_DatabaseId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_DatabaseId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_DatabaseId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Databases';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_TableId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_TableId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_TableId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Tables';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Description IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Description em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId                                                                  AND [TableId] = @W_TableId) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId já existe';
+                    THROW 51000, @ErrorMessage, 1
+                IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Description] = @W_Description) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_Description já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId                                                              AND [TableId] = @W_TableId AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Description] = @W_Description AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_Description inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[DatabasesTables]
@@ -2862,10 +4661,10 @@ ALTER PROCEDURE[cruda].[DatabasesTablesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -2901,7 +4700,6 @@ ALTER PROCEDURE[cruda].[DatabasesTablesRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[DatabasesTablesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -2948,7 +4746,6 @@ Criar tabela [dbo].[Columns]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Columns]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Columns]
-
 CREATE TABLE [dbo].[Columns]([Id] bigint NOT NULL
                                     ,[TableId] bigint NOT NULL
                                     ,[Sequence] smallint NOT NULL
@@ -2958,7 +4755,7 @@ CREATE TABLE [dbo].[Columns]([Id] bigint NOT NULL
                                     ,[Description] varchar(50) NOT NULL
                                     ,[Title] varchar(25) NOT NULL
                                     ,[Caption] varchar(25) NOT NULL
-                                    ,[ValidValues] varchar(MAX) NULL
+                                    ,[ValidValues] varchar(8000) NULL
                                     ,[Default] sql_variant NULL
                                     ,[Minimum] sql_variant NULL
                                     ,[Maximum] sql_variant NULL
@@ -2977,6 +4774,245 @@ CREATE TABLE [dbo].[Columns]([Id] bigint NOT NULL
 ALTER TABLE [dbo].[Columns] ADD CONSTRAINT PK_Columns PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Columns_TableId_Name] ON [dbo].[Columns]([TableId] ASC, [Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Columns_TableId_Sequence] ON [dbo].[Columns]([TableId] ASC, [Sequence] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Columns]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[ColumnsValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[ColumnsValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[ColumnsValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.TableId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint), CAST(JSON_VALUE(@LastRecord, '$.Sequence') AS smallint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.DomainId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.ReferenceTableId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Title') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Caption') AS varchar(25))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(8000)), CAST(JSON_VALUE(@LastRecord, '$.ValidValues') AS varchar(8000))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant), CAST(JSON_VALUE(@LastRecord, '$.Default') AS sql_variant)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant), CAST(JSON_VALUE(@LastRecord, '$.Minimum') AS sql_variant)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant), CAST(JSON_VALUE(@LastRecord, '$.Maximum') AS sql_variant)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsPrimarykey') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsPrimarykey') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsAutoIncrement') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsAutoIncrement') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsRequired') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsRequired') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsListable') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsFilterable') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsEditable') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsBrowseable') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsBrowseable') AS bit)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsEncrypted') AS bit)) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Columns]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [TableId] = CAST(JSON_VALUE(@LastRecord, '$.TableId') AS bigint)
+                                  AND [Sequence] = CAST(JSON_VALUE(@LastRecord, '$.Sequence') AS smallint)
+                                  AND [DomainId] = CAST(JSON_VALUE(@LastRecord, '$.DomainId') AS bigint)
+                                  AND [cruda].[IsEquals]([ReferenceTableId], CAST(JSON_VALUE(@LastRecord, '$.ReferenceTableId') AS bigint)) = 1
+                                  AND [Name] = CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))
+                                  AND [Description] = CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))
+                                  AND [Title] = CAST(JSON_VALUE(@LastRecord, '$.Title') AS varchar(25))
+                                  AND [Caption] = CAST(JSON_VALUE(@LastRecord, '$.Caption') AS varchar(25))
+                                  AND [cruda].[IsEquals]([ValidValues], CAST(JSON_VALUE(@LastRecord, '$.ValidValues') AS varchar(8000))) = 1
+                                  AND [cruda].[IsEquals]([Default], CAST(JSON_VALUE(@LastRecord, '$.Default') AS sql_variant)) = 1
+                                  AND [cruda].[IsEquals]([Minimum], CAST(JSON_VALUE(@LastRecord, '$.Minimum') AS sql_variant)) = 1
+                                  AND [cruda].[IsEquals]([Maximum], CAST(JSON_VALUE(@LastRecord, '$.Maximum') AS sql_variant)) = 1
+                                  AND [cruda].[IsEquals]([IsPrimarykey], CAST(JSON_VALUE(@LastRecord, '$.IsPrimarykey') AS bit)) = 1
+                                  AND [cruda].[IsEquals]([IsAutoIncrement], CAST(JSON_VALUE(@LastRecord, '$.IsAutoIncrement') AS bit)) = 1
+                                  AND [IsRequired] = CAST(JSON_VALUE(@LastRecord, '$.IsRequired') AS bit)
+                                  AND [cruda].[IsEquals]([IsListable], CAST(JSON_VALUE(@LastRecord, '$.IsListable') AS bit)) = 1
+                                  AND [cruda].[IsEquals]([IsFilterable], CAST(JSON_VALUE(@LastRecord, '$.IsFilterable') AS bit)) = 1
+                                  AND [cruda].[IsEquals]([IsEditable], CAST(JSON_VALUE(@LastRecord, '$.IsEditable') AS bit)) = 1
+                                  AND [cruda].[IsEquals]([IsBrowseable], CAST(JSON_VALUE(@LastRecord, '$.IsBrowseable') AS bit)) = 1
+                                  AND [cruda].[IsEquals]([IsEncrypted], CAST(JSON_VALUE(@LastRecord, '$.IsEncrypted') AS bit)) = 1) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Columns alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Columns';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Columns';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
+                   ,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
+                   ,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
+                   ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+                   ,@W_Title varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
+                   ,@W_Caption varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
+                   ,@W_ValidValues varchar(8000) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(8000))
+                   ,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
+                   ,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
+                   ,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
+                   ,@W_IsPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPrimarykey') AS bit)
+                   ,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@ActualRecord, '$.IsAutoIncrement') AS bit)
+                   ,@W_IsRequired bit = CAST(JSON_VALUE(@ActualRecord, '$.IsRequired') AS bit)
+                   ,@W_IsListable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit)
+                   ,@W_IsFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit)
+                   ,@W_IsEditable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit)
+                   ,@W_IsBrowseable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBrowseable') AS bit)
+                   ,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
+
+            IF @W_TableId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_TableId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_TableId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Tables';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Sequence IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Sequence < CAST('1' AS smallint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Sequence < CAST('32767' AS smallint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence em @ActualRecord deve ser menor que ou igual à 32767';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_DomainId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_DomainId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_DomainId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Domains';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ReferenceTableId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Tables';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Name IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Name em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Description IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Description em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Title IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Title em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Caption IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Caption em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_IsRequired IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de IsRequired em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId                                                                  AND [Name] = @W_Name) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Columns_TableId_Name já existe';
+                    THROW 51000, @ErrorMessage, 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId                                                                  AND [Sequence] = @W_Sequence) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Columns_TableId_Sequence já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId                                                              AND [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Columns_TableId_Name inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId                                                              AND [Sequence] = @W_Sequence AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Columns_TableId_Sequence inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Columns]
@@ -3013,10 +5049,10 @@ ALTER PROCEDURE[cruda].[ColumnsRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -3052,7 +5088,6 @@ ALTER PROCEDURE[cruda].[ColumnsRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[ColumnsValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -3067,7 +5102,7 @@ ALTER PROCEDURE[cruda].[ColumnsRatify](@LoginId BIGINT
                    ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
                    ,@W_Title varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
                    ,@W_Caption varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
-                   ,@W_ValidValues varchar(MAX) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(MAX))
+                   ,@W_ValidValues varchar(8000) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS varchar(8000))
                    ,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
                    ,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
                    ,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
@@ -3167,7 +5202,6 @@ Criar tabela [dbo].[Indexes]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Indexes]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Indexes]
-
 CREATE TABLE [dbo].[Indexes]([Id] bigint NOT NULL
                                     ,[DatabaseId] bigint NOT NULL
                                     ,[TableId] bigint NOT NULL
@@ -3179,6 +5213,154 @@ CREATE TABLE [dbo].[Indexes]([Id] bigint NOT NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Indexes] ADD CONSTRAINT PK_Indexes PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Indexes_DatabaseId_Name] ON [dbo].[Indexes]([DatabaseId] ASC, [Name] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Indexes]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[IndexesValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[IndexesValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[IndexesValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexesValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.DatabaseId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.TableId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(50))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsUnique') AS bit)) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Indexes]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [DatabaseId] = CAST(JSON_VALUE(@LastRecord, '$.DatabaseId') AS bigint)
+                                  AND [TableId] = CAST(JSON_VALUE(@LastRecord, '$.TableId') AS bigint)
+                                  AND [Name] = CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(50))
+                                  AND [IsUnique] = CAST(JSON_VALUE(@LastRecord, '$.IsUnique') AS bit)) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Indexes alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Indexes';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Indexes';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+                   ,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+                   ,@W_Name varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(50))
+                   ,@W_IsUnique bit = CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit)
+
+            IF @W_DatabaseId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_DatabaseId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_DatabaseId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Databases';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_TableId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_TableId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_TableId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Tables';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Name IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Name em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_IsUnique IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de IsUnique em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId                                                                  AND [Name] = @W_Name) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexes_DatabaseId_Name já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId                                                              AND [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexes_DatabaseId_Name inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Indexes]
@@ -3215,10 +5397,10 @@ ALTER PROCEDURE[cruda].[IndexesRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -3254,7 +5436,6 @@ ALTER PROCEDURE[cruda].[IndexesRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[IndexesValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -3305,7 +5486,6 @@ Criar tabela [dbo].[Indexkeys]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Indexkeys]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Indexkeys]
-
 CREATE TABLE [dbo].[Indexkeys]([Id] bigint NOT NULL
                                     ,[IndexId] bigint NOT NULL
                                     ,[Sequence] smallint NOT NULL
@@ -3318,6 +5498,169 @@ CREATE TABLE [dbo].[Indexkeys]([Id] bigint NOT NULL
 ALTER TABLE [dbo].[Indexkeys] ADD CONSTRAINT PK_Indexkeys PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_Sequence] ON [dbo].[Indexkeys]([IndexId] ASC, [Sequence] ASC)
 CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_ColumnId] ON [dbo].[Indexkeys]([IndexId] ASC, [ColumnId] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Indexkeys]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[IndexkeysValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[IndexkeysValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[IndexkeysValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexkeysValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IndexId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.IndexId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint), CAST(JSON_VALUE(@LastRecord, '$.Sequence') AS smallint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.ColumnId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsDescending') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsDescending') AS bit)) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Indexkeys]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [IndexId] = CAST(JSON_VALUE(@LastRecord, '$.IndexId') AS bigint)
+                                  AND [Sequence] = CAST(JSON_VALUE(@LastRecord, '$.Sequence') AS smallint)
+                                  AND [ColumnId] = CAST(JSON_VALUE(@LastRecord, '$.ColumnId') AS bigint)
+                                  AND [IsDescending] = CAST(JSON_VALUE(@LastRecord, '$.IsDescending') AS bit)) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Indexkeys alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Indexkeys';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Indexkeys';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_IndexId bigint = CAST(JSON_VALUE(@ActualRecord, '$.IndexId') AS bigint)
+                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
+                   ,@W_IsDescending bit = CAST(JSON_VALUE(@ActualRecord, '$.IsDescending') AS bit)
+
+            IF @W_IndexId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_IndexId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_IndexId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Indexes';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Sequence IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Sequence < CAST('1' AS smallint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_Sequence < CAST('32767' AS smallint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Sequence em @ActualRecord deve ser menor que ou igual à 32767';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_ColumnId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_ColumnId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_ColumnId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Columns';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_IsDescending IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de IsDescending em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId                                                                  AND [Sequence] = @W_Sequence) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexkeys_IndexId_Sequence já existe';
+                    THROW 51000, @ErrorMessage, 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId                                                                  AND [ColumnId] = @W_ColumnId) BEGIN
+                    SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexkeys_IndexId_ColumnId já existe';
+                    THROW 51000, @ErrorMessage, 1
+                END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId                                                              AND [Sequence] = @W_Sequence AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexkeys_IndexId_Sequence inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId                                                              AND [ColumnId] = @W_ColumnId AND [Id] <> @W_Id) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexkeys_IndexId_ColumnId inexiste';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Indexkeys]
@@ -3354,10 +5697,10 @@ ALTER PROCEDURE[cruda].[IndexkeysRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -3393,7 +5736,6 @@ ALTER PROCEDURE[cruda].[IndexkeysRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[IndexkeysValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -3444,7 +5786,6 @@ Criar tabela [dbo].[Logins]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Logins]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Logins]
-
 CREATE TABLE [dbo].[Logins]([Id] bigint NOT NULL
                                     ,[SystemId] bigint NOT NULL
                                     ,[UserId] bigint NOT NULL
@@ -3456,6 +5797,149 @@ CREATE TABLE [dbo].[Logins]([Id] bigint NOT NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Logins] ADD CONSTRAINT PK_Logins PRIMARY KEY CLUSTERED ([Id])
 CREATE  INDEX [IDX_Logins_SystemId_UserId_IsLogged] ON [dbo].[Logins]([SystemId] ASC, [UserId] ASC, [IsLogged] ASC)
+GO
+/**********************************************************************************
+Validar dados na tabela [cruda].[Logins]
+**********************************************************************************/
+IF(SELECT object_id('[cruda].[LoginsValid]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [cruda].[LoginsValid] AS PRINT 1')
+GO
+ALTER PROCEDURE[cruda].[LoginsValid](@LoginId BIGINT
+                                     ,@Action VARCHAR(15)
+                                     ,@LastRecord VARCHAR(MAX)
+                                     ,@ActualRecord VARCHAR(MAX)) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [LoginsValid]: '
+
+        IF @Action IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action NOT IN ('create', 'update', 'delete') BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é inválido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @ActualRecord IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@ActualRecord) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF ISJSON(@LastRecord) = 0 BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord não está no formato JSON';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @Action = 'update'
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.SystemId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.UserId') AS bigint)) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS varchar(256)), CAST(JSON_VALUE(@LastRecord, '$.PublicKey') AS varchar(256))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsLogged') AS bit)) = 1
+                RETURN 0
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Logins]
+                            WHERE [Id] = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+                                  AND [SystemId] = CAST(JSON_VALUE(@LastRecord, '$.SystemId') AS bigint)
+                                  AND [UserId] = CAST(JSON_VALUE(@LastRecord, '$.UserId') AS bigint)
+                                  AND [PublicKey] = CAST(JSON_VALUE(@LastRecord, '$.PublicKey') AS varchar(256))
+                                  AND [IsLogged] = CAST(JSON_VALUE(@LastRecord, '$.IsLogged') AS bit)) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Registro de Logins alterado por outro usuário';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Logins] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em Logins';
+               THROW 51000, @ErrorMessage, 1
+            END ELSE IF @Action <> 'create' BEGIN
+               SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Logins';
+               THROW 51000, @ErrorMessage, 1
+            END
+        END
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+                   ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+                   ,@W_PublicKey varchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS varchar(256))
+                   ,@W_IsLogged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit)
+
+            IF @W_SystemId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_SystemId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_SystemId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Systems';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_UserId IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de UserId em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_UserId < CAST('1' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de UserId em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_UserId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de UserId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Users';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_PublicKey IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de PublicKey em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_PublicKey < CAST('1' AS varchar(256)) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de PublicKey em @ActualRecord deve ser maior que ou igual à 1';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_IsLogged IS NULL BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de IsLogged em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
+        RETURN 1
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
 GO
 /**********************************************************************************
 Ratificar dados na tabela [cruda].[Logins]
@@ -3492,10 +5976,10 @@ ALTER PROCEDURE[cruda].[LoginsRatify](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        SELECT @TransactionId = [TransactionId]
+        SELECT @TransactionId = [Id]
               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Transactions]
-            WHERE [TransactionId] = (SELECT MAX([TransactionId]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @TransactionId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
             THROW 51000, @ErrorMessage, 1
@@ -3531,7 +6015,6 @@ ALTER PROCEDURE[cruda].[LoginsRatify](@LoginId BIGINT
         EXEC @ValidOk = [cruda].[LoginsValid] @Action, @LastRecord, @ActualRecord
         IF @ValidOk = 0
             RETURN 0
-
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
@@ -5441,7 +7924,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS bigint)
                                 ,CAST('BigInteger' AS varchar(25))
-                                ,CAST('#.###.###.###.###.###' AS varchar(MAX))
+                                ,CAST('#.###.###.###.###.###' AS varchar(8000))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5456,7 +7939,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('2' AS bigint)
                                 ,CAST('Integer' AS varchar(25))
-                                ,CAST('#.###.###.###' AS varchar(MAX))
+                                ,CAST('#.###.###.###' AS varchar(8000))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5471,7 +7954,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('3' AS bigint)
                                 ,CAST('SmallInteger' AS varchar(25))
-                                ,CAST('##.###' AS varchar(MAX))
+                                ,CAST('##.###' AS varchar(8000))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5486,7 +7969,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('4' AS bigint)
                                 ,CAST('TinyInteger' AS varchar(25))
-                                ,CAST('###' AS varchar(MAX))
+                                ,CAST('###' AS varchar(8000))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5501,7 +7984,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('5' AS bigint)
                                 ,CAST('ShortInteger' AS varchar(25))
-                                ,CAST('##.###' AS varchar(MAX))
+                                ,CAST('##.###' AS varchar(8000))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5516,7 +7999,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('6' AS bigint)
                                 ,CAST('DateTime' AS varchar(25))
-                                ,CAST('dd/MM/yyyy hh:mm:ss' AS varchar(MAX))
+                                ,CAST('dd/MM/yyyy hh:mm:ss' AS varchar(8000))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5885,7 +8368,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,CAST('33' AS tinyint)
                                 ,NULL
                                 ,CAST('Varchar(MAX)' AS varchar(25))
-                                ,NULL
+                                ,CAST('8000' AS smallint)
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6073,7 +8556,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,CAST('Codification' AS varchar(25))
                                 ,CAST('5' AS smallint)
                                 ,NULL
-                                ,CAST('JSON;JS;SQL' AS varchar(MAX))
+                                ,CAST('JSON;JS;SQL' AS varchar(8000))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6104,7 +8587,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,CAST('HtmlInputType' AS varchar(25))
                                 ,CAST('10' AS smallint)
                                 ,NULL
-                                ,CAST('text;checkbox;textarea;image;file' AS varchar(MAX))
+                                ,CAST('text;checkbox;textarea;image;file' AS varchar(8000))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6135,7 +8618,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,CAST('HtmlInputAlign' AS varchar(25))
                                 ,CAST('6' AS smallint)
                                 ,NULL
-                                ,CAST('left;center;right' AS varchar(MAX))
+                                ,CAST('left;center;right' AS varchar(8000))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6166,7 +8649,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,CAST('Action' AS varchar(25))
                                 ,CAST('15' AS smallint)
                                 ,NULL
-                                ,CAST('create;read;update;delete;commit;rollback' AS varchar(MAX))
+                                ,CAST('create;read;update;delete;commit;rollback' AS varchar(8000))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7269,7 +9752,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -7779,7 +10262,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -8544,7 +11027,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -8697,7 +11180,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -9258,7 +11741,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -9564,7 +12047,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -9921,7 +12404,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -10227,7 +12710,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -10431,7 +12914,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -10941,7 +13424,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -11145,7 +13628,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -11396,7 +13879,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('Id atual' AS varchar(25))
                                 ,CAST('Id atual' AS varchar(25))
                                 ,NULL
-                                ,CAST('CAST('0' AS bigint)' AS sql_variant)
+                                ,CAST('0' AS sql_variant)
                                 ,CAST('0' AS sql_variant)
                                 ,NULL
                                 ,CAST('0' AS bit)
@@ -11451,7 +13934,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -11655,7 +14138,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -12726,7 +15209,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -12981,7 +15464,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -13236,7 +15719,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS sql_variant)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)

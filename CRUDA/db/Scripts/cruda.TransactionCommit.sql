@@ -25,7 +25,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 		SELECT @LoginId = [LoginId]
 			  ,@IsConfirmed = [IsConfirmed]
 			FROM [cruda].[Transactions]
-			WHERE [TransactionId] = @TransactionId
+			WHERE [Id] = @TransactionId
 		IF @LoginId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Transação é inexistente';
 			THROW 51000, @ErrorMessage, 1
@@ -35,7 +35,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 			THROW 51000, @ErrorMessage, 1
 		END
 		WHILE 1 = 1 BEGIN
-			SELECT @OperationId = [OperationId]
+			SELECT @OperationId = [Id]
 					,@TableName = [TableName]
 				FROM [cruda].[Operations]
 				WHERE [TransactionId] = @TransactionId
