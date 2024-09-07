@@ -1,16 +1,16 @@
 ﻿IF(SELECT object_id('[cruda].[TransactionRollback]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionRollback] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
-											,@UserName VARCHAR(25)) AS BEGIN
+ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionRollback]: '
 				,@LoginId BIGINT
-				,@OperationId BIGINT
-				,@TransactionIdAux BIGINT
+				,@OperationId INT
+				,@CreatedBy VARCHAR(25)
+				,@TransactionIdAux INT
 				,@IsConfirmed BIT
 
 		IF @@TRANCOUNT = 0
@@ -18,15 +18,16 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
 		ELSE
 			SAVE TRANSACTION [TransactionRollback]
 		IF @TransactionId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @TransactionId é requerido';
+			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
 		SELECT @TransactionIdAux = [Id]
 			  ,@IsConfirmed = [IsConfirmed]
+			  ,@CreatedBy = [CreatedBy]
 			FROM [cruda].[Transactions]
 			WHERE [Id] = @TransactionId
-		IF @TransactionIdAux IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transação é inexistente';
+		IF @@ROWCOUNT = 0 BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @IsConfirmed IS NOT NULL BEGIN
@@ -35,13 +36,13 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId BIGINT
 		END
 		UPDATE [cruda].[Operations]
 			SET [IsConfirmed] = 0
-				,[UpdatedBy] = @UserName
+				,[UpdatedBy] = @CreatedBy
 				,[UpdatedAt] = GETDATE()
 			WHERE [Id] = @TransactionId
 				  AND [IsConfirmed] IS NULL
 		UPDATE [cruda].[Transactions]
 			SET [IsConfirmed] = 0
-				,[UpdatedBy] = @UserName
+				,[UpdatedBy] = @CreatedBy
 				,[UpdatedAt] = GETDATE()
 			WHERE [Id] = @TransactionId
 		COMMIT TRANSACTION [TransactionRollback]

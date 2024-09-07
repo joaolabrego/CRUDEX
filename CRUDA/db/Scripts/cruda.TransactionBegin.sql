@@ -18,21 +18,25 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
-		SELECT @TransactionId = MAX([Id]) + 1
+		SELECT @TransactionId = ISNULL(MAX([Id]) + 1, 1)
 			FROM [cruda].[Transactions]
+		IF @TransactionId > 2147483647 BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId deve ser menor que ou igual à ''2147483647''.';
+			THROW 51000, @ErrorMessage, 1
+		END
 		INSERT [cruda].[Transactions] ([Id]
 									  ,[LoginId]
 									  ,[IsConfirmed]
 									  ,[CreatedAt]
 									  ,[CreatedBy])
-								VALUES (ISNULL(@TransactionId, 1)
+								VALUES (@TransactionId
 									   ,@LoginId
 									   ,NULL
 									   ,GETDATE()
 									   ,@UserName)
 		COMMIT TRANSACTION [TransactionBegin]
 
-		RETURN @TransactionId
+		RETURN CAST(@TransactionId AS INT)
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION [TransactionBegin];

@@ -36,12 +36,15 @@ namespace CRUDA.Classes
                     stream.Write(GetScriptOthers(systemName));
                     stream.Write(GetScriptTableTransactions());
                     stream.Write(GetScriptTableOperations());
+                    stream.Write(GetScriptTransactionBegin());
+                    stream.Write(GetScriptTransactionCommit());
+                    stream.Write(GetScriptTransactionRollback());
                     firstTime = false;
                 }
                 stream.Write(GetScriptTable(table, columns, indexes, indexkeys));
-                stream.Write(GetScriptValid(table, tables, columns, domains, types, indexes, indexkeys));
-                stream.Write(GetScriptRatify(table, columns));
-
+                stream.Write(GetScriptValidate(table, tables, columns, domains, types, indexes, indexkeys));
+                stream.Write(GetScriptPersist(table, columns));
+                stream.Write(GetScriptCommit(table, columns));
             }
             stream.Write(GetScriptReferences(tables, columns));
             foreach (var table in tables)
@@ -284,7 +287,7 @@ namespace CRUDA.Classes
             result.Append($"**********************************************************************************/\r\n");
             result.Append($"IF (SELECT object_id('[cruda].[Transactions]', 'U')) IS NOT NULL\r\n");
             result.Append($"    DROP TABLE [cruda].[Transactions]\r\n");
-            result.Append($"CREATE TABLE [cruda].[Transactions]([Id] [bigint] NOT NULL\r\n");
+            result.Append($"CREATE TABLE [cruda].[Transactions]([Id] [int] NOT NULL\r\n");
             result.Append($"                                   ,[LoginId] [bigint] NOT NULL\r\n");
             result.Append($"                                   ,[IsConfirmed] [bit] NULL\r\n");
             result.Append($"                                   ,[CreatedAt] datetime NOT NULL\r\n");
@@ -306,8 +309,8 @@ namespace CRUDA.Classes
             result.Append($"**********************************************************************************/\r\n");
             result.Append($"IF (SELECT object_id('[cruda].[Operations]', 'U')) IS NOT NULL\r\n");
             result.Append($"    DROP TABLE [cruda].[Operations]\r\n");
-            result.Append($"CREATE TABLE [cruda].[Operations]([Id] [bigint] NOT NULL\r\n");
-            result.Append($"                                 ,[TransactionId] [bigint] NOT NULL\r\n");
+            result.Append($"CREATE TABLE [cruda].[Operations]([Id] [int] NOT NULL\r\n");
+            result.Append($"                                 ,[TransactionId] [int] NOT NULL\r\n");
             result.Append($"                                 ,[TableName] [varchar](25) NOT NULL\r\n");
             result.Append($"                                 ,[Action] [varchar](15) NOT NULL\r\n");
             result.Append($"                                 ,[LastRecord] [varchar](max) NULL\r\n");
@@ -515,6 +518,206 @@ namespace CRUDA.Classes
 
             return result;
         }
+        private static StringBuilder GetScriptTransactionBegin()
+        {
+            var result = new StringBuilder();
+
+            result.Append($"/**********************************************************************************\r\n");
+            result.Append($"Criar stored procedure [dbo].[TransactionBegin]\r\n");
+            result.Append($"**********************************************************************************/\r\n");
+            result.Append($"IF(SELECT object_id('[dbo].[TransactionBegin]', 'P')) IS NULL\r\n");
+            result.Append($"    EXEC('CREATE PROCEDURE [dbo].[TransactionBegin] AS PRINT 1')\r\n");
+            result.Append($"GO\r\n");
+            result.Append($"ALTER PROCEDURE[dbo].[TransactionBegin](@LoginId BIGINT\r\n");
+            result.Append($"                                       ,@UserName VARCHAR(25)\r\n");
+            result.Append($"                                       ,@Action VARCHAR(15)\r\n");
+            result.Append($"                                       ,@LastRecord VARCHAR(max)\r\n");
+            result.Append($"                                       ,@ActualRecord VARCHAR(max)) AS BEGIN\r\n");
+            result.Append($"    BEGIN TRY\r\n");
+            result.Append($"        SET NOCOUNT ON\r\n");
+            result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
+            result.Append($"\r\n");
+            result.Append($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionBegin]: '\r\n");
+            result.Append($"                ,@TransactionId BIGINT\r\n");
+            result.Append($"\r\n");
+            result.Append($"        IF @@TRANCOUNT = 0\r\n");
+            result.Append($"            BEGIN TRANSACTION [TransactionBegin]\r\n");
+            result.Append($"        ELSE\r\n");
+            result.Append($"            SAVE TRANSACTION [TransactionBegin]\r\n");
+            result.Append($"        IF @LoginId IS NULL BEGIN\r\n");
+            result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';\r\n");
+            result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+            result.Append($"        END\r\n");
+            result.Append($"        SELECT @TransactionId = ISNULL(MAX([Id]) + 1, 1)\r\n");
+            result.Append($"            FROM [cruda].[Transactions]\r\n");
+            result.Append($"        IF @TransactionId > 2147483647 BEGIN\r\n");
+            result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId deve ser menor que ou igual à ''2147483647''.';\r\n");
+            result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+            result.Append($"        END\r\n");
+            result.Append($"        INSERT [cruda].[Transactions] ([Id]\r\n");
+            result.Append($"                                       ,[LoginId]\r\n");
+            result.Append($"                                       ,[IsConfirmed]\r\n");
+            result.Append($"                                       ,[CreatedAt]\r\n");
+            result.Append($"                                       ,[CreatedBy])\r\n");
+            result.Append($"                                VALUES (@TransactionId\r\n");
+            result.Append($"                                       ,@LoginId\r\n");
+            result.Append($"                                       ,NULL\r\n");
+            result.Append($"                                       ,GETDATE()\r\n");
+            result.Append($"                                       ,@UserName)\r\n");
+            result.Append($"        COMMIT TRANSACTION [TransactionBegin]\r\n");
+            result.Append($"\r\n");
+            result.Append($"        RETURN CAST(@TransactionId AS INT)\r\n");
+            result.Append($"    END TRY\r\n");
+            result.Append($"    BEGIN CATCH\r\n");
+            result.Append($"        ROLLBACK TRANSACTION [TransactionBegin];\r\n");
+            result.Append($"        THROW\r\n");
+            result.Append($"    END CATCH\r\n");
+            result.Append($"END\r\n");
+            result.Append($"GO\r\n");
+
+            return result;
+        }
+        private static StringBuilder GetScriptTransactionCommit()
+        {
+            var result = new StringBuilder();
+
+            result.Append($"/**********************************************************************************\r\n");
+            result.Append($"Criar stored procedure [dbo].[TransactionCommit]\r\n");
+            result.Append($"**********************************************************************************/\r\n");
+            result.Append($"IF(SELECT object_id('[dbo].[TransactionCommit]', 'P')) IS NULL\r\n");
+            result.Append($"    EXEC('CREATE PROCEDURE [dbo].[TransactionCommit] AS PRINT 1')\r\n");
+            result.Append($"GO\r\n");
+            result.Append($"ALTER PROCEDURE[dbo].[TransactionCommit](@TransactionId INT) AS BEGIN\r\n");
+            result.Append($"    BEGIN TRY\r\n");
+            result.Append($"        SET NOCOUNT ON\r\n");
+            result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
+            result.Append($"\r\n");
+            result.Append($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionCommit]: '\r\n");
+            result.Append($"                ,@LoginId BIGINT\r\n");
+            result.Append($"                ,@OperationId BIGINT\r\n");
+            result.Append($"                ,@TableName VARCHAR(25)\r\n");
+            result.Append($"                ,@IsConfirmed BIT\r\n");
+            result.Append($"                ,@CreatedBy VARCHAR(25)\r\n");
+            result.Append($"                ,@sql VARCHAR(MAX)\r\n");
+            result.Append($"\r\n");
+            result.Append($"        IF @@TRANCOUNT = 0\r\n");
+            result.Append($"            BEGIN TRANSACTION [TransactionsCommit]\r\n");
+            result.Append($"        ELSE\r\n");
+            result.Append($"            SAVE TRANSACTION [TransactionsCommit]\r\n");
+            result.Append($"        IF @TransactionId IS NULL BEGIN\r\n");
+            result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';\r\n");
+            result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+            result.Append($"        END\r\n");
+            result.Append($"        SELECT @LoginId = [LoginId]\r\n");
+            result.Append($"              ,@IsConfirmed = [IsConfirmed]\r\n");
+            result.Append($"              ,@CreatedBy = [CreatedBy]\r\n");
+            result.Append($"           FROM [cruda].[Transactions]\r\n");
+            result.Append($"           WHERE [Id] = @TransactionId\r\n");
+            result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
+            result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';\r\n");
+            result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+            result.Append($"        END\r\n");
+            result.Append($"        IF @IsConfirmed IS NOT NULL BEGIN\r\n");
+            result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;\r\n");
+            result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+            result.Append($"        END\r\n");
+            result.Append($"        WHILE 1 = 1 BEGIN\r\n");
+            result.Append($"            SELECT @OperationId = [Id]\r\n");
+            result.Append($"                  ,@TableName = [TableName]\r\n");
+            result.Append($"               FROM [cruda].[Operations]\r\n");
+            result.Append($"               WHERE [TransactionId] = @TransactionId\r\n");
+            result.Append($"                     AND [IsConfirmed] IS NULL\r\n");
+            result.Append($"            IF @@ROWCOUNT = 0\r\n");
+            result.Append($"                BREAK\r\n");
+            result.Append($"            SET @sql = '[dbo].[' + @TableName + 'Commit] @LoginId = ' + CAST(@LoginId AS VARCHAR) + ', @OperationId = ' + CAST(@OperationId AS VARCHAR)\r\n");
+            result.Append($"            EXEC @sql\r\n");
+            result.Append($"        END\r\n");
+            result.Append($"        UPDATE [cruda].[Transactions]\r\n");
+            result.Append($"            SET [IsConfirmed] = 1\r\n");
+            result.Append($"               ,[UpdatedBy] = @CreatedBy\r\n");
+            result.Append($"               ,[UpdatedAt] = GETDATE()\r\n");
+            result.Append($"            WHERE [Id] = @TransactionId\r\n");
+            result.Append($"        COMMIT TRANSACTION [TransactionCommit]\r\n");
+            result.Append($"\r\n");
+            result.Append($"        RETURN 1\r\n");
+            result.Append($"    END TRY\r\n");
+            result.Append($"    BEGIN CATCH\r\n");
+            result.Append($"        ROLLBACK TRANSACTION [TransactionCommit];\r\n");
+            result.Append($"        THROW\r\n");
+            result.Append($"    END CATCH\r\n");
+            result.Append($"END\r\n");
+            result.Append($"GO\r\n");
+
+            return result;
+        }
+        private static StringBuilder GetScriptTransactionRollback()
+        {
+            var result = new StringBuilder();
+
+            result.Append($"/**********************************************************************************\r\n");
+            result.Append($"Criar stored procedure [dbo].[TransactionRollback]\r\n");
+            result.Append($"**********************************************************************************/\r\n");
+            result.Append($"IF(SELECT object_id('[dbo].[TransactionRollback]', 'P')) IS NULL\r\n");
+            result.Append($"    EXEC('CREATE PROCEDURE [dbo].[TransactionRollback] AS PRINT 1')\r\n");
+            result.Append($"GO\r\n");
+            result.Append($"ALTER PROCEDURE[dbo].[TransactionRollback](@TransactionId INT) AS BEGIN\r\n");
+            result.Append($"    BEGIN TRY\r\n");
+            result.Append($"        SET NOCOUNT ON\r\n");
+            result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
+            result.Append($"\r\n");
+            result.Append($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionRollback]: '\r\n");
+            result.Append($"                ,@LoginId INT\r\n");
+            result.Append($"                ,@OperationId BIGINT\r\n");
+            result.Append($"                ,@CreatedBy VARCHAR(25)\r\n");
+            result.Append($"                ,@TransactionIdAux INT\r\n");
+            result.Append($"                ,@IsConfirmed BIT\r\n");
+            result.Append($"\r\n");
+            result.Append($"        IF @@TRANCOUNT = 0\r\n");
+            result.Append($"            BEGIN TRANSACTION [TransactionRollback]\r\n");
+            result.Append($"        ELSE\r\n");
+            result.Append($"            SAVE TRANSACTION [TransactionRollback]\r\n");
+            result.Append($"        IF @TransactionId IS NULL BEGIN\r\n");
+            result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';\r\n");
+            result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+            result.Append($"        END\r\n");
+            result.Append($"        SELECT @TransactionIdAux = [Id]\r\n");
+            result.Append($"              ,@IsConfirmed = [IsConfirmed]\r\n");
+            result.Append($"              ,@CreatedBy = [CreatedBy]\r\n");
+            result.Append($"           FROM [cruda].[Transactions]\r\n");
+            result.Append($"           WHERE [Id] = @TransactionId\r\n");
+            result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
+            result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';\r\n");
+            result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+            result.Append($"        END\r\n");
+            result.Append($"        IF @IsConfirmed IS NOT NULL BEGIN\r\n");
+            result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;\r\n");
+            result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+            result.Append($"        END\r\n");
+            result.Append($"        UPDATE [cruda].[Operations]\r\n");
+            result.Append($"            SET [IsConfirmed] = 0\r\n");
+            result.Append($"               ,[UpdatedBy] = @CreatedBy\r\n");
+            result.Append($"               ,[UpdatedAt] = GETDATE()\r\n");
+            result.Append($"               FROM [cruda].[Operations]\r\n");
+            result.Append($"               WHERE [TransactionId] = @TransactionId\r\n");
+            result.Append($"                     AND [IsConfirmed] IS NULL\r\n");
+            result.Append($"        UPDATE [cruda].[Transactions]\r\n");
+            result.Append($"            SET [IsConfirmed] = 0\r\n");
+            result.Append($"               ,[UpdatedBy] = @CreatedBy\r\n");
+            result.Append($"               ,[UpdatedAt] = GETDATE()\r\n");
+            result.Append($"            WHERE [Id] = @TransactionId\r\n");
+            result.Append($"        COMMIT TRANSACTION [TransactionCommit]\r\n");
+            result.Append($"\r\n");
+            result.Append($"        RETURN 1\r\n");
+            result.Append($"    END TRY\r\n");
+            result.Append($"    BEGIN CATCH\r\n");
+            result.Append($"        ROLLBACK TRANSACTION [TransactionCommit];\r\n");
+            result.Append($"        THROW\r\n");
+            result.Append($"    END CATCH\r\n");
+            result.Append($"END\r\n");
+            result.Append($"GO\r\n");
+
+            return result;
+        }
         private static StringBuilder GetScriptPersist(DataRow table, TDataRows columns)
         {
             var result = new StringBuilder();
@@ -523,21 +726,139 @@ namespace CRUDA.Classes
             if (columnRows.Count > 0)
             {
                 result.Append($"/**********************************************************************************\r\n");
-                result.Append($"Persistir dados da tabela [cruda].[{table["Name"]}]\r\n");
+                result.Append($"Criar stored procedure [dbo].[{table["Alias"]}Persist]\r\n");
                 result.Append($"**********************************************************************************/\r\n");
-                result.Append($"IF(SELECT object_id('[dbo].[{table["Name"]}Persist]', 'P')) IS NULL\r\n");
-                result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}Persist] AS PRINT 1')\r\n");
+                result.Append($"IF(SELECT object_id('[dbo].[{table["Alias"]}Persist]', 'P')) IS NULL\r\n");
+                result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Alias"]}Persist] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE[dbo].[{table["Name"]}Persist](@LoginId BIGINT\r\n");
-                result.Append($"                                             ,@UserName VARCHAR(25)\r\n");
-                result.Append($"                                             ,@Action VARCHAR(15)\r\n");
-                result.Append($"                                             ,@LastRecord VARCHAR(max)\r\n");
-                result.Append($"                                             ,@ActualRecord VARCHAR(max)) AS BEGIN\r\n");
+                result.Append($"ALTER PROCEDURE[dbo].[{table["Alias"]}Persist](@LoginId BIGINT\r\n");
+                result.Append($"                                              ,@UserName VARCHAR(25)\r\n");
+                result.Append($"                                              ,@Action VARCHAR(15)\r\n");
+                result.Append($"                                              ,@LastRecord VARCHAR(max)\r\n");
+                result.Append($"                                              ,@ActualRecord VARCHAR(max)) AS BEGIN\r\n");
+                result.Append($"    BEGIN TRY\r\n");
+                result.Append($"        SET NOCOUNT ON\r\n");
+                result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
+                result.Append($"\r\n");
+                result.Append($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [{table["Alias"]}Persist]: '\r\n");
+                result.Append($"               ,@TransactionId BIGINT\r\n");
+                result.Append($"               ,@TransactionIdAux BIGINT\r\n");
+                result.Append($"               ,@OperationId BIGINT\r\n");
+                result.Append($"               ,@CreatedBy VARCHAR(25)\r\n");
+                result.Append($"               ,@ActionAux VARCHAR(15)\r\n");
+                result.Append($"               ,@IsConfirmed BIT\r\n");
+                result.Append($"\r\n");
+                result.Append($"        IF @@TRANCOUNT = 0\r\n");
+                result.Append($"            BEGIN TRANSACTION [{table["Alias"]}Persist]\r\n");
+                result.Append($"        ELSE\r\n");
+                result.Append($"            SAVE TRANSACTION [{table["Alias"]}Persist]\r\n");
+                result.Append($"        EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @LoginId, @Action, @LastRecord, @ActualRecord\r\n");
+                result.Append($"        IF @TransactionId = 0\r\n");
+                result.Append($"            GOTO EXIT_PROCEDURE\r\n");
+                result.Append($"        SELECT @CreatedBy = [CreatedBy]\r\n");
+                result.Append($"              ,@IsConfirmed = [IsConfirmed]\r\n");
+                result.Append($"            FROM [cruda].[Transactions]\r\n");
+                result.Append($"            WHERE [Id] = @TransactionId\r\n");
+
+                var pkColumnRows = columnRows.FindAll(row => ToBoolean(row["IsPrimarykey"]));
+                var firstTime = true;
+
+                foreach (var column in pkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]}\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"               ,@W_{column["Name"]} {column["#DataType"]}\r\n");
+                }
+
+                firstTime = true;
+                foreach (var column in pkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"        SELECT @OperationId = [Id]\r\n");
+                        result.Append($"              ,@ActionAux = [Action]\r\n");
+                        result.Append($"            FROM [cruda].[Operations]\r\n");
+                        result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
+                        result.Append($"                  AND [TableName] = '{table["Name"]}'\r\n");
+                        result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
+                        firstTime= false;
+                    }
+                    result.Append($"                  AND CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = @W_{column["Name"]}\r\n");
+                }
+                result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
+                result.Append($"            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)\r\n");
+                result.Append($"                FROM [cruda].[Operations]\r\n");
+                result.Append($"            IF @OperationId > 2147483647 BEGIN\r\n");
+                result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';\r\n");
+                result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"            END\r\n");
+                result.Append($"            INSERT INTO [cruda].[Operations] ([Id]\r\n");
+                result.Append($"                                             ,[TransactionId]\r\n");
+                result.Append($"                                             ,[TableName]\r\n");
+                result.Append($"                                             ,[Action]\r\n");
+                result.Append($"                                             ,[LastRecord]\r\n");
+                result.Append($"                                             ,[ActualRecord]\r\n");
+                result.Append($"                                             ,[IsConfirmed]\r\n");
+                result.Append($"                                             ,[CreatedAt]\r\n");
+                result.Append($"                                             ,[CreatedBy])\r\n");
+                result.Append($"                                       VALUES(ISNULL(@OperationId, 1)\r\n");
+                result.Append($"                                             ,@TransactionId\r\n");
+                result.Append($"                                             ,'{table["Name"]}'\r\n");
+                result.Append($"                                             ,@Action\r\n");
+                result.Append($"                                             ,@LastRecord\r\n");
+                result.Append($"                                             ,@ActualRecord\r\n");
+                result.Append($"                                             ,NULL\r\n");
+                result.Append($"                                             ,GETDATE()\r\n");
+                result.Append($"                                             ,@CreatedBy)\r\n");
+                result.Append($"        END ELSE IF @ActionAux = 'delete' BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';\r\n");
+                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"        END ELSE IF @Action = 'create' BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Registro já existe nesta transação';\r\n");
+                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"        END ELSE IF @Action = 'update' BEGIN\r\n");
+                result.Append($"            UPDATE [cruda].[Operations]\r\n");
+                result.Append($"                SET [ActualRecord] = @ActualRecord\r\n");
+                result.Append($"                   ,[UpdatedAt] = GETDATE()\r\n");
+                result.Append($"                   ,[UpdatedBy] = @CreatedBy\r\n");
+                result.Append($"                WHERE [Id] = @OperationId\r\n");
+                result.Append($"        END ELSE IF @ActionAux = 'create' BEGIN\r\n");
+                result.Append($"            UPDATE [cruda].[Operations] \r\n");
+                result.Append($"                SET [IsConfirmed] = 0\r\n");
+                result.Append($"                   ,[UpdatedAt] = GETDATE()\r\n");
+                result.Append($"                   ,[UpdatedBy] = @CreatedBy\r\n");
+                result.Append($"                WHERE [Id] = @OperationId\r\n");
+                result.Append($"        END ELSE BEGIN\r\n");
+                result.Append($"            UPDATE [cruda].[Operations]\r\n");
+                result.Append($"                SET [Action] = 'delete'\r\n");
+                result.Append($"                   ,[LastRecord] = @LastRecord\r\n");
+                result.Append($"                   ,[ActualRecord] = @ActualRecord\r\n");
+                result.Append($"                   ,[UpdatedAt] = GETDATE()\r\n");
+                result.Append($"                   ,[UpdatedBy] = @CreatedBy\r\n");
+                result.Append($"                WHERE [Id] = @OperationId\r\n");
+                result.Append($"        END\r\n");
+                result.Append($"\r\n");
+                result.Append($"        EXIT_PROCEDURE:\r\n");
+                result.Append($"\r\n");
+                result.Append($"        COMMIT TRANSACTION [ColumnPersist]\r\n");
+                result.Append($"\r\n");
+                result.Append($"        RETURN CAST(@OperationId AS INT)\r\n");
+                result.Append($"    END TRY\r\n");
+                result.Append($"    BEGIN CATCH\r\n");
+                result.Append($"        ROLLBACK TRANSACTION [ColumnPersist];\r\n");
+                result.Append($"        THROW\r\n");
+                result.Append($"    END CATCH\r\n");
+                result.Append($"END\r\n");
+                result.Append($"GO\r\n");
             }
 
             return result;
         }
-        private static StringBuilder GetScriptRatify(DataRow table, TDataRows columns)
+        private static StringBuilder GetScriptCommit(DataRow table, TDataRows columns)
         {
             var result = new StringBuilder();
             var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
@@ -545,48 +866,42 @@ namespace CRUDA.Classes
             if (columnRows.Count > 0)
             {
                 result.Append($"/**********************************************************************************\r\n");
-                result.Append($"Ratificar dados na tabela [cruda].[{table["Name"]}]\r\n");
+                result.Append($"Criar stored procedure [dbo].[{table["Alias"]}Commit]\r\n");
                 result.Append($"**********************************************************************************/\r\n");
-                result.Append($"IF(SELECT object_id('[dbo].[{table["Name"]}Ratify]', 'P')) IS NULL\r\n");
-                result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}Ratify] AS PRINT 1')\r\n");
+                result.Append($"IF(SELECT object_id('[dbo].[{table["Alias"]}Commit]', 'P')) IS NULL\r\n");
+                result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Alias"]}Commit] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE[dbo].[{table["Name"]}Ratify](@LoginId BIGINT\r\n");
-                result.Append($"                                            ,@UserName VARCHAR(25)\r\n");
-                result.Append($"                                            ,@OperationId BIGINT) AS BEGIN\r\n");
+                result.Append($"ALTER PROCEDURE[dbo].[{table["Alias"]}Commit](@LoginId BIGINT\r\n");
+                result.Append($"                                             ,@OperationId INT) AS BEGIN\r\n");
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [{table["Name"]}Ratify]: '\r\n");
-                result.Append($"               ,@TransactionId BIGINT\r\n");
-                result.Append($"               ,@TransactionIdAux BIGINT\r\n");
+                result.Append($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [{table["Alias"]}Commit]: '\r\n");
+                result.Append($"               ,@TransactionId INT\r\n");
+                result.Append($"               ,@TransactionIdAux INT\r\n");
                 result.Append($"               ,@TableName VARCHAR(25)\r\n");
                 result.Append($"               ,@Action VARCHAR(15)\r\n");
+                result.Append($"               ,@CreatedBy VARCHAR(25)\r\n");
                 result.Append($"               ,@LastRecord VARCHAR(max)\r\n");
                 result.Append($"               ,@ActualRecord VARCHAR(max)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
-                result.Append($"               ,@ValidOk BIT\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF @@TRANCOUNT = 0\r\n");
-                result.Append($"            BEGIN TRANSACTION [ColumnsRatify]\r\n");
+                result.Append($"            BEGIN TRANSACTION [{table["Alias"]}Commit]\r\n");
                 result.Append($"        ELSE\r\n");
-                result.Append($"            SAVE TRANSACTION [ColumnsRatify]\r\n");
-                result.Append($"        IF @LoginId IS NULL BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @LoginId requerido';\r\n");
-                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END\r\n");
+                result.Append($"            SAVE TRANSACTION [{table["Alias"]}Commit]\r\n");
                 result.Append($"        IF @OperationId IS NULL BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @OperationId requerido';\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
-                result.Append($"        SELECT @TransactionId = [Id]\r\n");
+                result.Append($"        EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @LoginId, @Action, @LastRecord, @ActualRecord\r\n");
+                result.Append($"        IF @TransactionId = 0\r\n");
+                result.Append($"            GOTO EXIT_PROCEDURE\r\n");
+                result.Append($"        SELECT @CreatedBy = [CreatedBy]\r\n");
                 result.Append($"              ,@IsConfirmed = [IsConfirmed]\r\n");
                 result.Append($"            FROM [cruda].[Transactions]\r\n");
-                result.Append($"            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
-                result.Append($"        IF @TransactionId IS NULL BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';\r\n");
-                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END\r\n");
+                result.Append($"            WHERE [Id] = @TransactionId\r\n");
                 result.Append($"        IF @IsConfirmed IS NOT NULL BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
@@ -599,8 +914,8 @@ namespace CRUDA.Classes
                 result.Append($"              ,@IsConfirmed = [IsConfirmed]\r\n");
                 result.Append($"            FROM [cruda].[Operations]\r\n");
                 result.Append($"            WHERE [Id] = @OperationId\r\n");
-                result.Append($"        IF @TransactionIdAux IS NULL BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Operação é inexistente';\r\n");
+                result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"        IF @TransactionIdAux <> @TransactionId BEGIN\r\n");
@@ -615,9 +930,6 @@ namespace CRUDA.Classes
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
-                result.Append($"        EXEC @ValidOk = [dbo].[{table["Name"]}Valid] @Action, @LastRecord, @ActualRecord\r\n");
-                result.Append($"        IF @ValidOk = 0\r\n");
-                result.Append($"            RETURN 0\r\n");
 
                 var pkColumnRows = columnRows.FindAll(row => ToBoolean(row["IsPrimarykey"]));
                 var firstTime = true;
@@ -723,17 +1035,20 @@ namespace CRUDA.Classes
                         result.Append($"                          AND [{column["Name"]}] = @W_{column["Name"]}\r\n");
                 }
                 result.Append($"        END\r\n");
+                result.Append($"\r\n");
+                result.Append($"        EXIT_PROCEDURE:\r\n");
+                result.Append($"\r\n");
                 result.Append($"        UPDATE [cruda].[Operations]\r\n");
                 result.Append($"            SET [IsConfirmed] = 1\r\n");
-                result.Append($"                ,[UpdatedBy] = @UserName\r\n");
+                result.Append($"                ,[UpdatedBy] = @CreatedBy\r\n");
                 result.Append($"                ,[UpdatedAt] = GETDATE()\r\n");
                 result.Append($"            WHERE [Id] = @OperationId\r\n");
-                result.Append($"        COMMIT TRANSACTION [ColumnsRatify]\r\n");
+                result.Append($"        COMMIT TRANSACTION [{table["Alias"]}Commit]\r\n");
                 result.Append("\r\n");
                 result.Append($"        RETURN 1\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
-                result.Append($"        ROLLBACK TRANSACTION [ColumnsRatify];\r\n");
+                result.Append($"        ROLLBACK TRANSACTION [{table["Alias"]}Commit];\r\n");
                 result.Append($"        THROW\r\n");
                 result.Append($"    END CATCH\r\n");
                 result.Append($"END\r\n");
@@ -742,7 +1057,7 @@ namespace CRUDA.Classes
 
             return result;
         }
-        private static StringBuilder GetScriptValid(DataRow table, TDataRows tables, TDataRows columns, TDataRows domains, TDataRows types, TDataRows indexes, TDataRows indexkeys)
+        private static StringBuilder GetScriptValidate(DataRow table, TDataRows tables, TDataRows columns, TDataRows domains, TDataRows types, TDataRows indexes, TDataRows indexkeys)
         {
             var result = new StringBuilder();
             var firstTime = true;
@@ -751,21 +1066,25 @@ namespace CRUDA.Classes
             if (columnRows.Count > 0)
             {
                 result.Append($"/**********************************************************************************\r\n");
-                result.Append($"Validar dados na tabela [dbo].[{table["Name"]}]\r\n");
+                result.Append($"Criar stored procedure [dbo].[{table["Alias"]}Validate]\r\n");
                 result.Append($"**********************************************************************************/\r\n");
-                result.Append($"IF(SELECT object_id('[dbo].[{table["Name"]}Valid]', 'P')) IS NULL\r\n");
-                result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}Valid] AS PRINT 1')\r\n");
+                result.Append($"IF(SELECT object_id('[dbo].[{table["Alias"]}Validate]', 'P')) IS NULL\r\n");
+                result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Alias"]}Validate] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE[dbo].[{table["Name"]}Valid](@LoginId BIGINT\r\n");
-                result.Append($"                                   ,@Action VARCHAR(15)\r\n");
-                result.Append($"                                   ,@LastRecord VARCHAR(max)\r\n");
-                result.Append($"                                   ,@ActualRecord VARCHAR(max)) AS BEGIN\r\n");
+                result.Append($"ALTER PROCEDURE[dbo].[{table["Alias"]}Validate](@LoginId BIGINT\r\n");
+                result.Append($"                                               ,@Action VARCHAR(15)\r\n");
+                result.Append($"                                               ,@LastRecord VARCHAR(max)\r\n");
+                result.Append($"                                               ,@ActualRecord VARCHAR(max)) AS BEGIN\r\n");
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [{table["Name"]}Valid]: '\r\n");
+                result.Append($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [{table["Alias"]}Validate]: '\r\n");
                 result.Append($"\r\n");
+                result.Append($"        IF @LoginId IS NULL BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';\r\n");
+                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"        END\r\n");
                 result.Append($"        IF @Action IS NULL BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @Action é requerido';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
@@ -775,7 +1094,7 @@ namespace CRUDA.Classes
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"        IF @ActualRecord IS NULL BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord requerido';\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord é requerido';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"        IF ISJSON(@ActualRecord) = 0 BEGIN\r\n");
@@ -784,7 +1103,7 @@ namespace CRUDA.Classes
                 result.Append($"        END\r\n");
                 result.Append($"        IF @Action <> 'create' BEGIN\r\n");
                 result.Append($"            IF @LastRecord IS NULL BEGIN\r\n");
-                result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord requerido';\r\n");
+                result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Valor de @LastRecord é requerido';\r\n");
                 result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"            END\r\n");
                 result.Append($"            IF ISJSON(@LastRecord) = 0 BEGIN\r\n");
@@ -827,14 +1146,14 @@ namespace CRUDA.Classes
                 result.Append($"            END\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @TransactionId BIGINT\r\n");
+                result.Append($"        DECLARE @TransactionId INT\r\n");
                 result.Append($"                ,@IsConfirmed BIT\r\n");
                 result.Append($"\r\n");
                 result.Append($"        SELECT @TransactionId = [Id]\r\n");
                 result.Append($"               ,@IsConfirmed = [IsConfirmed]\r\n");
                 result.Append($"            FROM [cruda].[Transactions]\r\n");
                 result.Append($"            WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
-                result.Append($"        IF @TransactionId IS NULL BEGIN\r\n");
+                result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Não existe transação para valor de @LoginId';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
@@ -902,10 +1221,6 @@ namespace CRUDA.Classes
                 result.Append($"               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em {table["Name"]}';\r\n");
                 result.Append($"               THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"            END\r\n");
-                result.Append($"        END ELSE IF EXISTS(SELECT 1 FROM [cruda].[Operations] WHERE [TransactionId] = @TransactionId AND [TableName] = '{table["Name"]}' AND " +
-                              $"[IsConfirmed] IS NULL AND CAST(JSON_VALUE([ActualRecord], '$.{pkColumn["Name"]}') AS {pkColumn["#DataType"]}) = @W_{pkColumn["Name"]}) BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Chave-primária pendente de efetivação';\r\n");
-                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END ELSE IF @Action <> 'create' BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em {table["Name"]}';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
@@ -980,7 +1295,6 @@ namespace CRUDA.Classes
                         result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
                         result.Append($"            END\r\n");
                     }
-
                 }
 
                 var uniqueIndexRows = indexes.FindAll(index => ToLong(index["TableId"]) == ToLong(table["Id"]) && ToBoolean(index["IsUnique"]));
@@ -1036,7 +1350,7 @@ namespace CRUDA.Classes
                 }
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
-                result.Append($"        RETURN 1\r\n");
+                result.Append($"        RETURN @TransactionId\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
                 result.Append($"        THROW\r\n");

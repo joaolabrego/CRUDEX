@@ -6,7 +6,7 @@ ALTER PROCEDURE[cruda].[ColumnsRead](@PageNumber INT OUT
 									,@MaxPage INT OUT
 									,@PaddingBrowseLastPage BIT OUT
 									,@UserName VARCHAR(25)
-									,@Record VARCHAR(MAX)) AS 
+									,@Parameters VARCHAR(MAX)) AS 
 BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
@@ -17,19 +17,19 @@ BEGIN
 				@LogId BIGINT,
 				@TableId BIGINT,
 				@offset INT,
-				@W_Id bigint = CAST(JSON_VALUE(@Record, '$.Id') AS bigint),
-				@W_TableId bigint = CAST(JSON_VALUE(@Record, '$.TableId') AS bigint),
-				@W_DomainId bigint = CAST(JSON_VALUE(@Record, '$.DomainId') AS bigint),
-				@W_ReferenceTableId bigint = CAST(JSON_VALUE(@Record, '$.ReferenceTableId') AS bigint),
-				@W_Name varchar(25) = CAST(JSON_VALUE(@Record, '$.Name') AS varchar(25)),
-				@W_IsAutoIncrement bit = CAST(JSON_VALUE(@Record, '$.IsAutoIncrement') AS bit),
-				@W_IsRequired bit = CAST(JSON_VALUE(@Record, '$.IsRequired') AS bit),
-				@W_IsListable bit = CAST(JSON_VALUE(@Record, '$.IsListable') AS bit),
-				@W_IsFilterable bit = CAST(JSON_VALUE(@Record, '$.IsFilterable') AS bit),
-				@W_IsEditable bit = CAST(JSON_VALUE(@Record, '$.IsEditable') AS bit),
-				@W_IsBrowseable bit = CAST(JSON_VALUE(@Record, '$.IsBrowseable') AS bit),
-				@W_IsEncrypted bit = CAST(JSON_VALUE(@Record, '$.IsEncrypted') AS bit),
-				@W_IsCalculated bit = CAST(JSON_VALUE(@Record, '$.IsCalculated') AS bit)
+				@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint),
+				@W_TableId bigint = CAST(JSON_VALUE(@Parameters, '$.TableId') AS bigint),
+				@W_DomainId bigint = CAST(JSON_VALUE(@Parameters, '$.DomainId') AS bigint),
+				@W_ReferenceTableId bigint = CAST(JSON_VALUE(@Parameters, '$.ReferenceTableId') AS bigint),
+				@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25)),
+				@W_IsAutoIncrement bit = CAST(JSON_VALUE(@Parameters, '$.IsAutoIncrement') AS bit),
+				@W_IsRequired bit = CAST(JSON_VALUE(@Parameters, '$.IsRequired') AS bit),
+				@W_IsListable bit = CAST(JSON_VALUE(@Parameters, '$.IsListable') AS bit),
+				@W_IsFilterable bit = CAST(JSON_VALUE(@Parameters, '$.IsFilterable') AS bit),
+				@W_IsEditable bit = CAST(JSON_VALUE(@Parameters, '$.IsEditable') AS bit),
+				@W_IsBrowseable bit = CAST(JSON_VALUE(@Parameters, '$.IsBrowseable') AS bit),
+				@W_IsEncrypted bit = CAST(JSON_VALUE(@Parameters, '$.IsEncrypted') AS bit),
+				@W_IsCalculated bit = CAST(JSON_VALUE(@Parameters, '$.IsCalculated') AS bit)
 		IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @Id deve ser maior que ou igual à ''1''.';
 			THROW 51000, @ErrorMessage, 1

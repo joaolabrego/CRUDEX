@@ -1,8 +1,7 @@
 ﻿IF(SELECT object_id('[cruda].[TransactionCommit]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
-										  ,@UserName VARCHAR(25)) AS BEGIN
+ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -12,6 +11,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 				,@OperationId BIGINT
 				,@TableName VARCHAR(25)
 				,@IsConfirmed BIT
+				,@CreatedBy VARCHAR(25)
 				,@sql VARCHAR(MAX)
 
 		IF @@TRANCOUNT = 0
@@ -19,15 +19,16 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 		ELSE
 			SAVE TRANSACTION [TransactionsCommit]
 		IF @TransactionId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor do parâmetro @TransactionId é requerido';
+			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
 		SELECT @LoginId = [LoginId]
 			  ,@IsConfirmed = [IsConfirmed]
+			  ,@CreatedBy = [CreatedBy]
 			FROM [cruda].[Transactions]
 			WHERE [Id] = @TransactionId
-		IF @LoginId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transação é inexistente';
+		IF @@ROWCOUNT = 0 BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @IsConfirmed IS NOT NULL BEGIN
@@ -42,12 +43,12 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId BIGINT
 						AND [IsConfirmed] IS NULL
 			IF @OperationId IS NULL
 				BREAK
-			SET @sql = '[dbo].[' + @TableName + 'Ratify] @LoginId = ' + CAST(@LoginId AS VARCHAR) + ', @UserName = ''' + @UserName + ''', @OperationId = ' + CAST(@OperationId AS VARCHAR)
+			SET @sql = '[dbo].[' + @TableName + 'Commit] @LoginId = ' + CAST(@LoginId AS VARCHAR) + ', @OperationId = ' + CAST(@OperationId AS VARCHAR)
 			EXEC @sql
 		END
 		UPDATE [cruda].[Transactions]
 			SET [IsConfirmed] = 1
-				,[UpdatedBy] = @UserName
+				,[UpdatedBy] = @CreatedBy
 				,[UpdatedAt] = GETDATE()
 			WHERE [Id] = @TransactionId
 		COMMIT TRANSACTION [TransactionCommit]
