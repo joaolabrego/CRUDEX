@@ -964,32 +964,25 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionBegin]: '
-				,@TransactionId	BIGINT
+				,@TransactionId	INT
 
 		IF @@TRANCOUNT = 0
 			BEGIN TRANSACTION [TransactionBegin]
 		ELSE
 			SAVE TRANSACTION [TransactionBegin]
 		IF @LoginId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId � requerido';
+			SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
-		SELECT @TransactionId = ISNULL(MAX([Id]) + 1, 1)
-			FROM [cruda].[Transactions]
-		IF @TransactionId > 2147483647 BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId deve ser menor que ou igual � ''2147483647''.';
-			THROW 51000, @ErrorMessage, 1
-		END
-		INSERT [cruda].[Transactions] ([Id]
-									  ,[LoginId]
+		INSERT [cruda].[Transactions] ([[LoginId]
 									  ,[IsConfirmed]
 									  ,[CreatedAt]
 									  ,[CreatedBy])
-								VALUES (@TransactionId
-									   ,@LoginId
+								VALUES (@LoginId
 									   ,NULL
 									   ,GETDATE()
 									   ,@UserName)
+		SET @TransactionId = @@IDENTITY
 		COMMIT TRANSACTION [TransactionBegin]
 
 		RETURN CAST(@TransactionId AS INT)
@@ -1006,7 +999,8 @@ Criar stored procedure [cruda].[TransactionCommit]
 IF(SELECT object_id('[cruda].[TransactionCommit]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT) AS BEGIN
+ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
+										  ,@UserName VARCHAR(25)) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1040,20 +1034,24 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT) AS BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
+		IF @UserName <> @CreatedBy BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+			THROW 51000, @ErrorMessage, 1
+		END
 		WHILE 1 = 1 BEGIN
-			SELECT @OperationId = [Id]
-					,@TableName = [TableName]
+			SELECT TOP 1 @OperationId = [Id]
+						,@TableName = [TableName]
 				FROM [cruda].[Operations]
 				WHERE [TransactionId] = @TransactionId
 						AND [IsConfirmed] IS NULL
-			IF @OperationId IS NULL
+			IF @@ROWCOUNT = 0
 				BREAK
 			SET @sql = '[dbo].[' + @TableName + 'Commit] @LoginId = ' + CAST(@LoginId AS VARCHAR) + ', @OperationId = ' + CAST(@OperationId AS VARCHAR)
 			EXEC @sql
 		END
 		UPDATE [cruda].[Transactions]
 			SET [IsConfirmed] = 1
-				,[UpdatedBy] = @CreatedBy
+				,[UpdatedBy] = @UserName
 				,[UpdatedAt] = GETDATE()
 			WHERE [Id] = @TransactionId
 		COMMIT TRANSACTION [TransactionCommit]
@@ -1072,16 +1070,15 @@ Criar stored procedure [cruda].[TransactionRollback]
 IF(SELECT object_id('[cruda].[TransactionRollback]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionRollback] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT) AS BEGIN
+ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
+											,@UserName VARCHAR(25)) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionRollback]: '
-				,@LoginId BIGINT
 				,@OperationId INT
 				,@CreatedBy VARCHAR(25)
-				,@TransactionIdAux INT
 				,@IsConfirmed BIT
 
 		IF @@TRANCOUNT = 0
@@ -1092,8 +1089,7 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT) AS BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
-		SELECT @TransactionIdAux = [Id]
-			  ,@IsConfirmed = [IsConfirmed]
+		SELECT @IsConfirmed = [IsConfirmed]
 			  ,@CreatedBy = [CreatedBy]
 			FROM [cruda].[Transactions]
 			WHERE [Id] = @TransactionId
@@ -1105,15 +1101,31 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT) AS BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
-		UPDATE [cruda].[Operations]
-			SET [IsConfirmed] = 0
-				,[UpdatedBy] = @CreatedBy
-				,[UpdatedAt] = GETDATE()
-			WHERE [Id] = @TransactionId
-				  AND [IsConfirmed] IS NULL
+		IF @UserName <> @CreatedBy BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+			THROW 51000, @ErrorMessage, 1
+		END
+		WHILE 1 = 1 BEGIN
+			SELECT TOP 1 @OperationId = [Id]
+						,@CreatedBy = [CreatedBy]
+				FROM [cruda].[Operations]
+				WHERE [TransactionId] = @TransactionId
+						AND [IsConfirmed] IS NULL
+			IF @@ROWCOUNT = 0
+				BREAK
+			IF @UserName <> @CreatedBy BEGIN
+				SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+				THROW 51000, @ErrorMessage, 1
+			END
+			UPDATE [cruda].[Operations]
+				SET [IsConfirmed] = 0
+					,[UpdatedBy] = @UserName
+					,[UpdatedAt] = GETDATE()
+				WHERE [Id] = @OperationId
+		END
 		UPDATE [cruda].[Transactions]
 			SET [IsConfirmed] = 0
-				,[UpdatedBy] = @CreatedBy
+				,[UpdatedBy] = @UserName
 				,[UpdatedAt] = GETDATE()
 			WHERE [Id] = @TransactionId
 		COMMIT TRANSACTION [TransactionRollback]
@@ -1131,7 +1143,7 @@ Criar tabela [cruda].[Transactions]
 **********************************************************************************/
 IF (SELECT object_id('[cruda].[Transactions]', 'U')) IS NOT NULL
     DROP TABLE [cruda].[Transactions]
-CREATE TABLE [cruda].[Transactions]([Id] [int] NOT NULL
+CREATE TABLE [cruda].[Transactions]([Id] [int] IDENTITY(1,1) NOT NULL
                                    ,[LoginId] [bigint] NOT NULL
                                    ,[IsConfirmed] [bit] NULL
                                    ,[CreatedAt] datetime NOT NULL
@@ -1146,7 +1158,7 @@ Criar tabela [cruda].[Operations]
 **********************************************************************************/
 IF (SELECT object_id('[cruda].[Operations]', 'U')) IS NOT NULL
     DROP TABLE [cruda].[Operations]
-CREATE TABLE [cruda].[Operations]([Id] [int] NOT NULL
+CREATE TABLE [cruda].[Operations]([Id] [int] IDENTITY(1,1) NOT NULL
                                  ,[TransactionId] [int] NOT NULL
                                  ,[TableName] [varchar](25) NOT NULL
                                  ,[Action] [varchar](15) NOT NULL
@@ -1159,185 +1171,6 @@ CREATE TABLE [cruda].[Operations]([Id] [int] NOT NULL
                                  ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [cruda].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED([Id])
 CREATE INDEX [IDX_Operations_TransactionId_TableName_Action_IsConfirmed] ON [cruda].[Operations]([TransactionId], [TableName], [Action], [IsConfirmed])
-GO
-/**********************************************************************************
-Criar stored procedure [dbo].[TransactionBegin]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[TransactionBegin]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TransactionBegin] AS PRINT 1')
-GO
-ALTER PROCEDURE[dbo].[TransactionBegin](@LoginId BIGINT
-                                       ,@UserName VARCHAR(25)
-                                       ,@Action VARCHAR(15)
-                                       ,@LastRecord VARCHAR(max)
-                                       ,@ActualRecord VARCHAR(max)) AS BEGIN
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionBegin]: '
-                ,@TransactionId BIGINT
-
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [TransactionBegin]
-        ELSE
-            SAVE TRANSACTION [TransactionBegin]
-        IF @LoginId IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
-            THROW 51000, @ErrorMessage, 1
-        END
-        SELECT @TransactionId = ISNULL(MAX([Id]) + 1, 1)
-            FROM [cruda].[Transactions]
-        IF @TransactionId > 2147483647 BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId deve ser menor que ou igual à ''2147483647''.';
-            THROW 51000, @ErrorMessage, 1
-        END
-        INSERT [cruda].[Transactions] ([Id]
-                                       ,[LoginId]
-                                       ,[IsConfirmed]
-                                       ,[CreatedAt]
-                                       ,[CreatedBy])
-                                VALUES (@TransactionId
-                                       ,@LoginId
-                                       ,NULL
-                                       ,GETDATE()
-                                       ,@UserName)
-        COMMIT TRANSACTION [TransactionBegin]
-
-        RETURN CAST(@TransactionId AS INT)
-    END TRY
-    BEGIN CATCH
-        ROLLBACK TRANSACTION [TransactionBegin];
-        THROW
-    END CATCH
-END
-GO
-/**********************************************************************************
-Criar stored procedure [dbo].[TransactionCommit]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[TransactionCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TransactionCommit] AS PRINT 1')
-GO
-ALTER PROCEDURE[dbo].[TransactionCommit](@TransactionId INT) AS BEGIN
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionCommit]: '
-                ,@LoginId BIGINT
-                ,@OperationId BIGINT
-                ,@TableName VARCHAR(25)
-                ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
-                ,@sql VARCHAR(MAX)
-
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [TransactionsCommit]
-        ELSE
-            SAVE TRANSACTION [TransactionsCommit]
-        IF @TransactionId IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
-            THROW 51000, @ErrorMessage, 1
-        END
-        SELECT @LoginId = [LoginId]
-              ,@IsConfirmed = [IsConfirmed]
-              ,@CreatedBy = [CreatedBy]
-           FROM [cruda].[Transactions]
-           WHERE [Id] = @TransactionId
-        IF @@ROWCOUNT = 0 BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
-        WHILE 1 = 1 BEGIN
-            SELECT @OperationId = [Id]
-                  ,@TableName = [TableName]
-               FROM [cruda].[Operations]
-               WHERE [TransactionId] = @TransactionId
-                     AND [IsConfirmed] IS NULL
-            IF @@ROWCOUNT = 0
-                BREAK
-            SET @sql = '[dbo].[' + @TableName + 'Commit] @LoginId = ' + CAST(@LoginId AS VARCHAR) + ', @OperationId = ' + CAST(@OperationId AS VARCHAR)
-            EXEC @sql
-        END
-        UPDATE [cruda].[Transactions]
-            SET [IsConfirmed] = 1
-               ,[UpdatedBy] = @CreatedBy
-               ,[UpdatedAt] = GETDATE()
-            WHERE [Id] = @TransactionId
-        COMMIT TRANSACTION [TransactionCommit]
-
-        RETURN 1
-    END TRY
-    BEGIN CATCH
-        ROLLBACK TRANSACTION [TransactionCommit];
-        THROW
-    END CATCH
-END
-GO
-/**********************************************************************************
-Criar stored procedure [dbo].[TransactionRollback]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[TransactionRollback]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TransactionRollback] AS PRINT 1')
-GO
-ALTER PROCEDURE[dbo].[TransactionRollback](@TransactionId INT) AS BEGIN
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionRollback]: '
-                ,@LoginId INT
-                ,@OperationId BIGINT
-                ,@CreatedBy VARCHAR(25)
-                ,@TransactionIdAux INT
-                ,@IsConfirmed BIT
-
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [TransactionRollback]
-        ELSE
-            SAVE TRANSACTION [TransactionRollback]
-        IF @TransactionId IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
-            THROW 51000, @ErrorMessage, 1
-        END
-        SELECT @TransactionIdAux = [Id]
-              ,@IsConfirmed = [IsConfirmed]
-              ,@CreatedBy = [CreatedBy]
-           FROM [cruda].[Transactions]
-           WHERE [Id] = @TransactionId
-        IF @@ROWCOUNT = 0 BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
-        UPDATE [cruda].[Operations]
-            SET [IsConfirmed] = 0
-               ,[UpdatedBy] = @CreatedBy
-               ,[UpdatedAt] = GETDATE()
-               FROM [cruda].[Operations]
-               WHERE [TransactionId] = @TransactionId
-                     AND [IsConfirmed] IS NULL
-        UPDATE [cruda].[Transactions]
-            SET [IsConfirmed] = 0
-               ,[UpdatedBy] = @CreatedBy
-               ,[UpdatedAt] = GETDATE()
-            WHERE [Id] = @TransactionId
-        COMMIT TRANSACTION [TransactionCommit]
-
-        RETURN 1
-    END TRY
-    BEGIN CATCH
-        ROLLBACK TRANSACTION [TransactionCommit];
-        THROW
-    END CATCH
-END
 GO
 /**********************************************************************************
 Criar tabela [dbo].[Categories]
@@ -1368,6 +1201,7 @@ IF(SELECT object_id('[dbo].[CategoryValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[CategoryValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[CategoryValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -1437,9 +1271,11 @@ ALTER PROCEDURE[dbo].[CategoryValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -1448,6 +1284,10 @@ ALTER PROCEDURE[dbo].[CategoryValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -1548,9 +1388,8 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [CategoryPersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -1559,30 +1398,23 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
             BEGIN TRANSACTION [CategoryPersist]
         ELSE
             SAVE TRANSACTION [CategoryPersist]
-        EXEC @TransactionId = [dbo].[CategoryValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id tinyint
+
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Categories'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -1590,15 +1422,21 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Categories'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -1609,13 +1447,13 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -1623,18 +1461,18 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [CategoryPersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [CategoryPersist];
         THROW
     END CATCH
 END
@@ -1646,6 +1484,7 @@ IF(SELECT object_id('[dbo].[CategoryCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[CategoryCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -1669,31 +1508,17 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[CategoryValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Categories' BEGIN
@@ -1701,7 +1526,22 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
@@ -1730,7 +1570,9 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
                                                 ,[AskListable]
                                                 ,[AskDefault]
                                                 ,[AskMinimum]
-                                                ,[AskMaximum])
+                                                ,[AskMaximum]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_Name
                                                  ,@W_HtmlInputType
@@ -1740,7 +1582,9 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
                                                  ,@W_AskListable
                                                  ,@W_AskDefault
                                                  ,@W_AskMinimum
-                                                 ,@W_AskMaximum)
+                                                 ,@W_AskMaximum
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Categories] SET [Id] = @W_Id
                                               ,[Name] = @W_Name
@@ -1752,6 +1596,8 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
                                               ,[AskDefault] = @W_AskDefault
                                               ,[AskMinimum] = @W_AskMinimum
                                               ,[AskMaximum] = @W_AskMaximum
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -1759,8 +1605,8 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [CategoryCommit]
 
@@ -1806,6 +1652,7 @@ IF(SELECT object_id('[dbo].[TypeValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TypeValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[TypeValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -1885,9 +1732,11 @@ ALTER PROCEDURE[dbo].[TypeValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -1896,6 +1745,10 @@ ALTER PROCEDURE[dbo].[TypeValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -2033,9 +1886,8 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TypePersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -2044,30 +1896,23 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
             BEGIN TRANSACTION [TypePersist]
         ELSE
             SAVE TRANSACTION [TypePersist]
-        EXEC @TransactionId = [dbo].[TypeValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id tinyint
+
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Types'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -2075,15 +1920,21 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Types'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -2094,13 +1945,13 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -2108,18 +1959,18 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [TypePersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [TypePersist];
         THROW
     END CATCH
 END
@@ -2131,6 +1982,7 @@ IF(SELECT object_id('[dbo].[TypeCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TypeCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -2154,31 +2006,17 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[TypeValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Types' BEGIN
@@ -2186,7 +2024,22 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
@@ -2225,7 +2078,9 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
                                                 ,[AskCodification]
                                                 ,[AskFormula]
                                                 ,[AllowMaxLength]
-                                                ,[IsActive])
+                                                ,[IsActive]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_CategoryId
                                                  ,@W_Name
@@ -2240,7 +2095,9 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
                                                  ,@W_AskCodification
                                                  ,@W_AskFormula
                                                  ,@W_AllowMaxLength
-                                                 ,@W_IsActive)
+                                                 ,@W_IsActive
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Types] SET [Id] = @W_Id
                                               ,[CategoryId] = @W_CategoryId
@@ -2257,6 +2114,8 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
                                               ,[AskFormula] = @W_AskFormula
                                               ,[AllowMaxLength] = @W_AllowMaxLength
                                               ,[IsActive] = @W_IsActive
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -2264,8 +2123,8 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [TypeCommit]
 
@@ -2299,6 +2158,7 @@ IF(SELECT object_id('[dbo].[MaskValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MaskValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[MaskValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -2354,9 +2214,11 @@ ALTER PROCEDURE[dbo].[MaskValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -2365,6 +2227,10 @@ ALTER PROCEDURE[dbo].[MaskValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -2438,9 +2304,8 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MaskPersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -2449,30 +2314,23 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
             BEGIN TRANSACTION [MaskPersist]
         ELSE
             SAVE TRANSACTION [MaskPersist]
-        EXEC @TransactionId = [dbo].[MaskValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Masks'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -2480,15 +2338,21 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Masks'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -2499,13 +2363,13 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -2513,18 +2377,18 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [MaskPersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [MaskPersist];
         THROW
     END CATCH
 END
@@ -2536,6 +2400,7 @@ IF(SELECT object_id('[dbo].[MaskCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MaskCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -2559,31 +2424,17 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[MaskValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Masks' BEGIN
@@ -2591,7 +2442,22 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -2606,14 +2472,20 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
             IF @Action = 'create'
                 INSERT INTO [dbo].[Masks] ([Id]
                                                 ,[Name]
-                                                ,[Mask])
+                                                ,[Mask]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_Name
-                                                 ,@W_Mask)
+                                                 ,@W_Mask
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Masks] SET [Id] = @W_Id
                                               ,[Name] = @W_Name
                                               ,[Mask] = @W_Mask
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -2621,8 +2493,8 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [MaskCommit]
 
@@ -2664,6 +2536,7 @@ IF(SELECT object_id('[dbo].[DomainValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DomainValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[DomainValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -2735,9 +2608,11 @@ ALTER PROCEDURE[dbo].[DomainValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -2746,6 +2621,10 @@ ALTER PROCEDURE[dbo].[DomainValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -2867,9 +2746,8 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DomainPersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -2878,30 +2756,23 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
             BEGIN TRANSACTION [DomainPersist]
         ELSE
             SAVE TRANSACTION [DomainPersist]
-        EXEC @TransactionId = [dbo].[DomainValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Domains'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -2909,15 +2780,21 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Domains'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -2928,13 +2805,13 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -2942,18 +2819,18 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [DomainPersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [DomainPersist];
         THROW
     END CATCH
 END
@@ -2965,6 +2842,7 @@ IF(SELECT object_id('[dbo].[DomainCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DomainCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -2988,31 +2866,17 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[DomainValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Domains' BEGIN
@@ -3020,7 +2884,22 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -3051,7 +2930,9 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
                                                 ,[Default]
                                                 ,[Minimum]
                                                 ,[Maximum]
-                                                ,[Codification])
+                                                ,[Codification]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_TypeId
                                                  ,@W_MaskId
@@ -3062,7 +2943,9 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
                                                  ,@W_Default
                                                  ,@W_Minimum
                                                  ,@W_Maximum
-                                                 ,@W_Codification)
+                                                 ,@W_Codification
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Domains] SET [Id] = @W_Id
                                               ,[TypeId] = @W_TypeId
@@ -3075,6 +2958,8 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
                                               ,[Minimum] = @W_Minimum
                                               ,[Maximum] = @W_Maximum
                                               ,[Codification] = @W_Codification
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -3082,8 +2967,8 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [DomainCommit]
 
@@ -3120,6 +3005,7 @@ IF(SELECT object_id('[dbo].[SystemValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[SystemValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -3181,9 +3067,11 @@ ALTER PROCEDURE[dbo].[SystemValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -3192,6 +3080,10 @@ ALTER PROCEDURE[dbo].[SystemValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -3288,9 +3180,8 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemPersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -3299,30 +3190,23 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
             BEGIN TRANSACTION [SystemPersist]
         ELSE
             SAVE TRANSACTION [SystemPersist]
-        EXEC @TransactionId = [dbo].[SystemValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Systems'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -3330,15 +3214,21 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Systems'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -3349,13 +3239,13 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -3363,18 +3253,18 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [SystemPersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [SystemPersist];
         THROW
     END CATCH
 END
@@ -3386,6 +3276,7 @@ IF(SELECT object_id('[dbo].[SystemCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -3409,31 +3300,17 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[SystemValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Systems' BEGIN
@@ -3441,7 +3318,22 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -3462,13 +3354,17 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
                                                 ,[Description]
                                                 ,[ClientName]
                                                 ,[MaxRetryLogins]
-                                                ,[IsOffAir])
+                                                ,[IsOffAir]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_Name
                                                  ,@W_Description
                                                  ,@W_ClientName
                                                  ,@W_MaxRetryLogins
-                                                 ,@W_IsOffAir)
+                                                 ,@W_IsOffAir
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Systems] SET [Id] = @W_Id
                                               ,[Name] = @W_Name
@@ -3476,6 +3372,8 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
                                               ,[ClientName] = @W_ClientName
                                               ,[MaxRetryLogins] = @W_MaxRetryLogins
                                               ,[IsOffAir] = @W_IsOffAir
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -3483,8 +3381,8 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [SystemCommit]
 
@@ -3522,6 +3420,7 @@ IF(SELECT object_id('[dbo].[MenuValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MenuValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[MenuValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -3585,9 +3484,11 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -3596,6 +3497,10 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -3718,9 +3623,8 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MenuPersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -3729,30 +3633,23 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
             BEGIN TRANSACTION [MenuPersist]
         ELSE
             SAVE TRANSACTION [MenuPersist]
-        EXEC @TransactionId = [dbo].[MenuValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Menus'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -3760,15 +3657,21 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Menus'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -3779,13 +3682,13 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -3793,18 +3696,18 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [MenuPersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [MenuPersist];
         THROW
     END CATCH
 END
@@ -3816,6 +3719,7 @@ IF(SELECT object_id('[dbo].[MenuCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MenuCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -3839,31 +3743,17 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[MenuValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Menus' BEGIN
@@ -3871,7 +3761,22 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -3894,14 +3799,18 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
                                                 ,[Caption]
                                                 ,[Message]
                                                 ,[Action]
-                                                ,[ParentMenuId])
+                                                ,[ParentMenuId]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_SystemId
                                                  ,@W_Sequence
                                                  ,@W_Caption
                                                  ,@W_Message
                                                  ,@W_Action
-                                                 ,@W_ParentMenuId)
+                                                 ,@W_ParentMenuId
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Menus] SET [Id] = @W_Id
                                               ,[SystemId] = @W_SystemId
@@ -3910,6 +3819,8 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
                                               ,[Message] = @W_Message
                                               ,[Action] = @W_Action
                                               ,[ParentMenuId] = @W_ParentMenuId
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -3917,8 +3828,8 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [MenuCommit]
 
@@ -3955,6 +3866,7 @@ IF(SELECT object_id('[dbo].[UserValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UserValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[UserValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -4016,9 +3928,11 @@ ALTER PROCEDURE[dbo].[UserValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -4027,6 +3941,10 @@ ALTER PROCEDURE[dbo].[UserValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -4123,9 +4041,8 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [UserPersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -4134,30 +4051,23 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
             BEGIN TRANSACTION [UserPersist]
         ELSE
             SAVE TRANSACTION [UserPersist]
-        EXEC @TransactionId = [dbo].[UserValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[UserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Users'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -4165,15 +4075,21 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Users'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -4184,13 +4100,13 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -4198,18 +4114,18 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [UserPersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [UserPersist];
         THROW
     END CATCH
 END
@@ -4221,6 +4137,7 @@ IF(SELECT object_id('[dbo].[UserCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UserCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -4244,31 +4161,17 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[UserValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Users' BEGIN
@@ -4276,7 +4179,22 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[UserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -4297,13 +4215,17 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
                                                 ,[Password]
                                                 ,[FullName]
                                                 ,[RetryLogins]
-                                                ,[IsActive])
+                                                ,[IsActive]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_Name
                                                  ,@W_Password
                                                  ,@W_FullName
                                                  ,@W_RetryLogins
-                                                 ,@W_IsActive)
+                                                 ,@W_IsActive
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Users] SET [Id] = @W_Id
                                               ,[Name] = @W_Name
@@ -4311,6 +4233,8 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
                                               ,[FullName] = @W_FullName
                                               ,[RetryLogins] = @W_RetryLogins
                                               ,[IsActive] = @W_IsActive
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -4318,8 +4242,8 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [UserCommit]
 
@@ -4355,6 +4279,7 @@ IF(SELECT object_id('[dbo].[SystemUserValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemUserValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -4412,9 +4337,11 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -4423,6 +4350,10 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -4532,9 +4463,8 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemUserPersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -4543,30 +4473,23 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
             BEGIN TRANSACTION [SystemUserPersist]
         ELSE
             SAVE TRANSACTION [SystemUserPersist]
-        EXEC @TransactionId = [dbo].[SystemUserValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'SystemsUsers'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -4574,15 +4497,21 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'SystemsUsers'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -4593,13 +4522,13 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -4607,18 +4536,18 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [SystemUserPersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [SystemUserPersist];
         THROW
     END CATCH
 END
@@ -4630,6 +4559,7 @@ IF(SELECT object_id('[dbo].[SystemUserCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemUserCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -4653,31 +4583,17 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[SystemUserValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'SystemsUsers' BEGIN
@@ -4685,7 +4601,22 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -4702,16 +4633,22 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
                 INSERT INTO [dbo].[SystemsUsers] ([Id]
                                                 ,[SystemId]
                                                 ,[UserId]
-                                                ,[Description])
+                                                ,[Description]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_SystemId
                                                  ,@W_UserId
-                                                 ,@W_Description)
+                                                 ,@W_Description
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[SystemsUsers] SET [Id] = @W_Id
                                               ,[SystemId] = @W_SystemId
                                               ,[UserId] = @W_UserId
                                               ,[Description] = @W_Description
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -4719,8 +4656,8 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [SystemUserCommit]
 
@@ -4762,6 +4699,7 @@ IF(SELECT object_id('[dbo].[DatabaseValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabaseValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -4831,9 +4769,11 @@ ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -4842,6 +4782,10 @@ ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -4941,9 +4885,8 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabasePersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -4952,30 +4895,23 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
             BEGIN TRANSACTION [DatabasePersist]
         ELSE
             SAVE TRANSACTION [DatabasePersist]
-        EXEC @TransactionId = [dbo].[DatabaseValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Databases'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -4983,15 +4919,21 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Databases'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -5002,13 +4944,13 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -5016,18 +4958,18 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [DatabasePersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [DatabasePersist];
         THROW
     END CATCH
 END
@@ -5039,6 +4981,7 @@ IF(SELECT object_id('[dbo].[DatabaseCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabaseCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -5062,31 +5005,17 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[DatabaseValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Databases' BEGIN
@@ -5094,7 +5023,22 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -5123,7 +5067,9 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
                                                 ,[Port]
                                                 ,[Logon]
                                                 ,[Password]
-                                                ,[Folder])
+                                                ,[Folder]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_Name
                                                  ,@W_Description
@@ -5133,7 +5079,9 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
                                                  ,@W_Port
                                                  ,@W_Logon
                                                  ,@W_Password
-                                                 ,@W_Folder)
+                                                 ,@W_Folder
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Databases] SET [Id] = @W_Id
                                               ,[Name] = @W_Name
@@ -5145,6 +5093,8 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
                                               ,[Logon] = @W_Logon
                                               ,[Password] = @W_Password
                                               ,[Folder] = @W_Folder
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -5152,8 +5102,8 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [DatabaseCommit]
 
@@ -5189,6 +5139,7 @@ IF(SELECT object_id('[dbo].[SystemDatabaseValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -5246,9 +5197,11 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -5257,6 +5210,10 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -5366,9 +5323,8 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemDatabasePersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -5377,30 +5333,23 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
             BEGIN TRANSACTION [SystemDatabasePersist]
         ELSE
             SAVE TRANSACTION [SystemDatabasePersist]
-        EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'SystemsDatabases'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -5408,15 +5357,21 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'SystemsDatabases'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -5427,13 +5382,13 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -5441,18 +5396,18 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [SystemDatabasePersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [SystemDatabasePersist];
         THROW
     END CATCH
 END
@@ -5464,6 +5419,7 @@ IF(SELECT object_id('[dbo].[SystemDatabaseCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -5487,31 +5443,17 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'SystemsDatabases' BEGIN
@@ -5519,7 +5461,22 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -5536,16 +5493,22 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
                 INSERT INTO [dbo].[SystemsDatabases] ([Id]
                                                 ,[SystemId]
                                                 ,[DatabaseId]
-                                                ,[Description])
+                                                ,[Description]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_SystemId
                                                  ,@W_DatabaseId
-                                                 ,@W_Description)
+                                                 ,@W_Description
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[SystemsDatabases] SET [Id] = @W_Id
                                               ,[SystemId] = @W_SystemId
                                               ,[DatabaseId] = @W_DatabaseId
                                               ,[Description] = @W_Description
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -5553,8 +5516,8 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [SystemDatabaseCommit]
 
@@ -5592,6 +5555,7 @@ IF(SELECT object_id('[dbo].[TableValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TableValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -5653,9 +5617,11 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -5664,6 +5630,10 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -5767,9 +5737,8 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TablePersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -5778,30 +5747,23 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
             BEGIN TRANSACTION [TablePersist]
         ELSE
             SAVE TRANSACTION [TablePersist]
-        EXEC @TransactionId = [dbo].[TableValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[TableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Tables'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -5809,15 +5771,21 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Tables'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -5828,13 +5796,13 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -5842,18 +5810,18 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [TablePersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [TablePersist];
         THROW
     END CATCH
 END
@@ -5865,6 +5833,7 @@ IF(SELECT object_id('[dbo].[TableCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TableCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -5888,31 +5857,17 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[TableValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Tables' BEGIN
@@ -5920,7 +5875,22 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[TableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -5941,13 +5911,17 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
                                                 ,[Alias]
                                                 ,[Description]
                                                 ,[IsPaged]
-                                                ,[CurrentId])
+                                                ,[CurrentId]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_Name
                                                  ,@W_Alias
                                                  ,@W_Description
                                                  ,@W_IsPaged
-                                                 ,@W_CurrentId)
+                                                 ,@W_CurrentId
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Tables] SET [Id] = @W_Id
                                               ,[Name] = @W_Name
@@ -5955,6 +5929,8 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
                                               ,[Description] = @W_Description
                                               ,[IsPaged] = @W_IsPaged
                                               ,[CurrentId] = @W_CurrentId
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -5962,8 +5938,8 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [TableCommit]
 
@@ -5999,6 +5975,7 @@ IF(SELECT object_id('[dbo].[DatabaseTableValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabaseTableValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -6056,9 +6033,11 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -6067,6 +6046,10 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -6176,9 +6159,8 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabaseTablePersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -6187,30 +6169,23 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
             BEGIN TRANSACTION [DatabaseTablePersist]
         ELSE
             SAVE TRANSACTION [DatabaseTablePersist]
-        EXEC @TransactionId = [dbo].[DatabaseTableValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'DatabasesTables'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -6218,15 +6193,21 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'DatabasesTables'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -6237,13 +6218,13 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -6251,18 +6232,18 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [DatabaseTablePersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [DatabaseTablePersist];
         THROW
     END CATCH
 END
@@ -6274,6 +6255,7 @@ IF(SELECT object_id('[dbo].[DatabaseTableCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabaseTableCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -6297,31 +6279,17 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[DatabaseTableValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'DatabasesTables' BEGIN
@@ -6329,7 +6297,22 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -6346,16 +6329,22 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
                 INSERT INTO [dbo].[DatabasesTables] ([Id]
                                                 ,[DatabaseId]
                                                 ,[TableId]
-                                                ,[Description])
+                                                ,[Description]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_DatabaseId
                                                  ,@W_TableId
-                                                 ,@W_Description)
+                                                 ,@W_Description
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[DatabasesTables] SET [Id] = @W_Id
                                               ,[DatabaseId] = @W_DatabaseId
                                               ,[TableId] = @W_TableId
                                               ,[Description] = @W_Description
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -6363,8 +6352,8 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [DatabaseTableCommit]
 
@@ -6417,6 +6406,7 @@ IF(SELECT object_id('[dbo].[ColumnValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ColumnValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -6508,9 +6498,11 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -6519,6 +6511,10 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -6685,9 +6681,8 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnPersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -6696,30 +6691,23 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
             BEGIN TRANSACTION [ColumnPersist]
         ELSE
             SAVE TRANSACTION [ColumnPersist]
-        EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -6727,15 +6715,21 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Columns'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -6746,13 +6740,13 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -6760,7 +6754,7 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
@@ -6783,6 +6777,7 @@ IF(SELECT object_id('[dbo].[ColumnCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ColumnCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -6806,31 +6801,17 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Columns' BEGIN
@@ -6838,7 +6819,22 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -6889,7 +6885,9 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
                                                 ,[IsFilterable]
                                                 ,[IsEditable]
                                                 ,[IsBrowseable]
-                                                ,[IsEncrypted])
+                                                ,[IsEncrypted]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_TableId
                                                  ,@W_Sequence
@@ -6910,7 +6908,9 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
                                                  ,@W_IsFilterable
                                                  ,@W_IsEditable
                                                  ,@W_IsBrowseable
-                                                 ,@W_IsEncrypted)
+                                                 ,@W_IsEncrypted
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Columns] SET [Id] = @W_Id
                                               ,[TableId] = @W_TableId
@@ -6933,6 +6933,8 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
                                               ,[IsEditable] = @W_IsEditable
                                               ,[IsBrowseable] = @W_IsBrowseable
                                               ,[IsEncrypted] = @W_IsEncrypted
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -6940,8 +6942,8 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [ColumnCommit]
 
@@ -6977,6 +6979,7 @@ IF(SELECT object_id('[dbo].[IndexValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[IndexValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -7036,9 +7039,11 @@ ALTER PROCEDURE[dbo].[IndexValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -7047,6 +7052,10 @@ ALTER PROCEDURE[dbo].[IndexValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -7154,9 +7163,8 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexPersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -7165,30 +7173,23 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
             BEGIN TRANSACTION [IndexPersist]
         ELSE
             SAVE TRANSACTION [IndexPersist]
-        EXEC @TransactionId = [dbo].[IndexValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Indexes'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -7196,15 +7197,21 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Indexes'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -7215,13 +7222,13 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -7229,18 +7236,18 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [IndexPersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [IndexPersist];
         THROW
     END CATCH
 END
@@ -7252,6 +7259,7 @@ IF(SELECT object_id('[dbo].[IndexCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -7275,31 +7283,17 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[IndexValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Indexes' BEGIN
@@ -7307,7 +7301,22 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -7326,18 +7335,24 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
                                                 ,[DatabaseId]
                                                 ,[TableId]
                                                 ,[Name]
-                                                ,[IsUnique])
+                                                ,[IsUnique]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_DatabaseId
                                                  ,@W_TableId
                                                  ,@W_Name
-                                                 ,@W_IsUnique)
+                                                 ,@W_IsUnique
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Indexes] SET [Id] = @W_Id
                                               ,[DatabaseId] = @W_DatabaseId
                                               ,[TableId] = @W_TableId
                                               ,[Name] = @W_Name
                                               ,[IsUnique] = @W_IsUnique
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -7345,8 +7360,8 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [IndexCommit]
 
@@ -7383,6 +7398,7 @@ IF(SELECT object_id('[dbo].[IndexkeyValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexkeyValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -7442,9 +7458,11 @@ ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -7453,6 +7471,10 @@ ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -7575,9 +7597,8 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexkeyPersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -7586,30 +7607,23 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
             BEGIN TRANSACTION [IndexkeyPersist]
         ELSE
             SAVE TRANSACTION [IndexkeyPersist]
-        EXEC @TransactionId = [dbo].[IndexkeyValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Indexkeys'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -7617,15 +7631,21 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Indexkeys'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -7636,13 +7656,13 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -7650,18 +7670,18 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [IndexkeyPersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [IndexkeyPersist];
         THROW
     END CATCH
 END
@@ -7673,6 +7693,7 @@ IF(SELECT object_id('[dbo].[IndexkeyCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexkeyCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -7696,31 +7717,17 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[IndexkeyValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Indexkeys' BEGIN
@@ -7728,7 +7735,22 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -7747,18 +7769,24 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
                                                 ,[IndexId]
                                                 ,[Sequence]
                                                 ,[ColumnId]
-                                                ,[IsDescending])
+                                                ,[IsDescending]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_IndexId
                                                  ,@W_Sequence
                                                  ,@W_ColumnId
-                                                 ,@W_IsDescending)
+                                                 ,@W_IsDescending
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Indexkeys] SET [Id] = @W_Id
                                               ,[IndexId] = @W_IndexId
                                               ,[Sequence] = @W_Sequence
                                               ,[ColumnId] = @W_ColumnId
                                               ,[IsDescending] = @W_IsDescending
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -7766,8 +7794,8 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [IndexkeyCommit]
 
@@ -7803,6 +7831,7 @@ IF(SELECT object_id('[dbo].[LoginValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[LoginValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[LoginValidate](@LoginId BIGINT
+                                               ,@UserName VARCHAR(25)
                                                ,@Action VARCHAR(15)
                                                ,@LastRecord VARCHAR(max)
                                                ,@ActualRecord VARCHAR(max)) AS BEGIN
@@ -7862,9 +7891,11 @@ ALTER PROCEDURE[dbo].[LoginValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
+                ,@CreatedBy VARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
+               ,@CreatedBy = [CreatedBy]
             FROM [cruda].[Transactions]
             WHERE [Id] = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
         IF @@ROWCOUNT = 0 BEGIN
@@ -7873,6 +7904,10 @@ ALTER PROCEDURE[dbo].[LoginValidate](@LoginId BIGINT
         END
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -7975,9 +8010,8 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [LoginPersist]: '
-               ,@TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@OperationId BIGINT
+               ,@TransactionId INT
+               ,@OperationId INT
                ,@CreatedBy VARCHAR(25)
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
@@ -7986,30 +8020,23 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
             BEGIN TRANSACTION [LoginPersist]
         ELSE
             SAVE TRANSACTION [LoginPersist]
-        EXEC @TransactionId = [dbo].[LoginValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        DECLARE @W_Id bigint
+
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Logins'
+                  AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-                FROM [cruda].[Operations]
-            IF @OperationId > 2147483647 BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-                THROW 51000, @ErrorMessage, 1
-            END
-            INSERT INTO [cruda].[Operations] ([Id]
-                                             ,[TransactionId]
+            INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -8017,15 +8044,21 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(ISNULL(@OperationId, 1)
-                                             ,@TransactionId
+                                       VALUES(@TransactionId
                                              ,'Logins'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
-                                             ,@CreatedBy)
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
         END ELSE IF @ActionAux = 'delete' BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
             THROW 51000, @ErrorMessage, 1
@@ -8036,13 +8069,13 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
             UPDATE [cruda].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
             UPDATE [cruda].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
             UPDATE [cruda].[Operations]
@@ -8050,18 +8083,18 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
                    ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @CreatedBy
+                   ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION [LoginPersist]
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        ROLLBACK TRANSACTION [LoginPersist];
         THROW
     END CATCH
 END
@@ -8073,6 +8106,7 @@ IF(SELECT object_id('[dbo].[LoginCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[LoginCommit] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
+                                             ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
@@ -8096,31 +8130,17 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        EXEC @TransactionId = [dbo].[LoginValidate] @LoginId, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId = 0
-            GOTO EXIT_PROCEDURE
-        SELECT @CreatedBy = [CreatedBy]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [cruda].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
         SELECT @TransactionIdAux = [TransactionId]
-              ,@TableName = [TableName]
-              ,@Action = [Action]
-              ,@LastRecord = [LastRecord]
-              ,@ActualRecord = [ActualRecord]
-              ,@IsConfirmed = [IsConfirmed]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
             FROM [cruda].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @TransactionIdAux <> @TransactionId BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         IF @TableName <> 'Logins' BEGIN
@@ -8128,7 +8148,22 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @@ROWCOUNT = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';
+            THROW 51000, @ErrorMessage, 1
+        END
+        EXEC @TransactionId = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId = 0
+            GOTO EXIT_PROCEDURE
+        IF @TransactionIdAux <> @TransactionId BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -8147,18 +8182,24 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
                                                 ,[SystemId]
                                                 ,[UserId]
                                                 ,[PublicKey]
-                                                ,[IsLogged])
+                                                ,[IsLogged]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
                                           VALUES (@W_Id
                                                  ,@W_SystemId
                                                  ,@W_UserId
                                                  ,@W_PublicKey
-                                                 ,@W_IsLogged)
+                                                 ,@W_IsLogged
+                                                 ,GETDATE()
+                                                 ,@UserName)
             ELSE
                 UPDATE [dbo].[Logins] SET [Id] = @W_Id
                                               ,[SystemId] = @W_SystemId
                                               ,[UserId] = @W_UserId
                                               ,[PublicKey] = @W_PublicKey
                                               ,[IsLogged] = @W_IsLogged
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
 
@@ -8166,8 +8207,8 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
 
         UPDATE [cruda].[Operations]
             SET [IsConfirmed] = 1
-                ,[UpdatedBy] = @CreatedBy
                 ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
         COMMIT TRANSACTION [LoginCommit]
 

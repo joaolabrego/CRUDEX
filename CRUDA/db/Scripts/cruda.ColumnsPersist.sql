@@ -2,6 +2,7 @@
 	EXEC('CREATE PROCEDURE [cruda].[ColumnPersist] AS PRINT 1')
 GO
 ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
+										,@UserName VARCHAR(25)
 										,@Action VARCHAR(15)
 										,@LastRecord VARCHAR(MAX)
 										,@ActualRecord VARCHAR(MAX)) AS BEGIN
@@ -10,10 +11,8 @@ ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnPersist]: '
-				,@TransactionId	BIGINT
-				,@TransactionIdAux BIGINT
-				,@OperationId BIGINT
-				,@TableName VARCHAR(25)
+				,@TransactionId	INT
+				,@OperationId INT
 				,@CreatedBy VARCHAR(25)
 				,@ActionAux VARCHAR(15)
 				,@IsConfirmed BIT
@@ -22,33 +21,23 @@ ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
 			BEGIN TRANSACTION [ColumnPersist]
 		ELSE
 			SAVE TRANSACTION [ColumnPersist]
-		EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @Action, @LastRecord, @ActualRecord
+		EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
 		IF @TransactionId = 0
 			GOTO EXIT_PROCEDURE
-		SELECT @CreatedBy = [CreatedBy]
-				,@IsConfirmed = [IsConfirmed]
-			FROM [cruda].[Transactions]
-			WHERE [Id] = @TransactionId
 
 		DECLARE @W_Id BIGINT = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint) 
 
 		SELECT @OperationId = [OperationId]
-				,@TableName = [TableName]
+				,@CreatedBy = [CreatedBy]
 				,@ActionAux = ['Action']
+				,@IsConfirmed = [IsConfirmed]
 			FROM [cruda].[Operations]
 			WHERE [LoginId] = @LoginId
 					AND [TableName] = 'Columns'
 					AND [IsConfirmed] IS NULL
-					AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id 
+					AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
 		IF @@ROWCOUNT = 0 BEGIN
-			SELECT @OperationId = ISNULL(MAX(Id) + 1, 1)
-				FROM [cruda].[Operations]
-			IF @OperationId > 2147483647 BEGIN
-				SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId deve ser menor que ou igual à ''2147483647''.';
-				THROW 51000, @ErrorMessage, 1
-			END
-			INSERT INTO [cruda].[Operations] ([Id]
-											  ,[TransactionId]
+			INSERT INTO [cruda].[Operations] ([TransactionId]
 											  ,[TableName]
 											  ,[Action]
 											  ,[LastRecord]
@@ -56,15 +45,21 @@ ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
 											  ,[IsConfirmed]
 											  ,[CreatedAt]
 											  ,[CreatedBy])
-										VALUES(@OperationId
-												,@TransactionId
+										VALUES(@TransactionId
 												,@TableName
 												,@Action
 												,@LastRecord
 												,@ActualRecord
 												,NULL
 												,GETDATE()
-												,@CreatedBy)
+												,@UserName)
+			SET @OperationId = @@IDENTITY
+		END IF @IsConfirmed IS NOT NULL BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+			THROW 51000, @ErrorMessage, 1
+		END ELSE IF @UserName <> @CreatedBy BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+			THROW 51000, @ErrorMessage, 1
 		END ELSE IF @ActionAux = 'delete' BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';
 			THROW 51000, @ErrorMessage, 1
@@ -75,13 +70,13 @@ ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
 			UPDATE [cruda].[Operations]
 				SET [ActualRecord] = @ActualRecord
 				   ,[UpdatedAt] = GETDATE()
-				   ,[@UpdatedBy] = @CreatedBy
+				   ,[@UpdatedBy] = @UserName
 				WHERE [Id] = @OperationId
 		END ELSE IF @ActionAux = 'create' BEGIN
 			UPDATE [cruda].[Operations] 
 				SET [IsConfirmed] = 0
 				   ,[UpdatedAt] = GETDATE()
-				   ,[UpdatedBy] = @CreatedBy
+				   ,[UpdatedBy] = @UserName
 				WHERE [Id] = @OperationId
 		END ELSE BEGIN
 			UPDATE [cruda].[Operations] 
@@ -89,7 +84,7 @@ ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
 					,[LastRecord] = @LastRecord
 					,[ActualRecord] = @ActualRecord
 					,[UpdatedAt] = GETDATE()
-					,[@UpdatedBy] = @CreatedBy
+					,[@UpdatedBy] = @UserName
 				WHERE [Id] = @OperationId
 		END
 

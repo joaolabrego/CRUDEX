@@ -1,7 +1,8 @@
 ﻿IF(SELECT object_id('[cruda].[TransactionCommit]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT) AS BEGIN
+ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
+										  ,@UserName VARCHAR(25)) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -35,20 +36,24 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT) AS BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
+		IF @UserName <> @CreatedBy BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
+			THROW 51000, @ErrorMessage, 1
+		END
 		WHILE 1 = 1 BEGIN
-			SELECT @OperationId = [Id]
-					,@TableName = [TableName]
+			SELECT TOP 1 @OperationId = [Id]
+						,@TableName = [TableName]
 				FROM [cruda].[Operations]
 				WHERE [TransactionId] = @TransactionId
 						AND [IsConfirmed] IS NULL
-			IF @OperationId IS NULL
+			IF @@ROWCOUNT = 0
 				BREAK
 			SET @sql = '[dbo].[' + @TableName + 'Commit] @LoginId = ' + CAST(@LoginId AS VARCHAR) + ', @OperationId = ' + CAST(@OperationId AS VARCHAR)
 			EXEC @sql
 		END
 		UPDATE [cruda].[Transactions]
 			SET [IsConfirmed] = 1
-				,[UpdatedBy] = @CreatedBy
+				,[UpdatedBy] = @UserName
 				,[UpdatedAt] = GETDATE()
 			WHERE [Id] = @TransactionId
 		COMMIT TRANSACTION [TransactionCommit]
