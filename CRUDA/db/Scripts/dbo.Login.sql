@@ -106,7 +106,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 				SET @ErrorMessage = 'Chave pública é requerida';
 				THROW 51000, @ErrorMessage, 1
 			END
-			SELECT @LoginId = MAX([Id]) + 1 FROM [dbo].[Logins]
+			SELECT @LoginId = ISNULL(MAX([Id]) + 1, 1) FROM [dbo].[Logins]
 			INSERT [dbo].[Logins]([Id],
 								  [SystemId],
 								  [UserId],
