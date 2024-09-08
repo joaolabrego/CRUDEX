@@ -67,11 +67,11 @@ namespace CRUDA_LIB
                         });
                         if (action == Actions.EXECUTE)
                         {
-                            Login.Execute(systemName, parameters, true);
+                            Login.Execute(parameters, true);
                             response = JsonConvert.SerializeObject(SQLProcedure.Execute(systemName, parameters));
                         }
                         else
-                            response = JsonConvert.SerializeObject(Login.Execute(systemName, parameters));
+                            response = JsonConvert.SerializeObject(Login.Execute(parameters));
                         context.Response.Headers.ContentType = "application/json";
                         context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(publicKey).Encrypt(response), }), Encoding.UTF8);
                         break;

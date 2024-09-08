@@ -542,6 +542,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 			UPDATE [dbo].[Users] 
 				SET [RetryLogins] = @RetryLogins
 				WHERE [Id] = @UserId
+			COMMIT TRANSACTION [Login]
 			SET @ErrorMessage = 'Senha é inválida (' + CAST(@MaxRetryLogins -  @RetryLogins AS VARCHAR(3)) + ' tentativas restantes)';
 			THROW 51000, @ErrorMessage, 1
 		END
@@ -605,7 +606,8 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		RETURN @LoginId
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION [Login];
+		IF XACT_STATE() <> 0
+			ROLLBACK TRANSACTION [Login];
 		THROW
 	END CATCH
 END

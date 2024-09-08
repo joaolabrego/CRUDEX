@@ -1,4 +1,5 @@
 ﻿using CRUDA.Classes.Models;
+using Newtonsoft.Json;
 using System;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
@@ -7,13 +8,13 @@ namespace CRUDA_LIB
     public static class Login
     {
         public readonly static string ClassName = "Login";
-        public static TResult Execute(string systemName, TDictionary? parameters, bool forceAuthenticate = false)
+        public static TResult Execute(TDictionary? parameters, bool forceAuthenticate = false)
         {
             if (parameters != null && parameters.TryGetValue("Login", out dynamic? login))
             {
                 if (login == null)
                     throw new Exception("Login requerido em Parameters.");
-                else if (login.ContainsKey("UserName") && login.ContainsKey("Password") && login.ContainsKey("Action"))
+                else if (login.ContainsKey("SystemName") && login.ContainsKey("UserName") && login.ContainsKey("Password") && login.ContainsKey("Action"))
                 {
                     return SQLProcedure.Execute(
                         Settings.ConnecionString(),
@@ -22,16 +23,20 @@ namespace CRUDA_LIB
                         {
                             InputParams = new
                             {
-                                SystemName = systemName,
-                                UserName = login["UserName"],
-                                Password = login["Password"],
-                                PublicKey = login["Action"] == Actions.LOGIN ? Crypto.GenerateCryptoKey() : null,
-                                Action = forceAuthenticate ? Actions.AUTHENTICATE : login["Action"],
+                                Parameters = JsonConvert.SerializeObject(new
+                                {
+                                    SystemName = login["SystemName"],
+                                    UserName = login["UserName"],
+                                    Password = login["Password"],
+                                    PublicKey = login["Action"] == Actions.LOGIN ? Crypto.GenerateCryptoKey() : null,
+                                    LoginId = login["Action"] == Actions.LOGIN ? null : login["LoginId"],
+                                    Action = forceAuthenticate ? Actions.AUTHENTICATE : login["Action"],
+                                }),
                             },
                         }));
                 }
                 else
-                    throw new Exception("Parâmetro(s) UserName e/ou Password e/ou Action requeridos em Login.");
+                    throw new Exception("Parâmetro(s) SystemName e/ou UserName e/ou Password e/ou Action requeridos em Login.");
             }
             throw new Exception("Parameters requerido.");
         }

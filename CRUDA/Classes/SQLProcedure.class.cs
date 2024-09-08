@@ -13,8 +13,7 @@ namespace CRUDA_LIB
             using var dataset = new DataSet();
             using var connection = new SqlConnection(connectionString);
             connection.Open();
-            using var transaction = connection.BeginTransaction();
-            using var command = new SqlCommand(procedureName, connection, transaction);
+            using var command = new SqlCommand(procedureName, connection);
             try
             {
                 command.CommandType = CommandType.StoredProcedure;
@@ -34,13 +33,11 @@ namespace CRUDA_LIB
                 command.Parameters.Add(new SqlParameter("ReturnValue", DBNull.Value) { Direction = ParameterDirection.ReturnValue });
 
                 new SqlDataAdapter(command).Fill(dataset);
-                transaction.Commit();
 
                 return new TResult(dataset.Tables, command.Parameters);
             }
             catch
             {
-                transaction.Rollback();
                 throw;
             }
         }

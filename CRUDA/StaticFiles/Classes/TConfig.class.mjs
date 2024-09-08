@@ -31,6 +31,7 @@ export default class TConfig {
                 SystemName: TSystem.Name,
                 UserName: TLogin.UserName,
                 Password: TLogin.Password,
+                PublicKey: headers.PublicKey,
             }
         }
         else {
@@ -41,6 +42,7 @@ export default class TConfig {
                 SystemName: TSystem.Name,
                 UserName: TLogin.UserName,
                 Password: TLogin.Password,
+                LoginId: TLogin.LoginId,
             }
         }
         body.Parameters = parameters
