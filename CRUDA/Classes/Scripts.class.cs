@@ -4,8 +4,6 @@ using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
-using Newtonsoft.Json.Linq;
-using System.Xml.Linq;
 
 namespace CRUDA.Classes
 {
@@ -1289,7 +1287,7 @@ namespace CRUDA.Classes
                 result.Append($"        DELETE [tmp]\r\n");
                 result.Append($"            FROM [dbo].[#tmp]\r\n");
                 result.Append($"            WHERE EXISTS(SELECT 1\r\n");
-                result.Append($"                            FROM [dbo].[Operations] [ope]\r\n");
+                result.Append($"                            FROM [cruda].[Operations] [ope]\r\n");
                 result.Append($"                            WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                                  AND [ope].[TableName] = 'Columns'\r\n");
                 result.Append($"                                  AND [ope].[IsConfirmed] IS NULL\r\n");
@@ -1308,7 +1306,7 @@ namespace CRUDA.Classes
                     else
                         result.Append($"                                  ,CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
-                result.Append($"            FROM [dbo].[Operations]\r\n");
+                result.Append($"            FROM [cruda].[Operations]\r\n");
                 result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                  AND [TableName] = '{table["Name"]}'\r\n");
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
@@ -1328,7 +1326,7 @@ namespace CRUDA.Classes
                 }
                 result.Append($"            FROM [dbo].[#tmp] \r\n");
                 result.Append($"            WHERE EXISTS(SELECT 1\r\n");
-                result.Append($"                            FROM [dbo].[Operations] [ope]\r\n");
+                result.Append($"                            FROM [cruda].[Operations] [ope]\r\n");
                 result.Append($"                            WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                                  AND [ope].[TableName] = 'Columns'\r\n");
                 result.Append($"                                  AND [ope].[IsConfirmed] IS NULL\r\n");
