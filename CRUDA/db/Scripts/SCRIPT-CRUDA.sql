@@ -1619,6 +1619,162 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
 END
 GO
 /**********************************************************************************
+Criar stored procedure [dbo].[CategoriesRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[CategoriesRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CategoriesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [CategoriesRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id tinyint = CAST(JSON_VALUE(@Parameters, '$.Id') AS tinyint)
+                ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
+                ,@W_AskEncrypted bit = CAST(JSON_VALUE(@Parameters, '$.AskEncrypted') AS bit)
+                ,@W_AskMask bit = CAST(JSON_VALUE(@Parameters, '$.AskMask') AS bit)
+                ,@W_AskListable bit = CAST(JSON_VALUE(@Parameters, '$.AskListable') AS bit)
+                ,@W_AskDefault bit = CAST(JSON_VALUE(@Parameters, '$.AskDefault') AS bit)
+                ,@W_AskMinimum bit = CAST(JSON_VALUE(@Parameters, '$.AskMinimum') AS bit)
+                ,@W_AskMaximum bit = CAST(JSON_VALUE(@Parameters, '$.AskMaximum') AS bit)
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS tinyint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('255' AS tinyint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''255''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[Name]
+              ,[HtmlInputType]
+              ,[HtmlInputAlign]
+              ,[AskEncrypted]
+              ,[AskMask]
+              ,[AskListable]
+              ,[AskDefault]
+              ,[AskMinimum]
+              ,[AskMaximum]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Categories]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [Name] = ISNULL(@W_Name, [Name])
+                  AND [AskEncrypted] = ISNULL(@W_AskEncrypted, [AskEncrypted])
+                  AND [AskMask] = ISNULL(@W_AskMask, [AskMask])
+                  AND [AskListable] = ISNULL(@W_AskListable, [AskListable])
+                  AND [AskDefault] = ISNULL(@W_AskDefault, [AskDefault])
+                  AND [AskMinimum] = ISNULL(@W_AskMinimum, [AskMinimum])
+                  AND [AskMaximum] = ISNULL(@W_AskMaximum, [AskMaximum])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.HtmlInputType') AS varchar(10)) AS [HtmlInputType]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.HtmlInputAlign') AS varchar(6)) AS [HtmlInputAlign]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskEncrypted') AS bit) AS [AskEncrypted]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskMask') AS bit) AS [AskMask]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskListable') AS bit) AS [AskListable]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskDefault') AS bit) AS [AskDefault]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskMinimum') AS bit) AS [AskMinimum]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Categories'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[HtmlInputType] = CAST(JSON_VALUE([ActualRecord], '$.HtmlInputType') AS varchar(10))
+               ,[tmp].[HtmlInputAlign] = CAST(JSON_VALUE([ActualRecord], '$.HtmlInputAlign') AS varchar(6))
+               ,[tmp].[AskEncrypted] = CAST(JSON_VALUE([ActualRecord], '$.AskEncrypted') AS bit)
+               ,[tmp].[AskMask] = CAST(JSON_VALUE([ActualRecord], '$.AskMask') AS bit)
+               ,[tmp].[AskListable] = CAST(JSON_VALUE([ActualRecord], '$.AskListable') AS bit)
+               ,[tmp].[AskDefault] = CAST(JSON_VALUE([ActualRecord], '$.AskDefault') AS bit)
+               ,[tmp].[AskMinimum] = CAST(JSON_VALUE([ActualRecord], '$.AskMinimum') AS bit)
+               ,[tmp].[AskMaximum] = CAST(JSON_VALUE([ActualRecord], '$.AskMaximum') AS bit)
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordCategory' AS [ClassName]
+              ,[Name]
+              ,[HtmlInputType]
+              ,[HtmlInputAlign]
+              ,[AskEncrypted]
+              ,[AskMask]
+              ,[AskListable]
+              ,[AskDefault]
+              ,[AskMinimum]
+              ,[AskMaximum]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
 Criar tabela [dbo].[Types]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Types]', 'U')) IS NOT NULL
@@ -2137,6 +2293,190 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
 END
 GO
 /**********************************************************************************
+Criar stored procedure [dbo].[TypesRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[TypesRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TypesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TypesRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id tinyint = CAST(JSON_VALUE(@Parameters, '$.Id') AS tinyint)
+                ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
+                ,@W_AskLength bit = CAST(JSON_VALUE(@Parameters, '$.AskLength') AS bit)
+                ,@W_AskDecimals bit = CAST(JSON_VALUE(@Parameters, '$.AskDecimals') AS bit)
+                ,@W_AskPrimarykey bit = CAST(JSON_VALUE(@Parameters, '$.AskPrimarykey') AS bit)
+                ,@W_AskAutoincrement bit = CAST(JSON_VALUE(@Parameters, '$.AskAutoincrement') AS bit)
+                ,@W_AskFilterable bit = CAST(JSON_VALUE(@Parameters, '$.AskFilterable') AS bit)
+                ,@W_AskBrowseable bit = CAST(JSON_VALUE(@Parameters, '$.AskBrowseable') AS bit)
+                ,@W_AskCodification bit = CAST(JSON_VALUE(@Parameters, '$.AskCodification') AS bit)
+                ,@W_AskFormula bit = CAST(JSON_VALUE(@Parameters, '$.AskFormula') AS bit)
+                ,@W_AllowMaxLength bit = CAST(JSON_VALUE(@Parameters, '$.AllowMaxLength') AS bit)
+                ,@W_IsActive bit = CAST(JSON_VALUE(@Parameters, '$.IsActive') AS bit)
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS tinyint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('255' AS tinyint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''255''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[CategoryId]
+              ,[Name]
+              ,[Minimum]
+              ,[Maximum]
+              ,[AskLength]
+              ,[AskDecimals]
+              ,[AskPrimarykey]
+              ,[AskAutoincrement]
+              ,[AskFilterable]
+              ,[AskBrowseable]
+              ,[AskCodification]
+              ,[AskFormula]
+              ,[AllowMaxLength]
+              ,[IsActive]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Types]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [Name] = ISNULL(@W_Name, [Name])
+                  AND [AskLength] = ISNULL(@W_AskLength, [AskLength])
+                  AND [AskDecimals] = ISNULL(@W_AskDecimals, [AskDecimals])
+                  AND [AskPrimarykey] = ISNULL(@W_AskPrimarykey, [AskPrimarykey])
+                  AND [AskAutoincrement] = ISNULL(@W_AskAutoincrement, [AskAutoincrement])
+                  AND [AskFilterable] = ISNULL(@W_AskFilterable, [AskFilterable])
+                  AND [AskBrowseable] = ISNULL(@W_AskBrowseable, [AskBrowseable])
+                  AND [AskCodification] = ISNULL(@W_AskCodification, [AskCodification])
+                  AND [AskFormula] = ISNULL(@W_AskFormula, [AskFormula])
+                  AND [AllowMaxLength] = ISNULL(@W_AllowMaxLength, [AllowMaxLength])
+                  AND [IsActive] = ISNULL(@W_IsActive, [IsActive])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS sql_variant) AS [Minimum]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS sql_variant) AS [Maximum]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskLength') AS bit) AS [AskLength]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskDecimals') AS bit) AS [AskDecimals]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskPrimarykey') AS bit) AS [AskPrimarykey]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskAutoincrement') AS bit) AS [AskAutoincrement]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskFilterable') AS bit) AS [AskFilterable]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskBrowseable') AS bit) AS [AskBrowseable]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskCodification') AS bit) AS [AskCodification]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AskFormula') AS bit) AS [AskFormula]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.AllowMaxLength') AS bit) AS [AllowMaxLength]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Types'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint)
+               ,[tmp].[CategoryId] = CAST(JSON_VALUE([ActualRecord], '$.CategoryId') AS tinyint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Minimum] = CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS sql_variant)
+               ,[tmp].[Maximum] = CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS sql_variant)
+               ,[tmp].[AskLength] = CAST(JSON_VALUE([ActualRecord], '$.AskLength') AS bit)
+               ,[tmp].[AskDecimals] = CAST(JSON_VALUE([ActualRecord], '$.AskDecimals') AS bit)
+               ,[tmp].[AskPrimarykey] = CAST(JSON_VALUE([ActualRecord], '$.AskPrimarykey') AS bit)
+               ,[tmp].[AskAutoincrement] = CAST(JSON_VALUE([ActualRecord], '$.AskAutoincrement') AS bit)
+               ,[tmp].[AskFilterable] = CAST(JSON_VALUE([ActualRecord], '$.AskFilterable') AS bit)
+               ,[tmp].[AskBrowseable] = CAST(JSON_VALUE([ActualRecord], '$.AskBrowseable') AS bit)
+               ,[tmp].[AskCodification] = CAST(JSON_VALUE([ActualRecord], '$.AskCodification') AS bit)
+               ,[tmp].[AskFormula] = CAST(JSON_VALUE([ActualRecord], '$.AskFormula') AS bit)
+               ,[tmp].[AllowMaxLength] = CAST(JSON_VALUE([ActualRecord], '$.AllowMaxLength') AS bit)
+               ,[tmp].[IsActive] = CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit)
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordType' AS [ClassName]
+              ,[CategoryId]
+              ,[Name]
+              ,[Minimum]
+              ,[Maximum]
+              ,[AskLength]
+              ,[AskDecimals]
+              ,[AskPrimarykey]
+              ,[AskAutoincrement]
+              ,[AskFilterable]
+              ,[AskBrowseable]
+              ,[AskCodification]
+              ,[AskFormula]
+              ,[AllowMaxLength]
+              ,[IsActive]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
 Criar tabela [dbo].[Masks]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Masks]', 'U')) IS NOT NULL
@@ -2502,6 +2842,122 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
     END TRY
     BEGIN CATCH
         ROLLBACK TRANSACTION [MaskCommit];
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[MasksRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[MasksRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MasksRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MasksRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('-9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''-9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[Name]
+              ,[Mask]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Masks]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [Name] = ISNULL(@W_Name, [Name])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Mask') AS varchar(8000)) AS [Mask]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Masks'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Mask] = CAST(JSON_VALUE([ActualRecord], '$.Mask') AS varchar(8000))
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordMask' AS [ClassName]
+              ,[Name]
+              ,[Mask]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
         THROW
     END CATCH
 END
@@ -2981,6 +3437,178 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
 END
 GO
 /**********************************************************************************
+Criar stored procedure [dbo].[DomainsRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[DomainsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DomainsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DomainsRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_TypeId tinyint = CAST(JSON_VALUE(@Parameters, '$.TypeId') AS tinyint)
+                ,@W_MaskId bigint = CAST(JSON_VALUE(@Parameters, '$.MaskId') AS bigint)
+                ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
+                ,@W_ValidValues varchar(8000) = CAST(JSON_VALUE(@Parameters, '$.ValidValues') AS varchar(8000))
+                ,@W_Codification varchar(5) = CAST(JSON_VALUE(@Parameters, '$.Codification') AS varchar(5))
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_TypeId IS NOT NULL AND @W_TypeId < CAST('1' AS tinyint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de TypeId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_TypeId IS NOT NULL AND @W_TypeId > CAST('255' AS tinyint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de TypeId deve ser menor que ou igual à ''255''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_MaskId IS NOT NULL AND @W_MaskId < CAST('-9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de MaskId deve ser maior que ou igual à ''-9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_MaskId IS NOT NULL AND @W_MaskId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de MaskId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[TypeId]
+              ,[MaskId]
+              ,[Name]
+              ,[Length]
+              ,[Decimals]
+              ,[ValidValues]
+              ,[Default]
+              ,[Minimum]
+              ,[Maximum]
+              ,[Codification]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Domains]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [TypeId] = ISNULL(@W_TypeId, [TypeId])
+                  AND (@W_MaskId IS NULL OR [MaskId] = @W_MaskId)
+                  AND [Name] = ISNULL(@W_Name, [Name])
+                  AND (@W_ValidValues IS NULL OR [ValidValues] = @W_ValidValues)
+                  AND (@W_Codification IS NULL OR [Codification] = @W_Codification)
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.TypeId') AS tinyint) AS [TypeId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.MaskId') AS bigint) AS [MaskId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Length') AS smallint) AS [Length]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Decimals') AS tinyint) AS [Decimals]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.ValidValues') AS varchar(8000)) AS [ValidValues]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Default') AS sql_variant) AS [Default]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS sql_variant) AS [Minimum]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS sql_variant) AS [Maximum]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Codification') AS varchar(5)) AS [Codification]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Domains'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[TypeId] = CAST(JSON_VALUE([ActualRecord], '$.TypeId') AS tinyint)
+               ,[tmp].[MaskId] = CAST(JSON_VALUE([ActualRecord], '$.MaskId') AS bigint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Length] = CAST(JSON_VALUE([ActualRecord], '$.Length') AS smallint)
+               ,[tmp].[Decimals] = CAST(JSON_VALUE([ActualRecord], '$.Decimals') AS tinyint)
+               ,[tmp].[ValidValues] = CAST(JSON_VALUE([ActualRecord], '$.ValidValues') AS varchar(8000))
+               ,[tmp].[Default] = CAST(JSON_VALUE([ActualRecord], '$.Default') AS sql_variant)
+               ,[tmp].[Minimum] = CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS sql_variant)
+               ,[tmp].[Maximum] = CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS sql_variant)
+               ,[tmp].[Codification] = CAST(JSON_VALUE([ActualRecord], '$.Codification') AS varchar(5))
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordDomain' AS [ClassName]
+              ,[TypeId]
+              ,[MaskId]
+              ,[Name]
+              ,[Length]
+              ,[Decimals]
+              ,[ValidValues]
+              ,[Default]
+              ,[Minimum]
+              ,[Maximum]
+              ,[Codification]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
 Criar tabela [dbo].[Systems]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Systems]', 'U')) IS NOT NULL
@@ -3390,6 +4018,136 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
     END TRY
     BEGIN CATCH
         ROLLBACK TRANSACTION [SystemCommit];
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[SystemsRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[SystemsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemsRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
+                ,@W_ClientName varchar(15) = CAST(JSON_VALUE(@Parameters, '$.ClientName') AS varchar(15))
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[Name]
+              ,[Description]
+              ,[ClientName]
+              ,[MaxRetryLogins]
+              ,[IsOffAir]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Systems]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [Name] = ISNULL(@W_Name, [Name])
+                  AND [ClientName] = ISNULL(@W_ClientName, [ClientName])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.ClientName') AS varchar(15)) AS [ClientName]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsOffAir') AS bit) AS [IsOffAir]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Systems'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
+               ,[tmp].[ClientName] = CAST(JSON_VALUE([ActualRecord], '$.ClientName') AS varchar(15))
+               ,[tmp].[MaxRetryLogins] = CAST(JSON_VALUE([ActualRecord], '$.MaxRetryLogins') AS tinyint)
+               ,[tmp].[IsOffAir] = CAST(JSON_VALUE([ActualRecord], '$.IsOffAir') AS bit)
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordSystem' AS [ClassName]
+              ,[Name]
+              ,[Description]
+              ,[ClientName]
+              ,[MaxRetryLogins]
+              ,[IsOffAir]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
         THROW
     END CATCH
 END
@@ -3842,6 +4600,148 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
 END
 GO
 /**********************************************************************************
+Criar stored procedure [dbo].[MenusRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[MenusRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MenusRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MenusRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
+                ,@W_Caption varchar(20) = CAST(JSON_VALUE(@Parameters, '$.Caption') AS varchar(20))
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[SystemId]
+              ,[Sequence]
+              ,[Caption]
+              ,[Message]
+              ,[Action]
+              ,[ParentMenuId]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Menus]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
+                  AND [Caption] = ISNULL(@W_Caption, [Caption])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Caption') AS varchar(20)) AS [Caption]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Message') AS varchar(50)) AS [Message]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Action') AS varchar(50)) AS [Action]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.ParentMenuId') AS bigint) AS [ParentMenuId]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Menus'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[SystemId] = CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint)
+               ,[tmp].[Sequence] = CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint)
+               ,[tmp].[Caption] = CAST(JSON_VALUE([ActualRecord], '$.Caption') AS varchar(20))
+               ,[tmp].[Message] = CAST(JSON_VALUE([ActualRecord], '$.Message') AS varchar(50))
+               ,[tmp].[Action] = CAST(JSON_VALUE([ActualRecord], '$.Action') AS varchar(50))
+               ,[tmp].[ParentMenuId] = CAST(JSON_VALUE([ActualRecord], '$.ParentMenuId') AS bigint)
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordMenu' AS [ClassName]
+              ,[SystemId]
+              ,[Sequence]
+              ,[Caption]
+              ,[Message]
+              ,[Action]
+              ,[ParentMenuId]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
 Criar tabela [dbo].[Users]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Users]', 'U')) IS NOT NULL
@@ -4256,6 +5156,138 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
 END
 GO
 /**********************************************************************************
+Criar stored procedure [dbo].[UsersRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[UsersRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UsersRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [UsersRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
+                ,@W_FullName varchar(50) = CAST(JSON_VALUE(@Parameters, '$.FullName') AS varchar(50))
+                ,@W_IsActive bit = CAST(JSON_VALUE(@Parameters, '$.IsActive') AS bit)
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[Name]
+              ,[Password]
+              ,[FullName]
+              ,[RetryLogins]
+              ,[IsActive]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Users]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [Name] = ISNULL(@W_Name, [Name])
+                  AND [FullName] = ISNULL(@W_FullName, [FullName])
+                  AND [IsActive] = ISNULL(@W_IsActive, [IsActive])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Password') AS varchar(256)) AS [Password]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.FullName') AS varchar(50)) AS [FullName]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.RetryLogins') AS tinyint) AS [RetryLogins]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Users'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Password] = CAST(JSON_VALUE([ActualRecord], '$.Password') AS varchar(256))
+               ,[tmp].[FullName] = CAST(JSON_VALUE([ActualRecord], '$.FullName') AS varchar(50))
+               ,[tmp].[RetryLogins] = CAST(JSON_VALUE([ActualRecord], '$.RetryLogins') AS tinyint)
+               ,[tmp].[IsActive] = CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit)
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordUser' AS [ClassName]
+              ,[Name]
+              ,[Password]
+              ,[FullName]
+              ,[RetryLogins]
+              ,[IsActive]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
 Criar tabela [dbo].[SystemsUsers]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[SystemsUsers]', 'U')) IS NOT NULL
@@ -4665,6 +5697,146 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
     END TRY
     BEGIN CATCH
         ROLLBACK TRANSACTION [SystemUserCommit];
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[SystemsUsersRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[SystemsUsersRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemsUsersRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemsUsersRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
+                ,@W_UserId bigint = CAST(JSON_VALUE(@Parameters, '$.UserId') AS bigint)
+                ,@W_Description varchar(50) = CAST(JSON_VALUE(@Parameters, '$.Description') AS varchar(50))
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_UserId IS NOT NULL AND @W_UserId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de UserId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_UserId IS NOT NULL AND @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de UserId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[SystemId]
+              ,[UserId]
+              ,[Description]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[SystemsUsers]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
+                  AND [UserId] = ISNULL(@W_UserId, [UserId])
+                  AND [Description] = ISNULL(@W_Description, [Description])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint) AS [UserId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'SystemsUsers'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[SystemId] = CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint)
+               ,[tmp].[UserId] = CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint)
+               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordSystemUser' AS [ClassName]
+              ,[SystemId]
+              ,[UserId]
+              ,[Description]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
         THROW
     END CATCH
 END
@@ -5116,6 +6288,152 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
 END
 GO
 /**********************************************************************************
+Criar stored procedure [dbo].[DatabasesRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[DatabasesRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabasesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabasesRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
+                ,@W_Alias varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Alias') AS varchar(25))
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[Name]
+              ,[Description]
+              ,[Alias]
+              ,[ServerName]
+              ,[HostName]
+              ,[Port]
+              ,[Logon]
+              ,[Password]
+              ,[Folder]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Databases]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [Name] = ISNULL(@W_Name, [Name])
+                  AND [Alias] = ISNULL(@W_Alias, [Alias])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Alias') AS varchar(25)) AS [Alias]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.ServerName') AS varchar(50)) AS [ServerName]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.HostName') AS varchar(25)) AS [HostName]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Port') AS int) AS [Port]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Logon') AS varchar(256)) AS [Logon]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Password') AS varchar(256)) AS [Password]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Folder') AS varchar(256)) AS [Folder]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Databases'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
+               ,[tmp].[Alias] = CAST(JSON_VALUE([ActualRecord], '$.Alias') AS varchar(25))
+               ,[tmp].[ServerName] = CAST(JSON_VALUE([ActualRecord], '$.ServerName') AS varchar(50))
+               ,[tmp].[HostName] = CAST(JSON_VALUE([ActualRecord], '$.HostName') AS varchar(25))
+               ,[tmp].[Port] = CAST(JSON_VALUE([ActualRecord], '$.Port') AS int)
+               ,[tmp].[Logon] = CAST(JSON_VALUE([ActualRecord], '$.Logon') AS varchar(256))
+               ,[tmp].[Password] = CAST(JSON_VALUE([ActualRecord], '$.Password') AS varchar(256))
+               ,[tmp].[Folder] = CAST(JSON_VALUE([ActualRecord], '$.Folder') AS varchar(256))
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordDatabase' AS [ClassName]
+              ,[Name]
+              ,[Description]
+              ,[Alias]
+              ,[ServerName]
+              ,[HostName]
+              ,[Port]
+              ,[Logon]
+              ,[Password]
+              ,[Folder]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
 Criar tabela [dbo].[SystemsDatabases]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[SystemsDatabases]', 'U')) IS NOT NULL
@@ -5525,6 +6843,146 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
     END TRY
     BEGIN CATCH
         ROLLBACK TRANSACTION [SystemDatabaseCommit];
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[SystemsDatabasesRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[SystemsDatabasesRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemsDatabasesRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
+                ,@W_DatabaseId bigint = CAST(JSON_VALUE(@Parameters, '$.DatabaseId') AS bigint)
+                ,@W_Description varchar(50) = CAST(JSON_VALUE(@Parameters, '$.Description') AS varchar(50))
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[SystemId]
+              ,[DatabaseId]
+              ,[Description]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[SystemsDatabases]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
+                  AND [DatabaseId] = ISNULL(@W_DatabaseId, [DatabaseId])
+                  AND [Description] = ISNULL(@W_Description, [Description])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'SystemsDatabases'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[SystemId] = CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint)
+               ,[tmp].[DatabaseId] = CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint)
+               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordSystemDatabase' AS [ClassName]
+              ,[SystemId]
+              ,[DatabaseId]
+              ,[Description]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
         THROW
     END CATCH
 END
@@ -5952,6 +7410,138 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
 END
 GO
 /**********************************************************************************
+Criar stored procedure [dbo].[TablesRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[TablesRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TablesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TablesRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
+                ,@W_Alias varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Alias') AS varchar(25))
+                ,@W_IsPaged bit = CAST(JSON_VALUE(@Parameters, '$.IsPaged') AS bit)
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[Name]
+              ,[Alias]
+              ,[Description]
+              ,[IsPaged]
+              ,[CurrentId]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Tables]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [Name] = ISNULL(@W_Name, [Name])
+                  AND [Alias] = ISNULL(@W_Alias, [Alias])
+                  AND [IsPaged] = ISNULL(@W_IsPaged, [IsPaged])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Alias') AS varchar(25)) AS [Alias]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsPaged') AS bit) AS [IsPaged]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.CurrentId') AS bigint) AS [CurrentId]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Tables'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Alias] = CAST(JSON_VALUE([ActualRecord], '$.Alias') AS varchar(25))
+               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
+               ,[tmp].[IsPaged] = CAST(JSON_VALUE([ActualRecord], '$.IsPaged') AS bit)
+               ,[tmp].[CurrentId] = CAST(JSON_VALUE([ActualRecord], '$.CurrentId') AS bigint)
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordTable' AS [ClassName]
+              ,[Name]
+              ,[Alias]
+              ,[Description]
+              ,[IsPaged]
+              ,[CurrentId]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
 Criar tabela [dbo].[DatabasesTables]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[DatabasesTables]', 'U')) IS NOT NULL
@@ -6361,6 +7951,146 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
     END TRY
     BEGIN CATCH
         ROLLBACK TRANSACTION [DatabaseTableCommit];
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[DatabasesTablesRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[DatabasesTablesRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabasesTablesRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_DatabaseId bigint = CAST(JSON_VALUE(@Parameters, '$.DatabaseId') AS bigint)
+                ,@W_TableId bigint = CAST(JSON_VALUE(@Parameters, '$.TableId') AS bigint)
+                ,@W_Description varchar(50) = CAST(JSON_VALUE(@Parameters, '$.Description') AS varchar(50))
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_TableId IS NOT NULL AND @W_TableId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_TableId IS NOT NULL AND @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[DatabaseId]
+              ,[TableId]
+              ,[Description]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[DatabasesTables]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [DatabaseId] = ISNULL(@W_DatabaseId, [DatabaseId])
+                  AND [TableId] = ISNULL(@W_TableId, [TableId])
+                  AND [Description] = ISNULL(@W_Description, [Description])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'DatabasesTables'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[DatabaseId] = CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint)
+               ,[tmp].[TableId] = CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint)
+               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordDatabaseTable' AS [ClassName]
+              ,[DatabaseId]
+              ,[TableId]
+              ,[Description]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
         THROW
     END CATCH
 END
@@ -6956,6 +8686,238 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
 END
 GO
 /**********************************************************************************
+Criar stored procedure [dbo].[ColumnsRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ColumnsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ColumnsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_TableId bigint = CAST(JSON_VALUE(@Parameters, '$.TableId') AS bigint)
+                ,@W_DomainId bigint = CAST(JSON_VALUE(@Parameters, '$.DomainId') AS bigint)
+                ,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@Parameters, '$.ReferenceTableId') AS bigint)
+                ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
+                ,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@Parameters, '$.IsAutoIncrement') AS bit)
+                ,@W_IsRequired bit = CAST(JSON_VALUE(@Parameters, '$.IsRequired') AS bit)
+                ,@W_IsListable bit = CAST(JSON_VALUE(@Parameters, '$.IsListable') AS bit)
+                ,@W_IsFilterable bit = CAST(JSON_VALUE(@Parameters, '$.IsFilterable') AS bit)
+                ,@W_IsEditable bit = CAST(JSON_VALUE(@Parameters, '$.IsEditable') AS bit)
+                ,@W_IsBrowseable bit = CAST(JSON_VALUE(@Parameters, '$.IsBrowseable') AS bit)
+                ,@W_IsEncrypted bit = CAST(JSON_VALUE(@Parameters, '$.IsEncrypted') AS bit)
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_TableId IS NOT NULL AND @W_TableId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_TableId IS NOT NULL AND @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_DomainId IS NOT NULL AND @W_DomainId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_DomainId IS NOT NULL AND @W_DomainId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[TableId]
+              ,[Sequence]
+              ,[DomainId]
+              ,[ReferenceTableId]
+              ,[Name]
+              ,[Description]
+              ,[Title]
+              ,[Caption]
+              ,[ValidValues]
+              ,[Default]
+              ,[Minimum]
+              ,[Maximum]
+              ,[IsPrimarykey]
+              ,[IsAutoIncrement]
+              ,[IsRequired]
+              ,[IsListable]
+              ,[IsFilterable]
+              ,[IsEditable]
+              ,[IsBrowseable]
+              ,[IsEncrypted]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Columns]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [TableId] = ISNULL(@W_TableId, [TableId])
+                  AND [DomainId] = ISNULL(@W_DomainId, [DomainId])
+                  AND (@W_ReferenceTableId IS NULL OR [ReferenceTableId] = @W_ReferenceTableId)
+                  AND [Name] = ISNULL(@W_Name, [Name])
+                  AND (@W_IsAutoIncrement IS NULL OR [IsAutoIncrement] = @W_IsAutoIncrement)
+                  AND [IsRequired] = ISNULL(@W_IsRequired, [IsRequired])
+                  AND (@W_IsListable IS NULL OR [IsListable] = @W_IsListable)
+                  AND (@W_IsFilterable IS NULL OR [IsFilterable] = @W_IsFilterable)
+                  AND (@W_IsEditable IS NULL OR [IsEditable] = @W_IsEditable)
+                  AND (@W_IsBrowseable IS NULL OR [IsBrowseable] = @W_IsBrowseable)
+                  AND (@W_IsEncrypted IS NULL OR [IsEncrypted] = @W_IsEncrypted)
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.DomainId') AS bigint) AS [DomainId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.ReferenceTableId') AS bigint) AS [ReferenceTableId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Title') AS varchar(25)) AS [Title]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Caption') AS varchar(25)) AS [Caption]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.ValidValues') AS varchar(8000)) AS [ValidValues]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Default') AS sql_variant) AS [Default]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS sql_variant) AS [Minimum]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS sql_variant) AS [Maximum]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsPrimarykey') AS bit) AS [IsPrimarykey]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsAutoIncrement') AS bit) AS [IsAutoIncrement]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsRequired') AS bit) AS [IsRequired]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsListable') AS bit) AS [IsListable]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsFilterable') AS bit) AS [IsFilterable]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsBrowseable') AS bit) AS [IsBrowseable]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Columns'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[TableId] = CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint)
+               ,[tmp].[Sequence] = CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint)
+               ,[tmp].[DomainId] = CAST(JSON_VALUE([ActualRecord], '$.DomainId') AS bigint)
+               ,[tmp].[ReferenceTableId] = CAST(JSON_VALUE([ActualRecord], '$.ReferenceTableId') AS bigint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
+               ,[tmp].[Title] = CAST(JSON_VALUE([ActualRecord], '$.Title') AS varchar(25))
+               ,[tmp].[Caption] = CAST(JSON_VALUE([ActualRecord], '$.Caption') AS varchar(25))
+               ,[tmp].[ValidValues] = CAST(JSON_VALUE([ActualRecord], '$.ValidValues') AS varchar(8000))
+               ,[tmp].[Default] = CAST(JSON_VALUE([ActualRecord], '$.Default') AS sql_variant)
+               ,[tmp].[Minimum] = CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS sql_variant)
+               ,[tmp].[Maximum] = CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS sql_variant)
+               ,[tmp].[IsPrimarykey] = CAST(JSON_VALUE([ActualRecord], '$.IsPrimarykey') AS bit)
+               ,[tmp].[IsAutoIncrement] = CAST(JSON_VALUE([ActualRecord], '$.IsAutoIncrement') AS bit)
+               ,[tmp].[IsRequired] = CAST(JSON_VALUE([ActualRecord], '$.IsRequired') AS bit)
+               ,[tmp].[IsListable] = CAST(JSON_VALUE([ActualRecord], '$.IsListable') AS bit)
+               ,[tmp].[IsFilterable] = CAST(JSON_VALUE([ActualRecord], '$.IsFilterable') AS bit)
+               ,[tmp].[IsEditable] = CAST(JSON_VALUE([ActualRecord], '$.IsEditable') AS bit)
+               ,[tmp].[IsBrowseable] = CAST(JSON_VALUE([ActualRecord], '$.IsBrowseable') AS bit)
+               ,[tmp].[IsEncrypted] = CAST(JSON_VALUE([ActualRecord], '$.IsEncrypted') AS bit)
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordColumn' AS [ClassName]
+              ,[TableId]
+              ,[Sequence]
+              ,[DomainId]
+              ,[ReferenceTableId]
+              ,[Name]
+              ,[Description]
+              ,[Title]
+              ,[Caption]
+              ,[ValidValues]
+              ,[Default]
+              ,[Minimum]
+              ,[Maximum]
+              ,[IsPrimarykey]
+              ,[IsAutoIncrement]
+              ,[IsRequired]
+              ,[IsListable]
+              ,[IsFilterable]
+              ,[IsEditable]
+              ,[IsBrowseable]
+              ,[IsEncrypted]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
 Criar tabela [dbo].[Indexes]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Indexes]', 'U')) IS NOT NULL
@@ -7369,6 +9331,142 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
     END TRY
     BEGIN CATCH
         ROLLBACK TRANSACTION [IndexCommit];
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[IndexesRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[IndexesRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IndexesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexesRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_TableId bigint = CAST(JSON_VALUE(@Parameters, '$.TableId') AS bigint)
+                ,@W_Name varchar(50) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(50))
+                ,@W_IsUnique bit = CAST(JSON_VALUE(@Parameters, '$.IsUnique') AS bit)
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_TableId IS NOT NULL AND @W_TableId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_TableId IS NOT NULL AND @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[DatabaseId]
+              ,[TableId]
+              ,[Name]
+              ,[IsUnique]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Indexes]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [TableId] = ISNULL(@W_TableId, [TableId])
+                  AND [Name] = ISNULL(@W_Name, [Name])
+                  AND [IsUnique] = ISNULL(@W_IsUnique, [IsUnique])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(50)) AS [Name]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Indexes'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[DatabaseId] = CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint)
+               ,[tmp].[TableId] = CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(50))
+               ,[tmp].[IsUnique] = CAST(JSON_VALUE([ActualRecord], '$.IsUnique') AS bit)
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordIndex' AS [ClassName]
+              ,[DatabaseId]
+              ,[TableId]
+              ,[Name]
+              ,[IsUnique]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
         THROW
     END CATCH
 END
@@ -7808,6 +9906,150 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
 END
 GO
 /**********************************************************************************
+Criar stored procedure [dbo].[IndexkeysRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[IndexkeysRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IndexkeysRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexkeysRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_IndexId bigint = CAST(JSON_VALUE(@Parameters, '$.IndexId') AS bigint)
+                ,@W_ColumnId bigint = CAST(JSON_VALUE(@Parameters, '$.ColumnId') AS bigint)
+                ,@W_IsDescending bit = CAST(JSON_VALUE(@Parameters, '$.IsDescending') AS bit)
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_IndexId IS NOT NULL AND @W_IndexId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_IndexId IS NOT NULL AND @W_IndexId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_ColumnId IS NOT NULL AND @W_ColumnId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_ColumnId IS NOT NULL AND @W_ColumnId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[IndexId]
+              ,[Sequence]
+              ,[ColumnId]
+              ,[IsDescending]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Indexkeys]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [IndexId] = ISNULL(@W_IndexId, [IndexId])
+                  AND [ColumnId] = ISNULL(@W_ColumnId, [ColumnId])
+                  AND [IsDescending] = ISNULL(@W_IsDescending, [IsDescending])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IndexId') AS bigint) AS [IndexId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.ColumnId') AS bigint) AS [ColumnId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsDescending') AS bit) AS [IsDescending]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Indexkeys'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[IndexId] = CAST(JSON_VALUE([ActualRecord], '$.IndexId') AS bigint)
+               ,[tmp].[Sequence] = CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint)
+               ,[tmp].[ColumnId] = CAST(JSON_VALUE([ActualRecord], '$.ColumnId') AS bigint)
+               ,[tmp].[IsDescending] = CAST(JSON_VALUE([ActualRecord], '$.IsDescending') AS bit)
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordIndexkey' AS [ClassName]
+              ,[IndexId]
+              ,[Sequence]
+              ,[ColumnId]
+              ,[IsDescending]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
 Criar tabela [dbo].[Logins]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Logins]', 'U')) IS NOT NULL
@@ -8216,6 +10458,150 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
     END TRY
     BEGIN CATCH
         ROLLBACK TRANSACTION [LoginCommit];
+        THROW
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[LoginsRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[LoginsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[LoginsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
+                                          ,@Parameters VARCHAR(MAX)
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows BIGINT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [LoginsRead]: '
+
+        IF @LoginId IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @Parameters IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF ISJSON(@Parameters) = 0 BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
+            THROW 51000, @ErrorMessage, 1
+        END
+        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+                ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
+                ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
+                ,@W_UserId bigint = CAST(JSON_VALUE(@Parameters, '$.UserId') AS bigint)
+                ,@W_IsLogged bit = CAST(JSON_VALUE(@Parameters, '$.IsLogged') AS bit)
+
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_UserId IS NOT NULL AND @W_UserId < CAST('1' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de UserId deve ser maior que ou igual à ''1''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_UserId IS NOT NULL AND @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de UserId deve ser menor que ou igual à ''9007199254740990''.';
+            THROW 51000, @ErrorMessage, 1
+        END
+
+        DECLARE @RowCount BIGINT
+               ,@OffSet INT
+
+        SELECT [Id]
+              ,[SystemId]
+              ,[UserId]
+              ,[PublicKey]
+              ,[IsLogged]
+            INTO [dbo].[#tmp]
+            FROM [dbo].[Logins]
+            WHERE [Id] = ISNULL(@W_Id, [Id])
+                  AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
+                  AND [UserId] = ISNULL(@W_UserId, [UserId])
+                  AND [IsLogged] = ISNULL(@W_IsLogged, [IsLogged])
+            ORDER BY [Id]
+        SET @RowCount = @@ROWCOUNT
+        DELETE [tmp]
+            FROM [dbo].[#tmp]
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        SET @RowCount = @RowCount - @@ROWCOUNT
+        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint) AS [UserId]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.PublicKey') AS varchar(256)) AS [PublicKey]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.IsLogged') AS bit) AS [IsLogged]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Logins'
+                  AND [IsConfirmed] IS NULL
+                  AND [Action] = 'create'
+        SET @RowCount = @RowCount + @@ROWCOUNT
+        UPDATE [tmp]
+            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+               ,[tmp].[SystemId] = CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint)
+               ,[tmp].[UserId] = CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint)
+               ,[tmp].[PublicKey] = CAST(JSON_VALUE([ActualRecord], '$.PublicKey') AS varchar(256))
+               ,[tmp].[IsLogged] = CAST(JSON_VALUE([ActualRecord], '$.IsLogged') AS bit)
+            FROM [dbo].[#tmp] 
+            WHERE EXISTS(SELECT 1
+                            FROM [dbo].[Operations] [ope]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [ope].[TableName] = 'Columns'
+                                  AND [ope].[IsConfirmed] IS NULL
+                                  AND [ope].[Action] = 'update'
+                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @offset = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @offset = (@PageNumber - 1) * @LimitRows
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+        END
+        SELECT 'RecordLogin' AS [ClassName]
+              ,[SystemId]
+              ,[UserId]
+              ,[PublicKey]
+              ,[IsLogged]
+            FROM [dbo].[#tmp] 
+            ORDER BY [Id]
+            OFFSET @offset ROWS
+            FETCH NEXT @LimitRows ROWS ONLY
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
         THROW
     END CATCH
 END

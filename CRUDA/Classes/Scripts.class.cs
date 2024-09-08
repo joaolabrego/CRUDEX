@@ -4,6 +4,8 @@ using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
+using Newtonsoft.Json.Linq;
+using System.Xml.Linq;
 
 namespace CRUDA.Classes
 {
@@ -47,6 +49,7 @@ namespace CRUDA.Classes
                 stream.Write(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys));
                 stream.Write(GetScriptPersistTable(table, columns));
                 stream.Write(GetScriptCommitTable(table, columns));
+                stream.Write(GetScriptReadTable(table, columns, domains, types));
             }
             stream.Write(GetScriptReferences(tables, columns));
             foreach (var table in tables)
@@ -1161,6 +1164,225 @@ namespace CRUDA.Classes
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
                 result.Append($"        RETURN @TransactionId\r\n");
+                result.Append($"    END TRY\r\n");
+                result.Append($"    BEGIN CATCH\r\n");
+                result.Append($"        THROW\r\n");
+                result.Append($"    END CATCH\r\n");
+                result.Append($"END\r\n");
+                result.Append($"GO\r\n");
+            }
+
+            return result;
+        }
+
+        private static StringBuilder GetScriptReadTable(DataRow table, TDataRows columns, TDataRows domains, TDataRows types)
+        {
+            var result = new StringBuilder();
+            var firstTime = true;
+            var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
+
+            if (columnRows.Count > 0)
+            {
+                result.Append($"/**********************************************************************************\r\n");
+                result.Append($"Criar stored procedure [dbo].[{table["Name"]}Read]\r\n");
+                result.Append($"**********************************************************************************/\r\n");
+                result.Append($"IF(SELECT object_id('[dbo].[{table["Name"]}Read]', 'P')) IS NULL\r\n");
+                result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}Read] AS PRINT 1')\r\n");
+                result.Append($"GO\r\n");
+                result.Append($"ALTER PROCEDURE[dbo].[{table["Name"]}Read](@LoginId BIGINT\r\n");
+                result.Append($"                                          ,@Parameters VARCHAR(MAX)\r\n");
+                result.Append($"                                          ,@PageNumber INT OUT\r\n");
+                result.Append($"                                          ,@LimitRows BIGINT OUT\r\n");
+                result.Append($"                                          ,@MaxPage INT OUT\r\n");
+                result.Append($"                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN\r\n");
+                result.Append($"    BEGIN TRY\r\n");
+                result.Append($"        SET NOCOUNT ON\r\n");
+                result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
+                result.Append($"\r\n");
+                result.Append($"        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [{table["Name"]}Read]: '\r\n");
+                result.Append($"\r\n");
+                result.Append($"        IF @LoginId IS NULL BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';\r\n");
+                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"        END\r\n");
+                result.Append($"        IF @Parameters IS NULL BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';\r\n");
+                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"        END\r\n");
+                result.Append($"        IF ISJSON(@Parameters) = 0 BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';\r\n");
+                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"        END\r\n");
+
+                var filterableColumns = columnRows.FindAll(column => ToBoolean(column["IsFilterable"]));
+
+                result.Append($"        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)\r\n");
+                foreach (var column in filterableColumns)
+                    result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@Parameters, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                result.Append($"\r\n");
+                foreach (var column in filterableColumns)
+                {
+                    var validations = GetValidations(column, domains, types);
+
+                    if (validations.TryGetValue("Minimum", out dynamic? value))
+                    {
+                        result.Append($"        IF @W_{column["Name"]} IS NOT NULL AND @W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]}) BEGIN\r\n");
+                        result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} deve ser maior que ou igual à ''{value}''.';\r\n");
+                        result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                        result.Append($"        END\r\n");
+                    }
+                    if (validations.TryGetValue("Maximum", out value))
+                    {
+                        result.Append($"        IF @W_{column["Name"]} IS NOT NULL AND @W_{column["Name"]} > CAST('{value}' AS {column["#DataType"]}) BEGIN\r\n");
+                        result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} deve ser menor que ou igual à ''{value}''.';\r\n");
+                        result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                        result.Append($"        END\r\n");
+                    }
+                }
+                result.Append($"\r\n");
+                result.Append($"        DECLARE @RowCount BIGINT\r\n");
+                result.Append($"               ,@OffSet INT\r\n");
+                result.Append($"\r\n");
+                firstTime = true;
+                foreach (var column in columnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"        SELECT [{column["Name"]}]\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"              ,[{column["Name"]}]\r\n");
+                }
+                result.Append($"            INTO [dbo].[#tmp]\r\n");
+                result.Append($"            FROM [dbo].[{table["Name"]}]\r\n");
+                firstTime = true;
+                foreach (var column in filterableColumns)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"            WHERE ");
+                        if (ToBoolean(column["IsRequired"]))
+                            result.Append($"[{column["Name"]}] = ISNULL(@W_{column["Name"]}, [{column["Name"]}])\r\n");
+                        else
+                            result.Append($"(@W_{column["Name"]} IS NULL OR [{column["Name"]}] = @W_{column["Name"]})\r\n");
+                        firstTime = false;
+                    }
+                    else
+                    {
+                        result.Append($"                  AND ");
+                        if (ToBoolean(column["IsRequired"]))
+                            result.Append($"[{column["Name"]}] = ISNULL(@W_{column["Name"]}, [{column["Name"]}])\r\n");
+                        else
+                            result.Append($"(@W_{column["Name"]} IS NULL OR [{column["Name"]}] = @W_{column["Name"]})\r\n");
+                    }
+                }
+
+                var pkColumnRows = columnRows.FindAll(column => ToBoolean(column["IsPrimarykey"]));
+
+                firstTime = true;
+                foreach (var column in pkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"            ORDER BY [{column["Name"]}]\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                    ,[{column["Name"]}]\r\n");
+                }
+                result.Append($"        SET @RowCount = @@ROWCOUNT\r\n");
+                result.Append($"        DELETE [tmp]\r\n");
+                result.Append($"            FROM [dbo].[#tmp]\r\n");
+                result.Append($"            WHERE EXISTS(SELECT 1\r\n");
+                result.Append($"                            FROM [dbo].[Operations] [ope]\r\n");
+                result.Append($"                            WHERE [TransactionId] = @TransactionId\r\n");
+                result.Append($"                                  AND [ope].[TableName] = 'Columns'\r\n");
+                result.Append($"                                  AND [ope].[IsConfirmed] IS NULL\r\n");
+                result.Append($"                                  AND [ope].[Action] = 'update'\r\n");
+                foreach (var column in pkColumnRows)
+                    result.Append($"                                  AND CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}])\r\n");
+                result.Append($"        SET @RowCount = @RowCount - @@ROWCOUNT\r\n");
+                firstTime = true;
+                foreach (var column in columnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                                  ,CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
+                }
+                result.Append($"            FROM [dbo].[Operations]\r\n");
+                result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
+                result.Append($"                  AND [TableName] = '{table["Name"]}'\r\n");
+                result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
+                result.Append($"                  AND [Action] = 'create'\r\n");
+                result.Append($"        SET @RowCount = @RowCount + @@ROWCOUNT\r\n");
+                firstTime = true;
+                foreach (var column in columnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"        UPDATE [tmp]\r\n");
+                        result.Append($"            SET [tmp].[{column["Name"]}] = CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"               ,[tmp].[{column["Name"]}] = CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                }
+                result.Append($"            FROM [dbo].[#tmp] \r\n");
+                result.Append($"            WHERE EXISTS(SELECT 1\r\n");
+                result.Append($"                            FROM [dbo].[Operations] [ope]\r\n");
+                result.Append($"                            WHERE [TransactionId] = @TransactionId\r\n");
+                result.Append($"                                  AND [ope].[TableName] = 'Columns'\r\n");
+                result.Append($"                                  AND [ope].[IsConfirmed] IS NULL\r\n");
+                result.Append($"                                  AND [ope].[Action] = 'update'\r\n");
+                foreach (var column in pkColumnRows)
+                    result.Append($"                                  AND CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}])\r\n");
+                result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
+                result.Append($"            SET @offset = 0\r\n");
+                result.Append($"            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END\r\n");
+                result.Append($"            SET @PageNumber = 1\r\n");
+                result.Append($"            SET @MaxPage = 1\r\n");
+                result.Append($"        END ELSE BEGIN\r\n");
+                result.Append($"            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END\r\n");
+                result.Append($"            IF ABS(@PageNumber) > @MaxPage\r\n");
+                result.Append($"                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END\r\n");
+                result.Append($"            IF @PageNumber < 0\r\n");
+                result.Append($"                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1\r\n");
+                result.Append($"            SET @offset = (@PageNumber - 1) * @LimitRows\r\n");
+                result.Append($"            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount\r\n");
+                result.Append($"                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END\r\n");
+                result.Append($"        END\r\n");
+                firstTime = true;
+                foreach (var column in columnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"        SELECT 'Record{table["Alias"]}' AS [ClassName]\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"              ,[{column["Name"]}]\r\n");
+                }
+                result.Append($"            FROM [dbo].[#tmp] \r\n");
+                firstTime = true;
+                foreach (var column in pkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"            ORDER BY [{column["Name"]}]\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                    ,[{column["Name"]}]\r\n");
+                }
+                result.Append($"            OFFSET @offset ROWS\r\n");
+                result.Append($"            FETCH NEXT @LimitRows ROWS ONLY\r\n");
+                result.Append($"\r\n");
+                result.Append($"        RETURN @RowCount\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
                 result.Append($"        THROW\r\n");
