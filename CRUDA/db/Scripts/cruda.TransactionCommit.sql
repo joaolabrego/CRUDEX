@@ -15,10 +15,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 				,@CreatedBy VARCHAR(25)
 				,@sql VARCHAR(MAX)
 
-		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION [TransactionsCommit]
-		ELSE
-			SAVE TRANSACTION [TransactionsCommit]
+		BEGIN TRANSACTION [TransactionsCommit]
 		IF @TransactionId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1

@@ -18,10 +18,7 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
 				,@ActualRecord VARCHAR(MAX)
 				,@IsConfirmed BIT
 
-		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION [ColumnCommit]
-		ELSE
-			SAVE TRANSACTION [ColumnCommit]
+		BEGIN TRANSACTION [ColumnCommit]
 		IF @OperationId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
 			THROW 51000, @ErrorMessage, 1

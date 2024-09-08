@@ -556,10 +556,7 @@ namespace CRUDA.Classes
                 result.Append($"               ,@ActionAux VARCHAR(15)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
                 result.Append($"\r\n");
-                result.Append($"        IF @@TRANCOUNT = 0\r\n");
-                result.Append($"            BEGIN TRANSACTION [{table["Alias"]}Persist]\r\n");
-                result.Append($"        ELSE\r\n");
-                result.Append($"            SAVE TRANSACTION [{table["Alias"]}Persist]\r\n");
+                result.Append($"        BEGIN TRANSACTION [{table["Alias"]}Persist]\r\n");
                 result.Append($"        EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
                 result.Append($"        IF @TransactionId = 0\r\n");
                 result.Append($"            GOTO EXIT_PROCEDURE\r\n");
@@ -694,10 +691,7 @@ namespace CRUDA.Classes
                 result.Append($"               ,@ActualRecord VARCHAR(max)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
                 result.Append($"\r\n");
-                result.Append($"        IF @@TRANCOUNT = 0\r\n");
-                result.Append($"            BEGIN TRANSACTION [{table["Alias"]}Commit]\r\n");
-                result.Append($"        ELSE\r\n");
-                result.Append($"            SAVE TRANSACTION [{table["Alias"]}Commit]\r\n");
+                result.Append($"        BEGIN TRANSACTION [{table["Alias"]}Commit]\r\n");
                 result.Append($"        IF @OperationId IS NULL BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");

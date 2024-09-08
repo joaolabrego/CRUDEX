@@ -12,10 +12,7 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 				,@CreatedBy VARCHAR(25)
 				,@IsConfirmed BIT
 
-		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION [TransactionRollback]
-		ELSE
-			SAVE TRANSACTION [TransactionRollback]
+		BEGIN TRANSACTION [TransactionRollback]
 		IF @TransactionId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1

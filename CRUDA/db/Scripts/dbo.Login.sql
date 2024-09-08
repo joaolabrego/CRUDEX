@@ -5,13 +5,10 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION [Login]
-		ELSE
-			SAVE TRANSACTION [Login]
 
 		DECLARE @ErrorMessage VARCHAR(256)
 
+		BEGIN TRANSACTION [Login]
 		IF ISJSON(@Parameters) = 0 BEGIN
 			SET @ErrorMessage = 'Parâmetro login não está no formato JSON';
 			THROW 51000, @ErrorMessage, 1
@@ -106,7 +103,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 				SET @ErrorMessage = 'Chave pública é requerida';
 				THROW 51000, @ErrorMessage, 1
 			END
-			SELECT @LoginId = ISNULL(MAX([Id]) + 1, 1) FROM [dbo].[Logins]
+			EXEC @LoginId = [dbo].[GenerateId] 'cruda', 'cruda', 'Logins'
 			INSERT [dbo].[Logins]([Id],
 								  [SystemId],
 								  [UserId],

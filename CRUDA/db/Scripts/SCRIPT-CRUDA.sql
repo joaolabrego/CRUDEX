@@ -387,10 +387,7 @@ BEGIN
 				@NextId BIGINT,
 				@ErrorMessage VARCHAR(255) = 'Stored Procedure GenerateId: '
 
-		IF @@TRANCOUNT = 0 BEGIN
-			BEGIN TRANSACTION [GenerateId]
-		END ELSE
-			SAVE TRANSACTION [GenerateId]
+		BEGIN TRANSACTION [GenerateId]
 		SELECT @SystemId = [Id]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
@@ -450,13 +447,10 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION [Login]
-		ELSE
-			SAVE TRANSACTION [Login]
 
 		DECLARE @ErrorMessage VARCHAR(256)
 
+		BEGIN TRANSACTION [Login]
 		IF ISJSON(@Parameters) = 0 BEGIN
 			SET @ErrorMessage = 'Parâmetro login não está no formato JSON';
 			THROW 51000, @ErrorMessage, 1
@@ -551,7 +545,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 				SET @ErrorMessage = 'Chave pública é requerida';
 				THROW 51000, @ErrorMessage, 1
 			END
-			SELECT @LoginId = MAX([Id]) + 1 FROM [dbo].[Logins]
+			EXEC @LoginId = [dbo].[GenerateId] 'cruda', 'cruda', 'Logins'
 			INSERT [dbo].[Logins]([Id],
 								  [SystemId],
 								  [UserId],
@@ -975,10 +969,7 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionBegin]: '
 				,@TransactionId	INT
 
-		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION [TransactionBegin]
-		ELSE
-			SAVE TRANSACTION [TransactionBegin]
+		BEGIN TRANSACTION [TransactionBegin]
 		IF @LoginId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -1022,10 +1013,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 				,@CreatedBy VARCHAR(25)
 				,@sql VARCHAR(MAX)
 
-		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION [TransactionsCommit]
-		ELSE
-			SAVE TRANSACTION [TransactionsCommit]
+		BEGIN TRANSACTION [TransactionsCommit]
 		IF @TransactionId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -1090,10 +1078,7 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 				,@CreatedBy VARCHAR(25)
 				,@IsConfirmed BIT
 
-		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION [TransactionRollback]
-		ELSE
-			SAVE TRANSACTION [TransactionRollback]
+		BEGIN TRANSACTION [TransactionRollback]
 		IF @TransactionId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -1403,10 +1388,7 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [CategoryPersist]
-        ELSE
-            SAVE TRANSACTION [CategoryPersist]
+        BEGIN TRANSACTION [CategoryPersist]
         EXEC @TransactionId = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -1509,10 +1491,7 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [CategoryCommit]
-        ELSE
-            SAVE TRANSACTION [CategoryCommit]
+        BEGIN TRANSACTION [CategoryCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -2057,10 +2036,7 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [TypePersist]
-        ELSE
-            SAVE TRANSACTION [TypePersist]
+        BEGIN TRANSACTION [TypePersist]
         EXEC @TransactionId = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -2163,10 +2139,7 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [TypeCommit]
-        ELSE
-            SAVE TRANSACTION [TypeCommit]
+        BEGIN TRANSACTION [TypeCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -2659,10 +2632,7 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [MaskPersist]
-        ELSE
-            SAVE TRANSACTION [MaskPersist]
+        BEGIN TRANSACTION [MaskPersist]
         EXEC @TransactionId = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -2765,10 +2735,7 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [MaskCommit]
-        ELSE
-            SAVE TRANSACTION [MaskCommit]
+        BEGIN TRANSACTION [MaskCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -3217,10 +3184,7 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [DomainPersist]
-        ELSE
-            SAVE TRANSACTION [DomainPersist]
+        BEGIN TRANSACTION [DomainPersist]
         EXEC @TransactionId = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -3323,10 +3287,7 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [DomainCommit]
-        ELSE
-            SAVE TRANSACTION [DomainCommit]
+        BEGIN TRANSACTION [DomainCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -3823,10 +3784,7 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [SystemPersist]
-        ELSE
-            SAVE TRANSACTION [SystemPersist]
+        BEGIN TRANSACTION [SystemPersist]
         EXEC @TransactionId = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -3929,10 +3887,7 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [SystemCommit]
-        ELSE
-            SAVE TRANSACTION [SystemCommit]
+        BEGIN TRANSACTION [SystemCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -4396,10 +4351,7 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [MenuPersist]
-        ELSE
-            SAVE TRANSACTION [MenuPersist]
+        BEGIN TRANSACTION [MenuPersist]
         EXEC @TransactionId = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -4502,10 +4454,7 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [MenuCommit]
-        ELSE
-            SAVE TRANSACTION [MenuCommit]
+        BEGIN TRANSACTION [MenuCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -4956,10 +4905,7 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [UserPersist]
-        ELSE
-            SAVE TRANSACTION [UserPersist]
+        BEGIN TRANSACTION [UserPersist]
         EXEC @TransactionId = [dbo].[UserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -5062,10 +5008,7 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [UserCommit]
-        ELSE
-            SAVE TRANSACTION [UserCommit]
+        BEGIN TRANSACTION [UserCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -5510,10 +5453,7 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [SystemUserPersist]
-        ELSE
-            SAVE TRANSACTION [SystemUserPersist]
+        BEGIN TRANSACTION [SystemUserPersist]
         EXEC @TransactionId = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -5616,10 +5556,7 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [SystemUserCommit]
-        ELSE
-            SAVE TRANSACTION [SystemUserCommit]
+        BEGIN TRANSACTION [SystemUserCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -6072,10 +6009,7 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [DatabasePersist]
-        ELSE
-            SAVE TRANSACTION [DatabasePersist]
+        BEGIN TRANSACTION [DatabasePersist]
         EXEC @TransactionId = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -6178,10 +6112,7 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [DatabaseCommit]
-        ELSE
-            SAVE TRANSACTION [DatabaseCommit]
+        BEGIN TRANSACTION [DatabaseCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -6656,10 +6587,7 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [SystemDatabasePersist]
-        ELSE
-            SAVE TRANSACTION [SystemDatabasePersist]
+        BEGIN TRANSACTION [SystemDatabasePersist]
         EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -6762,10 +6690,7 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [SystemDatabaseCommit]
-        ELSE
-            SAVE TRANSACTION [SystemDatabaseCommit]
+        BEGIN TRANSACTION [SystemDatabaseCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -7222,10 +7147,7 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [TablePersist]
-        ELSE
-            SAVE TRANSACTION [TablePersist]
+        BEGIN TRANSACTION [TablePersist]
         EXEC @TransactionId = [dbo].[TableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -7328,10 +7250,7 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [TableCommit]
-        ELSE
-            SAVE TRANSACTION [TableCommit]
+        BEGIN TRANSACTION [TableCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -7784,10 +7703,7 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [DatabaseTablePersist]
-        ELSE
-            SAVE TRANSACTION [DatabaseTablePersist]
+        BEGIN TRANSACTION [DatabaseTablePersist]
         EXEC @TransactionId = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -7890,10 +7806,7 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [DatabaseTableCommit]
-        ELSE
-            SAVE TRANSACTION [DatabaseTableCommit]
+        BEGIN TRANSACTION [DatabaseTableCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -8446,10 +8359,7 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [ColumnPersist]
-        ELSE
-            SAVE TRANSACTION [ColumnPersist]
+        BEGIN TRANSACTION [ColumnPersist]
         EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -8552,10 +8462,7 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [ColumnCommit]
-        ELSE
-            SAVE TRANSACTION [ColumnCommit]
+        BEGIN TRANSACTION [ColumnCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -9160,10 +9067,7 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [IndexPersist]
-        ELSE
-            SAVE TRANSACTION [IndexPersist]
+        BEGIN TRANSACTION [IndexPersist]
         EXEC @TransactionId = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -9266,10 +9170,7 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [IndexCommit]
-        ELSE
-            SAVE TRANSACTION [IndexCommit]
+        BEGIN TRANSACTION [IndexCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -9730,10 +9631,7 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [IndexkeyPersist]
-        ELSE
-            SAVE TRANSACTION [IndexkeyPersist]
+        BEGIN TRANSACTION [IndexkeyPersist]
         EXEC @TransactionId = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -9836,10 +9734,7 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [IndexkeyCommit]
-        ELSE
-            SAVE TRANSACTION [IndexkeyCommit]
+        BEGIN TRANSACTION [IndexkeyCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -10287,10 +10182,7 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [LoginPersist]
-        ELSE
-            SAVE TRANSACTION [LoginPersist]
+        BEGIN TRANSACTION [LoginPersist]
         EXEC @TransactionId = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -10393,10 +10285,7 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        IF @@TRANCOUNT = 0
-            BEGIN TRANSACTION [LoginCommit]
-        ELSE
-            SAVE TRANSACTION [LoginCommit]
+        BEGIN TRANSACTION [LoginCommit]
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1

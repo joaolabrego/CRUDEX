@@ -17,10 +17,7 @@ ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
 				,@ActionAux VARCHAR(15)
 				,@IsConfirmed BIT
 
-		IF @@TRANCOUNT = 0
-			BEGIN TRANSACTION [ColumnPersist]
-		ELSE
-			SAVE TRANSACTION [ColumnPersist]
+		BEGIN TRANSACTION [ColumnPersist]
 		EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
 		IF @TransactionId = 0
 			GOTO EXIT_PROCEDURE

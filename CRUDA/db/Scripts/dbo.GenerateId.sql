@@ -15,10 +15,7 @@ BEGIN
 				@NextId BIGINT,
 				@ErrorMessage VARCHAR(255) = 'Stored Procedure GenerateId: '
 
-		IF @@TRANCOUNT = 0 BEGIN
-			BEGIN TRANSACTION [GenerateId]
-		END ELSE
-			SAVE TRANSACTION [GenerateId]
+		BEGIN TRANSACTION [GenerateId]
 		SELECT @SystemId = [Id]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
