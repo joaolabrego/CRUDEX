@@ -15,7 +15,7 @@ BEGIN
 				@NextId BIGINT,
 				@ErrorMessage VARCHAR(255) = 'Stored Procedure GenerateId: '
 
-		BEGIN TRANSACTION [GenerateId]
+		BEGIN TRANSACTION
 		SELECT @SystemId = [Id]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
@@ -55,12 +55,12 @@ BEGIN
 		UPDATE [dbo].[Tables] 
 			SET [CurrentId] = @NextId
 			WHERE [Id] = @TableId
-		COMMIT TRANSACTION [GenerateId]
+		COMMIT TRANSACTION
 
 		RETURN @NextId
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION [GenerateId];
+		ROLLBACK TRANSACTION;
 		THROW
 	END CATCH
 END

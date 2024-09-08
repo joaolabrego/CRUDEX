@@ -387,7 +387,7 @@ BEGIN
 				@NextId BIGINT,
 				@ErrorMessage VARCHAR(255) = 'Stored Procedure GenerateId: '
 
-		BEGIN TRANSACTION [GenerateId]
+		BEGIN TRANSACTION
 		SELECT @SystemId = [Id]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
@@ -427,12 +427,12 @@ BEGIN
 		UPDATE [dbo].[Tables] 
 			SET [CurrentId] = @NextId
 			WHERE [Id] = @TableId
-		COMMIT TRANSACTION [GenerateId]
+		COMMIT TRANSACTION
 
 		RETURN @NextId
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION [GenerateId];
+		ROLLBACK TRANSACTION;
 		THROW
 	END CATCH
 END
@@ -450,7 +450,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 
 		DECLARE @ErrorMessage VARCHAR(256)
 
-		BEGIN TRANSACTION [Login]
+		BEGIN TRANSACTION
 		IF ISJSON(@Parameters) = 0 BEGIN
 			SET @ErrorMessage = 'Parâmetro login não está no formato JSON';
 			THROW 51000, @ErrorMessage, 1
@@ -521,7 +521,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF NOT EXISTS(SELECT TOP 1 1
-						FROM [dbo].[SystemsUsers] [SU]
+						FROM [dbo].[SystemsUsers]
 						WHERE [SystemId] = @SystemId
 							  AND [UserId] =  @UserId) BEGIN
 			SET @ErrorMessage = 'Usuário não autorizado';
@@ -536,8 +536,11 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 			UPDATE [dbo].[Users] 
 				SET [RetryLogins] = @RetryLogins
 				WHERE [Id] = @UserId
-			COMMIT TRANSACTION [Login]
-			SET @ErrorMessage = 'Senha é inválida (' + CAST(@MaxRetryLogins -  @RetryLogins AS VARCHAR(3)) + ' tentativas restantes)';
+			COMMIT TRANSACTION
+			IF @RetryLogins = @MaxRetryLogins
+				SET @ErrorMessage = 'Usuário está bloqueado';
+			ELSE
+				SET @ErrorMessage = 'Senha é inválida (' + CAST(@MaxRetryLogins -  @RetryLogins AS VARCHAR(3)) + ' tentativas restantes)';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @action = 'login' BEGIN
@@ -595,13 +598,13 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		UPDATE [dbo].[Users]
 			SET [RetryLogins] = 0
 			WHERE [Id] = @UserId
-		COMMIT TRANSACTION [Login]
+		COMMIT TRANSACTION
 
 		RETURN @LoginId
 	END TRY
 	BEGIN CATCH
 		IF XACT_STATE() <> 0
-			ROLLBACK TRANSACTION [Login];
+			ROLLBACK TRANSACTION;
 		THROW
 	END CATCH
 END
@@ -969,7 +972,7 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionBegin]: '
 				,@TransactionId	INT
 
-		BEGIN TRANSACTION [TransactionBegin]
+		BEGIN TRANSACTION
 		IF @LoginId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -983,12 +986,12 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 									   ,GETDATE()
 									   ,@UserName)
 		SET @TransactionId = @@IDENTITY
-		COMMIT TRANSACTION [TransactionBegin]
+		COMMIT TRANSACTION
 
 		RETURN CAST(@TransactionId AS INT)
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION [TransactionBegin];
+		ROLLBACK TRANSACTION
 		THROW
 	END CATCH
 END
@@ -1013,7 +1016,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 				,@CreatedBy VARCHAR(25)
 				,@sql VARCHAR(MAX)
 
-		BEGIN TRANSACTION [TransactionsCommit]
+		BEGIN TRANSACTION
 		IF @TransactionId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -1051,12 +1054,12 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 				,[UpdatedBy] = @UserName
 				,[UpdatedAt] = GETDATE()
 			WHERE [Id] = @TransactionId
-		COMMIT TRANSACTION [TransactionCommit]
+		COMMIT TRANSACTION
 
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION [TransactionCommit];
+		ROLLBACK TRANSACTION;
 		THROW
 	END CATCH
 END
@@ -1078,7 +1081,7 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 				,@CreatedBy VARCHAR(25)
 				,@IsConfirmed BIT
 
-		BEGIN TRANSACTION [TransactionRollback]
+		BEGIN TRANSACTION
 		IF @TransactionId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -1122,12 +1125,12 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 				,[UpdatedBy] = @UserName
 				,[UpdatedAt] = GETDATE()
 			WHERE [Id] = @TransactionId
-		COMMIT TRANSACTION [TransactionRollback]
+		COMMIT TRANSACTION
 
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION [TransactionRollback];
+		ROLLBACK TRANSACTION;
 		THROW
 	END CATCH
 END
@@ -1683,7 +1686,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -1700,7 +1703,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.AskDefault') AS bit) AS [AskDefault]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.AskMinimum') AS bit) AS [AskMinimum]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Categories'
                   AND [IsConfirmed] IS NULL
@@ -1719,7 +1722,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
                ,[tmp].[AskMaximum] = CAST(JSON_VALUE([ActualRecord], '$.AskMaximum') AS bit)
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -2364,7 +2367,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -2386,7 +2389,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.AskFormula') AS bit) AS [AskFormula]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.AllowMaxLength') AS bit) AS [AllowMaxLength]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Types'
                   AND [IsConfirmed] IS NULL
@@ -2410,7 +2413,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
                ,[tmp].[IsActive] = CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit)
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -2880,7 +2883,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -2890,7 +2893,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Mask') AS varchar(8000)) AS [Mask]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Masks'
                   AND [IsConfirmed] IS NULL
@@ -2902,7 +2905,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
                ,[tmp].[Mask] = CAST(JSON_VALUE([ActualRecord], '$.Mask') AS varchar(8000))
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -3496,7 +3499,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -3514,7 +3517,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS sql_variant) AS [Minimum]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS sql_variant) AS [Maximum]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Codification') AS varchar(5)) AS [Codification]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Domains'
                   AND [IsConfirmed] IS NULL
@@ -3534,7 +3537,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
                ,[tmp].[Codification] = CAST(JSON_VALUE([ActualRecord], '$.Codification') AS varchar(5))
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -4049,7 +4052,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -4062,7 +4065,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.ClientName') AS varchar(15)) AS [ClientName]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IsOffAir') AS bit) AS [IsOffAir]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Systems'
                   AND [IsConfirmed] IS NULL
@@ -4077,7 +4080,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
                ,[tmp].[IsOffAir] = CAST(JSON_VALUE([ActualRecord], '$.IsOffAir') AS bit)
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -4629,7 +4632,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -4643,7 +4646,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Message') AS varchar(50)) AS [Message]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Action') AS varchar(50)) AS [Action]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.ParentMenuId') AS bigint) AS [ParentMenuId]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Menus'
                   AND [IsConfirmed] IS NULL
@@ -4659,7 +4662,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
                ,[tmp].[ParentMenuId] = CAST(JSON_VALUE([ActualRecord], '$.ParentMenuId') AS bigint)
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -5172,7 +5175,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -5185,7 +5188,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.FullName') AS varchar(50)) AS [FullName]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.RetryLogins') AS tinyint) AS [RetryLogins]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Users'
                   AND [IsConfirmed] IS NULL
@@ -5200,7 +5203,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
                ,[tmp].[IsActive] = CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit)
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -5726,7 +5729,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -5737,7 +5740,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint) AS [UserId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'SystemsUsers'
                   AND [IsConfirmed] IS NULL
@@ -5750,7 +5753,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
                ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -6294,7 +6297,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -6311,7 +6314,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Logon') AS varchar(256)) AS [Logon]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Password') AS varchar(256)) AS [Password]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Folder') AS varchar(256)) AS [Folder]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Databases'
                   AND [IsConfirmed] IS NULL
@@ -6330,7 +6333,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
                ,[tmp].[Folder] = CAST(JSON_VALUE([ActualRecord], '$.Folder') AS varchar(256))
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -6860,7 +6863,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -6871,7 +6874,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'SystemsDatabases'
                   AND [IsConfirmed] IS NULL
@@ -6884,7 +6887,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
                ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -7419,7 +7422,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -7433,7 +7436,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.ParentTableId') AS bigint) AS [ParentTableId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IsPaged') AS bit) AS [IsPaged]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.CurrentId') AS bigint) AS [CurrentId]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Tables'
                   AND [IsConfirmed] IS NULL
@@ -7449,7 +7452,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                ,[tmp].[CurrentId] = CAST(JSON_VALUE([ActualRecord], '$.CurrentId') AS bigint)
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -7976,7 +7979,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -7987,7 +7990,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'DatabasesTables'
                   AND [IsConfirmed] IS NULL
@@ -8000,7 +8003,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
                ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -8741,7 +8744,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -8769,7 +8772,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IsBrowseable') AS bit) AS [IsBrowseable]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
@@ -8799,7 +8802,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
                ,[tmp].[IsEncrypted] = CAST(JSON_VALUE([ActualRecord], '$.IsEncrypted') AS bit)
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -9337,7 +9340,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -9349,7 +9352,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(50)) AS [Name]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Indexes'
                   AND [IsConfirmed] IS NULL
@@ -9363,7 +9366,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
                ,[tmp].[IsUnique] = CAST(JSON_VALUE([ActualRecord], '$.IsUnique') AS bit)
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -9909,7 +9912,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -9921,7 +9924,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.ColumnId') AS bigint) AS [ColumnId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IsDescending') AS bit) AS [IsDescending]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Indexkeys'
                   AND [IsConfirmed] IS NULL
@@ -9935,7 +9938,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
                ,[tmp].[IsDescending] = CAST(JSON_VALUE([ActualRecord], '$.IsDescending') AS bit)
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -10460,7 +10463,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
         DELETE [tmp]
             FROM [dbo].[#tmp]
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL
@@ -10472,7 +10475,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint) AS [UserId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.PublicKey') AS varchar(256)) AS [PublicKey]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IsLogged') AS bit) AS [IsLogged]
-            FROM [dbo].[Operations]
+            FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Logins'
                   AND [IsConfirmed] IS NULL
@@ -10486,7 +10489,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
                ,[tmp].[IsLogged] = CAST(JSON_VALUE([ActualRecord], '$.IsLogged') AS bit)
             FROM [dbo].[#tmp] 
             WHERE EXISTS(SELECT 1
-                            FROM [dbo].[Operations] [ope]
+                            FROM [cruda].[Operations] [ope]
                             WHERE [TransactionId] = @TransactionId
                                   AND [ope].[TableName] = 'Columns'
                                   AND [ope].[IsConfirmed] IS NULL

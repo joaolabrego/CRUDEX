@@ -17,7 +17,7 @@ ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
 				,@ActionAux VARCHAR(15)
 				,@IsConfirmed BIT
 
-		BEGIN TRANSACTION [ColumnPersist]
+		BEGIN TRANSACTION
 		EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
 		IF @TransactionId = 0
 			GOTO EXIT_PROCEDURE
@@ -87,12 +87,12 @@ ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
 
 		EXIT_PROCEDURE:
 
-		COMMIT TRANSACTION [ColumnPersist]
+		COMMIT TRANSACTION
 
 		RETURN @OperationId
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION [ColumnPersist];
+		ROLLBACK TRANSACTION
 		THROW
 	END CATCH
 END

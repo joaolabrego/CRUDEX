@@ -18,7 +18,7 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
 				,@ActualRecord VARCHAR(MAX)
 				,@IsConfirmed BIT
 
-		BEGIN TRANSACTION [ColumnCommit]
+		BEGIN TRANSACTION
 		IF @OperationId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -166,12 +166,12 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
 				,[UpdatedBy] = @UserName
 			WHERE [Id] = @OperationId
 
-		COMMIT TRANSACTION [ColumnCommit]
+		COMMIT TRANSACTION
 
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION [ColumnCommit];
+		ROLLBACK TRANSACTION;
 		THROW
 	END CATCH
 END

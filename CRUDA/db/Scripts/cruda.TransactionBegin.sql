@@ -10,7 +10,7 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionBegin]: '
 				,@TransactionId	INT
 
-		BEGIN TRANSACTION [TransactionBegin]
+		BEGIN TRANSACTION
 		IF @LoginId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -24,12 +24,12 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 									   ,GETDATE()
 									   ,@UserName)
 		SET @TransactionId = @@IDENTITY
-		COMMIT TRANSACTION [TransactionBegin]
+		COMMIT TRANSACTION
 
 		RETURN CAST(@TransactionId AS INT)
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION [TransactionBegin];
+		ROLLBACK TRANSACTION
 		THROW
 	END CATCH
 END

@@ -8,7 +8,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 
 		DECLARE @ErrorMessage VARCHAR(256)
 
-		BEGIN TRANSACTION [Login]
+		BEGIN TRANSACTION
 		IF ISJSON(@Parameters) = 0 BEGIN
 			SET @ErrorMessage = 'Parâmetro login não está no formato JSON';
 			THROW 51000, @ErrorMessage, 1
@@ -79,7 +79,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF NOT EXISTS(SELECT TOP 1 1
-						FROM [dbo].[SystemsUsers] [SU]
+						FROM [dbo].[SystemsUsers]
 						WHERE [SystemId] = @SystemId
 							  AND [UserId] =  @UserId) BEGIN
 			SET @ErrorMessage = 'Usuário não autorizado';
@@ -94,8 +94,11 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 			UPDATE [dbo].[Users] 
 				SET [RetryLogins] = @RetryLogins
 				WHERE [Id] = @UserId
-			COMMIT TRANSACTION [Login]
-			SET @ErrorMessage = 'Senha é inválida (' + CAST(@MaxRetryLogins -  @RetryLogins AS VARCHAR(3)) + ' tentativas restantes)';
+			COMMIT TRANSACTION
+			IF @RetryLogins = @MaxRetryLogins
+				SET @ErrorMessage = 'Usuário está bloqueado';
+			ELSE
+				SET @ErrorMessage = 'Senha é inválida (' + CAST(@MaxRetryLogins -  @RetryLogins AS VARCHAR(3)) + ' tentativas restantes)';
 			THROW 51000, @ErrorMessage, 1
 		END
 		IF @action = 'login' BEGIN
@@ -153,13 +156,13 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		UPDATE [dbo].[Users]
 			SET [RetryLogins] = 0
 			WHERE [Id] = @UserId
-		COMMIT TRANSACTION [Login]
+		COMMIT TRANSACTION
 
 		RETURN @LoginId
 	END TRY
 	BEGIN CATCH
 		IF XACT_STATE() <> 0
-			ROLLBACK TRANSACTION [Login];
+			ROLLBACK TRANSACTION;
 		THROW
 	END CATCH
 END
