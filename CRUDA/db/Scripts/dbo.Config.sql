@@ -5,17 +5,23 @@ ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
 							  ,@DatabaseName VARCHAR(25) = NULL
 							  ,@TableName VARCHAR(25) = NULL) AS
 BEGIN
-	DECLARE @ErrorMessage VARCHAR(50)
+	DECLARE @ErrorMessage VARCHAR(250)
 
 	SET NOCOUNT ON
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 	BEGIN TRY
+		IF @SystemName IS NULL BEGIN
+			SET @ErrorMessage = 'Nome de sistema é requerido.';
+			THROW 51000, @ErrorMessage, 1
+		END
 		-- 0 [Systems]
 		SELECT 	'RecordSystem' AS [ClassName]
 				,[Id]
 				,[Name]
 				,[Description]
 				,[ClientName]
+				,[MaxRetryLogins]
+				,[IsOffAir]
 			INTO [dbo].[#Systems]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
@@ -23,6 +29,11 @@ BEGIN
 			SET @ErrorMessage = 'Sistema "' + @SystemName + '" não cadastrado.';
 			THROW 51000, @ErrorMessage, 1
 		END
+		IF (SELECT IsOffAir FROM [dbo].[#Systems]) = 1 BEGIN
+			SET @ErrorMessage = 'Sistema "' + @SystemName + '" fora do ar.';
+			THROW 51000, @ErrorMessage, 1
+		END
+		ALTER TABLE [dbo].[#Systems] DROP COLUMN [IsOffAir]
 		IF @DatabaseName IS NULL
 			RETURN
 		ALTER TABLE [dbo].[#Systems] ADD PRIMARY KEY CLUSTERED([Id])
@@ -53,6 +64,14 @@ BEGIN
 			THROW 51000, @ErrorMessage, 1
 		END
 		ALTER TABLE [dbo].[#Databases] ADD PRIMARY KEY CLUSTERED([Id])
+		IF @DatabaseName IS NULL BEGIN
+			ALTER TABLE [dbo].[#Databases] DROP COLUMN [ServerName]
+			ALTER TABLE [dbo].[#Databases] DROP COLUMN [HostName]
+			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Port]
+			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Logon]
+			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Password]
+			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Folder]
+		END
 
 		-- 2 [Tables]
 		SELECT	'RecordTable' AS [ClassName]
@@ -62,12 +81,6 @@ BEGIN
 				,[T].[Alias]
 				,[T].[Description]
 				,[T].[ParentTableId]
-				,[T].[ProcedureCreate]
-				,[T].[ProcedureRead]
-				,[T].[ProcedureUpdate]
-				,[T].[ProcedureDelete]
-				,[T].[ProcedureList]
-				,[T].[FunctionValid]
 				,[T].[IsPaged]
 			INTO [dbo].[#Tables]
 			FROM [dbo].[Tables] [T]
@@ -233,13 +246,7 @@ BEGIN
 		-- Results
 		SELECT * FROM [dbo].[#Systems] ORDER BY [Name] -- 0 [#Systems]
 		IF @DatabaseName IS NULL BEGIN
-			SELECT [ClassName] -- 1 [#Databases]
-					,[Id]
-					,[Name]
-					,[Description]
-					,[Alias]
-				FROM [dbo].[#Databases] 
-				ORDER BY [Name]
+			SELECT * FROM [dbo].[#Databases] ORDER BY [Name] -- 1 [#Databases]
 			SELECT * FROM [dbo].[#Tables] ORDER BY [DatabaseId], [Name] -- 2 [#Tables]
 			SELECT * FROM [dbo].[#Columns] ORDER BY [TableId], [Sequence] -- 3 [#Columns]
 			SELECT * FROM [dbo].[#Domains] ORDER BY [Name] -- 4 [#Domains]

@@ -104,17 +104,23 @@ ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
 							  ,@DatabaseName VARCHAR(25) = NULL
 							  ,@TableName VARCHAR(25) = NULL) AS
 BEGIN
-	DECLARE @ErrorMessage VARCHAR(50)
+	DECLARE @ErrorMessage VARCHAR(250)
 
 	SET NOCOUNT ON
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 	BEGIN TRY
+		IF @SystemName IS NULL BEGIN
+			SET @ErrorMessage = 'Nome de sistema é requerido.';
+			THROW 51000, @ErrorMessage, 1
+		END
 		-- 0 [Systems]
 		SELECT 	'RecordSystem' AS [ClassName]
 				,[Id]
 				,[Name]
 				,[Description]
 				,[ClientName]
+				,[MaxRetryLogins]
+				,[IsOffAir]
 			INTO [dbo].[#Systems]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
@@ -122,6 +128,11 @@ BEGIN
 			SET @ErrorMessage = 'Sistema "' + @SystemName + '" não cadastrado.';
 			THROW 51000, @ErrorMessage, 1
 		END
+		IF (SELECT IsOffAir FROM [dbo].[#Systems]) = 1 BEGIN
+			SET @ErrorMessage = 'Sistema "' + @SystemName + '" fora do ar.';
+			THROW 51000, @ErrorMessage, 1
+		END
+		ALTER TABLE [dbo].[#Systems] DROP COLUMN [IsOffAir]
 		IF @DatabaseName IS NULL
 			RETURN
 		ALTER TABLE [dbo].[#Systems] ADD PRIMARY KEY CLUSTERED([Id])
@@ -152,6 +163,14 @@ BEGIN
 			THROW 51000, @ErrorMessage, 1
 		END
 		ALTER TABLE [dbo].[#Databases] ADD PRIMARY KEY CLUSTERED([Id])
+		IF @DatabaseName IS NULL BEGIN
+			ALTER TABLE [dbo].[#Databases] DROP COLUMN [ServerName]
+			ALTER TABLE [dbo].[#Databases] DROP COLUMN [HostName]
+			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Port]
+			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Logon]
+			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Password]
+			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Folder]
+		END
 
 		-- 2 [Tables]
 		SELECT	'RecordTable' AS [ClassName]
@@ -161,12 +180,6 @@ BEGIN
 				,[T].[Alias]
 				,[T].[Description]
 				,[T].[ParentTableId]
-				,[T].[ProcedureCreate]
-				,[T].[ProcedureRead]
-				,[T].[ProcedureUpdate]
-				,[T].[ProcedureDelete]
-				,[T].[ProcedureList]
-				,[T].[FunctionValid]
 				,[T].[IsPaged]
 			INTO [dbo].[#Tables]
 			FROM [dbo].[Tables] [T]
@@ -332,13 +345,7 @@ BEGIN
 		-- Results
 		SELECT * FROM [dbo].[#Systems] ORDER BY [Name] -- 0 [#Systems]
 		IF @DatabaseName IS NULL BEGIN
-			SELECT [ClassName] -- 1 [#Databases]
-					,[Id]
-					,[Name]
-					,[Description]
-					,[Alias]
-				FROM [dbo].[#Databases] 
-				ORDER BY [Name]
+			SELECT * FROM [dbo].[#Databases] ORDER BY [Name] -- 1 [#Databases]
 			SELECT * FROM [dbo].[#Tables] ORDER BY [DatabaseId], [Name] -- 2 [#Tables]
 			SELECT * FROM [dbo].[#Columns] ORDER BY [TableId], [Sequence] -- 3 [#Columns]
 			SELECT * FROM [dbo].[#Domains] ORDER BY [Name] -- 4 [#Domains]
@@ -6996,6 +7003,7 @@ CREATE TABLE [dbo].[Tables]([Id] bigint NOT NULL
                                     ,[Name] varchar(25) NOT NULL
                                     ,[Alias] varchar(25) NOT NULL
                                     ,[Description] varchar(50) NOT NULL
+                                    ,[ParentTableId] bigint NULL
                                     ,[IsPaged] bit NOT NULL
                                     ,[CurrentId] bigint NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
@@ -7057,6 +7065,7 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
                 AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))) = 1
                 AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25)), CAST(JSON_VALUE(@LastRecord, '$.Alias') AS varchar(25))) = 1
                 AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50)), CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))) = 1
+                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.ParentTableId') AS bigint)) = 1
                 AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.IsPaged') AS bit), CAST(JSON_VALUE(@LastRecord, '$.IsPaged') AS bit)) = 1
                 AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint), CAST(JSON_VALUE(@LastRecord, '$.CurrentId') AS bigint)) = 1
                 RETURN 0
@@ -7066,6 +7075,7 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
                                   AND [Name] = CAST(JSON_VALUE(@LastRecord, '$.Name') AS varchar(25))
                                   AND [Alias] = CAST(JSON_VALUE(@LastRecord, '$.Alias') AS varchar(25))
                                   AND [Description] = CAST(JSON_VALUE(@LastRecord, '$.Description') AS varchar(50))
+                                  AND [cruda].[IsEquals]([ParentTableId], CAST(JSON_VALUE(@LastRecord, '$.ParentTableId') AS bigint)) = 1
                                   AND [IsPaged] = CAST(JSON_VALUE(@LastRecord, '$.IsPaged') AS bit)
                                   AND [CurrentId] = CAST(JSON_VALUE(@LastRecord, '$.CurrentId') AS bigint)) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Tables alterado por outro usuário';
@@ -7123,6 +7133,7 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
             DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
                    ,@W_Alias varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25))
                    ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+                   ,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
                    ,@W_IsPaged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPaged') AS bit)
                    ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
 
@@ -7136,6 +7147,14 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
             END
             IF @W_Description IS NULL BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de Description em @ActualRecord é requerido.';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('0' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId em @ActualRecord deve ser maior que ou igual à 0';
+                THROW 51000, @ErrorMessage, 1
+            END
+            IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('9007199254740990' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_IsPaged IS NULL BEGIN
@@ -7360,6 +7379,7 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
             DECLARE @W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
                    ,@W_Alias varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS varchar(25))
                    ,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
+                   ,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
                    ,@W_IsPaged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPaged') AS bit)
                    ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
 
@@ -7368,6 +7388,7 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
                                                 ,[Name]
                                                 ,[Alias]
                                                 ,[Description]
+                                                ,[ParentTableId]
                                                 ,[IsPaged]
                                                 ,[CurrentId]
                                                 ,[CreatedAt]
@@ -7376,6 +7397,7 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
                                                  ,@W_Name
                                                  ,@W_Alias
                                                  ,@W_Description
+                                                 ,@W_ParentTableId
                                                  ,@W_IsPaged
                                                  ,@W_CurrentId
                                                  ,GETDATE()
@@ -7385,6 +7407,7 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
                                               ,[Name] = @W_Name
                                               ,[Alias] = @W_Alias
                                               ,[Description] = @W_Description
+                                              ,[ParentTableId] = @W_ParentTableId
                                               ,[IsPaged] = @W_IsPaged
                                               ,[CurrentId] = @W_CurrentId
                                               ,[UpdatedAt] = GETDATE()
@@ -7461,6 +7484,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
               ,[Name]
               ,[Alias]
               ,[Description]
+              ,[ParentTableId]
               ,[IsPaged]
               ,[CurrentId]
             INTO [dbo].[#tmp]
@@ -7485,6 +7509,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Alias') AS varchar(25)) AS [Alias]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
+                                  ,CAST(JSON_VALUE([ActualRecord], '$.ParentTableId') AS bigint) AS [ParentTableId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IsPaged') AS bit) AS [IsPaged]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.CurrentId') AS bigint) AS [CurrentId]
             FROM [dbo].[Operations]
@@ -7498,6 +7523,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
                ,[tmp].[Alias] = CAST(JSON_VALUE([ActualRecord], '$.Alias') AS varchar(25))
                ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
+               ,[tmp].[ParentTableId] = CAST(JSON_VALUE([ActualRecord], '$.ParentTableId') AS bigint)
                ,[tmp].[IsPaged] = CAST(JSON_VALUE([ActualRecord], '$.IsPaged') AS bit)
                ,[tmp].[CurrentId] = CAST(JSON_VALUE([ActualRecord], '$.CurrentId') AS bigint)
             FROM [dbo].[#tmp] 
@@ -7527,6 +7553,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
               ,[Name]
               ,[Alias]
               ,[Description]
+              ,[ParentTableId]
               ,[IsPaged]
               ,[CurrentId]
             FROM [dbo].[#tmp] 
@@ -7555,7 +7582,7 @@ CREATE TABLE [dbo].[DatabasesTables]([Id] bigint NOT NULL
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[DatabasesTables] ADD CONSTRAINT PK_DatabasesTables PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_DatabasesTables_DatabaseId_TableId] ON [dbo].[DatabasesTables]([DatabaseId] ASC, [TableId] ASC)
+CREATE UNIQUE INDEX [UNQ_DatabasesTables_DatabaseId_TableId] ON [dbo].[DatabasesTables]([Id] ASC, [TableId] ASC)
 CREATE UNIQUE INDEX [UNQ_DatabasesTables_Description] ON [dbo].[DatabasesTables]([Description] ASC)
 GO
 /**********************************************************************************
@@ -7709,14 +7736,14 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId BIGINT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId                                                                  AND [TableId] = @W_TableId) BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id                                                                  AND [TableId] = @W_TableId) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId já existe';
                     THROW 51000, @ErrorMessage, 1
                 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Description] = @W_Description) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_Description já existe';
                     THROW 51000, @ErrorMessage, 1
                 END
-            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId                                                              AND [TableId] = @W_TableId AND [Id] <> @W_Id) BEGIN
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id                                                              AND [TableId] = @W_TableId AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId inexiste';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -13649,6 +13676,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13659,6 +13687,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Categories' AS varchar(25))
                                 ,CAST('Category' AS varchar(25))
                                 ,CAST('Categorias de tipos de dados' AS varchar(50))
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('10' AS bigint)
                                 ,GETDATE()
@@ -13670,6 +13699,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13680,6 +13710,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Types' AS varchar(25))
                                 ,CAST('Type' AS varchar(25))
                                 ,CAST('Tipos' AS varchar(50))
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('34' AS bigint)
                                 ,GETDATE()
@@ -13691,6 +13722,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13701,6 +13733,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Masks' AS varchar(25))
                                 ,CAST('Mask' AS varchar(25))
                                 ,CAST('Máscaras de Edição' AS varchar(50))
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('6' AS bigint)
                                 ,GETDATE()
@@ -13712,6 +13745,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13722,6 +13756,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Domains' AS varchar(25))
                                 ,CAST('Domain' AS varchar(25))
                                 ,CAST('Domínios' AS varchar(50))
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('21' AS bigint)
                                 ,GETDATE()
@@ -13733,6 +13768,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13743,6 +13779,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Systems' AS varchar(25))
                                 ,CAST('System' AS varchar(25))
                                 ,CAST('Sistemas' AS varchar(50))
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
@@ -13754,6 +13791,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13764,6 +13802,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Menus' AS varchar(25))
                                 ,CAST('Menu' AS varchar(25))
                                 ,CAST('Menus' AS varchar(50))
+                                ,CAST('5' AS bigint)
                                 ,CAST('1' AS bit)
                                 ,CAST('12' AS bigint)
                                 ,GETDATE()
@@ -13775,6 +13814,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13785,6 +13825,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Users' AS varchar(25))
                                 ,CAST('User' AS varchar(25))
                                 ,CAST('Usuários' AS varchar(50))
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('2' AS bigint)
                                 ,GETDATE()
@@ -13796,6 +13837,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13806,6 +13848,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('SystemsUsers' AS varchar(25))
                                 ,CAST('SystemUser' AS varchar(25))
                                 ,CAST('Sistemas x Usuários' AS varchar(50))
+                                ,CAST('5' AS bigint)
                                 ,CAST('1' AS bit)
                                 ,CAST('2' AS bigint)
                                 ,GETDATE()
@@ -13817,6 +13860,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13827,6 +13871,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Databases' AS varchar(25))
                                 ,CAST('Database' AS varchar(25))
                                 ,CAST('Bancos-de-Dados' AS varchar(50))
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
@@ -13838,6 +13883,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13848,6 +13894,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('SystemsDatabases' AS varchar(25))
                                 ,CAST('SystemDatabase' AS varchar(25))
                                 ,CAST('Sistemas x Bancos-de-Dados' AS varchar(50))
+                                ,CAST('5' AS bigint)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
@@ -13859,6 +13906,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13869,6 +13917,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Tables' AS varchar(25))
                                 ,CAST('Table' AS varchar(25))
                                 ,CAST('Tabelas' AS varchar(50))
+                                ,CAST('9' AS bigint)
                                 ,CAST('1' AS bit)
                                 ,CAST('16' AS bigint)
                                 ,GETDATE()
@@ -13880,6 +13929,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13890,6 +13940,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('DatabasesTables' AS varchar(25))
                                 ,CAST('DatabaseTable' AS varchar(25))
                                 ,CAST('Bancos-de-Dados x Tabelas' AS varchar(50))
+                                ,CAST('9' AS bigint)
                                 ,CAST('1' AS bit)
                                 ,CAST('16' AS bigint)
                                 ,GETDATE()
@@ -13901,6 +13952,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13911,6 +13963,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Columns' AS varchar(25))
                                 ,CAST('Column' AS varchar(25))
                                 ,CAST('Colunas' AS varchar(50))
+                                ,CAST('11' AS bigint)
                                 ,CAST('1' AS bit)
                                 ,CAST('122' AS bigint)
                                 ,GETDATE()
@@ -13922,6 +13975,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13932,6 +13986,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Indexes' AS varchar(25))
                                 ,CAST('Index' AS varchar(25))
                                 ,CAST('Índices' AS varchar(50))
+                                ,CAST('11' AS bigint)
                                 ,CAST('1' AS bit)
                                 ,CAST('23' AS bigint)
                                 ,GETDATE()
@@ -13943,6 +13998,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13953,6 +14009,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Indexkeys' AS varchar(25))
                                 ,CAST('Indexkey' AS varchar(25))
                                 ,CAST('Chaves de índices' AS varchar(50))
+                                ,CAST('14' AS bigint)
                                 ,CAST('1' AS bit)
                                 ,CAST('34' AS bigint)
                                 ,GETDATE()
@@ -13964,6 +14021,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
+                                ,[ParentTableId]
                                 ,[IsPaged]
                                 ,[CurrentId]
                                 ,[CreatedAt]
@@ -13974,6 +14032,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Logins' AS varchar(25))
                                 ,CAST('Login' AS varchar(25))
                                 ,CAST('Logins de Acesso aos Sistemas' AS varchar(50))
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
@@ -16228,7 +16287,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('18' AS bigint)
                                 ,NULL
                                 ,CAST('Codification' AS varchar(25))
-                                ,CAST('Codificação da coluna' AS varchar(50))
+                                ,CAST('Codificação do domínio' AS varchar(50))
                                 ,CAST('Codificação' AS varchar(25))
                                 ,CAST('Codificação' AS varchar(25))
                                 ,NULL
@@ -18367,6 +18426,57 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('81' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('25' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('ParentTableId' AS varchar(25))
+                                ,CAST('Id da tabela-pai' AS varchar(50))
+                                ,CAST('Tabela-pai' AS varchar(25))
+                                ,CAST('Tabela-pai' AS varchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS sql_variant)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsBrowseable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('82' AS bigint)
+                                ,CAST('11' AS bigint)
+                                ,CAST('30' AS smallint)
                                 ,CAST('6' AS bigint)
                                 ,NULL
                                 ,CAST('IsPaged' AS varchar(25))
@@ -18415,9 +18525,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('82' AS bigint)
+                         VALUES (CAST('83' AS bigint)
                                 ,CAST('11' AS bigint)
-                                ,CAST('30' AS smallint)
+                                ,CAST('35' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,NULL
                                 ,CAST('CurrentId' AS varchar(25))
@@ -18466,7 +18576,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('83' AS bigint)
+                         VALUES (CAST('84' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -18517,7 +18627,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('84' AS bigint)
+                         VALUES (CAST('85' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -18568,7 +18678,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('85' AS bigint)
+                         VALUES (CAST('86' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -18619,7 +18729,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('86' AS bigint)
+                         VALUES (CAST('87' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -18670,7 +18780,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('87' AS bigint)
+                         VALUES (CAST('88' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -18721,7 +18831,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('88' AS bigint)
+                         VALUES (CAST('89' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -18772,7 +18882,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('89' AS bigint)
+                         VALUES (CAST('90' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
@@ -18823,7 +18933,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('90' AS bigint)
+                         VALUES (CAST('91' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -18874,7 +18984,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('91' AS bigint)
+                         VALUES (CAST('92' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -18925,7 +19035,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('92' AS bigint)
+                         VALUES (CAST('93' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -18976,7 +19086,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('93' AS bigint)
+                         VALUES (CAST('94' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -19027,7 +19137,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('94' AS bigint)
+                         VALUES (CAST('95' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -19078,7 +19188,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('95' AS bigint)
+                         VALUES (CAST('96' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('45' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -19129,7 +19239,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('96' AS bigint)
+                         VALUES (CAST('97' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('50' AS smallint)
                                 ,CAST('12' AS bigint)
@@ -19180,7 +19290,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('97' AS bigint)
+                         VALUES (CAST('98' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('55' AS smallint)
                                 ,CAST('17' AS bigint)
@@ -19231,7 +19341,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('98' AS bigint)
+                         VALUES (CAST('99' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('60' AS smallint)
                                 ,CAST('17' AS bigint)
@@ -19282,7 +19392,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('99' AS bigint)
+                         VALUES (CAST('100' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('65' AS smallint)
                                 ,CAST('17' AS bigint)
@@ -19333,7 +19443,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('100' AS bigint)
+                         VALUES (CAST('101' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('70' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -19384,7 +19494,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('101' AS bigint)
+                         VALUES (CAST('102' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('75' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -19435,7 +19545,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('102' AS bigint)
+                         VALUES (CAST('103' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('80' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -19486,7 +19596,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('103' AS bigint)
+                         VALUES (CAST('104' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('85' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -19537,7 +19647,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('104' AS bigint)
+                         VALUES (CAST('105' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('90' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -19588,7 +19698,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('105' AS bigint)
+                         VALUES (CAST('106' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('95' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -19639,7 +19749,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('106' AS bigint)
+                         VALUES (CAST('107' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('100' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -19690,7 +19800,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('107' AS bigint)
+                         VALUES (CAST('108' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('105' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -19741,7 +19851,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('108' AS bigint)
+                         VALUES (CAST('109' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -19792,7 +19902,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('109' AS bigint)
+                         VALUES (CAST('110' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -19843,7 +19953,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('110' AS bigint)
+                         VALUES (CAST('111' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -19894,7 +20004,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('111' AS bigint)
+                         VALUES (CAST('112' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -19945,7 +20055,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('112' AS bigint)
+                         VALUES (CAST('113' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -19996,7 +20106,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('113' AS bigint)
+                         VALUES (CAST('114' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -20047,7 +20157,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('114' AS bigint)
+                         VALUES (CAST('115' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -20098,7 +20208,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('115' AS bigint)
+                         VALUES (CAST('116' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
@@ -20149,7 +20259,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('116' AS bigint)
+                         VALUES (CAST('117' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -20200,7 +20310,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('117' AS bigint)
+                         VALUES (CAST('118' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -20251,7 +20361,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('118' AS bigint)
+                         VALUES (CAST('119' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -20302,7 +20412,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('119' AS bigint)
+                         VALUES (CAST('120' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -20353,7 +20463,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('120' AS bigint)
+                         VALUES (CAST('121' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -20404,7 +20514,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('121' AS bigint)
+                         VALUES (CAST('122' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('11' AS bigint)
@@ -20455,7 +20565,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('122' AS bigint)
+                         VALUES (CAST('123' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -21297,7 +21407,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('20' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('85' AS bigint)
+                                ,CAST('86' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21316,7 +21426,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('21' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('86' AS bigint)
+                                ,CAST('87' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21335,7 +21445,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('22' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('88' AS bigint)
+                                ,CAST('89' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21354,7 +21464,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('23' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('92' AS bigint)
+                                ,CAST('93' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21373,7 +21483,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('24' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('88' AS bigint)
+                                ,CAST('89' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21392,7 +21502,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('25' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('89' AS bigint)
+                                ,CAST('90' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21411,7 +21521,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('26' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('109' AS bigint)
+                                ,CAST('110' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21430,7 +21540,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('27' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('111' AS bigint)
+                                ,CAST('112' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21449,7 +21559,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('28' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('114' AS bigint)
+                                ,CAST('115' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21468,7 +21578,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('29' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('115' AS bigint)
+                                ,CAST('116' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21487,7 +21597,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('30' AS bigint)
                                 ,CAST('22' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('114' AS bigint)
+                                ,CAST('115' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21506,7 +21616,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('31' AS bigint)
                                 ,CAST('22' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('116' AS bigint)
+                                ,CAST('117' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21525,7 +21635,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('32' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('119' AS bigint)
+                                ,CAST('120' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21544,7 +21654,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('33' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('120' AS bigint)
+                                ,CAST('121' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -21563,7 +21673,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('34' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('15' AS smallint)
-                                ,CAST('122' AS bigint)
+                                ,CAST('123' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
