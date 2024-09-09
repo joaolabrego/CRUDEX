@@ -1,11 +1,11 @@
-﻿IF(SELECT object_id('[cruda].[ColumnPersist]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [cruda].[ColumnPersist] AS PRINT 1')
+﻿IF(SELECT object_id('[dbo].[ColumnPersist]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[ColumnPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
-										,@UserName VARCHAR(25)
-										,@Action VARCHAR(15)
-										,@LastRecord VARCHAR(MAX)
-										,@ActualRecord VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId BIGINT
+									 ,@UserName VARCHAR(25)
+									 ,@Action VARCHAR(15)
+									 ,@LastRecord VARCHAR(MAX)
+									 ,@ActualRecord VARCHAR(MAX)) AS BEGIN
 	DECLARE @TranCount INT = @@TRANCOUNT
 
 	BEGIN TRY

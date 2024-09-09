@@ -1,12 +1,12 @@
-IF(SELECT object_id('[cruda].[ColumnsRead]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [cruda].[ColumnsRead] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ColumnsRead]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[ColumnsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[ColumnsRead](@LoginId BIGINT
-									,@Parameters VARCHAR(MAX)
-									,@PageNumber INT OUT
-									,@LimitRows BIGINT OUT
-									,@MaxPage INT OUT
-									,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
+								  ,@Parameters VARCHAR(MAX)
+								  ,@PageNumber INT OUT
+								  ,@LimitRows BIGINT OUT
+								  ,@MaxPage INT OUT
+								  ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
