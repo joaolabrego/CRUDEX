@@ -432,7 +432,8 @@ BEGIN
 		RETURN @NextId
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION;
+		IF XACT_STATE() <> 0
+			ROLLBACK TRANSACTION;
 		THROW
 	END CATCH
 END
@@ -991,7 +992,8 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		RETURN CAST(@TransactionId AS INT)
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION
+		IF XACT_STATE() <> 0
+			ROLLBACK TRANSACTION;
 		THROW
 	END CATCH
 END
@@ -1059,7 +1061,8 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION;
+		IF XACT_STATE() <> 0
+			ROLLBACK TRANSACTION;
 		THROW
 	END CATCH
 END
@@ -1130,7 +1133,8 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION;
+		IF XACT_STATE() <> 0
+			ROLLBACK TRANSACTION;
 		THROW
 	END CATCH
 END
@@ -1391,7 +1395,7 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [CategoryPersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -1461,12 +1465,13 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [CategoryPersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [CategoryPersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -1494,7 +1499,7 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [CategoryCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -1599,12 +1604,13 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [CategoryCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [CategoryCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -2039,7 +2045,7 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [TypePersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -2109,12 +2115,13 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [TypePersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [TypePersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -2142,7 +2149,7 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [TypeCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -2267,12 +2274,13 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [TypeCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [TypeCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -2635,7 +2643,7 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [MaskPersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -2705,12 +2713,13 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [MaskPersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [MaskPersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -2738,7 +2747,7 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [MaskCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -2815,12 +2824,13 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [MaskCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [MaskCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -3187,7 +3197,7 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [DomainPersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -3257,12 +3267,13 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [DomainPersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [DomainPersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -3290,7 +3301,7 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [DomainCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -3399,12 +3410,13 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [DomainCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [DomainCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -3787,7 +3799,7 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [SystemPersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -3857,12 +3869,13 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [SystemPersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [SystemPersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -3890,7 +3903,7 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [SystemCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -3979,12 +3992,13 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [SystemCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [SystemCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -4354,7 +4368,7 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [MenuPersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -4424,12 +4438,13 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [MenuPersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [MenuPersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -4457,7 +4472,7 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [MenuCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -4550,12 +4565,13 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [MenuCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [MenuCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -4908,7 +4924,7 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [UserPersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[UserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -4978,12 +4994,13 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [UserPersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [UserPersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -5011,7 +5028,7 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [UserCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -5100,12 +5117,13 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [UserCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [UserCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -5456,7 +5474,7 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [SystemUserPersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -5526,12 +5544,13 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [SystemUserPersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [SystemUserPersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -5559,7 +5578,7 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [SystemUserCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -5640,12 +5659,13 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [SystemUserCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [SystemUserCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -6012,7 +6032,7 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [DatabasePersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -6082,12 +6102,13 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [DatabasePersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [DatabasePersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -6115,7 +6136,7 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [DatabaseCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -6220,12 +6241,13 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [DatabaseCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [DatabaseCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -6590,7 +6612,7 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [SystemDatabasePersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -6660,12 +6682,13 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [SystemDatabasePersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [SystemDatabasePersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -6693,7 +6716,7 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [SystemDatabaseCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -6774,12 +6797,13 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [SystemDatabaseCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [SystemDatabaseCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -7150,7 +7174,7 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [TablePersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[TableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -7220,12 +7244,13 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [TablePersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [TablePersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -7253,7 +7278,7 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [TableCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -7346,12 +7371,13 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [TableCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [TableCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -7706,7 +7732,7 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [DatabaseTablePersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -7776,12 +7802,13 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [DatabaseTablePersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [DatabaseTablePersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -7809,7 +7836,7 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [DatabaseTableCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -7890,12 +7917,13 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [DatabaseTableCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [DatabaseTableCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -8362,7 +8390,7 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [ColumnPersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -8432,12 +8460,13 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [ColumnPersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnPersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -8465,7 +8494,7 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [ColumnCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -8614,12 +8643,13 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [ColumnCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [ColumnCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -9070,7 +9100,7 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [IndexPersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -9140,12 +9170,13 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [IndexPersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [IndexPersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -9173,7 +9204,7 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [IndexCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -9258,12 +9289,13 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [IndexCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [IndexCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -9634,7 +9666,7 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [IndexkeyPersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -9704,12 +9736,13 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [IndexkeyPersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [IndexkeyPersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -9737,7 +9770,7 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [IndexkeyCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -9822,12 +9855,13 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [IndexkeyCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [IndexkeyCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -10185,7 +10219,7 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
                ,@ActionAux VARCHAR(15)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [LoginPersist]
+        BEGIN TRANSACTION
         EXEC @TransactionId = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -10255,12 +10289,13 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
 
         EXIT_PROCEDURE:
 
-        COMMIT TRANSACTION [LoginPersist]
+        COMMIT TRANSACTION
 
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [LoginPersist];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
@@ -10288,7 +10323,7 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
                ,@ActualRecord VARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION [LoginCommit]
+        BEGIN TRANSACTION
         IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
@@ -10373,12 +10408,13 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION [LoginCommit]
+        COMMIT TRANSACTION
 
         RETURN 1
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION [LoginCommit];
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
         THROW
     END CATCH
 END
