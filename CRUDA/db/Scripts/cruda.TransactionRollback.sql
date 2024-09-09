@@ -3,6 +3,8 @@
 GO
 ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 											,@UserName VARCHAR(25)) AS BEGIN
+	DECLARE @TranCount INT = @@TRANCOUNT
+
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -13,6 +15,7 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 				,@IsConfirmed BIT
 
 		BEGIN TRANSACTION
+		SAVE TRANSACTION [SavePoint]
 		IF @TransactionId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -61,8 +64,10 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		IF XACT_STATE() <> 0
-			ROLLBACK TRANSACTION;
+		IF @@TRANCOUNT > @TranCount BEGIN
+			ROLLBACK TRANSACTION [SavePoint]
+			COMMIT TRANSACTION
+		END;
 		THROW
 	END CATCH
 END

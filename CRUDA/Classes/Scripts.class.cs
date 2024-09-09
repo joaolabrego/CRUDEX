@@ -543,6 +543,8 @@ namespace CRUDA.Classes
                 result.Append($"                                              ,@Action VARCHAR(15)\r\n");
                 result.Append($"                                              ,@LastRecord VARCHAR(max)\r\n");
                 result.Append($"                                              ,@ActualRecord VARCHAR(max)) AS BEGIN\r\n");
+                result.Append($"    DECLARE @TranCount INT = @@TRANCOUNT\r\n");
+                result.Append($"\r\n");
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
@@ -555,6 +557,7 @@ namespace CRUDA.Classes
                 result.Append($"               ,@IsConfirmed BIT\r\n");
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
+                result.Append($"        SAVE TRANSACTION [SavePoint]\r\n");
                 result.Append($"        EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
                 result.Append($"        IF @TransactionId = 0\r\n");
                 result.Append($"            GOTO EXIT_PROCEDURE\r\n");
@@ -650,8 +653,10 @@ namespace CRUDA.Classes
                 result.Append($"        RETURN CAST(@OperationId AS INT)\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
-                result.Append($"        IF XACT_STATE() <> 0\r\n");
-                result.Append($"            ROLLBACK TRANSACTION;\r\n");
+                result.Append($"        IF @@TRANCOUNT > @TranCount BEGIN\r\n");
+                result.Append($"            ROLLBACK TRANSACTION [SavePoint];\r\n");
+                result.Append($"            COMMIT TRANSACTION\r\n");
+                result.Append($"        END;\r\n");
                 result.Append($"        THROW\r\n");
                 result.Append($"    END CATCH\r\n");
                 result.Append($"END\r\n");
@@ -676,6 +681,8 @@ namespace CRUDA.Classes
                 result.Append($"ALTER PROCEDURE[dbo].[{table["Alias"]}Commit](@LoginId BIGINT\r\n");
                 result.Append($"                                             ,@UserName VARCHAR(25)\r\n");
                 result.Append($"                                             ,@OperationId INT) AS BEGIN\r\n");
+                result.Append($"    DECLARE @TranCount INT = @@TRANCOUNT\r\n");
+                result.Append($"\r\n");
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
@@ -691,6 +698,7 @@ namespace CRUDA.Classes
                 result.Append($"               ,@IsConfirmed BIT\r\n");
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
+                result.Append($"        SAVE TRANSACTION [SavePoint]");
                 result.Append($"        IF @OperationId IS NULL BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
@@ -847,8 +855,10 @@ namespace CRUDA.Classes
                 result.Append($"        RETURN 1\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
-                result.Append($"        IF XACT_STATE() <> 0\r\n");
-                result.Append($"            ROLLBACK TRANSACTION;\r\n");
+                result.Append($"        IF @@TRANCOUNT > @TranCount BEGIN\r\n");
+                result.Append($"            ROLLBACK TRANSACTION [SavePoint];\r\n");
+                result.Append($"            COMMIT TRANSACTION\r\n");
+                result.Append($"        END;\r\n");
                 result.Append($"        THROW\r\n");
                 result.Append($"    END CATCH\r\n");
                 result.Append($"END\r\n");

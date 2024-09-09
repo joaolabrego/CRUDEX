@@ -377,17 +377,20 @@ ALTER PROCEDURE [dbo].[GenerateId](@SystemName VARCHAR(25)
 								  ,@DatabaseName VARCHAR(25)
 								  ,@TableName VARCHAR(25)) AS
 BEGIN
+	DECLARE @TranCount INT = @@TRANCOUNT
+
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @SystemId BIGINT,
-				@DatabaseId BIGINT,
-				@TableId BIGINT,
-				@NextId BIGINT,
-				@ErrorMessage VARCHAR(255) = 'Stored Procedure GenerateId: '
+		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure GenerateId: '
+				,@SystemId BIGINT
+				,@DatabaseId BIGINT
+				,@TableId BIGINT
+				,@NextId BIGINT
 
 		BEGIN TRANSACTION
+		SAVE TRANSACTION [SavePoint]
 		SELECT @SystemId = [Id]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
@@ -432,8 +435,10 @@ BEGIN
 		RETURN @NextId
 	END TRY
 	BEGIN CATCH
-		IF XACT_STATE() <> 0
-			ROLLBACK TRANSACTION;
+		IF @@TRANCOUNT > @TranCount BEGIN
+			ROLLBACK TRANSACTION [SavePoint]
+			COMMIT TRANSACTION
+		END;
 		THROW
 	END CATCH
 END
@@ -445,13 +450,16 @@ IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[Login] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
+	DECLARE @TranCount INT = @@TRANCOUNT
+
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-		DECLARE @ErrorMessage VARCHAR(256)
-
 		BEGIN TRANSACTION
+		SAVE TRANSACTION [SavePoint]
+
+		DECLARE	@ErrorMessage VARCHAR(256)
+
 		IF ISJSON(@Parameters) = 0 BEGIN
 			SET @ErrorMessage = 'Parâmetro login não está no formato JSON';
 			THROW 51000, @ErrorMessage, 1
@@ -537,7 +545,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 			UPDATE [dbo].[Users] 
 				SET [RetryLogins] = @RetryLogins
 				WHERE [Id] = @UserId
-			COMMIT TRANSACTION
+			COMMIT TRANSACTION 
 			IF @RetryLogins = @MaxRetryLogins
 				SET @ErrorMessage = 'Usuário está bloqueado';
 			ELSE
@@ -599,13 +607,15 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		UPDATE [dbo].[Users]
 			SET [RetryLogins] = 0
 			WHERE [Id] = @UserId
-		COMMIT TRANSACTION
+		COMMIT TRANSACTION 
 
 		RETURN @LoginId
 	END TRY
 	BEGIN CATCH
-		IF XACT_STATE() <> 0
-			ROLLBACK TRANSACTION;
+		IF @@TRANCOUNT > @TranCount BEGIN
+			ROLLBACK TRANSACTION [SavePoint]
+			COMMIT TRANSACTION
+		END;
 		THROW
 	END CATCH
 END
@@ -966,14 +976,17 @@ IF(SELECT object_id('[cruda].[TransactionBegin]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 										 ,@UserName VARCHAR(25)) AS BEGIN
+	DECLARE @TranCount INT = @@TRANCOUNT
+
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
+		
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionBegin]: '
 				,@TransactionId	INT
 
 		BEGIN TRANSACTION
+		SAVE TRANSACTION [SavePoint]
 		IF @LoginId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -992,8 +1005,10 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		RETURN CAST(@TransactionId AS INT)
 	END TRY
 	BEGIN CATCH
-		IF XACT_STATE() <> 0
-			ROLLBACK TRANSACTION;
+		IF @@TRANCOUNT > @TranCount BEGIN
+			ROLLBACK TRANSACTION [SavePoint]
+			COMMIT TRANSACTION
+		END;
 		THROW
 	END CATCH
 END
@@ -1006,6 +1021,8 @@ IF(SELECT object_id('[cruda].[TransactionCommit]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 										  ,@UserName VARCHAR(25)) AS BEGIN
+	DECLARE @TranCount INT = @@TRANCOUNT
+
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1019,6 +1036,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 				,@sql VARCHAR(MAX)
 
 		BEGIN TRANSACTION
+		SAVE TRANSACTION [SavePoint]
 		IF @TransactionId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -1061,8 +1079,10 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		IF XACT_STATE() <> 0
-			ROLLBACK TRANSACTION;
+		IF @@TRANCOUNT > @TranCount BEGIN
+			ROLLBACK TRANSACTION [SavePoint]
+			COMMIT TRANSACTION
+		END;
 		THROW
 	END CATCH
 END
@@ -1075,6 +1095,8 @@ IF(SELECT object_id('[cruda].[TransactionRollback]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 											,@UserName VARCHAR(25)) AS BEGIN
+	DECLARE @TranCount INT = @@TRANCOUNT
+
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1085,6 +1107,7 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 				,@IsConfirmed BIT
 
 		BEGIN TRANSACTION
+		SAVE TRANSACTION [SavePoint]
 		IF @TransactionId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -1133,8 +1156,10 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		IF XACT_STATE() <> 0
-			ROLLBACK TRANSACTION;
+		IF @@TRANCOUNT > @TranCount BEGIN
+			ROLLBACK TRANSACTION [SavePoint]
+			COMMIT TRANSACTION
+		END;
 		THROW
 	END CATCH
 END
@@ -1384,6 +1409,8 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1396,6 +1423,7 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -1470,8 +1498,10 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -1485,6 +1515,8 @@ GO
 ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1500,7 +1532,7 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -1609,8 +1641,10 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -2034,6 +2068,8 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2046,6 +2082,7 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -2120,8 +2157,10 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -2135,6 +2174,8 @@ GO
 ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2150,7 +2191,7 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -2279,8 +2320,10 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -2632,6 +2675,8 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2644,6 +2689,7 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -2718,8 +2764,10 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -2733,6 +2781,8 @@ GO
 ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2748,7 +2798,7 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -2829,8 +2879,10 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -3186,6 +3238,8 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3198,6 +3252,7 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -3272,8 +3327,10 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -3287,6 +3344,8 @@ GO
 ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3302,7 +3361,7 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -3415,8 +3474,10 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -3788,6 +3849,8 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3800,6 +3863,7 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -3874,8 +3938,10 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -3889,6 +3955,8 @@ GO
 ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3904,7 +3972,7 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -3997,8 +4065,10 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -4357,6 +4427,8 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4369,6 +4441,7 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -4443,8 +4516,10 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -4458,6 +4533,8 @@ GO
 ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4473,7 +4550,7 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -4570,8 +4647,10 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -4913,6 +4992,8 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4925,6 +5006,7 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[UserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -4999,8 +5081,10 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -5014,6 +5098,8 @@ GO
 ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5029,7 +5115,7 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -5122,8 +5208,10 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -5463,6 +5551,8 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5475,6 +5565,7 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -5549,8 +5640,10 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -5564,6 +5657,8 @@ GO
 ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5579,7 +5674,7 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -5664,8 +5759,10 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -6021,6 +6118,8 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -6033,6 +6132,7 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -6107,8 +6207,10 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -6122,6 +6224,8 @@ GO
 ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -6137,7 +6241,7 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -6246,8 +6350,10 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -6601,6 +6707,8 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -6613,6 +6721,7 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -6687,8 +6796,10 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -6702,6 +6813,8 @@ GO
 ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -6717,7 +6830,7 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -6802,8 +6915,10 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -7163,6 +7278,8 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -7175,6 +7292,7 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[TableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -7249,8 +7367,10 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -7264,6 +7384,8 @@ GO
 ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -7279,7 +7401,7 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -7376,8 +7498,10 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -7721,6 +7845,8 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -7733,6 +7859,7 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -7807,8 +7934,10 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -7822,6 +7951,8 @@ GO
 ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -7837,7 +7968,7 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -7922,8 +8053,10 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -8379,6 +8512,8 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -8391,6 +8526,7 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -8465,8 +8601,10 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -8480,6 +8618,8 @@ GO
 ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -8495,7 +8635,7 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -8648,8 +8788,10 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -9089,6 +9231,8 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -9101,6 +9245,7 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -9175,8 +9320,10 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -9190,6 +9337,8 @@ GO
 ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -9205,7 +9354,7 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -9294,8 +9443,10 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -9655,6 +9806,8 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -9667,6 +9820,7 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -9741,8 +9895,10 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -9756,6 +9912,8 @@ GO
 ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -9771,7 +9929,7 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -9860,8 +10018,10 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -10208,6 +10368,8 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -10220,6 +10382,7 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
         EXEC @TransactionId = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
@@ -10294,8 +10457,10 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END
@@ -10309,6 +10474,8 @@ GO
 ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
+    DECLARE @TranCount INT = @@TRANCOUNT
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -10324,7 +10491,7 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
-        IF @OperationId IS NULL BEGIN
+        SAVE TRANSACTION [SavePoint]        IF @OperationId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';
             THROW 51000, @ErrorMessage, 1
         END
@@ -10413,8 +10580,10 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
-            ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > @TranCount BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
         THROW
     END CATCH
 END

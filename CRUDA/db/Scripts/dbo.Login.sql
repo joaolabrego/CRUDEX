@@ -2,13 +2,16 @@ IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[Login] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
+	DECLARE @TranCount INT = @@TRANCOUNT
+
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-		DECLARE @ErrorMessage VARCHAR(256)
-
 		BEGIN TRANSACTION
+		SAVE TRANSACTION [SavePoint]
+
+		DECLARE	@ErrorMessage VARCHAR(256)
+
 		IF ISJSON(@Parameters) = 0 BEGIN
 			SET @ErrorMessage = 'Parâmetro login não está no formato JSON';
 			THROW 51000, @ErrorMessage, 1
@@ -94,7 +97,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 			UPDATE [dbo].[Users] 
 				SET [RetryLogins] = @RetryLogins
 				WHERE [Id] = @UserId
-			COMMIT TRANSACTION
+			COMMIT TRANSACTION 
 			IF @RetryLogins = @MaxRetryLogins
 				SET @ErrorMessage = 'Usuário está bloqueado';
 			ELSE
@@ -156,13 +159,15 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		UPDATE [dbo].[Users]
 			SET [RetryLogins] = 0
 			WHERE [Id] = @UserId
-		COMMIT TRANSACTION
+		COMMIT TRANSACTION 
 
 		RETURN @LoginId
 	END TRY
 	BEGIN CATCH
-		IF XACT_STATE() <> 0
-			ROLLBACK TRANSACTION;
+		IF @@TRANCOUNT > @TranCount BEGIN
+			ROLLBACK TRANSACTION [SavePoint]
+			COMMIT TRANSACTION
+		END;
 		THROW
 	END CATCH
 END

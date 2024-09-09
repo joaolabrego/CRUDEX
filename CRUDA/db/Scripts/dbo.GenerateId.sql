@@ -5,17 +5,20 @@ ALTER PROCEDURE [dbo].[GenerateId](@SystemName VARCHAR(25)
 								  ,@DatabaseName VARCHAR(25)
 								  ,@TableName VARCHAR(25)) AS
 BEGIN
+	DECLARE @TranCount INT = @@TRANCOUNT
+
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @SystemId BIGINT,
-				@DatabaseId BIGINT,
-				@TableId BIGINT,
-				@NextId BIGINT,
-				@ErrorMessage VARCHAR(255) = 'Stored Procedure GenerateId: '
+		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure GenerateId: '
+				,@SystemId BIGINT
+				,@DatabaseId BIGINT
+				,@TableId BIGINT
+				,@NextId BIGINT
 
 		BEGIN TRANSACTION
+		SAVE TRANSACTION [SavePoint]
 		SELECT @SystemId = [Id]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
@@ -60,8 +63,10 @@ BEGIN
 		RETURN @NextId
 	END TRY
 	BEGIN CATCH
-		IF XACT_STATE() <> 0
-			ROLLBACK TRANSACTION;
+		IF @@TRANCOUNT > @TranCount BEGIN
+			ROLLBACK TRANSACTION [SavePoint]
+			COMMIT TRANSACTION
+		END;
 		THROW
 	END CATCH
 END

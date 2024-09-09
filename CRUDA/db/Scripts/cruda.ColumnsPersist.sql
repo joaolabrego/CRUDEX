@@ -6,10 +6,12 @@ ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
 										,@Action VARCHAR(15)
 										,@LastRecord VARCHAR(MAX)
 										,@ActualRecord VARCHAR(MAX)) AS BEGIN
+	DECLARE @TranCount INT = @@TRANCOUNT
+
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
+		
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnPersist]: '
 				,@TransactionId	INT
 				,@OperationId INT
@@ -18,6 +20,7 @@ ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
 				,@IsConfirmed BIT
 
 		BEGIN TRANSACTION
+		SAVE TRANSACTION [SavePoint]
 		EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
 		IF @TransactionId = 0
 			GOTO EXIT_PROCEDURE
@@ -92,8 +95,10 @@ ALTER PROCEDURE [cruda].[ColumnPersist](@LoginId BIGINT
 		RETURN @OperationId
 	END TRY
 	BEGIN CATCH
-		IF XACT_STATE() <> 0
-			ROLLBACK TRANSACTION;
+		IF @@TRANCOUNT > @TranCount BEGIN
+			ROLLBACK TRANSACTION [SavePoint]
+			COMMIT TRANSACTION
+		END;
 		THROW
 	END CATCH
 END

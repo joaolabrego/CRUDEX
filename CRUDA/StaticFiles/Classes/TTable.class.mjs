@@ -11,11 +11,6 @@ export default class TTable {
     #Alias = ""
     #Description = ""
     #ParentTableId = 0
-    #ProcedureCreate = ""
-    #ProcedureRead = ""
-    #ProcedureUpdate = ""
-    #ProcedureDelete = ""
-    #ProcedureList = ""
     #IsPaged = false
     #LastId = 0
 
@@ -41,11 +36,6 @@ export default class TTable {
         this.#Alias = rowTable.Alias
         this.#Description = rowTable.Description
         this.#ParentTableId = rowTable.ParentTableId
-        this.#ProcedureCreate = rowTable.ProcedureCreate
-        this.#ProcedureRead = rowTable.ProcedureRead
-        this.#ProcedureUpdate = rowTable.ProcedureUpdate
-        this.#ProcedureDelete = rowTable.ProcedureDelete
-        this.#ProcedureList = rowTable.ProcedureList
         this.#IsPaged = rowTable.IsPaged
         this.#LastId = rowTable.LastId
         this.#Database = database
@@ -156,21 +146,6 @@ export default class TTable {
     set ParentTableId(value) {
         this.#ParentTableId = value
         this.#ParentTableId = value ? TSystem.GetTable(value) : null
-    }
-    get ProcedureCreate() {
-        return this.#ProcedureCreate
-    }
-    get ProcedureRead() {
-        return this.#ProcedureRead
-    }
-    get ProcedureUpdate() {
-        return this.#ProcedureUpdate
-    }
-    get ProcedureDelete() {
-        return this.#ProcedureDelete
-    }
-    get ProcedureList() {
-        return this.#ProcedureList
     }
     get Row() {
         return this.#Recordset[this.#RowNumber]

@@ -3,14 +3,17 @@
 GO
 ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 										 ,@UserName VARCHAR(25)) AS BEGIN
+	DECLARE @TranCount INT = @@TRANCOUNT
+
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
+		
 		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionBegin]: '
 				,@TransactionId	INT
 
 		BEGIN TRANSACTION
+		SAVE TRANSACTION [SavePoint]
 		IF @LoginId IS NULL BEGIN
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
 			THROW 51000, @ErrorMessage, 1
@@ -29,8 +32,10 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		RETURN CAST(@TransactionId AS INT)
 	END TRY
 	BEGIN CATCH
-		IF XACT_STATE() <> 0
-			ROLLBACK TRANSACTION;
+		IF @@TRANCOUNT > @TranCount BEGIN
+			ROLLBACK TRANSACTION [SavePoint]
+			COMMIT TRANSACTION
+		END;
 		THROW
 	END CATCH
 END
