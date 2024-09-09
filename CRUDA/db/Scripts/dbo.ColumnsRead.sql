@@ -118,7 +118,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
 		DELETE [tmp] 
 			FROM [dbo].[#tmp]
 			WHERE EXISTS(SELECT 1
-							FROM [dbo].[Operations] [ope]
+							FROM [cruda].[Operations] [ope]
 							WHERE [ope].[TransactionId] = @TransactionId
 								  AND [ope].[TableName] = 'Columns'
 								  AND [ope].[IsConfirmed] IS NULL
@@ -146,7 +146,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
 									,CAST(JSON_VALUE([ActualRecord], '$.IsBrowseable') AS bit) AS [IsBrowseable]
 									,CAST(JSON_VALUE([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
 									,CAST(JSON_VALUE([ActualRecord], '$.IsCalculated') AS bit) AS [IsCalculated]
-								FROM [dbo].[Operations]
+								FROM [cruda].[Operations]
 								WHERE [TransactionId] = @TransactionId
 									  AND [TableName] = 'Columns'
 									  AND [IsConfirmed] IS NULL
@@ -176,7 +176,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
 				,[IsCalculated] = CAST(JSON_VALUE([ActualRecord], '$.IsCalculated') AS bit)
 			FROM [dbo].[#tmp] 
 			WHERE EXISTS(SELECT 1
-							FROM [dbo].[Operations] [ope]
+							FROM [cruda].[Operations] [ope]
 							WHERE [TransactionId] = @TransactionId
 								  AND [ope].[TableName] = 'Columns'
 								  AND [ope].[IsConfirmed] IS NULL
