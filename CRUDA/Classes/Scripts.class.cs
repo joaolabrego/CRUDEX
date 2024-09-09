@@ -1195,10 +1195,10 @@ namespace CRUDA.Classes
                 result.Append($"GO\r\n");
                 result.Append($"ALTER PROCEDURE[dbo].[{table["Name"]}Read](@LoginId BIGINT\r\n");
                 result.Append($"                                          ,@Parameters VARCHAR(MAX)\r\n");
+                result.Append($"                                          ,@PaddingBrowseLastPage BIT\r\n");
                 result.Append($"                                          ,@PageNumber INT OUT\r\n");
                 result.Append($"                                          ,@LimitRows BIGINT OUT\r\n");
-                result.Append($"                                          ,@MaxPage INT OUT\r\n");
-                result.Append($"                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN\r\n");
+                result.Append($"                                          ,@MaxPage INT OUT) AS BEGIN\r\n");
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
@@ -1297,15 +1297,22 @@ namespace CRUDA.Classes
                 }
                 result.Append($"        SET @RowCount = @@ROWCOUNT\r\n");
                 result.Append($"        DELETE [tmp]\r\n");
-                result.Append($"            FROM [dbo].[#tmp]\r\n");
-                result.Append($"            WHERE EXISTS(SELECT 1\r\n");
-                result.Append($"                            FROM [cruda].[Operations] [ope]\r\n");
-                result.Append($"                            WHERE [TransactionId] = @TransactionId\r\n");
-                result.Append($"                                  AND [ope].[TableName] = 'Columns'\r\n");
-                result.Append($"                                  AND [ope].[IsConfirmed] IS NULL\r\n");
-                result.Append($"                                  AND [ope].[Action] = 'update'\r\n");
+                result.Append($"            FROM [dbo].[#tmp] [tmp]\r\n");
+                firstTime = true;
                 foreach (var column in pkColumnRows)
-                    result.Append($"                                  AND CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}])\r\n");
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}]\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                                                         AND CAST(JSON_VALUE([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}])\r\n");
+                }
+                result.Append($"            WHERE [ope].[TransactionId] = @TransactionId\r\n");
+                result.Append($"                  AND [ope].[TableName] = 'Columns'\r\n");
+                result.Append($"                  AND [ope].[IsConfirmed] IS NULL\r\n");
+                result.Append($"                  AND [ope].[Action] = 'delete'\r\n");
                 result.Append($"        SET @RowCount = @RowCount - @@ROWCOUNT\r\n");
                 firstTime = true;
                 foreach (var column in columnRows)
@@ -1325,26 +1332,33 @@ namespace CRUDA.Classes
                 result.Append($"                  AND [Action] = 'create'\r\n");
                 result.Append($"        SET @RowCount = @RowCount + @@ROWCOUNT\r\n");
                 firstTime = true;
-                foreach (var column in columnRows)
+                foreach (var column in columnRows.FindAll(column => !ToBoolean(column["IsPrimarykey"])))
                 {
                     if (firstTime)
                     {
                         result.Append($"        UPDATE [tmp]\r\n");
-                        result.Append($"            SET [tmp].[{column["Name"]}] = CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"            SET [tmp].[{column["Name"]}] = CAST(JSON_VALUE([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"               ,[tmp].[{column["Name"]}] = CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"               ,[tmp].[{column["Name"]}] = CAST(JSON_VALUE([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
-                result.Append($"            FROM [dbo].[#tmp] \r\n");
-                result.Append($"            WHERE EXISTS(SELECT 1\r\n");
-                result.Append($"                            FROM [cruda].[Operations] [ope]\r\n");
-                result.Append($"                            WHERE [TransactionId] = @TransactionId\r\n");
-                result.Append($"                                  AND [ope].[TableName] = 'Columns'\r\n");
-                result.Append($"                                  AND [ope].[IsConfirmed] IS NULL\r\n");
-                result.Append($"                                  AND [ope].[Action] = 'update'\r\n");
+                result.Append($"            FROM [dbo].[#tmp] [tmp]\r\n");
+                firstTime= true;
                 foreach (var column in pkColumnRows)
-                    result.Append($"                                  AND CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}])\r\n");
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}]\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                                                         AND CAST(JSON_VALUE([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}])\r\n");
+                }
+                result.Append($"            WHERE [ope].[TransactionId] = @TransactionId\r\n");
+                result.Append($"                  AND [ope].[TableName] = '{table["Name"]}'\r\n");
+                result.Append($"                  AND [ope].[IsConfirmed] IS NULL\r\n");
+                result.Append($"                  AND [ope].[Action] = 'update'\r\n");
                 result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
                 result.Append($"            SET @offset = 0\r\n");
                 result.Append($"            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END\r\n");

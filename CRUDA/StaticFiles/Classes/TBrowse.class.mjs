@@ -7,7 +7,11 @@ import TSystem from "./TSystem.class.mjs"
 
 export default class TBrowse {
     #Table = null
-    #ReferenceRecordsets = []
+
+    #PageNumber = 1
+    #RowNumber = 0
+    #RowCount = 0
+    #PageCount = 0
 
     #HTML = {
         Container: null,
@@ -34,9 +38,7 @@ export default class TBrowse {
         Query: "",
         Exit: "",
     }
-    constructor(table) {
-        if (table.ClassName !== "TTable")
-            throw new Error("Argumento table não é do tipo TTable.")
+    constructor(nameOrAliasOrId, tableName) {
         this.#HTML.Container = document.createElement("table")
         this.#HTML.Container.className = "browse box"
 
@@ -52,8 +54,6 @@ export default class TBrowse {
 
         this.#HTML.Foot = document.createElement("tfoot")
         this.#HTML.Container.appendChild(this.#HTML.Foot)
-
-        this.#Table = table
     }
 
     static Initialize(styles, images) {
@@ -308,8 +308,5 @@ export default class TBrowse {
     }
     get Table() {
         return this.#Table
-    }
-    get ReferenceRecordsets() {
-        return this.#ReferenceRecordsets
     }
 }

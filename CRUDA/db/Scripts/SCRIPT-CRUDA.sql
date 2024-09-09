@@ -1657,10 +1657,10 @@ IF(SELECT object_id('[dbo].[CategoriesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1724,14 +1724,12 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS tinyint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
@@ -1750,24 +1748,21 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint)
-               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
-               ,[tmp].[HtmlInputType] = CAST(JSON_VALUE([ActualRecord], '$.HtmlInputType') AS varchar(10))
-               ,[tmp].[HtmlInputAlign] = CAST(JSON_VALUE([ActualRecord], '$.HtmlInputAlign') AS varchar(6))
-               ,[tmp].[AskEncrypted] = CAST(JSON_VALUE([ActualRecord], '$.AskEncrypted') AS bit)
-               ,[tmp].[AskMask] = CAST(JSON_VALUE([ActualRecord], '$.AskMask') AS bit)
-               ,[tmp].[AskListable] = CAST(JSON_VALUE([ActualRecord], '$.AskListable') AS bit)
-               ,[tmp].[AskDefault] = CAST(JSON_VALUE([ActualRecord], '$.AskDefault') AS bit)
-               ,[tmp].[AskMinimum] = CAST(JSON_VALUE([ActualRecord], '$.AskMinimum') AS bit)
-               ,[tmp].[AskMaximum] = CAST(JSON_VALUE([ActualRecord], '$.AskMaximum') AS bit)
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = [tmp].[Id])
+            SET [tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[HtmlInputType] = CAST(JSON_VALUE([ope].[ActualRecord], '$.HtmlInputType') AS varchar(10))
+               ,[tmp].[HtmlInputAlign] = CAST(JSON_VALUE([ope].[ActualRecord], '$.HtmlInputAlign') AS varchar(6))
+               ,[tmp].[AskEncrypted] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskEncrypted') AS bit)
+               ,[tmp].[AskMask] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskMask') AS bit)
+               ,[tmp].[AskListable] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskListable') AS bit)
+               ,[tmp].[AskDefault] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskDefault') AS bit)
+               ,[tmp].[AskMinimum] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskMinimum') AS bit)
+               ,[tmp].[AskMaximum] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskMaximum') AS bit)
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS tinyint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Categories'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -2336,10 +2331,10 @@ IF(SELECT object_id('[dbo].[TypesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2416,14 +2411,12 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS tinyint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
@@ -2447,29 +2440,26 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint)
-               ,[tmp].[CategoryId] = CAST(JSON_VALUE([ActualRecord], '$.CategoryId') AS tinyint)
-               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
-               ,[tmp].[Minimum] = CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS sql_variant)
-               ,[tmp].[Maximum] = CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS sql_variant)
-               ,[tmp].[AskLength] = CAST(JSON_VALUE([ActualRecord], '$.AskLength') AS bit)
-               ,[tmp].[AskDecimals] = CAST(JSON_VALUE([ActualRecord], '$.AskDecimals') AS bit)
-               ,[tmp].[AskPrimarykey] = CAST(JSON_VALUE([ActualRecord], '$.AskPrimarykey') AS bit)
-               ,[tmp].[AskAutoincrement] = CAST(JSON_VALUE([ActualRecord], '$.AskAutoincrement') AS bit)
-               ,[tmp].[AskFilterable] = CAST(JSON_VALUE([ActualRecord], '$.AskFilterable') AS bit)
-               ,[tmp].[AskBrowseable] = CAST(JSON_VALUE([ActualRecord], '$.AskBrowseable') AS bit)
-               ,[tmp].[AskCodification] = CAST(JSON_VALUE([ActualRecord], '$.AskCodification') AS bit)
-               ,[tmp].[AskFormula] = CAST(JSON_VALUE([ActualRecord], '$.AskFormula') AS bit)
-               ,[tmp].[AllowMaxLength] = CAST(JSON_VALUE([ActualRecord], '$.AllowMaxLength') AS bit)
-               ,[tmp].[IsActive] = CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit)
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = [tmp].[Id])
+            SET [tmp].[CategoryId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.CategoryId') AS tinyint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Minimum] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Minimum') AS sql_variant)
+               ,[tmp].[Maximum] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Maximum') AS sql_variant)
+               ,[tmp].[AskLength] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskLength') AS bit)
+               ,[tmp].[AskDecimals] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskDecimals') AS bit)
+               ,[tmp].[AskPrimarykey] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskPrimarykey') AS bit)
+               ,[tmp].[AskAutoincrement] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskAutoincrement') AS bit)
+               ,[tmp].[AskFilterable] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskFilterable') AS bit)
+               ,[tmp].[AskBrowseable] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskBrowseable') AS bit)
+               ,[tmp].[AskCodification] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskCodification') AS bit)
+               ,[tmp].[AskFormula] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AskFormula') AS bit)
+               ,[tmp].[AllowMaxLength] = CAST(JSON_VALUE([ope].[ActualRecord], '$.AllowMaxLength') AS bit)
+               ,[tmp].[IsActive] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsActive') AS bit)
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS tinyint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Types'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -2895,10 +2885,10 @@ IF(SELECT object_id('[dbo].[MasksRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2943,14 +2933,12 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
@@ -2962,17 +2950,14 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
-               ,[tmp].[Mask] = CAST(JSON_VALUE([ActualRecord], '$.Mask') AS varchar(8000))
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Mask] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Mask') AS varchar(8000))
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Masks'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -3490,10 +3475,10 @@ IF(SELECT object_id('[dbo].[DomainsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3570,14 +3555,12 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.TypeId') AS tinyint) AS [TypeId]
@@ -3597,25 +3580,22 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[TypeId] = CAST(JSON_VALUE([ActualRecord], '$.TypeId') AS tinyint)
-               ,[tmp].[MaskId] = CAST(JSON_VALUE([ActualRecord], '$.MaskId') AS bigint)
-               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
-               ,[tmp].[Length] = CAST(JSON_VALUE([ActualRecord], '$.Length') AS smallint)
-               ,[tmp].[Decimals] = CAST(JSON_VALUE([ActualRecord], '$.Decimals') AS tinyint)
-               ,[tmp].[ValidValues] = CAST(JSON_VALUE([ActualRecord], '$.ValidValues') AS varchar(8000))
-               ,[tmp].[Default] = CAST(JSON_VALUE([ActualRecord], '$.Default') AS sql_variant)
-               ,[tmp].[Minimum] = CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS sql_variant)
-               ,[tmp].[Maximum] = CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS sql_variant)
-               ,[tmp].[Codification] = CAST(JSON_VALUE([ActualRecord], '$.Codification') AS varchar(5))
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[TypeId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.TypeId') AS tinyint)
+               ,[tmp].[MaskId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.MaskId') AS bigint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Length] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Length') AS smallint)
+               ,[tmp].[Decimals] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Decimals') AS tinyint)
+               ,[tmp].[ValidValues] = CAST(JSON_VALUE([ope].[ActualRecord], '$.ValidValues') AS varchar(8000))
+               ,[tmp].[Default] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Default') AS sql_variant)
+               ,[tmp].[Minimum] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Minimum') AS sql_variant)
+               ,[tmp].[Maximum] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Maximum') AS sql_variant)
+               ,[tmp].[Codification] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Codification') AS varchar(5))
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Domains'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -4081,10 +4061,10 @@ IF(SELECT object_id('[dbo].[SystemsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4134,14 +4114,12 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
@@ -4156,20 +4134,17 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
-               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
-               ,[tmp].[ClientName] = CAST(JSON_VALUE([ActualRecord], '$.ClientName') AS varchar(15))
-               ,[tmp].[MaxRetryLogins] = CAST(JSON_VALUE([ActualRecord], '$.MaxRetryLogins') AS tinyint)
-               ,[tmp].[IsOffAir] = CAST(JSON_VALUE([ActualRecord], '$.IsOffAir') AS bit)
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Description] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Description') AS varchar(50))
+               ,[tmp].[ClientName] = CAST(JSON_VALUE([ope].[ActualRecord], '$.ClientName') AS varchar(15))
+               ,[tmp].[MaxRetryLogins] = CAST(JSON_VALUE([ope].[ActualRecord], '$.MaxRetryLogins') AS tinyint)
+               ,[tmp].[IsOffAir] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsOffAir') AS bit)
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Systems'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -4663,10 +4638,10 @@ IF(SELECT object_id('[dbo].[MenusRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4725,14 +4700,12 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
@@ -4748,21 +4721,18 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[SystemId] = CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint)
-               ,[tmp].[Sequence] = CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint)
-               ,[tmp].[Caption] = CAST(JSON_VALUE([ActualRecord], '$.Caption') AS varchar(20))
-               ,[tmp].[Message] = CAST(JSON_VALUE([ActualRecord], '$.Message') AS varchar(50))
-               ,[tmp].[Action] = CAST(JSON_VALUE([ActualRecord], '$.Action') AS varchar(50))
-               ,[tmp].[ParentMenuId] = CAST(JSON_VALUE([ActualRecord], '$.ParentMenuId') AS bigint)
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[SystemId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.SystemId') AS bigint)
+               ,[tmp].[Sequence] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Sequence') AS smallint)
+               ,[tmp].[Caption] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Caption') AS varchar(20))
+               ,[tmp].[Message] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Message') AS varchar(50))
+               ,[tmp].[Action] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Action') AS varchar(50))
+               ,[tmp].[ParentMenuId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.ParentMenuId') AS bigint)
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Menus'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -5224,10 +5194,10 @@ IF(SELECT object_id('[dbo].[UsersRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5279,14 +5249,12 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
@@ -5301,20 +5269,17 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
-               ,[tmp].[Password] = CAST(JSON_VALUE([ActualRecord], '$.Password') AS varchar(256))
-               ,[tmp].[FullName] = CAST(JSON_VALUE([ActualRecord], '$.FullName') AS varchar(50))
-               ,[tmp].[RetryLogins] = CAST(JSON_VALUE([ActualRecord], '$.RetryLogins') AS tinyint)
-               ,[tmp].[IsActive] = CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit)
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Password] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Password') AS varchar(256))
+               ,[tmp].[FullName] = CAST(JSON_VALUE([ope].[ActualRecord], '$.FullName') AS varchar(50))
+               ,[tmp].[RetryLogins] = CAST(JSON_VALUE([ope].[ActualRecord], '$.RetryLogins') AS tinyint)
+               ,[tmp].[IsActive] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsActive') AS bit)
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Users'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -5775,10 +5740,10 @@ IF(SELECT object_id('[dbo].[SystemsUsersRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5844,14 +5809,12 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
@@ -5864,18 +5827,15 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[SystemId] = CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint)
-               ,[tmp].[UserId] = CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint)
-               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[SystemId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.SystemId') AS bigint)
+               ,[tmp].[UserId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.UserId') AS bigint)
+               ,[tmp].[Description] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Description') AS varchar(50))
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'SystemsUsers'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -6366,10 +6326,10 @@ IF(SELECT object_id('[dbo].[DatabasesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -6423,14 +6383,12 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
@@ -6449,24 +6407,21 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
-               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
-               ,[tmp].[Alias] = CAST(JSON_VALUE([ActualRecord], '$.Alias') AS varchar(25))
-               ,[tmp].[ServerName] = CAST(JSON_VALUE([ActualRecord], '$.ServerName') AS varchar(50))
-               ,[tmp].[HostName] = CAST(JSON_VALUE([ActualRecord], '$.HostName') AS varchar(25))
-               ,[tmp].[Port] = CAST(JSON_VALUE([ActualRecord], '$.Port') AS int)
-               ,[tmp].[Logon] = CAST(JSON_VALUE([ActualRecord], '$.Logon') AS varchar(256))
-               ,[tmp].[Password] = CAST(JSON_VALUE([ActualRecord], '$.Password') AS varchar(256))
-               ,[tmp].[Folder] = CAST(JSON_VALUE([ActualRecord], '$.Folder') AS varchar(256))
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Description] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Description') AS varchar(50))
+               ,[tmp].[Alias] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Alias') AS varchar(25))
+               ,[tmp].[ServerName] = CAST(JSON_VALUE([ope].[ActualRecord], '$.ServerName') AS varchar(50))
+               ,[tmp].[HostName] = CAST(JSON_VALUE([ope].[ActualRecord], '$.HostName') AS varchar(25))
+               ,[tmp].[Port] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Port') AS int)
+               ,[tmp].[Logon] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Logon') AS varchar(256))
+               ,[tmp].[Password] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Password') AS varchar(256))
+               ,[tmp].[Folder] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Folder') AS varchar(256))
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Databases'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -6931,10 +6886,10 @@ IF(SELECT object_id('[dbo].[SystemsDatabasesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -7000,14 +6955,12 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
@@ -7020,18 +6973,15 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[SystemId] = CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint)
-               ,[tmp].[DatabaseId] = CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint)
-               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[SystemId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.SystemId') AS bigint)
+               ,[tmp].[DatabaseId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.DatabaseId') AS bigint)
+               ,[tmp].[Description] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Description') AS varchar(50))
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'SystemsDatabases'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -7514,10 +7464,10 @@ IF(SELECT object_id('[dbo].[TablesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -7570,14 +7520,12 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
@@ -7593,21 +7541,18 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
-               ,[tmp].[Alias] = CAST(JSON_VALUE([ActualRecord], '$.Alias') AS varchar(25))
-               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
-               ,[tmp].[ParentTableId] = CAST(JSON_VALUE([ActualRecord], '$.ParentTableId') AS bigint)
-               ,[tmp].[IsPaged] = CAST(JSON_VALUE([ActualRecord], '$.IsPaged') AS bit)
-               ,[tmp].[CurrentId] = CAST(JSON_VALUE([ActualRecord], '$.CurrentId') AS bigint)
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Alias] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Alias') AS varchar(25))
+               ,[tmp].[Description] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Description') AS varchar(50))
+               ,[tmp].[ParentTableId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.ParentTableId') AS bigint)
+               ,[tmp].[IsPaged] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsPaged') AS bit)
+               ,[tmp].[CurrentId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.CurrentId') AS bigint)
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Tables'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -8069,10 +8014,10 @@ IF(SELECT object_id('[dbo].[DatabasesTablesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -8138,14 +8083,12 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
@@ -8158,18 +8101,15 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[DatabaseId] = CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint)
-               ,[tmp].[TableId] = CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint)
-               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[DatabaseId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.DatabaseId') AS bigint)
+               ,[tmp].[TableId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.TableId') AS bigint)
+               ,[tmp].[Description] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Description') AS varchar(50))
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'DatabasesTables'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -8804,10 +8744,10 @@ IF(SELECT object_id('[dbo].[ColumnsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -8914,14 +8854,12 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
@@ -8951,35 +8889,32 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[TableId] = CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint)
-               ,[tmp].[Sequence] = CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint)
-               ,[tmp].[DomainId] = CAST(JSON_VALUE([ActualRecord], '$.DomainId') AS bigint)
-               ,[tmp].[ReferenceTableId] = CAST(JSON_VALUE([ActualRecord], '$.ReferenceTableId') AS bigint)
-               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25))
-               ,[tmp].[Description] = CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50))
-               ,[tmp].[Title] = CAST(JSON_VALUE([ActualRecord], '$.Title') AS varchar(25))
-               ,[tmp].[Caption] = CAST(JSON_VALUE([ActualRecord], '$.Caption') AS varchar(25))
-               ,[tmp].[ValidValues] = CAST(JSON_VALUE([ActualRecord], '$.ValidValues') AS varchar(8000))
-               ,[tmp].[Default] = CAST(JSON_VALUE([ActualRecord], '$.Default') AS sql_variant)
-               ,[tmp].[Minimum] = CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS sql_variant)
-               ,[tmp].[Maximum] = CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS sql_variant)
-               ,[tmp].[IsPrimarykey] = CAST(JSON_VALUE([ActualRecord], '$.IsPrimarykey') AS bit)
-               ,[tmp].[IsAutoIncrement] = CAST(JSON_VALUE([ActualRecord], '$.IsAutoIncrement') AS bit)
-               ,[tmp].[IsRequired] = CAST(JSON_VALUE([ActualRecord], '$.IsRequired') AS bit)
-               ,[tmp].[IsListable] = CAST(JSON_VALUE([ActualRecord], '$.IsListable') AS bit)
-               ,[tmp].[IsFilterable] = CAST(JSON_VALUE([ActualRecord], '$.IsFilterable') AS bit)
-               ,[tmp].[IsEditable] = CAST(JSON_VALUE([ActualRecord], '$.IsEditable') AS bit)
-               ,[tmp].[IsBrowseable] = CAST(JSON_VALUE([ActualRecord], '$.IsBrowseable') AS bit)
-               ,[tmp].[IsEncrypted] = CAST(JSON_VALUE([ActualRecord], '$.IsEncrypted') AS bit)
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[TableId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.TableId') AS bigint)
+               ,[tmp].[Sequence] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Sequence') AS smallint)
+               ,[tmp].[DomainId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.DomainId') AS bigint)
+               ,[tmp].[ReferenceTableId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.ReferenceTableId') AS bigint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
+               ,[tmp].[Description] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Description') AS varchar(50))
+               ,[tmp].[Title] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Title') AS varchar(25))
+               ,[tmp].[Caption] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Caption') AS varchar(25))
+               ,[tmp].[ValidValues] = CAST(JSON_VALUE([ope].[ActualRecord], '$.ValidValues') AS varchar(8000))
+               ,[tmp].[Default] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Default') AS sql_variant)
+               ,[tmp].[Minimum] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Minimum') AS sql_variant)
+               ,[tmp].[Maximum] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Maximum') AS sql_variant)
+               ,[tmp].[IsPrimarykey] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsPrimarykey') AS bit)
+               ,[tmp].[IsAutoIncrement] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsAutoIncrement') AS bit)
+               ,[tmp].[IsRequired] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsRequired') AS bit)
+               ,[tmp].[IsListable] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsListable') AS bit)
+               ,[tmp].[IsFilterable] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsFilterable') AS bit)
+               ,[tmp].[IsEditable] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsEditable') AS bit)
+               ,[tmp].[IsBrowseable] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsBrowseable') AS bit)
+               ,[tmp].[IsEncrypted] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsEncrypted') AS bit)
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -9459,10 +9394,10 @@ IF(SELECT object_id('[dbo].[IndexesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -9521,14 +9456,12 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
@@ -9542,19 +9475,16 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[DatabaseId] = CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint)
-               ,[tmp].[TableId] = CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint)
-               ,[tmp].[Name] = CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(50))
-               ,[tmp].[IsUnique] = CAST(JSON_VALUE([ActualRecord], '$.IsUnique') AS bit)
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[DatabaseId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.DatabaseId') AS bigint)
+               ,[tmp].[TableId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.TableId') AS bigint)
+               ,[tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(50))
+               ,[tmp].[IsUnique] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsUnique') AS bit)
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Indexes'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -10034,10 +9964,10 @@ IF(SELECT object_id('[dbo].[IndexkeysRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -10104,14 +10034,12 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IndexId') AS bigint) AS [IndexId]
@@ -10125,19 +10053,16 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[IndexId] = CAST(JSON_VALUE([ActualRecord], '$.IndexId') AS bigint)
-               ,[tmp].[Sequence] = CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint)
-               ,[tmp].[ColumnId] = CAST(JSON_VALUE([ActualRecord], '$.ColumnId') AS bigint)
-               ,[tmp].[IsDescending] = CAST(JSON_VALUE([ActualRecord], '$.IsDescending') AS bit)
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[IndexId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IndexId') AS bigint)
+               ,[tmp].[Sequence] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Sequence') AS smallint)
+               ,[tmp].[ColumnId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.ColumnId') AS bigint)
+               ,[tmp].[IsDescending] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsDescending') AS bit)
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Indexkeys'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -10596,10 +10521,10 @@ IF(SELECT object_id('[dbo].[LoginsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@PaddingBrowseLastPage BIT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -10666,14 +10591,12 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
             ORDER BY [Id]
         SET @RowCount = @@ROWCOUNT
         DELETE [tmp]
-            FROM [dbo].[#tmp]
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Columns'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'delete'
         SET @RowCount = @RowCount - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
@@ -10687,19 +10610,16 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
                   AND [Action] = 'create'
         SET @RowCount = @RowCount + @@ROWCOUNT
         UPDATE [tmp]
-            SET [tmp].[Id] = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
-               ,[tmp].[SystemId] = CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint)
-               ,[tmp].[UserId] = CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint)
-               ,[tmp].[PublicKey] = CAST(JSON_VALUE([ActualRecord], '$.PublicKey') AS varchar(256))
-               ,[tmp].[IsLogged] = CAST(JSON_VALUE([ActualRecord], '$.IsLogged') AS bit)
-            FROM [dbo].[#tmp] 
-            WHERE EXISTS(SELECT 1
-                            FROM [cruda].[Operations] [ope]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [ope].[TableName] = 'Columns'
-                                  AND [ope].[IsConfirmed] IS NULL
-                                  AND [ope].[Action] = 'update'
-                                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = [tmp].[Id])
+            SET [tmp].[SystemId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.SystemId') AS bigint)
+               ,[tmp].[UserId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.UserId') AS bigint)
+               ,[tmp].[PublicKey] = CAST(JSON_VALUE([ope].[ActualRecord], '$.PublicKey') AS varchar(256))
+               ,[tmp].[IsLogged] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IsLogged') AS bit)
+            FROM [dbo].[#tmp] [tmp]
+                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
+            WHERE [ope].[TransactionId] = @TransactionId
+                  AND [ope].[TableName] = 'Logins'
+                  AND [ope].[IsConfirmed] IS NULL
+                  AND [ope].[Action] = 'update'
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
