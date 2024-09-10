@@ -39,6 +39,13 @@ export default class TBrowse {
         Exit: "",
     }
     constructor(nameOrAliasOrId, tableName) {
+        let database = TSystem.GetDatabase(nameOrAliasOrId)
+
+        if (database === null)
+            throw new Error("Banco-de-dados não encontrado.")
+        this.#Table = database.GetTable(tableName)
+        if (this.#Table === null)
+            throw new Error("Tabela de banco-de-dados não encontrada.")
         this.#HTML.Container = document.createElement("table")
         this.#HTML.Container.className = "browse box"
 

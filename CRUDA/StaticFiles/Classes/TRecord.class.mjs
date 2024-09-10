@@ -1,7 +1,4 @@
 "use strict"
-
-import TField from "./TField.class.mjs"
-
 export default class TRecord {
     #ClassName = ""
     #Fields = []
