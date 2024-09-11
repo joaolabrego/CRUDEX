@@ -1134,7 +1134,7 @@ namespace CRUDA.Classes
                                 firstTime = false;
                             }
                             else
-                                result.Append($"                                                                  AND [{column["Name"]}] = @W_{column["Name"]}");
+                                result.Append($" AND [{column["Name"]}] = @W_{column["Name"]}");
                         }
                         result.Append($") BEGIN\r\n");
                         result.Append($"                    SET @ErrorMessage = @ErrorMessage + 'Chave única de {index["Name"]} já existe';\r\n");
@@ -1156,7 +1156,7 @@ namespace CRUDA.Classes
                                 firstTime = false;
                             }
                             else
-                                result.Append($"                                                              AND [{column["Name"]}] = @W_{column["Name"]}");
+                                result.Append($" AND [{column["Name"]}] = @W_{column["Name"]}");
                         }
                         pkColumn = columnRows.First(col => ToLong(col["TableId"]) == ToLong(table["Id"]) && ToBoolean(col["IsPrimarykey"]));
                         result.Append($" AND [{pkColumn["Name"]}] <> @W_{pkColumn["Name"]}) BEGIN\r\n");
@@ -1197,9 +1197,9 @@ namespace CRUDA.Classes
                 result.Append($"                                          ,@Parameters VARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@OrderBy VARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@PaddingBrowseLastPage BIT\r\n");
-                result.Append($"                                          ,@PageNumber INT OUT\r\n");
+                result.Append($"                                          ,@PageNumber BIGINT OUT\r\n");
                 result.Append($"                                          ,@LimitRows BIGINT OUT\r\n");
-                result.Append($"                                          ,@MaxPage INT OUT) AS BEGIN\r\n");
+                result.Append($"                                          ,@MaxPage BIGINT OUT) AS BEGIN\r\n");
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
@@ -1221,7 +1221,7 @@ namespace CRUDA.Classes
 
                 var filterableColumns = columnRows.FindAll(column => ToBoolean(column["IsFilterable"]));
 
-                result.Append($"        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)\r\n");
+                result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
                 foreach (var column in filterableColumns)
                     result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@Parameters, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 result.Append($"\r\n");
@@ -1246,7 +1246,7 @@ namespace CRUDA.Classes
                 }
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @RowCount BIGINT\r\n");
-                result.Append($"               ,@OffSet INT\r\n");
+                result.Append($"               ,@OffSet BIGINT\r\n");
                 result.Append($"\r\n");
                 firstTime = true;
                 foreach (var column in columnRows)
@@ -1383,7 +1383,9 @@ namespace CRUDA.Classes
                     if (firstTime)
                     {
                         result.Append($"        DECLARE @sql VARCHAR(MAX)\r\n");
+                        result.Append($"                ,@className VARCHAR(50) = 'Record{table["Alias"]}'\r\n");
                         result.Append($"                ,@primaryKey VARCHAR(MAX) = '[{column["Name"]}]");
+                        
                         firstTime = false;
                     }
                     else
@@ -1391,22 +1393,15 @@ namespace CRUDA.Classes
                 }
                 result.Append($"'\r\n");
                 result.Append($"\r\n");
-                firstTime = true;
-                foreach (var column in columnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"        SET @sql = 'SELECT ''Record{table["Alias"]}'' AS [ClassName]\r\n");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($"                           ,[{column["Name"]}]\r\n");
-                }
-                result.Append($"                       FROM [dbo].[#tmp] \r\n");
-                result.Append($"                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '\r\n");
-                result.Append($"                       OFFSET @offset ROWS\r\n");
-                result.Append($"                       FETCH NEXT @LimitRows ROWS ONLY'\r\n");
+                result.Append($"        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]\r\n");
+                result.Append($"        SET @sql = 'INSERT INTO [dbo].[#view]\r\n");
+                result.Append($"                        SELECT ''' + @className + ''', *\r\n");
+                result.Append($"                            FROM [dbo].[#tmp]\r\n");
+                result.Append($"                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '\r\n");
+                result.Append($"                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS\r\n");
+                result.Append($"                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'\r\n");
                 result.Append($"        EXEC @sql\r\n");
+                result.Append($"        SELECT * FROM [dbo].[#view]\r\n");
                 result.Append($"\r\n");
                 result.Append($"        RETURN @RowCount\r\n");
                 result.Append($"    END TRY\r\n");

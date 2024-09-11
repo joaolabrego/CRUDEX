@@ -77,7 +77,6 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
 
 		DECLARE @RowCount BIGINT
 				,@OffSet INT
-				,@sql VARCHAR(MAX)
 
 		SELECT [Id]
 				,[TableId]
@@ -199,32 +198,18 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
 			IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
 				SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
 		END
-		SET @sql = 'SELECT ''RecordColumn'' AS [ClassName]
-							,[Id]
-							,[TableId]
-							,[Sequence]
-							,[DomainId]
-							,[ReferenceTableId]
-							,[Name]
-							,[Description]
-							,[Title]
-							,[Caption]
-							,[Default]
-							,[Minimum]
-							,[Maximum]
-							,[IsPrimarykey]
-							,[IsAutoIncrement]
-							,[IsRequired]
-							,[IsListable]
-							,[IsFilterable]
-							,[IsEditable]
-							,[IsBrowseable]
-							,[IsEncrypted]
-							,[IsCalculated]
-					FROM [dbo].[#tmp]
-					ORDER BY ' + ISNULL(@OrderBy, '[Id]') + '
-					OFFSET @offset ROWS
-					FETCH NEXT @LimitRows ROWS ONLY'
+
+		DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+				,@className VARCHAR(MAX) = 'RecordColumn'
+
+		SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[view] FROM [dbo].[#tmp]
+		SET @sql = 'INSERT INTO [dbo].[#view]
+						SELECT ''RecordColumn'', *
+	 						FROM [dbo].[#tmp]
+							ORDER BY ' + ISNULL(@OrderBy, '[Id]') + '
+							OFFSET @offset ROWS
+							FETCH NEXT @LimitRows ROWS ONLY'
 		EXEC @sql
 
 		RETURN @RowCount

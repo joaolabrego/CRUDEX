@@ -1659,9 +1659,9 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -1680,7 +1680,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id tinyint = CAST(JSON_VALUE(@Parameters, '$.Id') AS tinyint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
                 ,@W_AskEncrypted bit = CAST(JSON_VALUE(@Parameters, '$.AskEncrypted') AS bit)
@@ -1700,7 +1700,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[Name]
@@ -1781,23 +1781,18 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordCategory'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordCategory'' AS [ClassName]
-                           ,[Name]
-                           ,[HtmlInputType]
-                           ,[HtmlInputAlign]
-                           ,[AskEncrypted]
-                           ,[AskMask]
-                           ,[AskListable]
-                           ,[AskDefault]
-                           ,[AskMinimum]
-                           ,[AskMaximum]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -2339,9 +2334,9 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2360,7 +2355,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id tinyint = CAST(JSON_VALUE(@Parameters, '$.Id') AS tinyint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
                 ,@W_AskLength bit = CAST(JSON_VALUE(@Parameters, '$.AskLength') AS bit)
@@ -2384,7 +2379,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[CategoryId]
@@ -2484,28 +2479,18 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordType'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordType'' AS [ClassName]
-                           ,[CategoryId]
-                           ,[Name]
-                           ,[Minimum]
-                           ,[Maximum]
-                           ,[AskLength]
-                           ,[AskDecimals]
-                           ,[AskPrimarykey]
-                           ,[AskAutoincrement]
-                           ,[AskFilterable]
-                           ,[AskBrowseable]
-                           ,[AskCodification]
-                           ,[AskFormula]
-                           ,[AllowMaxLength]
-                           ,[IsActive]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -2899,9 +2884,9 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -2920,7 +2905,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
 
@@ -2934,7 +2919,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[Name]
@@ -2988,16 +2973,18 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordMask'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordMask'' AS [ClassName]
-                           ,[Name]
-                           ,[Mask]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -3495,9 +3482,9 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -3516,7 +3503,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_TypeId tinyint = CAST(JSON_VALUE(@Parameters, '$.TypeId') AS tinyint)
                 ,@W_MaskId bigint = CAST(JSON_VALUE(@Parameters, '$.MaskId') AS bigint)
@@ -3550,7 +3537,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[TypeId]
@@ -3632,24 +3619,18 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordDomain'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordDomain'' AS [ClassName]
-                           ,[TypeId]
-                           ,[MaskId]
-                           ,[Name]
-                           ,[Length]
-                           ,[Decimals]
-                           ,[ValidValues]
-                           ,[Default]
-                           ,[Minimum]
-                           ,[Maximum]
-                           ,[Codification]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -4087,9 +4068,9 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4108,7 +4089,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
                 ,@W_ClientName varchar(15) = CAST(JSON_VALUE(@Parameters, '$.ClientName') AS varchar(15))
@@ -4123,7 +4104,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[Name]
@@ -4187,19 +4168,18 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordSystem'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordSystem'' AS [ClassName]
-                           ,[Name]
-                           ,[Description]
-                           ,[ClientName]
-                           ,[MaxRetryLogins]
-                           ,[IsOffAir]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -4404,11 +4384,11 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId BIGINT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId                                                                  AND [Sequence] = @W_Sequence) BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Menus_SystemId_Sequence já existe';
                     THROW 51000, @ErrorMessage, 1
                 END
-            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId                                                              AND [Sequence] = @W_Sequence AND [Id] <> @W_Id) BEGIN
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Menus_SystemId_Sequence inexiste';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -4670,9 +4650,9 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -4691,7 +4671,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
                 ,@W_Caption varchar(20) = CAST(JSON_VALUE(@Parameters, '$.Caption') AS varchar(20))
@@ -4714,7 +4694,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[SystemId]
@@ -4781,20 +4761,18 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordMenu'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordMenu'' AS [ClassName]
-                           ,[SystemId]
-                           ,[Sequence]
-                           ,[Caption]
-                           ,[Message]
-                           ,[Action]
-                           ,[ParentMenuId]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -5232,9 +5210,9 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5253,7 +5231,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
                 ,@W_FullName varchar(50) = CAST(JSON_VALUE(@Parameters, '$.FullName') AS varchar(50))
@@ -5269,7 +5247,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[Name]
@@ -5334,19 +5312,18 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordUser'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordUser'' AS [ClassName]
-                           ,[Name]
-                           ,[Password]
-                           ,[FullName]
-                           ,[RetryLogins]
-                           ,[IsActive]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -5523,14 +5500,14 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId BIGINT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId                                                                  AND [UserId] = @W_UserId) BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsUsers_SystemId_UserId já existe';
                     THROW 51000, @ErrorMessage, 1
                 IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Description] = @W_Description) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsUsers_Description já existe';
                     THROW 51000, @ErrorMessage, 1
                 END
-            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId                                                              AND [UserId] = @W_UserId AND [Id] <> @W_Id) BEGIN
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsUsers_SystemId_UserId inexiste';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -5784,9 +5761,9 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -5805,7 +5782,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
                 ,@W_UserId bigint = CAST(JSON_VALUE(@Parameters, '$.UserId') AS bigint)
@@ -5837,7 +5814,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[SystemId]
@@ -5896,17 +5873,18 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordSystemUser'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordSystemUser'' AS [ClassName]
-                           ,[SystemId]
-                           ,[UserId]
-                           ,[Description]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -6376,9 +6354,9 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -6397,7 +6375,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
                 ,@W_Alias varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Alias') AS varchar(25))
@@ -6412,7 +6390,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[Name]
@@ -6488,23 +6466,18 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordDatabase'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordDatabase'' AS [ClassName]
-                           ,[Name]
-                           ,[Description]
-                           ,[Alias]
-                           ,[ServerName]
-                           ,[HostName]
-                           ,[Port]
-                           ,[Logon]
-                           ,[Password]
-                           ,[Folder]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -6681,14 +6654,14 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId BIGINT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId                                                                  AND [DatabaseId] = @W_DatabaseId) BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsDatabases_SystemId_DatabaseId já existe';
                     THROW 51000, @ErrorMessage, 1
                 IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Description] = @W_Description) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsDatabases_Description já existe';
                     THROW 51000, @ErrorMessage, 1
                 END
-            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId                                                              AND [DatabaseId] = @W_DatabaseId AND [Id] <> @W_Id) BEGIN
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsDatabases_SystemId_DatabaseId inexiste';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -6942,9 +6915,9 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -6963,7 +6936,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
                 ,@W_DatabaseId bigint = CAST(JSON_VALUE(@Parameters, '$.DatabaseId') AS bigint)
@@ -6995,7 +6968,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[SystemId]
@@ -7054,17 +7027,18 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordSystemDatabase'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordSystemDatabase'' AS [ClassName]
-                           ,[SystemId]
-                           ,[DatabaseId]
-                           ,[Description]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -7526,9 +7500,9 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -7547,7 +7521,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
                 ,@W_Alias varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Alias') AS varchar(25))
@@ -7563,7 +7537,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[Name]
@@ -7631,20 +7605,18 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordTable'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordTable'' AS [ClassName]
-                           ,[Name]
-                           ,[Alias]
-                           ,[Description]
-                           ,[ParentTableId]
-                           ,[IsPaged]
-                           ,[CurrentId]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -7821,14 +7793,14 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId BIGINT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id                                                                  AND [TableId] = @W_TableId) BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id AND [TableId] = @W_TableId) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId já existe';
                     THROW 51000, @ErrorMessage, 1
                 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Description] = @W_Description) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_Description já existe';
                     THROW 51000, @ErrorMessage, 1
                 END
-            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id                                                              AND [TableId] = @W_TableId AND [Id] <> @W_Id) BEGIN
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id AND [TableId] = @W_TableId AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId inexiste';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -8082,9 +8054,9 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -8103,7 +8075,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_DatabaseId bigint = CAST(JSON_VALUE(@Parameters, '$.DatabaseId') AS bigint)
                 ,@W_TableId bigint = CAST(JSON_VALUE(@Parameters, '$.TableId') AS bigint)
@@ -8135,7 +8107,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[DatabaseId]
@@ -8194,17 +8166,18 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordDatabaseTable'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordDatabaseTable'' AS [ClassName]
-                           ,[DatabaseId]
-                           ,[TableId]
-                           ,[Description]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -8489,18 +8462,18 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId BIGINT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId                                                                  AND [Name] = @W_Name) BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Columns_TableId_Name já existe';
                     THROW 51000, @ErrorMessage, 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId                                                                  AND [Sequence] = @W_Sequence) BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Columns_TableId_Sequence já existe';
                     THROW 51000, @ErrorMessage, 1
                 END
-            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId                                                              AND [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Columns_TableId_Name inexiste';
                 THROW 51000, @ErrorMessage, 1
             END
-            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId                                                              AND [Sequence] = @W_Sequence AND [Id] <> @W_Id) BEGIN
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Columns_TableId_Sequence inexiste';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -8818,9 +8791,9 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -8839,7 +8812,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_TableId bigint = CAST(JSON_VALUE(@Parameters, '$.TableId') AS bigint)
                 ,@W_DomainId bigint = CAST(JSON_VALUE(@Parameters, '$.DomainId') AS bigint)
@@ -8887,7 +8860,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[TableId]
@@ -9005,34 +8978,18 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordColumn'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordColumn'' AS [ClassName]
-                           ,[TableId]
-                           ,[Sequence]
-                           ,[DomainId]
-                           ,[ReferenceTableId]
-                           ,[Name]
-                           ,[Description]
-                           ,[Title]
-                           ,[Caption]
-                           ,[ValidValues]
-                           ,[Default]
-                           ,[Minimum]
-                           ,[Maximum]
-                           ,[IsPrimarykey]
-                           ,[IsAutoIncrement]
-                           ,[IsRequired]
-                           ,[IsListable]
-                           ,[IsFilterable]
-                           ,[IsEditable]
-                           ,[IsBrowseable]
-                           ,[IsEncrypted]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -9216,11 +9173,11 @@ ALTER PROCEDURE[dbo].[IndexValidate](@LoginId BIGINT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId                                                                  AND [Name] = @W_Name) BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId AND [Name] = @W_Name) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexes_DatabaseId_Name já existe';
                     THROW 51000, @ErrorMessage, 1
                 END
-            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId                                                              AND [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId AND [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexes_DatabaseId_Name inexiste';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -9474,9 +9431,9 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -9495,7 +9452,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_TableId bigint = CAST(JSON_VALUE(@Parameters, '$.TableId') AS bigint)
                 ,@W_Name varchar(50) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(50))
@@ -9519,7 +9476,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[DatabaseId]
@@ -9581,18 +9538,18 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordIndex'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordIndex'' AS [ClassName]
-                           ,[DatabaseId]
-                           ,[TableId]
-                           ,[Name]
-                           ,[IsUnique]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -9785,18 +9742,18 @@ ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId BIGINT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId                                                                  AND [Sequence] = @W_Sequence) BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexkeys_IndexId_Sequence já existe';
                     THROW 51000, @ErrorMessage, 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId                                                                  AND [ColumnId] = @W_ColumnId) BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexkeys_IndexId_ColumnId já existe';
                     THROW 51000, @ErrorMessage, 1
                 END
-            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId                                                              AND [Sequence] = @W_Sequence AND [Id] <> @W_Id) BEGIN
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexkeys_IndexId_Sequence inexiste';
                 THROW 51000, @ErrorMessage, 1
             END
-            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId                                                              AND [ColumnId] = @W_ColumnId AND [Id] <> @W_Id) BEGIN
+            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexkeys_IndexId_ColumnId inexiste';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -10050,9 +10007,9 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -10071,7 +10028,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_IndexId bigint = CAST(JSON_VALUE(@Parameters, '$.IndexId') AS bigint)
                 ,@W_ColumnId bigint = CAST(JSON_VALUE(@Parameters, '$.ColumnId') AS bigint)
@@ -10103,7 +10060,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[IndexId]
@@ -10165,18 +10122,18 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordIndexkey'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordIndexkey'' AS [ClassName]
-                           ,[IndexId]
-                           ,[Sequence]
-                           ,[ColumnId]
-                           ,[IsDescending]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
@@ -10613,9 +10570,9 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber INT OUT
+                                          ,@PageNumber BIGINT OUT
                                           ,@LimitRows BIGINT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage BIGINT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -10634,7 +10591,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
                 ,@W_UserId bigint = CAST(JSON_VALUE(@Parameters, '$.UserId') AS bigint)
@@ -10666,7 +10623,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
         END
 
         DECLARE @RowCount BIGINT
-               ,@OffSet INT
+               ,@OffSet BIGINT
 
         SELECT [Id]
               ,[SystemId]
@@ -10728,18 +10685,18 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
         END
 
         DECLARE @sql VARCHAR(MAX)
+                ,@className VARCHAR(50) = 'RecordLogin'
                 ,@primaryKey VARCHAR(MAX) = '[Id]'
 
-        SET @sql = 'SELECT ''RecordLogin'' AS [ClassName]
-                           ,[SystemId]
-                           ,[UserId]
-                           ,[PublicKey]
-                           ,[IsLogged]
-                       FROM [dbo].[#tmp] 
-                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
-                       OFFSET @offset ROWS
-                       FETCH NEXT @LimitRows ROWS ONLY'
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
+        SET @sql = 'INSERT INTO [dbo].[#view]
+                        SELECT ''' + @className + ''', *
+                            FROM [dbo].[#tmp]
+                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
+        SELECT * FROM [dbo].[#view]
 
         RETURN @RowCount
     END TRY
