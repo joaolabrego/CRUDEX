@@ -1195,6 +1195,7 @@ namespace CRUDA.Classes
                 result.Append($"GO\r\n");
                 result.Append($"ALTER PROCEDURE[dbo].[{table["Name"]}Read](@LoginId BIGINT\r\n");
                 result.Append($"                                          ,@Parameters VARCHAR(MAX)\r\n");
+                result.Append($"                                          ,@OrderBy VARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@PaddingBrowseLastPage BIT\r\n");
                 result.Append($"                                          ,@PageNumber INT OUT\r\n");
                 result.Append($"                                          ,@LimitRows BIGINT OUT\r\n");
@@ -1372,33 +1373,40 @@ namespace CRUDA.Classes
                 result.Append($"                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1\r\n");
                 result.Append($"            SET @offset = (@PageNumber - 1) * @LimitRows\r\n");
                 result.Append($"            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount\r\n");
-                result.Append($"                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END\r\n");
+                result.Append($"                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END\r\n");
                 result.Append($"        END\r\n");
-                firstTime = true;
-                foreach (var column in columnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"        SELECT 'Record{table["Alias"]}' AS [ClassName]\r\n");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($"              ,[{column["Name"]}]\r\n");
-                }
-                result.Append($"            FROM [dbo].[#tmp] \r\n");
+                result.Append($"\r\n");
+
                 firstTime = true;
                 foreach (var column in pkColumnRows)
                 {
                     if (firstTime)
                     {
-                        result.Append($"            ORDER BY [{column["Name"]}]\r\n");
+                        result.Append($"        DECLARE @sql VARCHAR(MAX)\r\n");
+                        result.Append($"                ,@primaryKey VARCHAR(MAX) = '[{column["Name"]}]");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                    ,[{column["Name"]}]\r\n");
+                        result.Append($",[{column["Name"]}]");
                 }
-                result.Append($"            OFFSET @offset ROWS\r\n");
-                result.Append($"            FETCH NEXT @LimitRows ROWS ONLY\r\n");
+                result.Append($"'\r\n");
+                result.Append($"\r\n");
+                firstTime = true;
+                foreach (var column in columnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"        SET @sql = 'SELECT ''Record{table["Alias"]}'' AS [ClassName]\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                           ,[{column["Name"]}]\r\n");
+                }
+                result.Append($"                       FROM [dbo].[#tmp] \r\n");
+                result.Append($"                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '\r\n");
+                result.Append($"                       OFFSET @offset ROWS\r\n");
+                result.Append($"                       FETCH NEXT @LimitRows ROWS ONLY'\r\n");
+                result.Append($"        EXEC @sql\r\n");
                 result.Append($"\r\n");
                 result.Append($"        RETURN @RowCount\r\n");
                 result.Append($"    END TRY\r\n");

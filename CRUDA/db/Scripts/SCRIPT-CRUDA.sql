@@ -1657,6 +1657,7 @@ IF(SELECT object_id('[dbo].[CategoriesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -1776,22 +1777,27 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordCategory' AS [ClassName]
-              ,[Name]
-              ,[HtmlInputType]
-              ,[HtmlInputAlign]
-              ,[AskEncrypted]
-              ,[AskMask]
-              ,[AskListable]
-              ,[AskDefault]
-              ,[AskMinimum]
-              ,[AskMaximum]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordCategory'' AS [ClassName]
+                           ,[Name]
+                           ,[HtmlInputType]
+                           ,[HtmlInputAlign]
+                           ,[AskEncrypted]
+                           ,[AskMask]
+                           ,[AskListable]
+                           ,[AskDefault]
+                           ,[AskMinimum]
+                           ,[AskMaximum]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -2331,6 +2337,7 @@ IF(SELECT object_id('[dbo].[TypesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -2473,27 +2480,32 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordType' AS [ClassName]
-              ,[CategoryId]
-              ,[Name]
-              ,[Minimum]
-              ,[Maximum]
-              ,[AskLength]
-              ,[AskDecimals]
-              ,[AskPrimarykey]
-              ,[AskAutoincrement]
-              ,[AskFilterable]
-              ,[AskBrowseable]
-              ,[AskCodification]
-              ,[AskFormula]
-              ,[AllowMaxLength]
-              ,[IsActive]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordType'' AS [ClassName]
+                           ,[CategoryId]
+                           ,[Name]
+                           ,[Minimum]
+                           ,[Maximum]
+                           ,[AskLength]
+                           ,[AskDecimals]
+                           ,[AskPrimarykey]
+                           ,[AskAutoincrement]
+                           ,[AskFilterable]
+                           ,[AskBrowseable]
+                           ,[AskCodification]
+                           ,[AskFormula]
+                           ,[AllowMaxLength]
+                           ,[IsActive]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -2885,6 +2897,7 @@ IF(SELECT object_id('[dbo].[MasksRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -2971,15 +2984,20 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordMask' AS [ClassName]
-              ,[Name]
-              ,[Mask]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordMask'' AS [ClassName]
+                           ,[Name]
+                           ,[Mask]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -3475,6 +3493,7 @@ IF(SELECT object_id('[dbo].[DomainsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -3609,23 +3628,28 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordDomain' AS [ClassName]
-              ,[TypeId]
-              ,[MaskId]
-              ,[Name]
-              ,[Length]
-              ,[Decimals]
-              ,[ValidValues]
-              ,[Default]
-              ,[Minimum]
-              ,[Maximum]
-              ,[Codification]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordDomain'' AS [ClassName]
+                           ,[TypeId]
+                           ,[MaskId]
+                           ,[Name]
+                           ,[Length]
+                           ,[Decimals]
+                           ,[ValidValues]
+                           ,[Default]
+                           ,[Minimum]
+                           ,[Maximum]
+                           ,[Codification]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -4061,6 +4085,7 @@ IF(SELECT object_id('[dbo].[SystemsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -4158,18 +4183,23 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordSystem' AS [ClassName]
-              ,[Name]
-              ,[Description]
-              ,[ClientName]
-              ,[MaxRetryLogins]
-              ,[IsOffAir]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordSystem'' AS [ClassName]
+                           ,[Name]
+                           ,[Description]
+                           ,[ClientName]
+                           ,[MaxRetryLogins]
+                           ,[IsOffAir]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -4638,6 +4668,7 @@ IF(SELECT object_id('[dbo].[MenusRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -4746,19 +4777,24 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordMenu' AS [ClassName]
-              ,[SystemId]
-              ,[Sequence]
-              ,[Caption]
-              ,[Message]
-              ,[Action]
-              ,[ParentMenuId]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordMenu'' AS [ClassName]
+                           ,[SystemId]
+                           ,[Sequence]
+                           ,[Caption]
+                           ,[Message]
+                           ,[Action]
+                           ,[ParentMenuId]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -5194,6 +5230,7 @@ IF(SELECT object_id('[dbo].[UsersRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -5293,18 +5330,23 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordUser' AS [ClassName]
-              ,[Name]
-              ,[Password]
-              ,[FullName]
-              ,[RetryLogins]
-              ,[IsActive]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordUser'' AS [ClassName]
+                           ,[Name]
+                           ,[Password]
+                           ,[FullName]
+                           ,[RetryLogins]
+                           ,[IsActive]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -5740,6 +5782,7 @@ IF(SELECT object_id('[dbo].[SystemsUsersRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -5849,16 +5892,21 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordSystemUser' AS [ClassName]
-              ,[SystemId]
-              ,[UserId]
-              ,[Description]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordSystemUser'' AS [ClassName]
+                           ,[SystemId]
+                           ,[UserId]
+                           ,[Description]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -6326,6 +6374,7 @@ IF(SELECT object_id('[dbo].[DatabasesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -6435,22 +6484,27 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordDatabase' AS [ClassName]
-              ,[Name]
-              ,[Description]
-              ,[Alias]
-              ,[ServerName]
-              ,[HostName]
-              ,[Port]
-              ,[Logon]
-              ,[Password]
-              ,[Folder]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordDatabase'' AS [ClassName]
+                           ,[Name]
+                           ,[Description]
+                           ,[Alias]
+                           ,[ServerName]
+                           ,[HostName]
+                           ,[Port]
+                           ,[Logon]
+                           ,[Password]
+                           ,[Folder]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -6886,6 +6940,7 @@ IF(SELECT object_id('[dbo].[SystemsDatabasesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -6995,16 +7050,21 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordSystemDatabase' AS [ClassName]
-              ,[SystemId]
-              ,[DatabaseId]
-              ,[Description]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordSystemDatabase'' AS [ClassName]
+                           ,[SystemId]
+                           ,[DatabaseId]
+                           ,[Description]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -7464,6 +7524,7 @@ IF(SELECT object_id('[dbo].[TablesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -7566,19 +7627,24 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordTable' AS [ClassName]
-              ,[Name]
-              ,[Alias]
-              ,[Description]
-              ,[ParentTableId]
-              ,[IsPaged]
-              ,[CurrentId]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordTable'' AS [ClassName]
+                           ,[Name]
+                           ,[Alias]
+                           ,[Description]
+                           ,[ParentTableId]
+                           ,[IsPaged]
+                           ,[CurrentId]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -8014,6 +8080,7 @@ IF(SELECT object_id('[dbo].[DatabasesTablesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -8123,16 +8190,21 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordDatabaseTable' AS [ClassName]
-              ,[DatabaseId]
-              ,[TableId]
-              ,[Description]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordDatabaseTable'' AS [ClassName]
+                           ,[DatabaseId]
+                           ,[TableId]
+                           ,[Description]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -8744,6 +8816,7 @@ IF(SELECT object_id('[dbo].[ColumnsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -8928,33 +9001,38 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordColumn' AS [ClassName]
-              ,[TableId]
-              ,[Sequence]
-              ,[DomainId]
-              ,[ReferenceTableId]
-              ,[Name]
-              ,[Description]
-              ,[Title]
-              ,[Caption]
-              ,[ValidValues]
-              ,[Default]
-              ,[Minimum]
-              ,[Maximum]
-              ,[IsPrimarykey]
-              ,[IsAutoIncrement]
-              ,[IsRequired]
-              ,[IsListable]
-              ,[IsFilterable]
-              ,[IsEditable]
-              ,[IsBrowseable]
-              ,[IsEncrypted]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordColumn'' AS [ClassName]
+                           ,[TableId]
+                           ,[Sequence]
+                           ,[DomainId]
+                           ,[ReferenceTableId]
+                           ,[Name]
+                           ,[Description]
+                           ,[Title]
+                           ,[Caption]
+                           ,[ValidValues]
+                           ,[Default]
+                           ,[Minimum]
+                           ,[Maximum]
+                           ,[IsPrimarykey]
+                           ,[IsAutoIncrement]
+                           ,[IsRequired]
+                           ,[IsListable]
+                           ,[IsFilterable]
+                           ,[IsEditable]
+                           ,[IsBrowseable]
+                           ,[IsEncrypted]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -9394,6 +9472,7 @@ IF(SELECT object_id('[dbo].[IndexesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -9498,17 +9577,22 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordIndex' AS [ClassName]
-              ,[DatabaseId]
-              ,[TableId]
-              ,[Name]
-              ,[IsUnique]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordIndex'' AS [ClassName]
+                           ,[DatabaseId]
+                           ,[TableId]
+                           ,[Name]
+                           ,[IsUnique]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -9964,6 +10048,7 @@ IF(SELECT object_id('[dbo].[IndexkeysRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -10076,17 +10161,22 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordIndexkey' AS [ClassName]
-              ,[IndexId]
-              ,[Sequence]
-              ,[ColumnId]
-              ,[IsDescending]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordIndexkey'' AS [ClassName]
+                           ,[IndexId]
+                           ,[Sequence]
+                           ,[ColumnId]
+                           ,[IsDescending]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
@@ -10521,6 +10611,7 @@ IF(SELECT object_id('[dbo].[LoginsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
                                           ,@Parameters VARCHAR(MAX)
+                                          ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows BIGINT OUT
@@ -10633,17 +10724,22 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
             IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount -@LimitRows ELSE 0 END
+                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT 'RecordLogin' AS [ClassName]
-              ,[SystemId]
-              ,[UserId]
-              ,[PublicKey]
-              ,[IsLogged]
-            FROM [dbo].[#tmp] 
-            ORDER BY [Id]
-            OFFSET @offset ROWS
-            FETCH NEXT @LimitRows ROWS ONLY
+
+        DECLARE @sql VARCHAR(MAX)
+                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
+        SET @sql = 'SELECT ''RecordLogin'' AS [ClassName]
+                           ,[SystemId]
+                           ,[UserId]
+                           ,[PublicKey]
+                           ,[IsLogged]
+                       FROM [dbo].[#tmp] 
+                       ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                       OFFSET @offset ROWS
+                       FETCH NEXT @LimitRows ROWS ONLY'
+        EXEC @sql
 
         RETURN @RowCount
     END TRY
