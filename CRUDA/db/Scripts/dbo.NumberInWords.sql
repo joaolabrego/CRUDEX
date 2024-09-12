@@ -1,5 +1,5 @@
 IF(SELECT object_id('[dbo].[NumberInWords]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [dbo].[NumberInWords]() RETURNS BIT AS BEGIN RETURN 1 END')
+	EXEC('CREATE FUNCTION [dbo].[NumberInWords]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
 GO
 ALTER FUNCTION [dbo].[NumberInWords](@Value AS DECIMAL(18,2)
 								    ,@EnglishOrPortuguese BIT = 1

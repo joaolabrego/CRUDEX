@@ -129,11 +129,11 @@ export default class TBrowse {
     }
 
     #BuildHtmlHead() {
-        const tr = document.createElement("tr")
+        let tr = document.createElement("tr")
 
         this.#Table.Columns.filter(column => column.IsBrowseable)
             .forEach(column => {
-                const th = document.createElement("th")
+                let th = document.createElement("th")
 
                 th.innerText = column.Title
                 tr.appendChild(th)
@@ -175,15 +175,15 @@ export default class TBrowse {
     #BuildHtmlFoot() {
         let tr = document.createElement("tr"),
             th = document.createElement("th"),
-            p
+            label
 
         th.colSpan = this.#Table.Columns.length.toString()
         if (this.#Table.RowCount > TSystem.RowsPerPage) {
-            p = document.createElement("p")
-            p.style.float = "left"
-            p.innerHTML = "Página:&nbsp;&nbsp;"
+            label = document.createElement("label")
+            label.style.float = "left"
+            label.innerHTML = "Página:&nbsp;&nbsp;"
 
-            th.appendChild(p)
+            th.appendChild(label)
 
             this.#HTML.NumberInput = document.createElement("input")
             this.#HTML.NumberInput.id = "NumberInput"
@@ -198,11 +198,11 @@ export default class TBrowse {
 
             th.appendChild(this.#HTML.NumberInput)
 
-            p = document.createElement("p")
-            p.style.float = "left"
-            p.innerHTML = "&nbsp;&nbsp;"
+            label = document.createElement("label")
+            label.style.float = "left"
+            label.innerHTML = "&nbsp;&nbsp;"
 
-            th.appendChild(p)
+            th.appendChild(label)
 
             this.#HTML.RangeInput = document.createElement("input")
             this.#HTML.RangeInput.id = "RangeInput"
@@ -304,10 +304,10 @@ export default class TBrowse {
         this.#HTML.ExitButton.onclick = () => TSystem.Action = `${TActions.EXIT}/${TActions.MENU}`
         th.appendChild(this.#HTML.ExitButton)
 
-        p = document.createElement("p")
-        p.style.float = "right"
-        p.innerHTML = `Total de Registros: ${this.#Table.RowCount}`
-        th.appendChild(p)
+        label = document.createElement("label")
+        label.style.float = "right"
+        label.innerHTML = `Total de Registros: ${this.#Table.RowCount}`
+        th.appendChild(label)
         tr.appendChild(th)
 
         this.#HTML.Foot.innerHTML = null

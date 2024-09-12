@@ -1,5 +1,5 @@
 IF(SELECT object_id('[dbo].[NumberInWordsOfHundreds]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [dbo].[NumberInWordsOfHundreds]() RETURNS BIT AS BEGIN RETURN 1 END')
+	EXEC('CREATE FUNCTION [dbo].[NumberInWordsOfHundreds]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
 GO
 ALTER FUNCTION [dbo].[NumberInWordsOfHundreds](@Value AS SMALLINT
 											  ,@EnglishOrPortuguese BIT)
