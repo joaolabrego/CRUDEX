@@ -377,7 +377,7 @@ ALTER PROCEDURE [dbo].[GenerateId](@SystemName VARCHAR(25)
 								  ,@DatabaseName VARCHAR(25)
 								  ,@TableName VARCHAR(25)) AS
 BEGIN
-	DECLARE @TranCount INT = @@TRANCOUNT
+	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
 	BEGIN TRY
 		SET NOCOUNT ON
@@ -435,7 +435,7 @@ BEGIN
 		RETURN @NextId
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TranCount BEGIN
+		IF @@TRANCOUNT > @TRANCOUNT BEGIN
 			ROLLBACK TRANSACTION [SavePoint]
 			COMMIT TRANSACTION
 		END;
@@ -450,7 +450,7 @@ IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[Login] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
-	DECLARE @TranCount INT = @@TRANCOUNT
+	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
 	BEGIN TRY
 		SET NOCOUNT ON
@@ -612,7 +612,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		RETURN @LoginId
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TranCount BEGIN
+		IF @@TRANCOUNT > @TRANCOUNT BEGIN
 			ROLLBACK TRANSACTION [SavePoint]
 			COMMIT TRANSACTION
 		END;
@@ -976,7 +976,7 @@ IF(SELECT object_id('[cruda].[TransactionBegin]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 										 ,@UserName VARCHAR(25)) AS BEGIN
-	DECLARE @TranCount INT = @@TRANCOUNT
+	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
 	BEGIN TRY
 		SET NOCOUNT ON
@@ -1005,7 +1005,7 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		RETURN CAST(@TransactionId AS INT)
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TranCount BEGIN
+		IF @@TRANCOUNT > @TRANCOUNT BEGIN
 			ROLLBACK TRANSACTION [SavePoint]
 			COMMIT TRANSACTION
 		END;
@@ -1021,7 +1021,7 @@ IF(SELECT object_id('[cruda].[TransactionCommit]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 										  ,@UserName VARCHAR(25)) AS BEGIN
-	DECLARE @TranCount INT = @@TRANCOUNT
+	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
 	BEGIN TRY
 		SET NOCOUNT ON
@@ -1079,7 +1079,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TranCount BEGIN
+		IF @@TRANCOUNT > @TRANCOUNT BEGIN
 			ROLLBACK TRANSACTION [SavePoint]
 			COMMIT TRANSACTION
 		END;
@@ -1095,7 +1095,7 @@ IF(SELECT object_id('[cruda].[TransactionRollback]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 											,@UserName VARCHAR(25)) AS BEGIN
-	DECLARE @TranCount INT = @@TRANCOUNT
+	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
 	BEGIN TRY
 		SET NOCOUNT ON
@@ -1156,7 +1156,7 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TranCount BEGIN
+		IF @@TRANCOUNT > @TRANCOUNT BEGIN
 			ROLLBACK TRANSACTION [SavePoint]
 			COMMIT TRANSACTION
 		END;
@@ -1409,7 +1409,7 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -1498,7 +1498,7 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -1515,7 +1515,7 @@ GO
 ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -1641,7 +1641,7 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -1655,7 +1655,7 @@ Criar stored procedure [dbo].[CategoriesRead]
 IF(SELECT object_id('[dbo].[CategoriesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[CategoriesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -1680,7 +1680,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id tinyint = CAST(JSON_VALUE(@Parameters, '$.Id') AS tinyint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
                 ,@W_AskEncrypted bit = CAST(JSON_VALUE(@Parameters, '$.AskEncrypted') AS bit)
@@ -1699,7 +1699,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -1723,7 +1723,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
                   AND [AskMinimum] = ISNULL(@W_AskMinimum, [AskMinimum])
                   AND [AskMaximum] = ISNULL(@W_AskMaximum, [AskMaximum])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS tinyint) = [tmp].[Id]
@@ -1731,7 +1731,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.HtmlInputType') AS varchar(10)) AS [HtmlInputType]
@@ -1747,7 +1747,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
                   AND [TableName] = 'Categories'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
                ,[tmp].[HtmlInputType] = CAST(JSON_VALUE([ope].[ActualRecord], '$.HtmlInputType') AS varchar(10))
@@ -1764,20 +1764,20 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Categories'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -1794,7 +1794,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -2064,7 +2064,7 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -2153,7 +2153,7 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -2170,7 +2170,7 @@ GO
 ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -2316,7 +2316,7 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -2330,7 +2330,7 @@ Criar stored procedure [dbo].[TypesRead]
 IF(SELECT object_id('[dbo].[TypesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TypesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -2355,7 +2355,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id tinyint = CAST(JSON_VALUE(@Parameters, '$.Id') AS tinyint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
                 ,@W_AskLength bit = CAST(JSON_VALUE(@Parameters, '$.AskLength') AS bit)
@@ -2378,7 +2378,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -2411,7 +2411,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
                   AND [AllowMaxLength] = ISNULL(@W_AllowMaxLength, [AllowMaxLength])
                   AND [IsActive] = ISNULL(@W_IsActive, [IsActive])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS tinyint) = [tmp].[Id]
@@ -2419,7 +2419,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
@@ -2440,7 +2440,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
                   AND [TableName] = 'Types'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[CategoryId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.CategoryId') AS tinyint)
                ,[tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
@@ -2462,20 +2462,20 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Types'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -2492,7 +2492,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -2662,7 +2662,7 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -2751,7 +2751,7 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -2768,7 +2768,7 @@ GO
 ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -2866,7 +2866,7 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -2880,7 +2880,7 @@ Criar stored procedure [dbo].[MasksRead]
 IF(SELECT object_id('[dbo].[MasksRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MasksRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -2905,7 +2905,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
 
@@ -2918,7 +2918,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -2929,7 +2929,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
             WHERE [Id] = ISNULL(@W_Id, [Id])
                   AND [Name] = ISNULL(@W_Name, [Name])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -2937,7 +2937,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Mask') AS varchar(8000)) AS [Mask]
@@ -2946,7 +2946,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
                   AND [TableName] = 'Masks'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
                ,[tmp].[Mask] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Mask') AS varchar(8000))
@@ -2956,20 +2956,20 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Masks'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -2986,7 +2986,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -3228,7 +3228,7 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -3317,7 +3317,7 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -3334,7 +3334,7 @@ GO
 ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -3464,7 +3464,7 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -3478,7 +3478,7 @@ Criar stored procedure [dbo].[DomainsRead]
 IF(SELECT object_id('[dbo].[DomainsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DomainsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -3503,7 +3503,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_TypeId tinyint = CAST(JSON_VALUE(@Parameters, '$.TypeId') AS tinyint)
                 ,@W_MaskId bigint = CAST(JSON_VALUE(@Parameters, '$.MaskId') AS bigint)
@@ -3536,7 +3536,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -3559,7 +3559,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
                   AND (@W_ValidValues IS NULL OR [ValidValues] = @W_ValidValues)
                   AND (@W_Codification IS NULL OR [Codification] = @W_Codification)
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -3567,7 +3567,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.TypeId') AS tinyint) AS [TypeId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.MaskId') AS bigint) AS [MaskId]
@@ -3584,7 +3584,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
                   AND [TableName] = 'Domains'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[TypeId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.TypeId') AS tinyint)
                ,[tmp].[MaskId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.MaskId') AS bigint)
@@ -3602,20 +3602,20 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Domains'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -3632,7 +3632,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -3834,7 +3834,7 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -3923,7 +3923,7 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -3940,7 +3940,7 @@ GO
 ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -4050,7 +4050,7 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -4064,7 +4064,7 @@ Criar stored procedure [dbo].[SystemsRead]
 IF(SELECT object_id('[dbo].[SystemsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -4089,7 +4089,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
                 ,@W_ClientName varchar(15) = CAST(JSON_VALUE(@Parameters, '$.ClientName') AS varchar(15))
@@ -4103,7 +4103,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -4118,7 +4118,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
                   AND [Name] = ISNULL(@W_Name, [Name])
                   AND [ClientName] = ISNULL(@W_ClientName, [ClientName])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -4126,7 +4126,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
@@ -4138,7 +4138,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
                   AND [TableName] = 'Systems'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
                ,[tmp].[Description] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Description') AS varchar(50))
@@ -4151,20 +4151,20 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Systems'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -4181,7 +4181,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -4321,7 +4321,7 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Chave-primária não existe em Menus';
             THROW 51000, @ErrorMessage, 1
         END
-    IF @Action = 'delete' BEGIN
+        IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [ParentMenuId] = @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave-primária referenciada em Menus';
                 THROW 51000, @ErrorMessage, 1
@@ -4412,7 +4412,7 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -4501,7 +4501,7 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -4518,7 +4518,7 @@ GO
 ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -4632,7 +4632,7 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -4646,7 +4646,7 @@ Criar stored procedure [dbo].[MenusRead]
 IF(SELECT object_id('[dbo].[MenusRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MenusRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -4671,7 +4671,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
                 ,@W_Caption varchar(20) = CAST(JSON_VALUE(@Parameters, '$.Caption') AS varchar(20))
@@ -4693,7 +4693,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -4709,7 +4709,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
                   AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
                   AND [Caption] = ISNULL(@W_Caption, [Caption])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -4717,7 +4717,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
@@ -4730,7 +4730,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
                   AND [TableName] = 'Menus'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[SystemId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.SystemId') AS bigint)
                ,[tmp].[Sequence] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Sequence') AS smallint)
@@ -4744,20 +4744,20 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Menus'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -4774,7 +4774,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -4976,7 +4976,7 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -5065,7 +5065,7 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -5082,7 +5082,7 @@ GO
 ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -5192,7 +5192,7 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -5206,7 +5206,7 @@ Criar stored procedure [dbo].[UsersRead]
 IF(SELECT object_id('[dbo].[UsersRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UsersRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -5231,7 +5231,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
                 ,@W_FullName varchar(50) = CAST(JSON_VALUE(@Parameters, '$.FullName') AS varchar(50))
@@ -5246,7 +5246,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -5262,7 +5262,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
                   AND [FullName] = ISNULL(@W_FullName, [FullName])
                   AND [IsActive] = ISNULL(@W_IsActive, [IsActive])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -5270,7 +5270,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Password') AS varchar(256)) AS [Password]
@@ -5282,7 +5282,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
                   AND [TableName] = 'Users'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
                ,[tmp].[Password] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Password') AS varchar(256))
@@ -5295,20 +5295,20 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Users'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -5325,7 +5325,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -5503,6 +5503,7 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId BIGINT
                 IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsUsers_SystemId_UserId já existe';
                     THROW 51000, @ErrorMessage, 1
+                END
                 IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Description] = @W_Description) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsUsers_Description já existe';
                     THROW 51000, @ErrorMessage, 1
@@ -5510,7 +5511,6 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId BIGINT
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsUsers_SystemId_UserId inexiste';
                 THROW 51000, @ErrorMessage, 1
-            END
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Description] = @W_Description AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsUsers_Description inexiste';
                 THROW 51000, @ErrorMessage, 1
@@ -5535,7 +5535,7 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -5624,7 +5624,7 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -5641,7 +5641,7 @@ GO
 ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -5743,7 +5743,7 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -5757,7 +5757,7 @@ Criar stored procedure [dbo].[SystemsUsersRead]
 IF(SELECT object_id('[dbo].[SystemsUsersRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsUsersRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -5782,7 +5782,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
                 ,@W_UserId bigint = CAST(JSON_VALUE(@Parameters, '$.UserId') AS bigint)
@@ -5813,7 +5813,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -5827,7 +5827,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
                   AND [UserId] = ISNULL(@W_UserId, [UserId])
                   AND [Description] = ISNULL(@W_Description, [Description])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -5835,7 +5835,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint) AS [UserId]
@@ -5845,7 +5845,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
                   AND [TableName] = 'SystemsUsers'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[SystemId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.SystemId') AS bigint)
                ,[tmp].[UserId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.UserId') AS bigint)
@@ -5856,20 +5856,20 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'SystemsUsers'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -5886,7 +5886,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -6072,6 +6072,7 @@ ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId BIGINT
                 IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Name] = @W_Name) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Databases_Name já existe';
                     THROW 51000, @ErrorMessage, 1
+                END
                 IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Alias] = @W_Alias) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Databases_Alias já existe';
                     THROW 51000, @ErrorMessage, 1
@@ -6079,7 +6080,6 @@ ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId BIGINT
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Databases_Name inexiste';
                 THROW 51000, @ErrorMessage, 1
-            END
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Alias] = @W_Alias AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Databases_Alias inexiste';
                 THROW 51000, @ErrorMessage, 1
@@ -6104,7 +6104,7 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -6193,7 +6193,7 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -6210,7 +6210,7 @@ GO
 ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -6336,7 +6336,7 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -6350,7 +6350,7 @@ Criar stored procedure [dbo].[DatabasesRead]
 IF(SELECT object_id('[dbo].[DatabasesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabasesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -6375,7 +6375,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
                 ,@W_Alias varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Alias') AS varchar(25))
@@ -6389,7 +6389,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -6408,7 +6408,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
                   AND [Name] = ISNULL(@W_Name, [Name])
                   AND [Alias] = ISNULL(@W_Alias, [Alias])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -6416,7 +6416,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS varchar(50)) AS [Description]
@@ -6432,7 +6432,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
                   AND [TableName] = 'Databases'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
                ,[tmp].[Description] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Description') AS varchar(50))
@@ -6449,20 +6449,20 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Databases'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -6479,7 +6479,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -6657,6 +6657,7 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId BIGINT
                 IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsDatabases_SystemId_DatabaseId já existe';
                     THROW 51000, @ErrorMessage, 1
+                END
                 IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Description] = @W_Description) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsDatabases_Description já existe';
                     THROW 51000, @ErrorMessage, 1
@@ -6664,7 +6665,6 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId BIGINT
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsDatabases_SystemId_DatabaseId inexiste';
                 THROW 51000, @ErrorMessage, 1
-            END
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Description] = @W_Description AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_SystemsDatabases_Description inexiste';
                 THROW 51000, @ErrorMessage, 1
@@ -6689,7 +6689,7 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -6778,7 +6778,7 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -6795,7 +6795,7 @@ GO
 ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -6897,7 +6897,7 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -6911,7 +6911,7 @@ Criar stored procedure [dbo].[SystemsDatabasesRead]
 IF(SELECT object_id('[dbo].[SystemsDatabasesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -6936,7 +6936,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
                 ,@W_DatabaseId bigint = CAST(JSON_VALUE(@Parameters, '$.DatabaseId') AS bigint)
@@ -6967,7 +6967,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -6981,7 +6981,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
                   AND [DatabaseId] = ISNULL(@W_DatabaseId, [DatabaseId])
                   AND [Description] = ISNULL(@W_Description, [Description])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -6989,7 +6989,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
@@ -6999,7 +6999,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
                   AND [TableName] = 'SystemsDatabases'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[SystemId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.SystemId') AS bigint)
                ,[tmp].[DatabaseId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.DatabaseId') AS bigint)
@@ -7010,20 +7010,20 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'SystemsDatabases'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -7040,7 +7040,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -7230,6 +7230,7 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
                 IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Tables_Name já existe';
                     THROW 51000, @ErrorMessage, 1
+                END
                 IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Tables_Alias já existe';
                     THROW 51000, @ErrorMessage, 1
@@ -7237,7 +7238,6 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Tables_Name inexiste';
                 THROW 51000, @ErrorMessage, 1
-            END
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Tables_Alias inexiste';
                 THROW 51000, @ErrorMessage, 1
@@ -7262,7 +7262,7 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -7351,7 +7351,7 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -7368,7 +7368,7 @@ GO
 ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -7482,7 +7482,7 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -7496,7 +7496,7 @@ Criar stored procedure [dbo].[TablesRead]
 IF(SELECT object_id('[dbo].[TablesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TablesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -7521,7 +7521,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
                 ,@W_Alias varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Alias') AS varchar(25))
@@ -7536,7 +7536,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -7553,7 +7553,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                   AND [Alias] = ISNULL(@W_Alias, [Alias])
                   AND [IsPaged] = ISNULL(@W_IsPaged, [IsPaged])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -7561,7 +7561,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS varchar(25)) AS [Name]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Alias') AS varchar(25)) AS [Alias]
@@ -7574,7 +7574,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                   AND [TableName] = 'Tables'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[Name] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Name') AS varchar(25))
                ,[tmp].[Alias] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Alias') AS varchar(25))
@@ -7588,20 +7588,20 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Tables'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -7618,7 +7618,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -7796,6 +7796,7 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId BIGINT
                 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id AND [TableId] = @W_TableId) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId já existe';
                     THROW 51000, @ErrorMessage, 1
+                END
                 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Description] = @W_Description) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_Description já existe';
                     THROW 51000, @ErrorMessage, 1
@@ -7803,7 +7804,6 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId BIGINT
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id AND [TableId] = @W_TableId AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId inexiste';
                 THROW 51000, @ErrorMessage, 1
-            END
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Description] = @W_Description AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_DatabasesTables_Description inexiste';
                 THROW 51000, @ErrorMessage, 1
@@ -7828,7 +7828,7 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -7917,7 +7917,7 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -7934,7 +7934,7 @@ GO
 ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -8036,7 +8036,7 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -8050,7 +8050,7 @@ Criar stored procedure [dbo].[DatabasesTablesRead]
 IF(SELECT object_id('[dbo].[DatabasesTablesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -8075,7 +8075,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_DatabaseId bigint = CAST(JSON_VALUE(@Parameters, '$.DatabaseId') AS bigint)
                 ,@W_TableId bigint = CAST(JSON_VALUE(@Parameters, '$.TableId') AS bigint)
@@ -8106,7 +8106,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -8120,7 +8120,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
                   AND [TableId] = ISNULL(@W_TableId, [TableId])
                   AND [Description] = ISNULL(@W_Description, [Description])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -8128,7 +8128,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
@@ -8138,7 +8138,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
                   AND [TableName] = 'DatabasesTables'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[DatabaseId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.DatabaseId') AS bigint)
                ,[tmp].[TableId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.TableId') AS bigint)
@@ -8149,20 +8149,20 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'DatabasesTables'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -8179,7 +8179,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -8465,6 +8465,7 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId BIGINT
                 IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Columns_TableId_Name já existe';
                     THROW 51000, @ErrorMessage, 1
+                END
                 IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Columns_TableId_Sequence já existe';
                     THROW 51000, @ErrorMessage, 1
@@ -8472,7 +8473,6 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId BIGINT
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Columns_TableId_Name inexiste';
                 THROW 51000, @ErrorMessage, 1
-            END
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Columns_TableId_Sequence inexiste';
                 THROW 51000, @ErrorMessage, 1
@@ -8497,7 +8497,7 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -8586,7 +8586,7 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -8603,7 +8603,7 @@ GO
 ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -8773,7 +8773,7 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -8787,7 +8787,7 @@ Criar stored procedure [dbo].[ColumnsRead]
 IF(SELECT object_id('[dbo].[ColumnsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ColumnsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -8812,7 +8812,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_TableId bigint = CAST(JSON_VALUE(@Parameters, '$.TableId') AS bigint)
                 ,@W_DomainId bigint = CAST(JSON_VALUE(@Parameters, '$.DomainId') AS bigint)
@@ -8859,7 +8859,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -8898,7 +8898,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
                   AND (@W_IsBrowseable IS NULL OR [IsBrowseable] = @W_IsBrowseable)
                   AND (@W_IsEncrypted IS NULL OR [IsEncrypted] = @W_IsEncrypted)
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -8906,7 +8906,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
@@ -8933,7 +8933,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[TableId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.TableId') AS bigint)
                ,[tmp].[Sequence] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Sequence') AS smallint)
@@ -8961,20 +8961,20 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -8991,7 +8991,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -9201,7 +9201,7 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -9290,7 +9290,7 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -9307,7 +9307,7 @@ GO
 ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -9413,7 +9413,7 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -9427,7 +9427,7 @@ Criar stored procedure [dbo].[IndexesRead]
 IF(SELECT object_id('[dbo].[IndexesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -9452,7 +9452,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_TableId bigint = CAST(JSON_VALUE(@Parameters, '$.TableId') AS bigint)
                 ,@W_Name varchar(50) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(50))
@@ -9475,7 +9475,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -9490,7 +9490,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
                   AND [Name] = ISNULL(@W_Name, [Name])
                   AND [IsUnique] = ISNULL(@W_IsUnique, [IsUnique])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -9498,7 +9498,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
@@ -9509,7 +9509,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
                   AND [TableName] = 'Indexes'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[DatabaseId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.DatabaseId') AS bigint)
                ,[tmp].[TableId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.TableId') AS bigint)
@@ -9521,20 +9521,20 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Indexes'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -9551,7 +9551,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -9745,6 +9745,7 @@ ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId BIGINT
                 IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexkeys_IndexId_Sequence já existe';
                     THROW 51000, @ErrorMessage, 1
+                END
                 IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId) BEGIN
                     SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexkeys_IndexId_ColumnId já existe';
                     THROW 51000, @ErrorMessage, 1
@@ -9752,7 +9753,6 @@ ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId BIGINT
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexkeys_IndexId_Sequence inexiste';
                 THROW 51000, @ErrorMessage, 1
-            END
             END ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId AND [Id] <> @W_Id) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Chave única de UNQ_Indexkeys_IndexId_ColumnId inexiste';
                 THROW 51000, @ErrorMessage, 1
@@ -9777,7 +9777,7 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -9866,7 +9866,7 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -9883,7 +9883,7 @@ GO
 ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -9989,7 +9989,7 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -10003,7 +10003,7 @@ Criar stored procedure [dbo].[IndexkeysRead]
 IF(SELECT object_id('[dbo].[IndexkeysRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexkeysRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -10028,7 +10028,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_IndexId bigint = CAST(JSON_VALUE(@Parameters, '$.IndexId') AS bigint)
                 ,@W_ColumnId bigint = CAST(JSON_VALUE(@Parameters, '$.ColumnId') AS bigint)
@@ -10059,7 +10059,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -10074,7 +10074,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
                   AND [ColumnId] = ISNULL(@W_ColumnId, [ColumnId])
                   AND [IsDescending] = ISNULL(@W_IsDescending, [IsDescending])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -10082,7 +10082,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.IndexId') AS bigint) AS [IndexId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
@@ -10093,7 +10093,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
                   AND [TableName] = 'Indexkeys'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[IndexId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.IndexId') AS bigint)
                ,[tmp].[Sequence] = CAST(JSON_VALUE([ope].[ActualRecord], '$.Sequence') AS smallint)
@@ -10105,20 +10105,20 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Indexkeys'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -10135,7 +10135,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW
@@ -10340,7 +10340,7 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
                                               ,@Action VARCHAR(15)
                                               ,@LastRecord VARCHAR(max)
                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -10429,7 +10429,7 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
         RETURN CAST(@OperationId AS INT)
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -10446,7 +10446,7 @@ GO
 ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
                                              ,@UserName VARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
-    DECLARE @TranCount INT = @@TRANCOUNT
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
@@ -10552,7 +10552,7 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
         RETURN 1
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > @TranCount BEGIN
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END;
@@ -10566,7 +10566,7 @@ Criar stored procedure [dbo].[LoginsRead]
 IF(SELECT object_id('[dbo].[LoginsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[LoginsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
                                           ,@Parameters VARCHAR(MAX)
                                           ,@OrderBy VARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
@@ -10591,7 +10591,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
                 ,@W_UserId bigint = CAST(JSON_VALUE(@Parameters, '$.UserId') AS bigint)
@@ -10622,7 +10622,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @RowCount BIGINT
+        DECLARE @ROWCOUNT BIGINT
                ,@OffSet BIGINT
 
         SELECT [Id]
@@ -10637,7 +10637,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
                   AND [UserId] = ISNULL(@W_UserId, [UserId])
                   AND [IsLogged] = ISNULL(@W_IsLogged, [IsLogged])
             ORDER BY [Id]
-        SET @RowCount = @@ROWCOUNT
+        SET @ROWCOUNT = @@ROWCOUNT
         DELETE [tmp]
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.Id') AS bigint) = [tmp].[Id]
@@ -10645,7 +10645,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Columns'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'delete'
-        SET @RowCount = @RowCount - @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT
         INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
                                   ,CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint) AS [UserId]
@@ -10656,7 +10656,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
                   AND [TableName] = 'Logins'
                   AND [IsConfirmed] IS NULL
                   AND [Action] = 'create'
-        SET @RowCount = @RowCount + @@ROWCOUNT
+        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT
         UPDATE [tmp]
             SET [tmp].[SystemId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.SystemId') AS bigint)
                ,[tmp].[UserId] = CAST(JSON_VALUE([ope].[ActualRecord], '$.UserId') AS bigint)
@@ -10668,20 +10668,20 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
                   AND [ope].[TableName] = 'Logins'
                   AND [ope].[IsConfirmed] IS NULL
                   AND [ope].[Action] = 'update'
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @offset = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END
             SET @PageNumber = 1
             SET @MaxPage = 1
         END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
         DECLARE @sql VARCHAR(MAX)
@@ -10698,7 +10698,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId BIGINT
         EXEC @sql
         SELECT * FROM [dbo].[#view]
 
-        RETURN @RowCount
+        RETURN @ROWCOUNT
     END TRY
     BEGIN CATCH
         THROW

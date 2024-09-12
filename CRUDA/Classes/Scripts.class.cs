@@ -543,7 +543,7 @@ namespace CRUDA.Classes
                 result.Append($"                                              ,@Action VARCHAR(15)\r\n");
                 result.Append($"                                              ,@LastRecord VARCHAR(max)\r\n");
                 result.Append($"                                              ,@ActualRecord VARCHAR(max)) AS BEGIN\r\n");
-                result.Append($"    DECLARE @TranCount INT = @@TRANCOUNT\r\n");
+                result.Append($"    DECLARE @TRANCOUNT INT = @@TRANCOUNT\r\n");
                 result.Append($"\r\n");
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
@@ -653,7 +653,7 @@ namespace CRUDA.Classes
                 result.Append($"        RETURN CAST(@OperationId AS INT)\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
-                result.Append($"        IF @@TRANCOUNT > @TranCount BEGIN\r\n");
+                result.Append($"        IF @@TRANCOUNT > @TRANCOUNT BEGIN\r\n");
                 result.Append($"            ROLLBACK TRANSACTION [SavePoint];\r\n");
                 result.Append($"            COMMIT TRANSACTION\r\n");
                 result.Append($"        END;\r\n");
@@ -681,7 +681,7 @@ namespace CRUDA.Classes
                 result.Append($"ALTER PROCEDURE[dbo].[{table["Alias"]}Commit](@LoginId BIGINT\r\n");
                 result.Append($"                                             ,@UserName VARCHAR(25)\r\n");
                 result.Append($"                                             ,@OperationId INT) AS BEGIN\r\n");
-                result.Append($"    DECLARE @TranCount INT = @@TRANCOUNT\r\n");
+                result.Append($"    DECLARE @TRANCOUNT INT = @@TRANCOUNT\r\n");
                 result.Append($"\r\n");
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
@@ -855,7 +855,7 @@ namespace CRUDA.Classes
                 result.Append($"        RETURN 1\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
-                result.Append($"        IF @@TRANCOUNT > @TranCount BEGIN\r\n");
+                result.Append($"        IF @@TRANCOUNT > @TRANCOUNT BEGIN\r\n");
                 result.Append($"            ROLLBACK TRANSACTION [SavePoint];\r\n");
                 result.Append($"            COMMIT TRANSACTION\r\n");
                 result.Append($"        END;\r\n");
@@ -1047,7 +1047,7 @@ namespace CRUDA.Classes
 
                 if (referenceRows.Count > 0)
                 {
-                    result.Append($"    IF @Action = 'delete' BEGIN\r\n");
+                    result.Append($"        IF @Action = 'delete' BEGIN\r\n");
                     foreach (var reference in referenceRows)
                     {
                         result.Append($"            IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE [{reference["Name"]}] = @W_{pkColumnRows[0]["Name"]}) BEGIN\r\n");
@@ -1139,8 +1139,8 @@ namespace CRUDA.Classes
                         result.Append($") BEGIN\r\n");
                         result.Append($"                    SET @ErrorMessage = @ErrorMessage + 'Chave única de {index["Name"]} já existe';\r\n");
                         result.Append($"                    THROW 51000, @ErrorMessage, 1\r\n");
+                        result.Append($"                END\r\n");
                     }
-                    result.Append($"                END\r\n");
                     foreach (var index in uniqueIndexRows)
                     {
                         var indexkeyRows = indexkeys.FindAll(indexkey => ToLong(indexkey["IndexId"]) == ToLong(index["Id"]));
@@ -1162,8 +1162,8 @@ namespace CRUDA.Classes
                         result.Append($" AND [{pkColumn["Name"]}] <> @W_{pkColumn["Name"]}) BEGIN\r\n");
                         result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Chave única de {index["Name"]} inexiste';\r\n");
                         result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
-                        result.Append($"            END\r\n");
                     }
+                    result.Append($"            END\r\n");
                 }
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
@@ -1193,7 +1193,7 @@ namespace CRUDA.Classes
                 result.Append($"IF(SELECT object_id('[dbo].[{table["Name"]}Read]', 'P')) IS NULL\r\n");
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}Read] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE[dbo].[{table["Name"]}Read](@LoginId BIGINT\r\n");
+                result.Append($"ALTER PROCEDURE[dbo].[{table["Name"]}Read](@LoginId INT\r\n");
                 result.Append($"                                          ,@Parameters VARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@OrderBy VARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@PaddingBrowseLastPage BIT\r\n");
@@ -1221,7 +1221,7 @@ namespace CRUDA.Classes
 
                 var filterableColumns = columnRows.FindAll(column => ToBoolean(column["IsFilterable"]));
 
-                result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
+                result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
                 foreach (var column in filterableColumns)
                     result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@Parameters, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 result.Append($"\r\n");
@@ -1245,7 +1245,7 @@ namespace CRUDA.Classes
                     }
                 }
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @RowCount BIGINT\r\n");
+                result.Append($"        DECLARE @ROWCOUNT BIGINT\r\n");
                 result.Append($"               ,@OffSet BIGINT\r\n");
                 result.Append($"\r\n");
                 firstTime = true;
@@ -1296,7 +1296,7 @@ namespace CRUDA.Classes
                     else
                         result.Append($"                    ,[{column["Name"]}]\r\n");
                 }
-                result.Append($"        SET @RowCount = @@ROWCOUNT\r\n");
+                result.Append($"        SET @ROWCOUNT = @@ROWCOUNT\r\n");
                 result.Append($"        DELETE [tmp]\r\n");
                 result.Append($"            FROM [dbo].[#tmp] [tmp]\r\n");
                 firstTime = true;
@@ -1314,7 +1314,7 @@ namespace CRUDA.Classes
                 result.Append($"                  AND [ope].[TableName] = 'Columns'\r\n");
                 result.Append($"                  AND [ope].[IsConfirmed] IS NULL\r\n");
                 result.Append($"                  AND [ope].[Action] = 'delete'\r\n");
-                result.Append($"        SET @RowCount = @RowCount - @@ROWCOUNT\r\n");
+                result.Append($"        SET @ROWCOUNT = @ROWCOUNT - @@ROWCOUNT\r\n");
                 firstTime = true;
                 foreach (var column in columnRows)
                 {
@@ -1331,7 +1331,7 @@ namespace CRUDA.Classes
                 result.Append($"                  AND [TableName] = '{table["Name"]}'\r\n");
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
                 result.Append($"                  AND [Action] = 'create'\r\n");
-                result.Append($"        SET @RowCount = @RowCount + @@ROWCOUNT\r\n");
+                result.Append($"        SET @ROWCOUNT = @ROWCOUNT + @@ROWCOUNT\r\n");
                 firstTime = true;
                 foreach (var column in columnRows.FindAll(column => !ToBoolean(column["IsPrimarykey"])))
                 {
@@ -1360,20 +1360,20 @@ namespace CRUDA.Classes
                 result.Append($"                  AND [ope].[TableName] = '{table["Name"]}'\r\n");
                 result.Append($"                  AND [ope].[IsConfirmed] IS NULL\r\n");
                 result.Append($"                  AND [ope].[Action] = 'update'\r\n");
-                result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
+                result.Append($"        IF @ROWCOUNT = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
                 result.Append($"            SET @offset = 0\r\n");
-                result.Append($"            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END\r\n");
+                result.Append($"            SET @LimitRows = CASE WHEN @ROWCOUNT = 0 THEN 1 ELSE @ROWCOUNT END\r\n");
                 result.Append($"            SET @PageNumber = 1\r\n");
                 result.Append($"            SET @MaxPage = 1\r\n");
                 result.Append($"        END ELSE BEGIN\r\n");
-                result.Append($"            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END\r\n");
+                result.Append($"            SET @MaxPage = @ROWCOUNT / @LimitRows + CASE WHEN @ROWCOUNT % @LimitRows = 0 THEN 0 ELSE 1 END\r\n");
                 result.Append($"            IF ABS(@PageNumber) > @MaxPage\r\n");
                 result.Append($"                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END\r\n");
                 result.Append($"            IF @PageNumber < 0\r\n");
                 result.Append($"                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1\r\n");
                 result.Append($"            SET @offset = (@PageNumber - 1) * @LimitRows\r\n");
-                result.Append($"            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @RowCount\r\n");
-                result.Append($"                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END\r\n");
+                result.Append($"            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT\r\n");
+                result.Append($"                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
 
@@ -1403,7 +1403,7 @@ namespace CRUDA.Classes
                 result.Append($"        EXEC @sql\r\n");
                 result.Append($"        SELECT * FROM [dbo].[#view]\r\n");
                 result.Append($"\r\n");
-                result.Append($"        RETURN @RowCount\r\n");
+                result.Append($"        RETURN @ROWCOUNT\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
                 result.Append($"        THROW\r\n");

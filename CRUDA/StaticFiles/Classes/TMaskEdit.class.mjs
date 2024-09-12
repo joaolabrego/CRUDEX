@@ -47,9 +47,9 @@ export default class TMaskEdit {
         let rawMask = mask.replace(new RegExp(`[^${this.#allMasks}]`, "g"), "")
 
         value = value.replace(/[^0-9A-Za-z]/g, "")
-        if (options.indexOf("upper") > -1)
+        if (options.includes("upper"))
             value = value.toUpperCase()
-        else if (options.indexOf("lower") > -1)
+        else if (options.includes("lower"))
             value = value.toLowerCase()
         for (let i = 0, j = 0; i < value.length && j < mask.length; j++) {
             if (mask[j] === this.#numericMask) {
@@ -108,7 +108,7 @@ export default class TMaskEdit {
                         month = value.slice(indexMonth, indexMonth + 2)
 
                     if (day === 31) {
-                        if ("01;03;05;07;08;10;12".indexOf(month) > -1)
+                        if ("01;03;05;07;08;10;12".includes(month))
                             result += value[i++]
                         else
                             break

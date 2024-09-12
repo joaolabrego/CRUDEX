@@ -6,7 +6,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId BIGINT
 									 ,@Action VARCHAR(15)
 									 ,@LastRecord VARCHAR(MAX)
 									 ,@ActualRecord VARCHAR(MAX)) AS BEGIN
-	DECLARE @TranCount INT = @@TRANCOUNT
+	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
 	BEGIN TRY
 		SET NOCOUNT ON
@@ -95,7 +95,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId BIGINT
 		RETURN @OperationId
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TranCount BEGIN
+		IF @@TRANCOUNT > @TRANCOUNT BEGIN
 			ROLLBACK TRANSACTION [SavePoint]
 			COMMIT TRANSACTION
 		END;

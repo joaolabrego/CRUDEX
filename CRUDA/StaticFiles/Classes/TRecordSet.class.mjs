@@ -21,13 +21,15 @@ export default class TRecordSet {
     }
     async ReadPage(pageNumber = this.#PageNumber) {
         let parameters = {
-            InputParams: {},
+            InputParams: {
+                PaddingBrowseLastPage: TSystem.PaddingBrowseLastPage,
+            },
             OutputParams: {},
             IOParams: {
                 PageNumber: pageNumber,
                 LimitRows: TSystem.RowsPerPage,
                 MaxPage: 0,
-                PaddingBrowseLastPage: TSystem.PaddingBrowseLastPage,
+                
             },
         }
         this.#Table.Columns.filter(column => column.IsFilterable)

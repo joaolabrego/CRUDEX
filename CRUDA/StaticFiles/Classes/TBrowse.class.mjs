@@ -18,8 +18,8 @@ export default class TBrowse {
         Head: null,
         Body: null,
         Foot: null,
-        NumberPage: null,
-        RangePage: null,
+        NumberInput: null,
+        RangeInput: null,
         CreateButton: null,
         UpdateButton: null,
         DeleteButton: null,
@@ -78,7 +78,7 @@ export default class TBrowse {
     }
 
     #OnChangeInput = (event) => {
-        let control = event.target.className === "NumberPage" ? this.#HTML.RangePage : this.#HTML.NumberPage
+        let control = event.target.className === "NumberInput" ? this.#HTML.RangeInput : this.#HTML.NumberInput
 
         if (Number(event.target.value) > this.#Table.PageCount)
             event.target.value = this.#Table.PageCount.toString()
@@ -185,18 +185,18 @@ export default class TBrowse {
 
             th.appendChild(p)
 
-            this.#HTML.NumberPage = document.createElement("input")
-            this.#HTML.NumberPage.id = "NumberPage"
-            this.#HTML.NumberPage.style.float = "left"
-            this.#HTML.NumberPage.className = "numberPage"
-            this.#HTML.NumberPage.type = "number"
-            this.#HTML.NumberPage.value = this.#Table.PageNumber.toString()
-            this.#HTML.NumberPage.title = "Ir para página..."
-            this.#HTML.NumberPage.min = "1"
-            this.#HTML.NumberPage.max = this.#Table.PageCount.toString()
-            this.#HTML.NumberPage.onchange = this.#OnChangeInput
+            this.#HTML.NumberInput = document.createElement("input")
+            this.#HTML.NumberInput.id = "NumberInput"
+            this.#HTML.NumberInput.style.float = "left"
+            this.#HTML.NumberInput.className = "numberInput"
+            this.#HTML.NumberInput.type = "number"
+            this.#HTML.NumberInput.value = this.#Table.PageNumber.toString()
+            this.#HTML.NumberInput.title = "Ir para página..."
+            this.#HTML.NumberInput.min = "1"
+            this.#HTML.NumberInput.max = this.#Table.PageCount.toString()
+            this.#HTML.NumberInput.onchange = this.#OnChangeInput
 
-            th.appendChild(this.#HTML.NumberPage)
+            th.appendChild(this.#HTML.NumberInput)
 
             p = document.createElement("p")
             p.style.float = "left"
@@ -204,19 +204,19 @@ export default class TBrowse {
 
             th.appendChild(p)
 
-            this.#HTML.RangePage = document.createElement("input")
-            this.#HTML.RangePage.id = "RangePage"
-            this.#HTML.RangePage.style.float = "left"
-            this.#HTML.RangePage.className = "rangePage"
-            this.#HTML.RangePage.type = "range"
-            this.#HTML.RangePage.tabindex = "-1"
-            this.#HTML.RangePage.value = this.#Table.PageNumber.toString()
-            this.#HTML.RangePage.title = "Ir para página..."
-            this.#HTML.RangePage.min = "1"
-            this.#HTML.RangePage.max = this.#Table.PageCount.toString()
-            this.#HTML.RangePage.onchange = this.#OnChangeInput
+            this.#HTML.RangeInput = document.createElement("input")
+            this.#HTML.RangeInput.id = "RangeInput"
+            this.#HTML.RangeInput.style.float = "left"
+            this.#HTML.RangeInput.className = "rangeInput"
+            this.#HTML.RangeInput.type = "range"
+            this.#HTML.RangeInput.tabindex = "-1"
+            this.#HTML.RangeInput.value = this.#Table.PageNumber.toString()
+            this.#HTML.RangeInput.title = "Ir para página..."
+            this.#HTML.RangeInput.min = "1"
+            this.#HTML.RangeInput.max = this.#Table.PageCount.toString()
+            this.#HTML.RangeInput.onchange = this.#OnChangeInput
 
-            th.appendChild(this.#HTML.RangePage)
+            th.appendChild(this.#HTML.RangeInput)
         }
 
         this.#HTML.CreateButton = document.createElement("button")

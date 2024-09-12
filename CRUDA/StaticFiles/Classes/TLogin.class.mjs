@@ -77,17 +77,11 @@ export default class TLogin {
                         TSystem.Action = TActions.MENU
                     })
                     .catch(error => {
-                        if (error.Action) {
-                            TScreen.ErrorMessage = error.Message
+                        TScreen.ErrorMessage = error.Message
+                        if (error.Message.toLowerCase().includes("senha"))
+                            this.#HTML.Password.focus()
+                        else
                             this.#HTML.UserName.focus()
-                        }
-                        else {
-                            TScreen.ErrorMessage = error.Message
-                            if (error.Message.toLowerCase().indexOf("senha") === -1)
-                                this.#HTML.UserName.focus()
-                            else
-                                this.#HTML.Password.focus()
-                        }
                     })
             }
         }
@@ -102,7 +96,7 @@ export default class TLogin {
     static Logout() {
         if (this.#LoginId)
             TConfig.GetAPI(TActions.LOGOUT)
-                .then((result) => this.#LoginId = result.ReturnValue)
+                .then((result) => this.#LoginId = result.Parameters.ReturnValue)
                 .catch(error => TScreen.ShowError(error.Message, error.Action))
     }
     static set LoginId(value) {

@@ -88,16 +88,12 @@
     background-size: 100% 100%;
 }
 
-.div .button:active {
-    background: var(--background-color-active);
-}
-
 .browse th button:active {
     background-color: var(--background-color-active);
     background-size: 100% 100%;
 }
 
-.numberPage {
+.numberInput {
     text-align: right;
     width: 10vmin;
     height: 3vmin;
@@ -105,7 +101,7 @@
     float: left;
 }
 
-.rangePage {
+.rangeInput {
     width: 50vmin;
     height: 3vmin;
     font-size: inherit;

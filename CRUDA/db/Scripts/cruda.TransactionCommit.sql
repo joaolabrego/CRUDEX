@@ -3,7 +3,7 @@
 GO
 ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 										  ,@UserName VARCHAR(25)) AS BEGIN
-	DECLARE @TranCount INT = @@TRANCOUNT
+	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
 	BEGIN TRY
 		SET NOCOUNT ON
@@ -61,7 +61,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TranCount BEGIN
+		IF @@TRANCOUNT > @TRANCOUNT BEGIN
 			ROLLBACK TRANSACTION [SavePoint]
 			COMMIT TRANSACTION
 		END;
