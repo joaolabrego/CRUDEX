@@ -1226,28 +1226,26 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"        IF @OrderBy IS NULL\r\n");
+                        result.Append($"        IF @OrderBy IS NULL BEGIN\r\n");
                         result.Append($"            SET @OrderBy = '[{column["Name"]}]");
                         firstTime = false;
                     }
                     else
                         result.Append($",[{column["Name"]}]");
                 }
-                /*
-                 WITH OrderByItems AS (SELECT LTRIM(RTRIM(value)) AS Item FROM STRING_SPLIT(@OrderBy, ',')),
-                      OrderByColumns AS (SELECT CASE WHEN CHARINDEX(' ', Item) > 0 THEN LEFT(Item, CHARINDEX(' ', Item) - 1) ELSE Item END AS ColumnName FROM OrderByItems),
-                      TableColumns AS (SELECT [COLUMN_NAME] AS ColumnName FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Columns')
-                      SELECT O.ColumnName FROM OrderByColumns O LEFT JOIN TableColumns T ON O.ColumnName = T.ColumnName WHERE T.ColumnName IS NULL
-                 */
                 result.Append($"'\r\n");
-                result.Append($"        ELSE BEGIN\r\n");
-                result.Append($"            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),\r\n");
-                result.Append($"                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),\r\n");
-                result.Append($"                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = '{table["Name"]}')\r\n");
-                result.Append($"            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN\r\n");
+                result.Append($"        END ELSE IF EXISTS(SELECT 1 \r\n");
+                result.Append($"                          FROM (SELECT CASE WHEN CHARINDEX(' ', TRIM([value])) > 0\r\n");
+                result.Append($"                                            THEN LEFT(TRIM([value]), CHARINDEX(' ', TRIM([value])) - 1)\r\n");
+                result.Append($"                                            ELSE TRIM([value])\r\n");
+                result.Append($"                                       END AS [ColumnName]\r\n");
+                result.Append($"                                   FROM STRING_SPLIT(@OrderBy, ',')) AS [O]\r\n");
+                result.Append($"                               LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]\r\n");
+                result.Append($"                                             FROM [INFORMATION_SCHEMA].[COLUMNS]\r\n");
+                result.Append($"                                             WHERE [TABLE_NAME] = 'Categories') AS [T] ON [T].[ColumnName] = [O].[ColumnName]\r\n");
+                result.Append($"                          WHERE [T].[ColumnName] IS NULL) BEGIN\r\n");
                 result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';\r\n");
                 result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"            END\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
 
