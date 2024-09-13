@@ -63,17 +63,15 @@ namespace CRUDA_LIB
             var action = parms?["Action"];
             var config = GetConfig(systemName, databaseName, tableName);
             var databaseRow = config.Tables[1].Rows[0];
-            var tableRow = config.Tables[2].Rows[0];
             var connectionString = $"Password={databaseRow["Password"]};Persist Security Info=True;User ID={databaseRow["Logon"]};" +
                                    $"Initial Catalog={databaseRow["Alias"]};Data Source={databaseRow["ServerName"]}";
             var procedureName = action switch
             {
-                Actions.CREATE => tableRow["ProcedureCreate"].ToString(),
-                Actions.READ => tableRow["ProcedureRead"].ToString(),
-                Actions.UPDATE => tableRow["ProcedureUpdate"].ToString(),
-                Actions.DELETE => tableRow["ProcedureDelete"].ToString(),
-                Actions.LIST => tableRow["ProcedureList"].ToString(),
-                Actions.GEN_ID => "Gen_Id",
+                Actions.BEGIN => $"TransactionBegin",
+                Actions.COMMIT => $"TransactionCommit",
+                Actions.ROLLBACK => $"TransactionRollback",
+                Actions.READ => $"{tableName}Read",
+                Actions.GENERATE => "GenerateId",
                 _ => throw new Exception($"Ação inválida."),
             };
 

@@ -8,14 +8,16 @@
         public const string LOGOUT = "logout";
         public const string AUTHENTICATE = "authenticate";
         public const string EXECUTE = "execute";
-        public const string CREATE = "create";
-        public const string READ = "read";
-        public const string UPDATE = "update";
-        public const string DELETE = "delete";
+        public const string BEGIN = "begin";
         public const string COMMIT = "commit";
         public const string ROLLBACK = "rollback";
+        public const string PERSIST = "persist";
+        public const string READ = "read";
+        public const string CREATE = "create";
+        public const string UPDATE = "update";
+        public const string DELETE = "delete";
         public const string LIST = "list";
-        public const string GEN_ID = "gen_id";
-        public const string CHECK_SYSTEM = "check_system";
+        public const string GENERATE = "generate";
+        public const string CHECK = "check";
     }
 }

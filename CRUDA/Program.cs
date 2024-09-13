@@ -22,7 +22,7 @@ namespace CRUDA_LIB
             });
             app.MapGet("/{systemName}", (HttpContext context, string systemName) =>
             {
-                ExecuteRoute(context, systemName, Actions.CHECK_SYSTEM);
+                ExecuteRoute(context, systemName, Actions.CHECK);
             });
             app.MapPost("/{systemName}/{action}", (HttpContext context, string systemName, string action, dynamic body) =>
             {
@@ -41,7 +41,7 @@ namespace CRUDA_LIB
                         context.Request.Headers.ContentType = "text/html;";
                         context.Response.WriteAsync(Config.GetHTML("cruda", "Nome do sistema é requerido na URL."), Encoding.UTF8);
                         break;
-                    case Actions.CHECK_SYSTEM:
+                    case Actions.CHECK:
                         context.Response.Headers.ContentType = "text/html";
                         SQLProcedure.GetConfig(systemName);
                         context.Response.WriteAsync(Config.GetHTML(systemName), Encoding.UTF8);
@@ -55,7 +55,6 @@ namespace CRUDA_LIB
                     case Actions.LOGIN:
                     case Actions.LOGOUT:
                     case Actions.EXECUTE:
-                    case Actions.GEN_ID:
                         var publicKey = action == Actions.LOGIN 
                             ? context.Request.Headers["PublicKey"].ToString() 
                             : Login.GetPublicKey(Convert.ToInt64(context.Request.Headers["LoginId"]));
@@ -82,7 +81,7 @@ namespace CRUDA_LIB
             }
             catch (Exception ex)
             {
-                if (action == null || action == Actions.CHECK_SYSTEM)
+                if (action == null || action == Actions.CHECK)
                 {
                     context.Response.Headers.ContentType = "text/html";
                     context.Response.WriteAsync(Config.GetHTML(systemName, ex.Message), Encoding.UTF8);
