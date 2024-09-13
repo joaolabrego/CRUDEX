@@ -55,6 +55,7 @@ namespace CRUDA_LIB
                     case Actions.LOGIN:
                     case Actions.LOGOUT:
                     case Actions.EXECUTE:
+                    case Actions.GEN_ID:
                         var publicKey = action == Actions.LOGIN 
                             ? context.Request.Headers["PublicKey"].ToString() 
                             : Login.GetPublicKey(Convert.ToInt64(context.Request.Headers["LoginId"]));

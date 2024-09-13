@@ -1219,6 +1219,38 @@ namespace CRUDA.Classes
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
 
+                var pkColumnRows = columnRows.FindAll(column => ToBoolean(column["IsPrimarykey"]));
+
+                firstTime = true;
+                foreach (var column in pkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"        IF @OrderBy IS NULL\r\n");
+                        result.Append($"            SET @OrderBy = '[{column["Name"]}]");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($",[{column["Name"]}]");
+                }
+                /*
+                 WITH OrderByItems AS (SELECT LTRIM(RTRIM(value)) AS Item FROM STRING_SPLIT(@OrderBy, ',')),
+                      OrderByColumns AS (SELECT CASE WHEN CHARINDEX(' ', Item) > 0 THEN LEFT(Item, CHARINDEX(' ', Item) - 1) ELSE Item END AS ColumnName FROM OrderByItems),
+                      TableColumns AS (SELECT [COLUMN_NAME] AS ColumnName FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Columns')
+                      SELECT O.ColumnName FROM OrderByColumns O LEFT JOIN TableColumns T ON O.ColumnName = T.ColumnName WHERE T.ColumnName IS NULL
+                 */
+                result.Append($"'\r\n");
+                result.Append($"        ELSE BEGIN\r\n");
+                result.Append($"            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),\r\n");
+                result.Append($"                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),\r\n");
+                result.Append($"                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = '{table["Name"]}')\r\n");
+                result.Append($"            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN\r\n");
+                result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';\r\n");
+                result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"            END\r\n");
+                result.Append($"        END\r\n");
+                result.Append($"\r\n");
+
                 var filterableColumns = columnRows.FindAll(column => ToBoolean(column["IsFilterable"]));
 
                 result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
@@ -1282,8 +1314,6 @@ namespace CRUDA.Classes
                             result.Append($"(@W_{column["Name"]} IS NULL OR [{column["Name"]}] = @W_{column["Name"]})\r\n");
                     }
                 }
-
-                var pkColumnRows = columnRows.FindAll(column => ToBoolean(column["IsPrimarykey"]));
 
                 firstTime = true;
                 foreach (var column in pkColumnRows)
@@ -1376,28 +1406,15 @@ namespace CRUDA.Classes
                 result.Append($"                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
-
-                firstTime = true;
-                foreach (var column in pkColumnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"        DECLARE @sql VARCHAR(MAX)\r\n");
-                        result.Append($"                ,@className VARCHAR(50) = 'Record{table["Alias"]}'\r\n");
-                        result.Append($"                ,@primaryKey VARCHAR(MAX) = '[{column["Name"]}]");
-                        
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($",[{column["Name"]}]");
-                }
-                result.Append($"'\r\n");
+                result.Append($"        DECLARE @sql VARCHAR(MAX)\r\n");
+                result.Append($"                ,@className VARCHAR(50) = 'Record{table["Alias"]}'\r\n");
+                result.Append($"\r\n");
                 result.Append($"\r\n");
                 result.Append($"        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]\r\n");
                 result.Append($"        SET @sql = 'INSERT INTO [dbo].[#view]\r\n");
                 result.Append($"                        SELECT ''' + @className + ''', *\r\n");
                 result.Append($"                            FROM [dbo].[#tmp]\r\n");
-                result.Append($"                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '\r\n");
+                result.Append($"                            ORDER BY ' + @OrderBy + '\r\n");
                 result.Append($"                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS\r\n");
                 result.Append($"                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'\r\n");
                 result.Append($"        EXEC @sql\r\n");

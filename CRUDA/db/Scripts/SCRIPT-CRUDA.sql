@@ -656,7 +656,7 @@ GO
 Criar function [dbo].[NumberInWordsOfHundreds]
 **********************************************************************************/
 IF(SELECT object_id('[dbo].[NumberInWordsOfHundreds]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [dbo].[NumberInWordsOfHundreds]() RETURNS BIT AS BEGIN RETURN 1 END')
+	EXEC('CREATE FUNCTION [dbo].[NumberInWordsOfHundreds]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
 GO
 ALTER FUNCTION [dbo].[NumberInWordsOfHundreds](@Value AS SMALLINT
 											  ,@EnglishOrPortuguese BIT)
@@ -795,7 +795,7 @@ GO
 Criar function [dbo].[NumberInWords]
 **********************************************************************************/
 IF(SELECT object_id('[dbo].[NumberInWords]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [dbo].[NumberInWords]() RETURNS BIT AS BEGIN RETURN 1 END')
+	EXEC('CREATE FUNCTION [dbo].[NumberInWords]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
 GO
 ALTER FUNCTION [dbo].[NumberInWords](@Value AS DECIMAL(18,2)
 								    ,@EnglishOrPortuguese BIT = 1
@@ -1680,6 +1680,18 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Categories')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id tinyint = CAST(JSON_VALUE(@Parameters, '$.Id') AS tinyint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
@@ -1782,13 +1794,13 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordCategory'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -2355,6 +2367,18 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Types')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id tinyint = CAST(JSON_VALUE(@Parameters, '$.Id') AS tinyint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
@@ -2480,13 +2504,13 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordType'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -2603,12 +2627,12 @@ ALTER PROCEDURE[dbo].[MaskValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('-9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à -9007199254740990';
+        IF @W_Id < CAST('-2147483648' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à -2147483648';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE Id = @W_Id) BEGIN
@@ -2905,16 +2929,28 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Masks')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('-9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''-9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id < CAST('-2147483648' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''-2147483648''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -2974,13 +3010,13 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordMask'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -3125,8 +3161,8 @@ ALTER PROCEDURE[dbo].[DomainValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE Id = @W_Id) BEGIN
@@ -3167,12 +3203,12 @@ ALTER PROCEDURE[dbo].[DomainValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord inexiste em Types';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_MaskId IS NOT NULL AND @W_MaskId < CAST('-9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de MaskId em @ActualRecord deve ser maior que ou igual à -9007199254740990';
+            IF @W_MaskId IS NOT NULL AND @W_MaskId < CAST('-2147483648' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de MaskId em @ActualRecord deve ser maior que ou igual à -2147483648';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_MaskId IS NOT NULL AND @W_MaskId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de MaskId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_MaskId IS NOT NULL AND @W_MaskId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de MaskId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_MaskId) BEGIN
@@ -3503,6 +3539,18 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Domains')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_TypeId tinyint = CAST(JSON_VALUE(@Parameters, '$.TypeId') AS tinyint)
@@ -3515,8 +3563,8 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_TypeId IS NOT NULL AND @W_TypeId < CAST('1' AS tinyint) BEGIN
@@ -3527,12 +3575,12 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de TypeId deve ser menor que ou igual à ''255''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_MaskId IS NOT NULL AND @W_MaskId < CAST('-9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de MaskId deve ser maior que ou igual à ''-9007199254740990''.';
+        IF @W_MaskId IS NOT NULL AND @W_MaskId < CAST('-2147483648' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de MaskId deve ser maior que ou igual à ''-2147483648''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_MaskId IS NOT NULL AND @W_MaskId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de MaskId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_MaskId IS NOT NULL AND @W_MaskId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de MaskId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -3620,13 +3668,13 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordDomain'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -3756,8 +3804,8 @@ ALTER PROCEDURE[dbo].[SystemValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE Id = @W_Id) BEGIN
@@ -4089,6 +4137,18 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Systems')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
@@ -4098,8 +4158,8 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -4169,13 +4229,13 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordSystem'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -4308,8 +4368,8 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE Id = @W_Id) BEGIN
@@ -4343,8 +4403,8 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_SystemId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_SystemId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
@@ -4375,8 +4435,8 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de ParentMenuId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_ParentMenuId IS NOT NULL AND @W_ParentMenuId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de ParentMenuId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_ParentMenuId IS NOT NULL AND @W_ParentMenuId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ParentMenuId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_ParentMenuId) BEGIN
@@ -4671,6 +4731,18 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Menus')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
@@ -4680,16 +4752,16 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -4762,13 +4834,13 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordMenu'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -4898,8 +4970,8 @@ ALTER PROCEDURE[dbo].[UserValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE Id = @W_Id) BEGIN
@@ -5231,6 +5303,18 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Users')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
@@ -5241,8 +5325,8 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -5313,13 +5397,13 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordUser'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -5444,8 +5528,8 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE Id = @W_Id) BEGIN
@@ -5471,8 +5555,8 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_SystemId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_SystemId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
@@ -5487,8 +5571,8 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de UserId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_UserId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de UserId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_UserId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de UserId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
@@ -5782,6 +5866,18 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'SystemsUsers')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
@@ -5792,24 +5888,24 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_UserId IS NOT NULL AND @W_UserId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de UserId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_UserId IS NOT NULL AND @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de UserId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_UserId IS NOT NULL AND @W_UserId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de UserId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -5874,13 +5970,13 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordSystemUser'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -6023,8 +6119,8 @@ ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE Id = @W_Id) BEGIN
@@ -6375,6 +6471,18 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Databases')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
@@ -6384,8 +6492,8 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -6467,13 +6575,13 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordDatabase'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -6598,8 +6706,8 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE Id = @W_Id) BEGIN
@@ -6625,8 +6733,8 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_SystemId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_SystemId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
@@ -6641,8 +6749,8 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_DatabaseId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_DatabaseId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
@@ -6936,6 +7044,18 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'SystemsDatabases')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
@@ -6946,24 +7066,24 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -7028,13 +7148,13 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordSystemDatabase'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -7168,8 +7288,8 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE Id = @W_Id) BEGIN
@@ -7206,8 +7326,8 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId em @ActualRecord deve ser maior que ou igual à 0';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @W_IsPaged IS NULL BEGIN
@@ -7222,8 +7342,8 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de CurrentId em @ActualRecord deve ser maior que ou igual à 0';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_CurrentId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de CurrentId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_CurrentId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de CurrentId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'create' BEGIN
@@ -7521,6 +7641,18 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Tables')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_Name varchar(25) = CAST(JSON_VALUE(@Parameters, '$.Name') AS varchar(25))
@@ -7531,8 +7663,8 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -7606,13 +7738,13 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordTable'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -7737,8 +7869,8 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE Id = @W_Id) BEGIN
@@ -7764,8 +7896,8 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_DatabaseId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_DatabaseId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
@@ -7780,8 +7912,8 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_TableId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_TableId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
@@ -8075,6 +8207,18 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'DatabasesTables')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_DatabaseId bigint = CAST(JSON_VALUE(@Parameters, '$.DatabaseId') AS bigint)
@@ -8085,24 +8229,24 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_TableId IS NOT NULL AND @W_TableId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_TableId IS NOT NULL AND @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_TableId IS NOT NULL AND @W_TableId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -8167,13 +8311,13 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordDatabaseTable'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -8349,8 +8493,8 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
@@ -8393,8 +8537,8 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_TableId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_TableId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
@@ -8421,8 +8565,8 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_DomainId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_DomainId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId) BEGIN
@@ -8433,8 +8577,8 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ReferenceTableId) BEGIN
@@ -8812,6 +8956,18 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Columns')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_TableId bigint = CAST(JSON_VALUE(@Parameters, '$.TableId') AS bigint)
@@ -8830,32 +8986,32 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_TableId IS NOT NULL AND @W_TableId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_TableId IS NOT NULL AND @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_TableId IS NOT NULL AND @W_TableId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_DomainId IS NOT NULL AND @W_DomainId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_DomainId IS NOT NULL AND @W_DomainId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_DomainId IS NOT NULL AND @W_DomainId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de DomainId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de ReferenceTableId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -8979,13 +9135,13 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordColumn'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -9112,8 +9268,8 @@ ALTER PROCEDURE[dbo].[IndexValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE Id = @W_Id) BEGIN
@@ -9140,8 +9296,8 @@ ALTER PROCEDURE[dbo].[IndexValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_DatabaseId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_DatabaseId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId) BEGIN
@@ -9156,8 +9312,8 @@ ALTER PROCEDURE[dbo].[IndexValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_TableId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_TableId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId) BEGIN
@@ -9452,6 +9608,18 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Indexes')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_TableId bigint = CAST(JSON_VALUE(@Parameters, '$.TableId') AS bigint)
@@ -9462,16 +9630,16 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_TableId IS NOT NULL AND @W_TableId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_TableId IS NOT NULL AND @W_TableId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_TableId IS NOT NULL AND @W_TableId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de TableId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -9539,13 +9707,13 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordIndex'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -9673,8 +9841,8 @@ ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE Id = @W_Id) BEGIN
@@ -9701,8 +9869,8 @@ ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_IndexId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_IndexId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId) BEGIN
@@ -9729,8 +9897,8 @@ ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_ColumnId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_ColumnId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId) BEGIN
@@ -10028,6 +10196,18 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Indexkeys')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_IndexId bigint = CAST(JSON_VALUE(@Parameters, '$.IndexId') AS bigint)
@@ -10038,24 +10218,24 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_IndexId IS NOT NULL AND @W_IndexId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_IndexId IS NOT NULL AND @W_IndexId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_IndexId IS NOT NULL AND @W_IndexId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_ColumnId IS NOT NULL AND @W_ColumnId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_ColumnId IS NOT NULL AND @W_ColumnId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_ColumnId IS NOT NULL AND @W_ColumnId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de ColumnId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -10123,13 +10303,13 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordIndexkey'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -10256,8 +10436,8 @@ ALTER PROCEDURE[dbo].[LoginValidate](@LoginId BIGINT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser maior que ou igual à 1';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+        IF @W_Id < CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord deve ser menor que ou igual à 2147483647';
             THROW 51000, @ErrorMessage, 1
         END
         IF EXISTS(SELECT 1 FROM [dbo].[Logins] WHERE Id = @W_Id) BEGIN
@@ -10284,8 +10464,8 @@ ALTER PROCEDURE[dbo].[LoginValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_SystemId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_SystemId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId) BEGIN
@@ -10300,8 +10480,8 @@ ALTER PROCEDURE[dbo].[LoginValidate](@LoginId BIGINT
                 SET @ErrorMessage = @ErrorMessage + 'Valor de UserId em @ActualRecord deve ser maior que ou igual à 1';
                 THROW 51000, @ErrorMessage, 1
             END
-            IF @W_UserId < CAST('9007199254740990' AS bigint) BEGIN
-                SET @ErrorMessage = @ErrorMessage + 'Valor de UserId em @ActualRecord deve ser menor que ou igual à 9007199254740990';
+            IF @W_UserId < CAST('2147483647' AS bigint) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Valor de UserId em @ActualRecord deve ser menor que ou igual à 2147483647';
                 THROW 51000, @ErrorMessage, 1
             END
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId) BEGIN
@@ -10591,6 +10771,18 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
+        IF @OrderBy IS NULL
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            WITH [OrderByItems] AS (SELECT LTRIM(RTRIM([value])) AS [Item] FROM STRING_SPLIT(@OrderBy, ',')),
+                 [OrderByColumns] AS (SELECT CASE WHEN CHARINDEX(' ', [Item]) > 0 THEN LEFT([Item], CHARINDEX(' ', [Item]) - 1) ELSE [Item] END AS [ColumnName] FROM [OrderByItems]),
+                 [TableColumns] AS (SELECT [COLUMN_NAME] AS [ColumnName] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME] = 'Logins')
+            IF EXISTS(SELECT 1 FROM [OrderByColumns] [O] LEFT JOIN [TableColumns] [T] ON [O].[ColumnName] = [T].[ColumnName] WHERE [T].[ColumnName] IS NULL) BEGIN
+                SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+                THROW 51000, @ErrorMessage, 1
+            END
+        END
+
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
                 ,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
                 ,@W_SystemId bigint = CAST(JSON_VALUE(@Parameters, '$.SystemId') AS bigint)
@@ -10601,24 +10793,24 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
         IF @W_UserId IS NOT NULL AND @W_UserId < CAST('1' AS bigint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de UserId deve ser maior que ou igual à ''1''.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_UserId IS NOT NULL AND @W_UserId > CAST('9007199254740990' AS bigint) BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de UserId deve ser menor que ou igual à ''9007199254740990''.';
+        IF @W_UserId IS NOT NULL AND @W_UserId > CAST('2147483647' AS bigint) BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de UserId deve ser menor que ou igual à ''2147483647''.';
             THROW 51000, @ErrorMessage, 1
         END
 
@@ -10686,13 +10878,13 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
 
         DECLARE @sql VARCHAR(MAX)
                 ,@className VARCHAR(50) = 'RecordLogin'
-                ,@primaryKey VARCHAR(MAX) = '[Id]'
+
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
-                            ORDER BY ' + ISNULL(@OrderBy, @primaryKey) + '
+                            ORDER BY ' + @OrderBy + '
                             OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
                             FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
         EXEC @sql
@@ -12669,7 +12861,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS bigint)
-                                ,CAST('1' AS tinyint)
+                                ,CAST('15' AS tinyint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('BigInteger' AS varchar(25))
                                 ,NULL

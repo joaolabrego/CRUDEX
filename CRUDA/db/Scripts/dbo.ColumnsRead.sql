@@ -26,6 +26,17 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId BIGINT
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters não está no formato JSON';
 			THROW 51000, @ErrorMessage, 1
 		END
+		IF @OrderBy IS NOT NULL 
+			AND EXISTS(SELECT [value]
+							FROM STRING_SPLIT(@OrderBy, ',')
+							WHERE CHARINDEX(TRIM(value), STUFF((SELECT ', ' + [COLUMN_NAME]
+							FROM INFORMATION_SCHEMA.COLUMNS
+							WHERE TABLE_NAME = 'Columns'
+							ORDER BY ORDINAL_POSITION
+							FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0) BEGIN
+			SET @ErrorMessage = @ErrorMessage + 'Nome de coluna em @OrderBy é inválido';
+			THROW 51000, @ErrorMessage, 1
+		END
 
 		DECLARE @TransactionId INT = ISNULL((SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId), 0)
 				,@W_Id bigint = CAST(JSON_VALUE(@Parameters, '$.Id') AS bigint)
