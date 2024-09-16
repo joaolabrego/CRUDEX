@@ -4,15 +4,16 @@ using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
+using System.Linq;
 
 namespace CRUDA.Classes
 {
     public class Scripts
     {
         static readonly string DirectoryScripts = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_SCRIPTS"));
-        public static void GenerateScript(string systemName, string databaseName)
+        public static void GenerateScript(string systemName, string databaseName, bool isExcel = true)
         {
-            var dataSet = ExcelToDataSet();
+            var dataSet = isExcel ? ExcelToDataSet() : ExcelToDataSet();
             var columns = (dataSet.Tables["Columns"] ?? throw new Exception("GenerateScript: Tabela Columns não existe.")).AsEnumerable().ToList();
             var indexes = (dataSet.Tables["Indexes"] ?? throw new Exception("GenerateScript: Tabela Indexes não existe.")).AsEnumerable().ToList();
             var indexkeys = (dataSet.Tables["Indexkeys"] ?? throw new Exception("GenerateScript: Tabela Indexkeys não existe.")).AsEnumerable().ToList();
@@ -39,15 +40,9 @@ namespace CRUDA.Classes
                     if (systemName == "cruda")
                         stream.Write(GetScriptOthers());
                     stream.Write(GetScriptTransactions());
-                    stream.Write(GetScriptCreateTableTransactions());
-                    stream.Write(GetScriptCreateTableOperations());
                     firstTime = false;
                 }
-                stream.Write(GetScriptCreateTable(table, columns, indexes, indexkeys));
-                stream.Write(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys));
-                stream.Write(GetScriptPersistTable(table, columns));
-                stream.Write(GetScriptCommitTable(table, columns));
-                stream.Write(GetScriptReadTable(table, columns, domains, types));
+                stream.Write(GetScriptCreateTable(table, columns, indexes, indexkeys, domains, types));
             }
             stream.Write(GetScriptReferences(tables, columns));
             foreach (var table in tables)
@@ -55,6 +50,14 @@ namespace CRUDA.Classes
                 var datatable = (dataSet.Tables[ToString(table["Name"])] ?? throw new Exception($"GenerateScript: Tabela {table["Name"]} não encontrada")).AsEnumerable().ToList();
 
                 stream.Write(GetScriptInsertTable(table, columns, domains, types, categories, datatable));
+            }
+            foreach (DataRow databaseTable in databasesTables)
+            {
+                var table = tables.First(table => ToLong(table["Id"]) == ToLong(databaseTable["TableId"]));
+                stream.Write(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys));
+                stream.Write(GetScriptPersistTable(table, columns));
+                stream.Write(GetScriptCommitTable(table, columns));
+                stream.Write(GetScriptReadTable(table, columns, domains, types));
             }
         }
         public static DataSet ExcelToDataSet()
@@ -102,25 +105,42 @@ namespace CRUDA.Classes
 
             return Convert.ToString(value) ?? string.Empty;
         }
-        private static TDictionary GetValidations(DataRow column, TDataRows domains, TDataRows types)
+        private static TDictionary GetConstraints(DataRow column, TDataRows domains, TDataRows types)
         {
             var result = new TDictionary();
-            string value;
             var domain = domains.First(domain => ToLong(domain["Id"]) == ToLong(column["DomainId"]));
             var type = types.First(type => ToLong(type["Id"]) == ToLong(domain["TypeId"]));
+            string value;
 
-            if (ToBoolean(column["IsRequired"]))
-                result.Add("IsRequired", true);
+            if (ToBoolean(column["IsPrimarykey"]))
+                result.Add("Required", " NOT NULL");
+            else if (ToBoolean(column["IsRequired"]))
+                result.Add("Required", " NOT NULL");
+            else
+                result.Add("Required", " NULL");
+            if (ToBoolean(column["IsAutoIncrement"]))
+                result.Add("AutoIncrement", " IDENTITY(1,1)");
+            if ((value = ToString(column["Default"])) != string.Empty)
+                result.Add("Default", $" DEFAULT CAST('{value}' AS {column["#DataType"]})");
             if ((value = ToString(column["Minimum"])) == string.Empty)
                 if ((value = ToString(domain["Minimum"])) == string.Empty)
                     value = ToString(type["Minimum"]);
             if (value != string.Empty)
+            {
+                result.Add("Range", $" CHECK ([{column["Name"]}] >= CAST('{value}' AS {column["#DataType"]})");
                 result.Add("Minimum", value);
+            }
             if ((value = ToString(column["Maximum"])) == string.Empty)
                 if ((value = ToString(domain["Maximum"])) == string.Empty)
                     value = ToString(type["Maximum"]);
             if (value != string.Empty)
+            {
+                if (result.ContainsKey("Range"))
+                    result["Range"] += $" AND [{column["Name"]}] <= CAST('{value}' AS {column["#DataType"]}))";
+                else
+                    result.Add("Range", $" CHECK ([{column["Name"]}] <= CAST('{value}' AS {column["#DataType"]}))"); 
                 result.Add("Maximum", value);
+            }
 
             return result;
         }
@@ -271,6 +291,14 @@ namespace CRUDA.Classes
             result.Append($"**********************************************************************************/\r\n");
             result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.IsEquals.sql")));
             result.Append($"/**********************************************************************************\r\n");
+            result.Append($"Criar tabela [cruda].[Transactions]\r\n");
+            result.Append($"**********************************************************************************/\r\n");
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.TransactionsCreateTable.sql")));
+            result.Append($"/**********************************************************************************\r\n");
+            result.Append($"Criar tabela [cruda].[Operations]\r\n");
+            result.Append($"**********************************************************************************/\r\n");
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.OperationsCreateTable.sql")));
+            result.Append($"/**********************************************************************************\r\n");
             result.Append($"Criar stored procedure [cruda].TransactionBegin]\r\n");
             result.Append($"**********************************************************************************/\r\n");
             result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.TransactionBegin.sql")));
@@ -285,55 +313,7 @@ namespace CRUDA.Classes
 
             return result;
         }
-        private static StringBuilder GetScriptCreateTableTransactions()
-        {
-            var result = new StringBuilder();
-
-            result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar tabela [cruda].[Transactions]\r\n");
-            result.Append($"**********************************************************************************/\r\n");
-            result.Append($"IF (SELECT object_id('[cruda].[Transactions]', 'U')) IS NOT NULL\r\n");
-            result.Append($"    DROP TABLE [cruda].[Transactions]\r\n");
-            result.Append($"CREATE TABLE [cruda].[Transactions]([Id] [int] IDENTITY(1,1) NOT NULL\r\n");
-            result.Append($"                                   ,[LoginId] [bigint] NOT NULL\r\n");
-            result.Append($"                                   ,[IsConfirmed] [bit] NULL\r\n");
-            result.Append($"                                   ,[CreatedAt] datetime NOT NULL\r\n");
-            result.Append($"                                   ,[CreatedBy] varchar(25) NOT NULL\r\n");
-            result.Append($"                                   ,[UpdatedAt] datetime NULL\r\n");
-            result.Append($"                                   ,[UpdatedBy] varchar(25) NULL)\r\n");
-            result.Append($"ALTER TABLE [cruda].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED([Id])\r\n");
-            result.Append($"CREATE INDEX [IDX_Transactions_LoginId_IsConfirmed] ON [cruda].[Transactions]([LoginId], [IsConfirmed])\r\n");
-            result.Append($"GO\r\n");
-
-            return result;
-        }
-        private static StringBuilder GetScriptCreateTableOperations()
-        {
-            var result = new StringBuilder();
-
-            result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar tabela [cruda].[Operations]\r\n");
-            result.Append($"**********************************************************************************/\r\n");
-            result.Append($"IF (SELECT object_id('[cruda].[Operations]', 'U')) IS NOT NULL\r\n");
-            result.Append($"    DROP TABLE [cruda].[Operations]\r\n");
-            result.Append($"CREATE TABLE [cruda].[Operations]([Id] [int] IDENTITY(1,1) NOT NULL\r\n");
-            result.Append($"                                 ,[TransactionId] [int] NOT NULL\r\n");
-            result.Append($"                                 ,[TableName] [varchar](25) NOT NULL\r\n");
-            result.Append($"                                 ,[Action] [varchar](15) NOT NULL\r\n");
-            result.Append($"                                 ,[LastRecord] [varchar](max) NULL\r\n");
-            result.Append($"                                 ,[ActualRecord] [varchar](max) NOT NULL\r\n");
-            result.Append($"                                 ,[IsConfirmed] [bit] NULL\r\n");
-            result.Append($"                                 ,[CreatedAt] datetime NOT NULL\r\n");
-            result.Append($"                                 ,[CreatedBy] varchar(25) NOT NULL\r\n");
-            result.Append($"                                 ,[UpdatedAt] datetime NULL\r\n");
-            result.Append($"                                 ,[UpdatedBy] varchar(25) NULL)\r\n");
-            result.Append($"ALTER TABLE [cruda].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED([Id])\r\n");
-            result.Append($"CREATE INDEX [IDX_Operations_TransactionId_TableName_Action_IsConfirmed] ON [cruda].[Operations]([TransactionId], [TableName], [Action], [IsConfirmed])\r\n");
-            result.Append($"GO\r\n");
-
-            return result;
-        }
-        private static StringBuilder GetScriptCreateTable(DataRow table, TDataRows columns, TDataRows indexes, TDataRows indexkeys)
+        private static StringBuilder GetScriptCreateTable(DataRow table, TDataRows columns, TDataRows indexes, TDataRows indexkeys, TDataRows domains, TDataRows types)
         {
             var result = new StringBuilder();
             var firstTime = true;
@@ -349,8 +329,12 @@ namespace CRUDA.Classes
 
                 foreach (DataRow column in columnRows)
                 {
-                    var typeName = ToString(column["#DataType"]);
-                    var definition = $"[{column["Name"]}] {typeName} {(ToBoolean(column["IsAutoIncrement"]) ? "IDENTITY(1,1) " : "")}{(ToBoolean(column["IsRequired"]) ? "NOT NULL" : "NULL")}";
+                    var validations = GetConstraints(column, domains, types);
+                    var required = $"{(validations.TryGetValue("Required", out dynamic? value) ? value : "")}";
+                    var autoIncrement = $"{(validations.TryGetValue("AutoIncrement", out value) ? value : "")}";
+                    var defaultValue = $"{(validations.TryGetValue("Default", out value) ? value : "")}";
+                    var range = $"{(validations.TryGetValue("Range", out value) ? value : "")}";
+                    var definition = $"[{column["Name"]}] {column["#DataType"]}{autoIncrement}{required}{defaultValue}{range}";
 
                     if (firstTime)
                     {
@@ -487,10 +471,7 @@ namespace CRUDA.Classes
                         firstTime = true;
                         foreach (var column in columnRows)
                         {
-                            var domain = domains.First(domain => ToLong(domain["Id"]) == ToLong(column["DomainId"]));
-                            var type = types.First(type => ToLong(type["Id"]) == ToLong(domain["TypeId"]));
-                            var category = categories.First(category => ToLong(category["Id"]) == ToLong(type["CategoryId"]));
-                            var categoryName = ToString(category["Name"]);
+                            var categoryName = ToString(column["#CategoryName"]);
                             var columnName = ToString(column["Name"]);
                             dynamic? value = data[columnName];
 
@@ -500,6 +481,8 @@ namespace CRUDA.Classes
                                 value = IsNull(value) ? null : value ? 1 : 0;
                             if ((value = ToString(value)) == string.Empty)
                                 value = "NULL";
+                            else if (categoryName == "undefined")
+                                value = $"CAST('{value}' AS {data["#DataType"]})";
                             else
                                 value = $"CAST('{value}' AS {column["#DataType"]})";
                             if (firstTime)
@@ -570,11 +553,11 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
                 firstTime = true;
@@ -592,7 +575,7 @@ namespace CRUDA.Classes
                         result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
                                         firstTime = false;
                     }
-                    result.Append($"                  AND CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = @W_{column["Name"]}\r\n");
+                    result.Append($"                  AND CAST(JSON_QUERY([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = @W_{column["Name"]}\r\n");
                 }
                 result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
                 result.Append($"            INSERT INTO [cruda].[Operations] ([TransactionId]\r\n");
@@ -698,7 +681,7 @@ namespace CRUDA.Classes
                 result.Append($"               ,@IsConfirmed BIT\r\n");
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
-                result.Append($"        SAVE TRANSACTION [SavePoint]");
+                result.Append($"        SAVE TRANSACTION [SavePoint]\r\n");
                 result.Append($"        IF @OperationId IS NULL BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
@@ -749,11 +732,11 @@ namespace CRUDA.Classes
                     {
                         if (firstTime)
                         {
-                            result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                             firstTime = false;
                         }
                         else
-                            result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                     }
                     result.Append($"\r\n");
                     firstTime = true;
@@ -781,11 +764,11 @@ namespace CRUDA.Classes
                         {
                             result.Append($"        ELSE BEGIN\r\n");
                             result.Append($"\r\n");
-                            result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                             firstTime = false;
                         }
                         else
-                            result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                     }
                     result.Append($"\r\n");
                 }
@@ -928,7 +911,7 @@ namespace CRUDA.Classes
                         result.Append($"            IF @Action = 'update'\r\n");
                         firstTime = false;
                     }
-                    result.Append($"                AND [cruda].[IsEquals](CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@LastRecord, '$.{column["Name"]}') AS {column["#DataType"]})) = 1\r\n");
+                    result.Append($"                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.{column["Name"]}'), JSON_QUERY(@LastRecord, '$.{column["Name"]}'), '{column["#DataType"]}') = 1\r\n");
                 }
                 result.Append($"                RETURN 0\r\n");
                 firstTime = true;
@@ -947,9 +930,9 @@ namespace CRUDA.Classes
                         result.Append($"                                  AND ");
                     }
                     if (ToBoolean(column["IsRequired"]))
-                        result.Append($"[{column["Name"]}] = CAST(JSON_VALUE(@LastRecord, '$.{column["Name"]}') AS {column["#DataType"]})");
+                        result.Append($"[{column["Name"]}] = JSON_QUERY(@LastRecord, '$.{column["Name"]}')");
                     else
-                        result.Append($"[cruda].[IsEquals]([{column["Name"]}], CAST(JSON_VALUE(@LastRecord, '$.{column["Name"]}') AS {column["#DataType"]})) = 1");
+                        result.Append($"[cruda].[IsEquals]([{column["Name"]}], JSON_QUERY(@LastRecord, '$.{column["Name"]}'), '{column["#DataType"]}') = 1");
                 }
                 result.Append($") BEGIN\r\n");
                 result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Registro de {table["Name"]} alterado por outro usuário';\r\n");
@@ -987,16 +970,16 @@ namespace CRUDA.Classes
                     if (firstTime)
                     {
                         result.Append($"\r\n");
-                        result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"               ,W_{column["Name"]} AS {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"               ,W_{column["Name"]} AS {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
                 foreach (var column in pkColumnRows)
                 {
-                    var validations = GetValidations(column, domains, types);
+                    var validations = GetConstraints(column, domains, types);
                     var isRequired = validations.ContainsKey("IsRequired");
 
                     result.Append($"        IF @W_{column["Name"]} IS NULL BEGIN\r\n");
@@ -1068,16 +1051,16 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
                 foreach (var column in nopkColumnRows)
                 {
-                    var validations = GetValidations(column, domains, types);
+                    var validations = GetConstraints(column, domains, types);
                     var isRequired = validations.ContainsKey("IsRequired");
 
                     if (isRequired)
@@ -1253,11 +1236,11 @@ namespace CRUDA.Classes
 
                 result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
                 foreach (var column in filterableColumns)
-                    result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@Parameters, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                    result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@Parameters, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 foreach (var column in filterableColumns)
                 {
-                    var validations = GetValidations(column, domains, types);
+                    var validations = GetConstraints(column, domains, types);
 
                     if (validations.TryGetValue("Minimum", out dynamic? value))
                     {
@@ -1332,11 +1315,11 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}]\r\n");
+                        result.Append($"                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_QUERY([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}]\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                                                         AND CAST(JSON_VALUE([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}])\r\n");
+                        result.Append($"                                                         AND CAST(JSON_QUERY([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}])\r\n");
                 }
                 result.Append($"            WHERE [ope].[TransactionId] = @TransactionId\r\n");
                 result.Append($"                  AND [ope].[TableName] = 'Columns'\r\n");
@@ -1348,11 +1331,11 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"        INSERT [dbo].[#tmp] SELECT CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
+                        result.Append($"        INSERT [dbo].[#tmp] SELECT CAST(JSON_QUERY([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                                  ,CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
+                        result.Append($"                                  ,CAST(JSON_QUERY([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
                 result.Append($"            FROM [cruda].[Operations]\r\n");
                 result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
@@ -1366,11 +1349,11 @@ namespace CRUDA.Classes
                     if (firstTime)
                     {
                         result.Append($"        UPDATE [tmp]\r\n");
-                        result.Append($"            SET [tmp].[{column["Name"]}] = CAST(JSON_VALUE([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"            SET [tmp].[{column["Name"]}] = CAST(JSON_QUERY([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"               ,[tmp].[{column["Name"]}] = CAST(JSON_VALUE([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"               ,[tmp].[{column["Name"]}] = CAST(JSON_QUERY([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"            FROM [dbo].[#tmp] [tmp]\r\n");
                 firstTime= true;
@@ -1378,11 +1361,11 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_VALUE([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}]\r\n");
+                        result.Append($"                INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_QUERY([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}]\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                                                         AND CAST(JSON_VALUE([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}])\r\n");
+                        result.Append($"                                                         AND CAST(JSON_QUERY([ope].[ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = [tmp].[{column["Name"]}])\r\n");
                 }
                 result.Append($"            WHERE [ope].[TransactionId] = @TransactionId\r\n");
                 result.Append($"                  AND [ope].[TableName] = '{table["Name"]}'\r\n");

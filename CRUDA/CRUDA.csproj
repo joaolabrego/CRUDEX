@@ -19,15 +19,8 @@
     <SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
 	<NoWarn>$(NoWarn);AD0001</NoWarn>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="StaticFiles\TypeScripts\**" />
-    <Content Remove="StaticFiles\TypeScripts\**" />
-    <EmbeddedResource Remove="StaticFiles\TypeScripts\**" />
-    <None Remove="StaticFiles\TypeScripts\**" />
-  </ItemGroup>
 
   <ItemGroup>
-    <None Remove="db\Scripts\TablesCreate1.sql" />
     <None Remove="StaticFiles\Classes\TColumn.mjs" />
     <None Remove="StaticFiles\Classes\TConfig.mjs" />
     <None Remove="StaticFiles\Classes\TCrypto.mjs" />

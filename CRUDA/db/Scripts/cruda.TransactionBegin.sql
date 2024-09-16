@@ -18,7 +18,7 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 			SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
 			THROW 51000, @ErrorMessage, 1
 		END
-		INSERT [cruda].[Transactions] ([[LoginId]
+		INSERT [cruda].[Transactions] ([LoginId]
 									  ,[IsConfirmed]
 									  ,[CreatedAt]
 									  ,[CreatedBy])

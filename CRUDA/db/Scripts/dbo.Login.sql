@@ -92,7 +92,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 			SET @ErrorMessage = 'Senha é requerida';
 			THROW 51000, @ErrorMessage, 1
 		END
-		IF CAST(@PasswordAux AS VARBINARY(MAX)) <> CAST(@Password AS VARBINARY(MAX)) BEGIN
+		IF CAST(@PasswordAux AS VARCHAR(MAX)) <> CAST(@Password AS VARCHAR(MAX)) BEGIN
 			SET @RetryLogins = @RetryLogins + 1
 			UPDATE [dbo].[Users] 
 				SET [RetryLogins] = @RetryLogins
