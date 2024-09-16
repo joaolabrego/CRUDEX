@@ -4,7 +4,6 @@ using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
-using System.Linq;
 
 namespace CRUDA.Classes
 {
@@ -979,22 +978,22 @@ namespace CRUDA.Classes
                 result.Append($"\r\n");
                 foreach (var column in pkColumnRows)
                 {
-                    var validations = GetConstraints(column, domains, types);
-                    var isRequired = validations.ContainsKey("IsRequired");
+                    var constraints = GetConstraints(column, domains, types);
+                    var isRequired = constraints.ContainsKey("IsRequired");
 
                     result.Append($"        IF @W_{column["Name"]} IS NULL BEGIN\r\n");
                     result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} em @ActualRecord é requerido.';\r\n");
                     result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                     result.Append($"        END\r\n");
 
-                    if (validations.TryGetValue("Minimum", out dynamic? value))
+                    if (constraints.TryGetValue("Minimum", out dynamic? value))
                     {
                         result.Append($"        IF @W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]}) BEGIN\r\n");
                         result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} em @ActualRecord deve ser maior que ou igual à {value}';\r\n");
                         result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                         result.Append($"        END\r\n");
                     }
-                    if (validations.TryGetValue("Maximum", out value))
+                    if (constraints.TryGetValue("Maximum", out value))
                     {
                         result.Append($"        IF @W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]}) BEGIN\r\n");
                         result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} em @ActualRecord deve ser menor que ou igual à {value}';\r\n");
@@ -1014,8 +1013,6 @@ namespace CRUDA.Classes
                         result.Append($" AND {column["Name"]} = @W_{column["Name"]})");
                 }
                 
-                var pkColumn = columnRows.First(col => ToLong(col["TableId"]) == ToLong(table["Id"]) && ToBoolean(col["IsPrimarykey"]));
-
                 result.Append($") BEGIN\r\n");
                 result.Append($"            IF @Action = 'create' BEGIN\r\n");
                 result.Append($"               SET @ErrorMessage = @ErrorMessage + 'Chave-primária já existe em {table["Name"]}';\r\n");
@@ -1026,15 +1023,15 @@ namespace CRUDA.Classes
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
 
-                var referenceRows = columnRows.FindAll(column => ToLong(column["ReferenceTableId"]) == ToLong(table["Id"]));
+                var referenceRows = columns.FindAll(column => ToLong(column["ReferenceTableId"]) == ToLong(table["Id"]));
 
                 if (referenceRows.Count > 0)
                 {
                     result.Append($"        IF @Action = 'delete' BEGIN\r\n");
                     foreach (var reference in referenceRows)
                     {
-                        result.Append($"            IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE [{reference["Name"]}] = @W_{pkColumnRows[0]["Name"]}) BEGIN\r\n");
-                        result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Chave-primária referenciada em {table["Name"]}';\r\n");
+                        result.Append($"            IF EXISTS(SELECT 1 FROM [dbo].[{reference["#TableName"]}] WHERE [{reference["Name"]}] = @W_{pkColumnRows[0]["Name"]}) BEGIN\r\n");
+                        result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Chave-primária referenciada em {reference["#TableName"]}';\r\n");
                         result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
                         result.Append($"            END\r\n");
                     }
@@ -1079,7 +1076,7 @@ namespace CRUDA.Classes
                     }
                     if (validations.TryGetValue("Maximum", out value))
                     {
-                        result.Append($"            IF {(isRequired ? "" : $"@W_{column["Name"]} IS NOT NULL AND ")}@W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]}) BEGIN\r\n");
+                        result.Append($"            IF {(isRequired ? "" : $"@W_{column["Name"]} IS NOT NULL AND ")}@W_{column["Name"]} > CAST('{value}' AS {column["#DataType"]}) BEGIN\r\n");
                         result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Valor de {column["Name"]} em @ActualRecord deve ser menor que ou igual à {value}';\r\n");
                         result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
                         result.Append($"            END\r\n");
@@ -1088,7 +1085,7 @@ namespace CRUDA.Classes
                     {
                         var referenceTable = tables.First(table => ToLong(table["Id"]) == ToLong(column["ReferenceTableId"]));
                         
-                        pkColumn = columns.First(col => ToLong(col["TableId"]) == ToLong(referenceTable["Id"]) && ToBoolean(col["IsPrimarykey"]));
+                        var pkColumn = columns.First(col => ToLong(col["TableId"]) == ToLong(referenceTable["Id"]) && ToBoolean(col["IsPrimarykey"]));
 
                         result.Append($"            IF NOT EXISTS(SELECT 1 FROM [dbo].[{referenceTable["Name"]}] WHERE [{pkColumn["Name"]}] = @W_{column["Name"]}) BEGIN\r\n");
                         result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Valor de {pkColumn["Name"]} em @ActualRecord inexiste em {referenceTable["Name"]}';\r\n");
@@ -1141,7 +1138,9 @@ namespace CRUDA.Classes
                             else
                                 result.Append($" AND [{column["Name"]}] = @W_{column["Name"]}");
                         }
-                        pkColumn = columnRows.First(col => ToLong(col["TableId"]) == ToLong(table["Id"]) && ToBoolean(col["IsPrimarykey"]));
+
+                        var pkColumn = columnRows.First(col => ToLong(col["TableId"]) == ToLong(table["Id"]) && ToBoolean(col["IsPrimarykey"]));
+
                         result.Append($" AND [{pkColumn["Name"]}] <> @W_{pkColumn["Name"]}) BEGIN\r\n");
                         result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Chave única de {index["Name"]} inexiste';\r\n");
                         result.Append($"                THROW 51000, @ErrorMessage, 1\r\n");
