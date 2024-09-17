@@ -69,7 +69,7 @@ export default class TTable {
         this.#Columns.forEach(column => column.FilterValue = column.LastValue)
     }
     SaveFilters() {
-        this.#Columns.forEach(column => column.FilterValue = column.IsEmpty() ? null : column.Value)
+        this.#Columns.forEach(column => column.FilterValue = TConfig.IsEmpty(column.FilterValue) ? null : column.Value)
     }
     async ReadTablePage(pageNumber = this.#PageNumber) {
         let parameters = {

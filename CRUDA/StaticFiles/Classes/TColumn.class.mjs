@@ -62,16 +62,13 @@ export default class TColumn {
         this.#Table = table
         this.#Domain = TSystem.GetDomain(rowColumn.DomainId)
     }
-    IsEmpty(value = this.#Value) {
-        return TConfig.IsEmpty(value)
-    }
     #GeTBrowseCheckBox(value) {
         let control = document.createElement("input")
 
         control.type = this.#Domain.Type.Category.HtmlInputType
-        control.indeterminate = this.IsEmpty(value)
+        control.indeterminate = TConfig.IsEmpty(value)
         control.checked = value
-        control.title = this.IsEmpty(value) ? "nulo" : value ? "sim" : "não"
+        control.title = TConfig.IsEmpty(value) ? "nulo" : value ? "sim" : "não"
         control.readOnly = true
         control.onclick = () => false
 
@@ -109,18 +106,18 @@ export default class TColumn {
 
         control.type = this.#Domain.Type.Category.HtmlInputType
         control.checked = this.#Value
-        control.title = this.IsEmpty() ? 'nulo' : control.checked ? "sim" : "não"
-        control.indeterminate = this.IsEmpty()
+        control.title = TConfig.IsEmpty() ? 'nulo' : control.checked ? "sim" : "não"
+        control.indeterminate = TConfig.IsEmpty()
         control.onclick = (event) => {
             if (event.target.readOnly)
                 return false
-            if (this.IsEmpty())
+            if (TConfig.IsEmpty())
                 this.#Value = false
             else if (this.#Value === false)
                 this.#Value = true
             else
                 this.#Value = null
-            event.target.indeterminate = this.IsEmpty()
+            event.target.indeterminate = TConfig.IsEmpty()
             event.target.checked = event.target.value = this.#Value
             event.target.title = event.target.indeterminate ? "nulo" : event.target.checked ? "sim" : "não"
         }
@@ -171,7 +168,7 @@ export default class TColumn {
         this.#InputControl.onchange = event => {
             let value = event.target.type === "checkbox" ? eval(event.target.value) : event.target.value
 
-            this.#Value = this.IsEmpty(value) ? null : value
+            this.#Value = TConfig.IsEmpty(value) ? null : value
         }
         this.#InputControl.name = this.#Name
         this.#InputControl.onfocus = (event) => event.target.select()
