@@ -103,7 +103,13 @@ export default class TConfig {
 
         return this.#MinusSignal = (-1).toLocaleString(this.Locale).replace(/\d/g, "")
     }
+    /**
+     * @param {number} value
+     */
     static set IdleTimeInMinutesLimit(value) {
         this.#IdleTimeInMinutesLimit = value
+    }
+    static IsEmpty(value) {
+        return value === null || value === undefined || String(value).trim() === ""
     }
 }

@@ -4361,7 +4361,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('Colunas' AS nvarchar(20))
                                 ,CAST('Cadastro de colunas de tabelas' AS nvarchar(50))
                                 ,CAST('browse/cruda/Columns' AS nvarchar(50))
-                                ,CAST('7' AS int)
+                                ,CAST('6' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -4384,7 +4384,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('Tipos' AS nvarchar(20))
                                 ,CAST('Cadastro de tipos' AS nvarchar(50))
                                 ,CAST('browse/cruda/Types' AS nvarchar(50))
-                                ,CAST('7' AS int)
+                                ,CAST('6' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -12690,16 +12690,16 @@ Criar stored procedure [dbo].[CategoryValidate]
 IF(SELECT object_id('[dbo].[CategoryValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[CategoryValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[CategoryValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[CategoryValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [CategoryValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [CategoryValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -12761,7 +12761,7 @@ ALTER PROCEDURE[dbo].[CategoryValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -12845,22 +12845,22 @@ Criar stored procedure [dbo].[CategoryPersist]
 IF(SELECT object_id('[dbo].[CategoryPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[CategoryPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [CategoryPersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [CategoryPersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -12953,8 +12953,8 @@ Criar stored procedure [dbo].[CategoryCommit]
 IF(SELECT object_id('[dbo].[CategoryCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[CategoryCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -12962,14 +12962,14 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [CategoryCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [CategoryCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -13098,27 +13098,27 @@ IF(SELECT object_id('[dbo].[CategoriesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[CategoriesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [CategoriesRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [CategoriesRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -13139,14 +13139,14 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id tinyint = CAST(JSON_QUERY(@Parameters, '$.Id') AS tinyint)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@Parameters, '$.Name') AS nvarchar(25))
-                ,@W_AskEncrypted bit = CAST(JSON_QUERY(@Parameters, '$.AskEncrypted') AS bit)
-                ,@W_AskMask bit = CAST(JSON_QUERY(@Parameters, '$.AskMask') AS bit)
-                ,@W_AskListable bit = CAST(JSON_QUERY(@Parameters, '$.AskListable') AS bit)
-                ,@W_AskDefault bit = CAST(JSON_QUERY(@Parameters, '$.AskDefault') AS bit)
-                ,@W_AskMinimum bit = CAST(JSON_QUERY(@Parameters, '$.AskMinimum') AS bit)
-                ,@W_AskMaximum bit = CAST(JSON_QUERY(@Parameters, '$.AskMaximum') AS bit)
+                ,@W_Id tinyint = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS tinyint)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_AskEncrypted bit = CAST(JSON_QUERY(@RecordFilter, '$.AskEncrypted') AS bit)
+                ,@W_AskMask bit = CAST(JSON_QUERY(@RecordFilter, '$.AskMask') AS bit)
+                ,@W_AskListable bit = CAST(JSON_QUERY(@RecordFilter, '$.AskListable') AS bit)
+                ,@W_AskDefault bit = CAST(JSON_QUERY(@RecordFilter, '$.AskDefault') AS bit)
+                ,@W_AskMinimum bit = CAST(JSON_QUERY(@RecordFilter, '$.AskMinimum') AS bit)
+                ,@W_AskMaximum bit = CAST(JSON_QUERY(@RecordFilter, '$.AskMaximum') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS tinyint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -13157,8 +13157,8 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[Name]
@@ -13238,18 +13238,17 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordCategory'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordCategory'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -13265,16 +13264,16 @@ Criar stored procedure [dbo].[TypeValidate]
 IF(SELECT object_id('[dbo].[TypeValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TypeValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[TypeValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[TypeValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TypeValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [TypeValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -13346,7 +13345,7 @@ ALTER PROCEDURE[dbo].[TypeValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -13447,22 +13446,22 @@ Criar stored procedure [dbo].[TypePersist]
 IF(SELECT object_id('[dbo].[TypePersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TypePersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[TypePersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[TypePersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TypePersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [TypePersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -13555,8 +13554,8 @@ Criar stored procedure [dbo].[TypeCommit]
 IF(SELECT object_id('[dbo].[TypeCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TypeCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[TypeCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -13564,14 +13563,14 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TypeCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [TypeCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -13720,27 +13719,27 @@ IF(SELECT object_id('[dbo].[TypesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TypesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TypesRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [TypesRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -13761,18 +13760,18 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id tinyint = CAST(JSON_QUERY(@Parameters, '$.Id') AS tinyint)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@Parameters, '$.Name') AS nvarchar(25))
-                ,@W_AskLength bit = CAST(JSON_QUERY(@Parameters, '$.AskLength') AS bit)
-                ,@W_AskDecimals bit = CAST(JSON_QUERY(@Parameters, '$.AskDecimals') AS bit)
-                ,@W_AskPrimarykey bit = CAST(JSON_QUERY(@Parameters, '$.AskPrimarykey') AS bit)
-                ,@W_AskAutoincrement bit = CAST(JSON_QUERY(@Parameters, '$.AskAutoincrement') AS bit)
-                ,@W_AskFilterable bit = CAST(JSON_QUERY(@Parameters, '$.AskFilterable') AS bit)
-                ,@W_AskBrowseable bit = CAST(JSON_QUERY(@Parameters, '$.AskBrowseable') AS bit)
-                ,@W_AskCodification bit = CAST(JSON_QUERY(@Parameters, '$.AskCodification') AS bit)
-                ,@W_AskFormula bit = CAST(JSON_QUERY(@Parameters, '$.AskFormula') AS bit)
-                ,@W_AllowMaxLength bit = CAST(JSON_QUERY(@Parameters, '$.AllowMaxLength') AS bit)
-                ,@W_IsActive bit = CAST(JSON_QUERY(@Parameters, '$.IsActive') AS bit)
+                ,@W_Id tinyint = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS tinyint)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_AskLength bit = CAST(JSON_QUERY(@RecordFilter, '$.AskLength') AS bit)
+                ,@W_AskDecimals bit = CAST(JSON_QUERY(@RecordFilter, '$.AskDecimals') AS bit)
+                ,@W_AskPrimarykey bit = CAST(JSON_QUERY(@RecordFilter, '$.AskPrimarykey') AS bit)
+                ,@W_AskAutoincrement bit = CAST(JSON_QUERY(@RecordFilter, '$.AskAutoincrement') AS bit)
+                ,@W_AskFilterable bit = CAST(JSON_QUERY(@RecordFilter, '$.AskFilterable') AS bit)
+                ,@W_AskBrowseable bit = CAST(JSON_QUERY(@RecordFilter, '$.AskBrowseable') AS bit)
+                ,@W_AskCodification bit = CAST(JSON_QUERY(@RecordFilter, '$.AskCodification') AS bit)
+                ,@W_AskFormula bit = CAST(JSON_QUERY(@RecordFilter, '$.AskFormula') AS bit)
+                ,@W_AllowMaxLength bit = CAST(JSON_QUERY(@RecordFilter, '$.AllowMaxLength') AS bit)
+                ,@W_IsActive bit = CAST(JSON_QUERY(@RecordFilter, '$.IsActive') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS tinyint) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -13783,8 +13782,8 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[CategoryId]
@@ -13883,18 +13882,17 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordType'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordType'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -13910,16 +13908,16 @@ Criar stored procedure [dbo].[MaskValidate]
 IF(SELECT object_id('[dbo].[MaskValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MaskValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[MaskValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[MaskValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MaskValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [MaskValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -13967,7 +13965,7 @@ ALTER PROCEDURE[dbo].[MaskValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -14044,22 +14042,22 @@ Criar stored procedure [dbo].[MaskPersist]
 IF(SELECT object_id('[dbo].[MaskPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MaskPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[MaskPersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[MaskPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MaskPersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [MaskPersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -14152,8 +14150,8 @@ Criar stored procedure [dbo].[MaskCommit]
 IF(SELECT object_id('[dbo].[MaskCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MaskCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[MaskCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -14161,14 +14159,14 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MaskCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [MaskCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -14269,27 +14267,27 @@ IF(SELECT object_id('[dbo].[MasksRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MasksRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MasksRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [MasksRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -14310,8 +14308,8 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@Parameters, '$.Name') AS nvarchar(25))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('-2147483648' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''-2147483648''.';
@@ -14322,8 +14320,8 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[Name]
@@ -14376,18 +14374,17 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordMask'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordMask'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -14403,16 +14400,16 @@ Criar stored procedure [dbo].[DomainValidate]
 IF(SELECT object_id('[dbo].[DomainValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DomainValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DomainValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[DomainValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DomainValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DomainValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -14476,7 +14473,7 @@ ALTER PROCEDURE[dbo].[DomainValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -14601,22 +14598,22 @@ Criar stored procedure [dbo].[DomainPersist]
 IF(SELECT object_id('[dbo].[DomainPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DomainPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DomainPersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[DomainPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DomainPersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DomainPersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -14709,8 +14706,8 @@ Criar stored procedure [dbo].[DomainCommit]
 IF(SELECT object_id('[dbo].[DomainCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DomainCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[DomainCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -14718,14 +14715,14 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DomainCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DomainCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -14858,27 +14855,27 @@ IF(SELECT object_id('[dbo].[DomainsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DomainsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DomainsRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DomainsRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -14899,12 +14896,12 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_TypeId tinyint = CAST(JSON_QUERY(@Parameters, '$.TypeId') AS tinyint)
-                ,@W_MaskId int = CAST(JSON_QUERY(@Parameters, '$.MaskId') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@Parameters, '$.Name') AS nvarchar(25))
-                ,@W_ValidValues nvarchar(MAX) = CAST(JSON_QUERY(@Parameters, '$.ValidValues') AS nvarchar(MAX))
-                ,@W_Codification nvarchar(5) = CAST(JSON_QUERY(@Parameters, '$.Codification') AS nvarchar(5))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_TypeId tinyint = CAST(JSON_QUERY(@RecordFilter, '$.TypeId') AS tinyint)
+                ,@W_MaskId int = CAST(JSON_QUERY(@RecordFilter, '$.MaskId') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_ValidValues nvarchar(MAX) = CAST(JSON_QUERY(@RecordFilter, '$.ValidValues') AS nvarchar(MAX))
+                ,@W_Codification nvarchar(5) = CAST(JSON_QUERY(@RecordFilter, '$.Codification') AS nvarchar(5))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -14931,8 +14928,8 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[TypeId]
@@ -15013,18 +15010,17 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordDomain'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordDomain'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -15040,16 +15036,16 @@ Criar stored procedure [dbo].[SystemValidate]
 IF(SELECT object_id('[dbo].[SystemValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[SystemValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -15103,7 +15099,7 @@ ALTER PROCEDURE[dbo].[SystemValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -15203,22 +15199,22 @@ Criar stored procedure [dbo].[SystemPersist]
 IF(SELECT object_id('[dbo].[SystemPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemPersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[SystemPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemPersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemPersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -15311,8 +15307,8 @@ Criar stored procedure [dbo].[SystemCommit]
 IF(SELECT object_id('[dbo].[SystemCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[SystemCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -15320,14 +15316,14 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -15440,27 +15436,27 @@ IF(SELECT object_id('[dbo].[SystemsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemsRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemsRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -15481,9 +15477,9 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@Parameters, '$.Name') AS nvarchar(25))
-                ,@W_ClientName nvarchar(15) = CAST(JSON_QUERY(@Parameters, '$.ClientName') AS nvarchar(15))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_ClientName nvarchar(15) = CAST(JSON_QUERY(@RecordFilter, '$.ClientName') AS nvarchar(15))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -15494,8 +15490,8 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[Name]
@@ -15558,18 +15554,17 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordSystem'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordSystem'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -15585,16 +15580,16 @@ Criar stored procedure [dbo].[MenuValidate]
 IF(SELECT object_id('[dbo].[MenuValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MenuValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[MenuValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[MenuValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MenuValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [MenuValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -15650,7 +15645,7 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -15770,22 +15765,22 @@ Criar stored procedure [dbo].[MenuPersist]
 IF(SELECT object_id('[dbo].[MenuPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MenuPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[MenuPersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[MenuPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MenuPersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [MenuPersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -15878,8 +15873,8 @@ Criar stored procedure [dbo].[MenuCommit]
 IF(SELECT object_id('[dbo].[MenuCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MenuCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[MenuCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -15887,14 +15882,14 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MenuCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [MenuCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -16011,27 +16006,27 @@ IF(SELECT object_id('[dbo].[MenusRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MenusRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [MenusRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [MenusRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -16052,9 +16047,9 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_SystemId int = CAST(JSON_QUERY(@Parameters, '$.SystemId') AS int)
-                ,@W_Caption nvarchar(20) = CAST(JSON_QUERY(@Parameters, '$.Caption') AS nvarchar(20))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_SystemId int = CAST(JSON_QUERY(@RecordFilter, '$.SystemId') AS int)
+                ,@W_Caption nvarchar(20) = CAST(JSON_QUERY(@RecordFilter, '$.Caption') AS nvarchar(20))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -16073,8 +16068,8 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[SystemId]
@@ -16140,18 +16135,17 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordMenu'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordMenu'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -16167,16 +16161,16 @@ Criar stored procedure [dbo].[UserValidate]
 IF(SELECT object_id('[dbo].[UserValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UserValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[UserValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[UserValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [UserValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [UserValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -16230,7 +16224,7 @@ ALTER PROCEDURE[dbo].[UserValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -16322,22 +16316,22 @@ Criar stored procedure [dbo].[UserPersist]
 IF(SELECT object_id('[dbo].[UserPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UserPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[UserPersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[UserPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [UserPersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [UserPersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -16430,8 +16424,8 @@ Criar stored procedure [dbo].[UserCommit]
 IF(SELECT object_id('[dbo].[UserCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UserCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[UserCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -16439,14 +16433,14 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [UserCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [UserCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -16559,27 +16553,27 @@ IF(SELECT object_id('[dbo].[UsersRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UsersRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [UsersRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [UsersRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -16600,10 +16594,10 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@Parameters, '$.Name') AS nvarchar(25))
-                ,@W_FullName nvarchar(50) = CAST(JSON_QUERY(@Parameters, '$.FullName') AS nvarchar(50))
-                ,@W_IsActive bit = CAST(JSON_QUERY(@Parameters, '$.IsActive') AS bit)
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_FullName nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.FullName') AS nvarchar(50))
+                ,@W_IsActive bit = CAST(JSON_QUERY(@RecordFilter, '$.IsActive') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -16614,8 +16608,8 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[Name]
@@ -16679,18 +16673,17 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordUser'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordUser'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -16706,16 +16699,16 @@ Criar stored procedure [dbo].[SystemUserValidate]
 IF(SELECT object_id('[dbo].[SystemUserValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemUserValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemUserValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemUserValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -16765,7 +16758,7 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -16869,22 +16862,22 @@ Criar stored procedure [dbo].[SystemUserPersist]
 IF(SELECT object_id('[dbo].[SystemUserPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemUserPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemUserPersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemUserPersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -16977,8 +16970,8 @@ Criar stored procedure [dbo].[SystemUserCommit]
 IF(SELECT object_id('[dbo].[SystemUserCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemUserCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -16986,14 +16979,14 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemUserCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemUserCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -17098,27 +17091,27 @@ IF(SELECT object_id('[dbo].[SystemsUsersRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsUsersRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemsUsersRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemsUsersRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -17139,10 +17132,10 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_SystemId int = CAST(JSON_QUERY(@Parameters, '$.SystemId') AS int)
-                ,@W_UserId int = CAST(JSON_QUERY(@Parameters, '$.UserId') AS int)
-                ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@Parameters, '$.Description') AS nvarchar(50))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_SystemId int = CAST(JSON_QUERY(@RecordFilter, '$.SystemId') AS int)
+                ,@W_UserId int = CAST(JSON_QUERY(@RecordFilter, '$.UserId') AS int)
+                ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.Description') AS nvarchar(50))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -17169,8 +17162,8 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[SystemId]
@@ -17228,18 +17221,17 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordSystemUser'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordSystemUser'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -17255,16 +17247,16 @@ Criar stored procedure [dbo].[DatabaseValidate]
 IF(SELECT object_id('[dbo].[DatabaseValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabaseValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabaseValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DatabaseValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -17326,7 +17318,7 @@ ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -17433,22 +17425,22 @@ Criar stored procedure [dbo].[DatabasePersist]
 IF(SELECT object_id('[dbo].[DatabasePersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabasePersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabasePersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DatabasePersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -17541,8 +17533,8 @@ Criar stored procedure [dbo].[DatabaseCommit]
 IF(SELECT object_id('[dbo].[DatabaseCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabaseCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -17550,14 +17542,14 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabaseCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DatabaseCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -17686,27 +17678,27 @@ IF(SELECT object_id('[dbo].[DatabasesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabasesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabasesRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DatabasesRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -17727,9 +17719,9 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@Parameters, '$.Name') AS nvarchar(25))
-                ,@W_Alias nvarchar(25) = CAST(JSON_QUERY(@Parameters, '$.Alias') AS nvarchar(25))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_Alias nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Alias') AS nvarchar(25))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -17740,8 +17732,8 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[Name]
@@ -17816,18 +17808,17 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordDatabase'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordDatabase'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -17843,16 +17834,16 @@ Criar stored procedure [dbo].[SystemDatabaseValidate]
 IF(SELECT object_id('[dbo].[SystemDatabaseValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemDatabaseValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemDatabaseValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -17902,7 +17893,7 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -18006,22 +17997,22 @@ Criar stored procedure [dbo].[SystemDatabasePersist]
 IF(SELECT object_id('[dbo].[SystemDatabasePersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemDatabasePersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemDatabasePersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemDatabasePersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -18114,8 +18105,8 @@ Criar stored procedure [dbo].[SystemDatabaseCommit]
 IF(SELECT object_id('[dbo].[SystemDatabaseCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -18123,14 +18114,14 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemDatabaseCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemDatabaseCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -18235,27 +18226,27 @@ IF(SELECT object_id('[dbo].[SystemsDatabasesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [SystemsDatabasesRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemsDatabasesRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -18276,10 +18267,10 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_SystemId int = CAST(JSON_QUERY(@Parameters, '$.SystemId') AS int)
-                ,@W_DatabaseId int = CAST(JSON_QUERY(@Parameters, '$.DatabaseId') AS int)
-                ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@Parameters, '$.Description') AS nvarchar(50))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_SystemId int = CAST(JSON_QUERY(@RecordFilter, '$.SystemId') AS int)
+                ,@W_DatabaseId int = CAST(JSON_QUERY(@RecordFilter, '$.DatabaseId') AS int)
+                ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.Description') AS nvarchar(50))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -18306,8 +18297,8 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[SystemId]
@@ -18365,18 +18356,17 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordSystemDatabase'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordSystemDatabase'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -18392,16 +18382,16 @@ Criar stored procedure [dbo].[TableValidate]
 IF(SELECT object_id('[dbo].[TableValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TableValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[TableValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TableValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [TableValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -18457,7 +18447,7 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -18573,22 +18563,22 @@ Criar stored procedure [dbo].[TablePersist]
 IF(SELECT object_id('[dbo].[TablePersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TablePersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[TablePersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[TablePersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TablePersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [TablePersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -18681,8 +18671,8 @@ Criar stored procedure [dbo].[TableCommit]
 IF(SELECT object_id('[dbo].[TableCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TableCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[TableCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -18690,14 +18680,14 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TableCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [TableCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -18814,27 +18804,27 @@ IF(SELECT object_id('[dbo].[TablesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TablesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TablesRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [TablesRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -18855,10 +18845,10 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@Parameters, '$.Name') AS nvarchar(25))
-                ,@W_Alias nvarchar(25) = CAST(JSON_QUERY(@Parameters, '$.Alias') AS nvarchar(25))
-                ,@W_IsPaged bit = CAST(JSON_QUERY(@Parameters, '$.IsPaged') AS bit)
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_Alias nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Alias') AS nvarchar(25))
+                ,@W_IsPaged bit = CAST(JSON_QUERY(@RecordFilter, '$.IsPaged') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -18869,8 +18859,8 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[Name]
@@ -18937,18 +18927,17 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordTable'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordTable'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -18964,16 +18953,16 @@ Criar stored procedure [dbo].[DatabaseTableValidate]
 IF(SELECT object_id('[dbo].[DatabaseTableValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabaseTableValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabaseTableValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DatabaseTableValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -19023,7 +19012,7 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -19127,22 +19116,22 @@ Criar stored procedure [dbo].[DatabaseTablePersist]
 IF(SELECT object_id('[dbo].[DatabaseTablePersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabaseTablePersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabaseTablePersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DatabaseTablePersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -19235,8 +19224,8 @@ Criar stored procedure [dbo].[DatabaseTableCommit]
 IF(SELECT object_id('[dbo].[DatabaseTableCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabaseTableCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -19244,14 +19233,14 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabaseTableCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DatabaseTableCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -19356,27 +19345,27 @@ IF(SELECT object_id('[dbo].[DatabasesTablesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [DatabasesTablesRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DatabasesTablesRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -19397,10 +19386,10 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_DatabaseId int = CAST(JSON_QUERY(@Parameters, '$.DatabaseId') AS int)
-                ,@W_TableId int = CAST(JSON_QUERY(@Parameters, '$.TableId') AS int)
-                ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@Parameters, '$.Description') AS nvarchar(50))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_DatabaseId int = CAST(JSON_QUERY(@RecordFilter, '$.DatabaseId') AS int)
+                ,@W_TableId int = CAST(JSON_QUERY(@RecordFilter, '$.TableId') AS int)
+                ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.Description') AS nvarchar(50))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -19427,8 +19416,8 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[DatabaseId]
@@ -19486,18 +19475,17 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordDatabaseTable'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordDatabaseTable'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -19513,16 +19501,16 @@ Criar stored procedure [dbo].[ColumnValidate]
 IF(SELECT object_id('[dbo].[ColumnValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ColumnValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [ColumnValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -19606,7 +19594,7 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -19752,22 +19740,22 @@ Criar stored procedure [dbo].[ColumnPersist]
 IF(SELECT object_id('[dbo].[ColumnPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ColumnPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnPersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [ColumnPersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -19860,8 +19848,8 @@ Criar stored procedure [dbo].[ColumnCommit]
 IF(SELECT object_id('[dbo].[ColumnCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ColumnCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -19869,14 +19857,14 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [ColumnCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -20049,27 +20037,27 @@ IF(SELECT object_id('[dbo].[ColumnsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ColumnsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [ColumnsRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [ColumnsRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -20090,18 +20078,18 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_TableId int = CAST(JSON_QUERY(@Parameters, '$.TableId') AS int)
-                ,@W_DomainId int = CAST(JSON_QUERY(@Parameters, '$.DomainId') AS int)
-                ,@W_ReferenceTableId int = CAST(JSON_QUERY(@Parameters, '$.ReferenceTableId') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@Parameters, '$.Name') AS nvarchar(25))
-                ,@W_IsAutoIncrement bit = CAST(JSON_QUERY(@Parameters, '$.IsAutoIncrement') AS bit)
-                ,@W_IsRequired bit = CAST(JSON_QUERY(@Parameters, '$.IsRequired') AS bit)
-                ,@W_IsListable bit = CAST(JSON_QUERY(@Parameters, '$.IsListable') AS bit)
-                ,@W_IsFilterable bit = CAST(JSON_QUERY(@Parameters, '$.IsFilterable') AS bit)
-                ,@W_IsEditable bit = CAST(JSON_QUERY(@Parameters, '$.IsEditable') AS bit)
-                ,@W_IsBrowseable bit = CAST(JSON_QUERY(@Parameters, '$.IsBrowseable') AS bit)
-                ,@W_IsEncrypted bit = CAST(JSON_QUERY(@Parameters, '$.IsEncrypted') AS bit)
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_TableId int = CAST(JSON_QUERY(@RecordFilter, '$.TableId') AS int)
+                ,@W_DomainId int = CAST(JSON_QUERY(@RecordFilter, '$.DomainId') AS int)
+                ,@W_ReferenceTableId int = CAST(JSON_QUERY(@RecordFilter, '$.ReferenceTableId') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_IsAutoIncrement bit = CAST(JSON_QUERY(@RecordFilter, '$.IsAutoIncrement') AS bit)
+                ,@W_IsRequired bit = CAST(JSON_QUERY(@RecordFilter, '$.IsRequired') AS bit)
+                ,@W_IsListable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsListable') AS bit)
+                ,@W_IsFilterable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsFilterable') AS bit)
+                ,@W_IsEditable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsEditable') AS bit)
+                ,@W_IsBrowseable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsBrowseable') AS bit)
+                ,@W_IsEncrypted bit = CAST(JSON_QUERY(@RecordFilter, '$.IsEncrypted') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -20136,8 +20124,8 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[TableId]
@@ -20254,18 +20242,17 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordColumn'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordColumn'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -20281,16 +20268,16 @@ Criar stored procedure [dbo].[IndexValidate]
 IF(SELECT object_id('[dbo].[IndexValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[IndexValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[IndexValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [IndexValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -20342,7 +20329,7 @@ ALTER PROCEDURE[dbo].[IndexValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -20445,22 +20432,22 @@ Criar stored procedure [dbo].[IndexPersist]
 IF(SELECT object_id('[dbo].[IndexPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[IndexPersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[IndexPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexPersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [IndexPersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -20553,8 +20540,8 @@ Criar stored procedure [dbo].[IndexCommit]
 IF(SELECT object_id('[dbo].[IndexCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[IndexCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -20562,14 +20549,14 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [IndexCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -20678,27 +20665,27 @@ IF(SELECT object_id('[dbo].[IndexesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexesRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [IndexesRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -20719,10 +20706,10 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_TableId int = CAST(JSON_QUERY(@Parameters, '$.TableId') AS int)
-                ,@W_Name nvarchar(50) = CAST(JSON_QUERY(@Parameters, '$.Name') AS nvarchar(50))
-                ,@W_IsUnique bit = CAST(JSON_QUERY(@Parameters, '$.IsUnique') AS bit)
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_TableId int = CAST(JSON_QUERY(@RecordFilter, '$.TableId') AS int)
+                ,@W_Name nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(50))
+                ,@W_IsUnique bit = CAST(JSON_QUERY(@RecordFilter, '$.IsUnique') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -20741,8 +20728,8 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[DatabaseId]
@@ -20803,18 +20790,17 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordIndex'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordIndex'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -20830,16 +20816,16 @@ Criar stored procedure [dbo].[IndexkeyValidate]
 IF(SELECT object_id('[dbo].[IndexkeyValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexkeyValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexkeyValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [IndexkeyValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -20891,7 +20877,7 @@ ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -21004,22 +20990,22 @@ Criar stored procedure [dbo].[IndexkeyPersist]
 IF(SELECT object_id('[dbo].[IndexkeyPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexkeyPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexkeyPersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [IndexkeyPersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -21112,8 +21098,8 @@ Criar stored procedure [dbo].[IndexkeyCommit]
 IF(SELECT object_id('[dbo].[IndexkeyCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexkeyCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -21121,14 +21107,14 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexkeyCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [IndexkeyCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -21237,27 +21223,27 @@ IF(SELECT object_id('[dbo].[IndexkeysRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexkeysRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [IndexkeysRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [IndexkeysRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -21278,10 +21264,10 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_IndexId int = CAST(JSON_QUERY(@Parameters, '$.IndexId') AS int)
-                ,@W_ColumnId int = CAST(JSON_QUERY(@Parameters, '$.ColumnId') AS int)
-                ,@W_IsDescending bit = CAST(JSON_QUERY(@Parameters, '$.IsDescending') AS bit)
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_IndexId int = CAST(JSON_QUERY(@RecordFilter, '$.IndexId') AS int)
+                ,@W_ColumnId int = CAST(JSON_QUERY(@RecordFilter, '$.ColumnId') AS int)
+                ,@W_IsDescending bit = CAST(JSON_QUERY(@RecordFilter, '$.IsDescending') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -21308,8 +21294,8 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[IndexId]
@@ -21370,18 +21356,17 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordIndexkey'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordIndexkey'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT
@@ -21397,16 +21382,16 @@ Criar stored procedure [dbo].[LoginValidate]
 IF(SELECT object_id('[dbo].[LoginValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[LoginValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[LoginValidate](@LoginId BIGINT
-                                               ,@UserName VARCHAR(25)
-                                               ,@Action VARCHAR(15)
-                                               ,@LastRecord VARCHAR(max)
-                                               ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[LoginValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [LoginValidate]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [LoginValidate]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
@@ -21458,7 +21443,7 @@ ALTER PROCEDURE[dbo].[LoginValidate](@LoginId BIGINT
 
         DECLARE @TransactionId INT
                 ,@IsConfirmed BIT
-                ,@CreatedBy VARCHAR(25)
+                ,@CreatedBy NVARCHAR(25)
 
         SELECT @TransactionId = [Id]
                ,@IsConfirmed = [IsConfirmed]
@@ -21547,22 +21532,22 @@ Criar stored procedure [dbo].[LoginPersist]
 IF(SELECT object_id('[dbo].[LoginPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[LoginPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[LoginPersist](@LoginId BIGINT
-                                              ,@UserName VARCHAR(25)
-                                              ,@Action VARCHAR(15)
-                                              ,@LastRecord VARCHAR(max)
-                                              ,@ActualRecord VARCHAR(max)) AS BEGIN
+ALTER PROCEDURE[dbo].[LoginPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [LoginPersist]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [LoginPersist]: '
                ,@TransactionId INT
                ,@OperationId INT
-               ,@CreatedBy VARCHAR(25)
-               ,@ActionAux VARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -21655,8 +21640,8 @@ Criar stored procedure [dbo].[LoginCommit]
 IF(SELECT object_id('[dbo].[LoginCommit]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[LoginCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
-                                             ,@UserName VARCHAR(25)
+ALTER PROCEDURE[dbo].[LoginCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
 
@@ -21664,14 +21649,14 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId BIGINT
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [LoginCommit]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [LoginCommit]: '
                ,@TransactionId INT
                ,@TransactionIdAux INT
-               ,@TableName VARCHAR(25)
-               ,@Action VARCHAR(15)
-               ,@CreatedBy VARCHAR(25)
-               ,@LastRecord VARCHAR(max)
-               ,@ActualRecord VARCHAR(max)
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
         BEGIN TRANSACTION
@@ -21780,27 +21765,27 @@ IF(SELECT object_id('[dbo].[LoginsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[LoginsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
-                                          ,@Parameters VARCHAR(MAX)
-                                          ,@OrderBy VARCHAR(MAX)
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingBrowseLastPage BIT
-                                          ,@PageNumber BIGINT OUT
-                                          ,@LimitRows BIGINT OUT
-                                          ,@MaxPage BIGINT OUT) AS BEGIN
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT) AS BEGIN
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [LoginsRead]: '
+        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [LoginsRead]: '
 
         IF @LoginId IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @Parameters IS NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Valor de @Parameters é requerido';
+        IF @RecordFilter IS NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Valor de @RecordFilter é requerido';
             THROW 51000, @ErrorMessage, 1
         END
-        IF ISJSON(@Parameters) = 0 BEGIN
+        IF ISJSON(@RecordFilter) = 0 BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de @ActualRecord não está no formato JSON';
             THROW 51000, @ErrorMessage, 1
         END
@@ -21821,10 +21806,10 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@Parameters, '$.Id') AS int)
-                ,@W_SystemId int = CAST(JSON_QUERY(@Parameters, '$.SystemId') AS int)
-                ,@W_UserId int = CAST(JSON_QUERY(@Parameters, '$.UserId') AS int)
-                ,@W_IsLogged bit = CAST(JSON_QUERY(@Parameters, '$.IsLogged') AS bit)
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_SystemId int = CAST(JSON_QUERY(@RecordFilter, '$.SystemId') AS int)
+                ,@W_UserId int = CAST(JSON_QUERY(@RecordFilter, '$.UserId') AS int)
+                ,@W_IsLogged bit = CAST(JSON_QUERY(@RecordFilter, '$.IsLogged') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id deve ser maior que ou igual à ''1''.';
@@ -21851,8 +21836,8 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @ROWCOUNT BIGINT
-               ,@OffSet BIGINT
+        DECLARE @ROWCOUNT INT
+               ,@OffSet INT
 
         SELECT [Id]
               ,[SystemId]
@@ -21913,18 +21898,17 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
-        DECLARE @sql VARCHAR(MAX)
-                ,@className VARCHAR(50) = 'RecordLogin'
-
+        DECLARE @sql NVARCHAR(MAX)
+                ,@className NVARCHAR(50) = 'RecordLogin'
 
         SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
         SET @sql = 'INSERT INTO [dbo].[#view]
                         SELECT ''' + @className + ''', *
                             FROM [dbo].[#tmp]
                             ORDER BY ' + @OrderBy + '
-                            OFFSET ' + CAST(@offset AS VARCHAR(20)) + ' ROWS
-                            FETCH NEXT ' + CAST(@LimitRows AS VARCHAR(20)) + ' ROWS ONLY'
-        EXEC @sql
+                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC(@sql)
         SELECT * FROM [dbo].[#view]
 
         RETURN @ROWCOUNT

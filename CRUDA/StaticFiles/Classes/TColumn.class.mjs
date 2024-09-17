@@ -2,6 +2,7 @@
 
 import TActions from "./TActions.class.mjs"
 import TSystem from "./TSystem.class.mjs"
+import TConfig from "./TConfig.class.mjs"
 export default class TColumn {
     #Id = 0
     #TableId = 0
@@ -62,7 +63,7 @@ export default class TColumn {
         this.#Domain = TSystem.GetDomain(rowColumn.DomainId)
     }
     IsEmpty(value = this.#Value) {
-        return value === null || value === undefined || String(value).trim() === ""
+        return TConfig.IsEmpty(value)
     }
     #GeTBrowseCheckBox(value) {
         let control = document.createElement("input")

@@ -174,7 +174,7 @@ export default class TSystem {
                 TMenu.Renderize()
                 break
             case TActions.BROWSE:
-                new TBrowse(this.GetDatabase(newValue[1]).GetTable(newValue[2])).Renderize()
+                new TBrowse(newValue[1], newValue[2]).Renderize()
                 break
             case TActions.RELOAD:
                 document.location.reload(true)

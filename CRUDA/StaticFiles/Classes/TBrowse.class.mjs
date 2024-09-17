@@ -2,16 +2,17 @@
 
 import TActions from "./TActions.class.mjs"
 import TForm from "./TForm.class.mjs"
+import TLogin from "./TLogin.class.mjs"
 import TScreen from "./TScreen.class.mjs"
 import TSystem from "./TSystem.class.mjs"
+import TConfig from "./TConfig.class.mjs"
 
 export default class TBrowse {
     #Table = null
-
-    #PageNumber = 1
-    #RowNumber = 0
     #RowCount = 0
+    #PageNumber = 1
     #PageCount = 0
+    #RowNumber = 0
 
     #HTML = {
         Container: null,
@@ -38,13 +39,13 @@ export default class TBrowse {
         Query: "",
         Exit: "",
     }
-    constructor(nameOrAliasOrId, tableName) {
-        let database = TSystem.GetDatabase(nameOrAliasOrId)
+    constructor(databaseName, tableName) {
+        let database = TSystem.GetDatabase(databaseName)
 
-        if (database === null)
+        if (!database)
             throw new Error("Banco-de-dados não encontrado.")
         this.#Table = database.GetTable(tableName)
-        if (this.#Table === null)
+        if (!this.#Table)
             throw new Error("Tabela de banco-de-dados não encontrada.")
         this.#HTML.Container = document.createElement("table")
         this.#HTML.Container.className = "browse box"
@@ -80,8 +81,8 @@ export default class TBrowse {
     #OnChangeInput = (event) => {
         let control = event.target.className === "NumberInput" ? this.#HTML.RangeInput : this.#HTML.NumberInput
 
-        if (Number(event.target.value) > this.#Table.PageCount)
-            event.target.value = this.#Table.PageCount.toString()
+        if (Number(event.target.value) > this.#PageCount)
+            event.target.value = this.#PageCount.toString()
         else if (Number(event.target.value) < 1) {
             event.target.value = "1"
         }
@@ -89,16 +90,51 @@ export default class TBrowse {
         this.Renderize(Number(event.target.value))
     }
 
+    async #ReadDataPage(pageNumber = this.#PageNumber) {
+        let recordFilter = {}
+
+        this.#Table.Columns.filter(column => column.IsFilterable)
+            .forEach(column => recordFilter[column.Name] = TConfig.IsEmpty(column.FilterValue) ? null : column.FilterValue)
+
+        let parameters = {
+            DatabaseName: this.#Table.Database.Name,
+            TableName: this.#Table.Name,
+            Action: TActions.READ,
+            InputParams: {
+                LoginId: TLogin.LoginId,
+                RecordFilter: JSON.stringify(recordFilter),
+                OrderBy: null,
+                PaddingBrowseLastPage: TSystem.PaddingBrowseLastPage,
+            },
+            OutputParams: {},
+            IOParams: {
+                PageNumber: pageNumber,
+                LimitRows: TSystem.RowsPerPage,
+                MaxPage: 0,
+            },
+        }
+
+        let result = await TConfig.GetAPI(TActions.EXECUTE, parameters)
+
+        this.#RowCount = result.Parameters.ReturnValue
+        this.#PageNumber = result.Parameters.PageNumber
+        this.#PageCount = result.Parameters.MaxPage
+        if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
+            this.#RowNumber = result.Parameters.ReturnValue - 1
+
+        return result.Tables[0]
+    }
+
     async Renderize(page) {
         TScreen.Title = `Manutenção de ${this.#Table.Description}`
-        this.#Table.ReadTablePage(page)
-            .then(() => {
-                if (this.#Table.RowCount > 1)
+        this.#ReadDataPage(page)
+            .then((data) => {
+                if (this.#RowCount > 1)
                     TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar."
                 else
                     TScreen.LastMessage = TScreen.Message = "Clique em um dos botões."
                 this.#BuildHtmlHead()
-                this.#BuildHtmlBody()
+                this.#BuildHtmlBody(data)
                 this.#BuildHtmlFoot()
                 TScreen.WithBackgroundImage = true
                 TScreen.Main = this.#HTML.Container
@@ -106,6 +142,7 @@ export default class TBrowse {
             .catch(error => {
                 TScreen.ShowError(error.Message, error.Action || `browse/${this.#Table.Database.Name}/${this.#Table.Name}`)
             })
+        /*
         globalThis.$ = new Proxy(this.#Table, {
             get: (target, key) => {
                 const getColumn = (table, columnName) => {
@@ -126,6 +163,7 @@ export default class TBrowse {
                 return column.Value = value
             }
         })
+        */
     }
 
     #BuildHtmlHead() {
@@ -144,14 +182,15 @@ export default class TBrowse {
         this.#HTML.Head.appendChild(tr)
     }
 
-    #BuildHtmlBody() {
+    #BuildHtmlBody(data) {
         this.#HTML.Body.innerHTML = null
-        this.#Table.Recordset.forEach((row, index) => {
+        
+        data.forEach((row, index) => {
             let tr = document.createElement("tr")
 
             tr.title = JSON.stringify(row).replace(/,/g, ",\n")
             tr.onclick = (event) => {
-                this.#Table.RowNumber = tr.rowIndex - 1
+                this.#RowNumber = tr.rowIndex - 1
                 if (this.#HTML.SelectedRow)
                     this.#HTML.SelectedRow.removeAttribute("style")
                 this.#HTML.SelectedRow = event.currentTarget
@@ -167,7 +206,7 @@ export default class TBrowse {
                     tr.appendChild(td)
             })
             this.#HTML.Body.appendChild(tr)
-            if (this.#Table.RowNumber === index)
+            if (this.#RowNumber === index)
                 tr.click()
         })
     }
@@ -178,7 +217,7 @@ export default class TBrowse {
             label
 
         th.colSpan = this.#Table.Columns.length.toString()
-        if (this.#Table.RowCount > TSystem.RowsPerPage) {
+        if (this.#RowCount > TSystem.RowsPerPage) {
             label = document.createElement("label")
             label.style.float = "left"
             label.innerHTML = "Página:&nbsp;&nbsp;"
@@ -190,10 +229,10 @@ export default class TBrowse {
             this.#HTML.NumberInput.style.float = "left"
             this.#HTML.NumberInput.className = "numberInput"
             this.#HTML.NumberInput.type = "number"
-            this.#HTML.NumberInput.value = this.#Table.PageNumber.toString()
+            this.#HTML.NumberInput.value = this.#PageNumber.toString()
             this.#HTML.NumberInput.title = "Ir para página..."
             this.#HTML.NumberInput.min = "1"
-            this.#HTML.NumberInput.max = this.#Table.PageCount.toString()
+            this.#HTML.NumberInput.max = this.#PageCount.toString()
             this.#HTML.NumberInput.onchange = this.#OnChangeInput
 
             th.appendChild(this.#HTML.NumberInput)
@@ -210,10 +249,10 @@ export default class TBrowse {
             this.#HTML.RangeInput.className = "rangeInput"
             this.#HTML.RangeInput.type = "range"
             this.#HTML.RangeInput.tabindex = "-1"
-            this.#HTML.RangeInput.value = this.#Table.PageNumber.toString()
+            this.#HTML.RangeInput.value = this.#PageNumber.toString()
             this.#HTML.RangeInput.title = "Ir para página..."
             this.#HTML.RangeInput.min = "1"
-            this.#HTML.RangeInput.max = this.#Table.PageCount.toString()
+            this.#HTML.RangeInput.max = this.#PageCount.toString()
             this.#HTML.RangeInput.onchange = this.#OnChangeInput
 
             th.appendChild(this.#HTML.RangeInput)
@@ -239,7 +278,7 @@ export default class TBrowse {
         this.#HTML.UpdateButton.type = "button"
         this.#HTML.UpdateButton.style.backgroundImage = TBrowse.#Images.Edit
         this.#HTML.UpdateButton.title = "Alterar registro"
-        this.#HTML.UpdateButton.hidden = this.#Table.RowCount === 0
+        this.#HTML.UpdateButton.hidden = this.#RowCount === 0
         this.#HTML.UpdateButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.UpdateButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.UpdateButton.onclick = () =>
@@ -254,7 +293,7 @@ export default class TBrowse {
         this.#HTML.DeleteButton.type = "button"
         this.#HTML.DeleteButton.style.backgroundImage = TBrowse.#Images.Delete
         this.#HTML.DeleteButton.title = "Excluir registro"
-        this.#HTML.DeleteButton.hidden = this.#Table.RowCount === 0
+        this.#HTML.DeleteButton.hidden = this.#RowCount === 0
         this.#HTML.DeleteButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.DeleteButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.DeleteButton.onclick = () =>
@@ -269,7 +308,7 @@ export default class TBrowse {
         this.#HTML.QueryButton.type = "button"
         this.#HTML.QueryButton.style.backgroundImage = TBrowse.#Images.Query
         this.#HTML.QueryButton.title = "Consultar registro"
-        this.#HTML.QueryButton.hidden = this.#Table.RowCount === 0
+        this.#HTML.QueryButton.hidden = this.#RowCount === 0
         this.#HTML.QueryButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.QueryButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.QueryButton.onclick = () =>
@@ -306,7 +345,7 @@ export default class TBrowse {
 
         label = document.createElement("label")
         label.style.float = "right"
-        label.innerHTML = `Total de Registros: ${this.#Table.RowCount}`
+        label.innerHTML = `Total de Registros: ${this.#RowCount}`
         th.appendChild(label)
         tr.appendChild(th)
 
