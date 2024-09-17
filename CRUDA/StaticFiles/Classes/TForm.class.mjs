@@ -29,7 +29,7 @@ export default class TForm {
             throw new Error("Argumento browse não é do tipo TBrowse.")
         this.#Browse = browse
         this.#Action = action
-        this.#ReturnAction = `browsebro/${this.#Browse.Table.Database.Name}/${this.#Browse.Table.Name}`
+        this.#ReturnAction = `browse/${this.#Browse.Table.Database.Name}/${this.#Browse.Table.Name}`
         this.#HTML.Container = document.createDocumentFragment()
         this.#BuildForm()
         this.#BuildButtonsBar()

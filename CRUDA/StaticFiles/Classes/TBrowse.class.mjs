@@ -9,6 +9,7 @@ import TConfig from "./TConfig.class.mjs"
 
 export default class TBrowse {
     #Table = null
+    #FilterValues = {}
     #RowCount = 0
     #PageNumber = 1
     #PageCount = 0
@@ -62,6 +63,9 @@ export default class TBrowse {
 
         this.#HTML.Foot = document.createElement("tfoot")
         this.#HTML.Container.appendChild(this.#HTML.Foot)
+
+        this.#Table.Columns.filter(column => column.IsFilterable)
+            .forEach(column => this.#FilterValues[column.Name] = null)
     }
 
     static Initialize(styles, images) {
@@ -354,5 +358,8 @@ export default class TBrowse {
     }
     get Table() {
         return this.#Table
+    }
+    get FilterValues() {
+        return this.#FilterValues
     }
 }
