@@ -4,8 +4,6 @@ import TActions from "./TActions.class.mjs"
 import TScreen from "./TScreen.class.mjs"
 
 export default class TForm {
-    #Browse = null
-
     #Action = ""
     #ReturnAction = ""
     static #Style = ""
@@ -14,7 +12,6 @@ export default class TForm {
         Cancel: "",
         Exit: "",
     }
-
     #HTML = {
         FirstInput: null,
         Container: null,
@@ -23,6 +20,7 @@ export default class TForm {
         ConfirmButton: null,
         CancelButton: null,
     }
+    #Browse = null
 
     constructor(browse, action) {
         if (browse.ClassName !== "TBrowse")
@@ -58,7 +56,6 @@ export default class TForm {
 
         return this
     }
-
     Renderize() {
         let title = ""
         let message = ""
@@ -92,7 +89,6 @@ export default class TForm {
         if (this.#HTML.FirstInput)
             this.#HTML.FirstInput.focus()
     }
-
     #BuildForm() {
         this.#HTML.Form = document.createElement("form")
         this.#HTML.Form.method = "post"
@@ -104,7 +100,6 @@ export default class TForm {
         this.#HTML.Form.appendChild(style)
         this.#HTML.Container.appendChild(this.#HTML.Form)
     }
-
     #BuildButtonsBar() {
         this.#HTML.ButtonsBar = document.createElement("div")
         this.#HTML.ButtonsBar.className = "buttonsBar"

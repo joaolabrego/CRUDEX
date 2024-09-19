@@ -1262,7 +1262,7 @@ Criar tabela [dbo].[Categories]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Categories]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Categories]
-CREATE TABLE [dbo].[Categories]([Id] tinyint NOT NULL DEFAULT CAST('5' AS tinyint) CHECK ([Id] >= CAST('1' AS tinyint) AND [Id] <= CAST('255' AS tinyint))
+CREATE TABLE [dbo].[Categories]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tinyint) AND [Id] <= CAST('255' AS tinyint))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[HtmlInputType] nvarchar(10) NULL
                                     ,[HtmlInputAlign] nvarchar(6) NULL
@@ -5300,7 +5300,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('Categoria' AS nvarchar(25))
                                 ,CAST('Categoria' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('5' AS nvarchar(MAX))
+                                ,NULL
                                 ,CAST('1' AS nvarchar(MAX))
                                 ,NULL
                                 ,CAST('1' AS bit)

@@ -87,7 +87,7 @@ export default class TScreen {
         let now = new Date(),
             localdate = now.toLocaleDateString(TConfig.Locale).toUpperCase(),
             localtime = now.toLocaleTimeString(TConfig.Locale).toUpperCase()
-        
+
         if (this.#HTML.Date.innerText.toUpperCase() !== localdate)
             this.#HTML.Date.innerText = localdate
 
@@ -112,14 +112,17 @@ export default class TScreen {
     static ShowError(message, okAction, timeout = null) {
         TDialog.Show("error", message, okAction, null, timeout)
     }
-    static set Main(value) {
+    static set Main(container) {
         this.#HTML.Main.innerHTML = null
         this.#HTML.Main.appendChild(TDialog.Container)
-        this.#HTML.Main.appendChild(value)
+        this.#HTML.Main.appendChild(container)
     }
     static get Main() {
         return this.#HTML.Main
     }
+    /**
+     * @param {string} value
+     */
     static set LastMessage(value) {
         this.#LastMessage = value
     }
@@ -148,6 +151,9 @@ export default class TScreen {
         this.#HTML.Message.className += " errorMessage"
         this.#BlinkMessage = true
     }
+    /**
+     * @param {string} value
+     */
     static set UserName(value) {
         this.#HTML.UserName.innerText = value
     }

@@ -14,6 +14,8 @@ export default class TBrowse {
     #PageNumber = 1
     #PageCount = 0
     #RowNumber = 0
+    #Primarykeys = null
+    #Data = null
 
     #HTML = {
         Container: null,
@@ -67,7 +69,6 @@ export default class TBrowse {
         this.#Table.Columns.filter(column => column.IsFilterable)
             .forEach(column => this.#FilterValues[column.Name] = null)
     }
-
     static Initialize(styles, images) {
         if (styles.ClassName !== "Styles")
             throw new Error("Argumento styles não é do tipo Styles.")
@@ -81,7 +82,6 @@ export default class TBrowse {
         this.#Images.Filter = images.Filter
         this.#Images.Insert = images.Insert
     }
-
     #OnChangeInput = (event) => {
         let control = event.target.className === "NumberInput" ? this.#HTML.RangeInput : this.#HTML.NumberInput
 
@@ -93,7 +93,6 @@ export default class TBrowse {
         control.value = event.target.value
         this.Renderize(Number(event.target.value))
     }
-
     async #ReadDataPage(pageNumber = this.#PageNumber) {
         let recordFilter = {}
 
@@ -124,11 +123,10 @@ export default class TBrowse {
         this.#PageNumber = result.Parameters.PageNumber
         this.#PageCount = result.Parameters.MaxPage
         if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
-            this.#RowNumber = result.Parameters.ReturnValue - 1
+            this.#SetRowNumber(result.Parameters.ReturnValue - 1)
 
         return result.Tables[0]
     }
-
     async Renderize(page) {
         TScreen.Title = `Manutenção de ${this.#Table.Description}`
         this.#ReadDataPage(page)
@@ -142,6 +140,7 @@ export default class TBrowse {
                 this.#BuildHtmlFoot()
                 TScreen.WithBackgroundImage = true
                 TScreen.Main = this.#HTML.Container
+                this.#Data = data
             })
             .catch(error => {
                 TScreen.ShowError(error.Message, error.Action || `browse/${this.#Table.Database.Name}/${this.#Table.Name}`)
@@ -169,7 +168,32 @@ export default class TBrowse {
         })
         */
     }
+    #GetControl(column, value) {
+        let control,
+            htmlInputType = column.Domain.Type.Category.HtmlInputType,
+            isEmptyValue = TConfig.IsEmpty(value)
 
+        if (htmlInputType === "checkbox") {
+            control = document.createElement("input")
+            control.type = htmlInputType
+            control.indeterminate = isEmptyValue
+            control.checked = value
+            control.title = isEmptyValue ? "nulo" : value ? "sim" : "não"
+            control.readOnly = true
+            control.onclick = () => false
+        }
+        else {
+            control = document.createTextNode(value ?? "")
+        }
+
+        return control
+    }
+    #SetRowNumber(rowNumber) {
+        this.#RowNumber = rowNumber
+        this.#Primarykeys = {}
+        this.#Table.Columns.filter(column => column.IsPrimarykey)
+            .forEach(column => this.#Primarykeys[column.Name] = this.#Data[rowNumber][column.Name])
+    }
     #BuildHtmlHead() {
         let tr = document.createElement("tr")
 
@@ -188,13 +212,12 @@ export default class TBrowse {
 
     #BuildHtmlBody(data) {
         this.#HTML.Body.innerHTML = null
-        
         data.forEach((row, index) => {
             let tr = document.createElement("tr")
 
             tr.title = JSON.stringify(row).replace(/,/g, ",\n")
             tr.onclick = (event) => {
-                this.#RowNumber = tr.rowIndex - 1
+                this.#SetRowNumber(tr.rowIndex - 1)
                 if (this.#HTML.SelectedRow)
                     this.#HTML.SelectedRow.removeAttribute("style")
                 this.#HTML.SelectedRow = event.currentTarget
@@ -205,8 +228,8 @@ export default class TBrowse {
                 .forEach(column => {
                     const td = document.createElement("td")
 
-                    td.appendChild(column.GeTBrowseControl(row[column.Name]))
-                    td.style = `text-align: ${column.Domain.Type.InputAlign}`
+                    td.appendChild(this.#GetControl(column, row[column.Name]))
+                    td.style = `text-align: ${column.Domain.Type.Category.HtmlInputAlign}`
                     tr.appendChild(td)
             })
             this.#HTML.Body.appendChild(tr)
@@ -361,5 +384,11 @@ export default class TBrowse {
     }
     get FilterValues() {
         return this.#FilterValues
+    }
+    /**
+     * @param {number} rowNumber
+     */
+    get Primarykeys() {
+        return this.#Primarykeys
     }
 }
