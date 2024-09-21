@@ -15,7 +15,7 @@ namespace CRUDA.Classes.Models
         public bool AskPrimarykey { get; init; }
         public bool AskAutoincrement { get; init; }
         public bool AskFilterable { get; init; }
-        public bool AskBrowseable { get; init; }
+        public bool AskGridable { get; init; }
         public bool AskCodification { get; init; }
         public bool AskFormula { get; init; }
         public bool AllowMaxLength { get; init; }

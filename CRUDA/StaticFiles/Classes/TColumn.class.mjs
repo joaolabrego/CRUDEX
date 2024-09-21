@@ -22,7 +22,7 @@ export default class TColumn {
     #IsListable = false
     #IsFilterable = false
     #IsEditable = false
-    #IsBrowseable = false
+    #IsGridable = false
     #IsEncrypted = false
     #IsCalculated = false
 
@@ -55,14 +55,14 @@ export default class TColumn {
         this.#IsListable = rowColumn.IsListable
         this.#IsFilterable = rowColumn.IsFilterable
         this.#IsEditable = rowColumn.IsEditable
-        this.#IsBrowseable = rowColumn.IsBrowseable
+        this.#IsGridable = rowColumn.IsGridable
         this.#IsEncrypted = rowColumn.IsEncrypted
         this.#IsCalculated = rowColumn.IsCalculated
 
         this.#Table = table
         this.#Domain = TSystem.GetDomain(rowColumn.DomainId)
     }
-    #GeTBrowseCheckBox(value) {
+    #GeTGridCheckBox(value) {
         let control = document.createElement("input")
 
         control.type = this.#Domain.Type.Category.HtmlInputType
@@ -74,18 +74,18 @@ export default class TColumn {
 
         return control
     }
-    #GeTBrowseLabel(value) {
+    #GeTGridLabel(value) {
         let control = document.createElement("p")
 
         control.innerText = value
 
         return control
     }
-    GeTBrowseControl(value) {
+    GeTGridControl(value) {
         if (this.#Domain.Type.Category.HtmlInputType === "checkbox")
-            return this.#GeTBrowseCheckBox(value)
+            return this.#GeTGridCheckBox(value)
 
-        return this.#GeTBrowseLabel(value)
+        return this.#GeTGridLabel(value)
     }
     /*
     #GetFormSelect(referenceRecordset) {
@@ -236,8 +236,8 @@ export default class TColumn {
     get IsEditable() {
         return this.#IsEditable
     }
-    get IsBrowseable(){
-        return this.#IsBrowseable
+    get IsGridable(){
+        return this.#IsGridable
     }    
     get IsListable() {
         return this.#IsListable

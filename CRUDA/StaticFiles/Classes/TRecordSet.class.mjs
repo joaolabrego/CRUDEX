@@ -22,7 +22,7 @@ export default class TRecordSet {
     async ReadPage(pageNumber = this.#PageNumber) {
         let parameters = {
             InputParams: {
-                PaddingBrowseLastPage: TSystem.PaddingBrowseLastPage,
+                PaddingGridLastPage: TSystem.PaddingGridLastPage,
             },
             OutputParams: {},
             IOParams: {
@@ -54,7 +54,7 @@ export default class TRecordSet {
                 PageNumber: 0,
                 LimitRows: 0,
                 MaxPage: 0,
-                PaddingBrowseLastPage: false,
+                PaddingGridLastPage: false,
             },
         }
         let response = await TConfig.GetAPI(`${this.#Table.Database.Name}/${this.#Table.Name}/read`, parameters)

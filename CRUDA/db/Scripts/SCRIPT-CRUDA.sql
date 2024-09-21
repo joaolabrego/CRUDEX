@@ -213,7 +213,7 @@ BEGIN
 					,[C].[IsListable]
 					,[C].[IsFilterable]
 					,[C].[IsEditable]
-					,[C].[IsBrowseable]			
+					,[C].[IsGridable]			
 					,[C].[IsEncrypted]
 				INTO [dbo].[#Columns]
 				FROM [dbo].[Columns] [C]
@@ -260,7 +260,7 @@ BEGIN
 					,[T].[AskPrimarykey]
 					,[T].[AskAutoincrement]
 					,[T].[AskFilterable]
-					,[T].[AskBrowseable]
+					,[T].[AskGridable]
 					,[T].[AskCodification]
 					,[T].[AskFormula]
 					,[T].[AllowMaxLength]
@@ -1294,7 +1294,7 @@ CREATE TABLE [dbo].[Types]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tiny
                                     ,[AskPrimarykey] bit NOT NULL
                                     ,[AskAutoincrement] bit NOT NULL
                                     ,[AskFilterable] bit NOT NULL
-                                    ,[AskBrowseable] bit NOT NULL
+                                    ,[AskGridable] bit NOT NULL
                                     ,[AskCodification] bit NOT NULL
                                     ,[AskFormula] bit NOT NULL
                                     ,[AllowMaxLength] bit NOT NULL
@@ -1518,7 +1518,7 @@ CREATE TABLE [dbo].[Columns]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) A
                                     ,[IsListable] bit NULL
                                     ,[IsFilterable] bit NULL
                                     ,[IsEditable] bit NULL
-                                    ,[IsBrowseable] bit NULL
+                                    ,[IsGridable] bit NULL
                                     ,[IsEncrypted] bit NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
@@ -2116,7 +2116,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2155,7 +2155,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2194,7 +2194,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2233,7 +2233,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2272,7 +2272,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2311,7 +2311,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2350,7 +2350,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2389,7 +2389,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2428,7 +2428,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2467,7 +2467,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2506,7 +2506,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2545,7 +2545,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2584,7 +2584,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2623,7 +2623,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2662,7 +2662,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2701,7 +2701,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2740,7 +2740,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2779,7 +2779,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2818,7 +2818,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2857,7 +2857,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2896,7 +2896,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2935,7 +2935,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -2974,7 +2974,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -3013,7 +3013,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -3052,7 +3052,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -3091,7 +3091,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -3130,7 +3130,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -3169,7 +3169,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -3208,7 +3208,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -3247,7 +3247,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -3286,7 +3286,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -3325,7 +3325,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -3364,7 +3364,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -3403,7 +3403,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,[AskPrimarykey]
                                 ,[AskAutoincrement]
                                 ,[AskFilterable]
-                                ,[AskBrowseable]
+                                ,[AskGridable]
                                 ,[AskCodification]
                                 ,[AskFormula]
                                 ,[AllowMaxLength]
@@ -4245,7 +4245,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('10' AS smallint)
                                 ,CAST('Usuários' AS nvarchar(20))
                                 ,CAST('Cadastro de Usuários' AS nvarchar(50))
-                                ,CAST('browse/cruda/Users' AS nvarchar(50))
+                                ,CAST('grid/cruda/Users' AS nvarchar(50))
                                 ,CAST('1' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -4268,7 +4268,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('15' AS smallint)
                                 ,CAST('Tabelas' AS nvarchar(20))
                                 ,CAST('Cadastro de tabelas' AS nvarchar(50))
-                                ,CAST('browse/cruda/Tables' AS nvarchar(50))
+                                ,CAST('grid/cruda/Tables' AS nvarchar(50))
                                 ,CAST('1' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -4291,7 +4291,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('20' AS smallint)
                                 ,CAST('Menus' AS nvarchar(20))
                                 ,CAST('Cadastro de menus' AS nvarchar(50))
-                                ,CAST('browse/cruda/Menus' AS nvarchar(50))
+                                ,CAST('grid/cruda/Menus' AS nvarchar(50))
                                 ,CAST('1' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -4314,7 +4314,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('25' AS smallint)
                                 ,CAST('Sistemas' AS nvarchar(20))
                                 ,CAST('Cadastro de sistemas' AS nvarchar(50))
-                                ,CAST('browse/cruda/Systems' AS nvarchar(50))
+                                ,CAST('grid/cruda/Systems' AS nvarchar(50))
                                 ,CAST('3' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -4337,7 +4337,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('30' AS smallint)
                                 ,CAST('Banco de Dados' AS nvarchar(20))
                                 ,CAST('Cadastro de bancos de dados' AS nvarchar(50))
-                                ,CAST('browse/cruda/Databases' AS nvarchar(50))
+                                ,CAST('grid/cruda/Databases' AS nvarchar(50))
                                 ,CAST('3' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -4360,7 +4360,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('35' AS smallint)
                                 ,CAST('Colunas' AS nvarchar(20))
                                 ,CAST('Cadastro de colunas de tabelas' AS nvarchar(50))
-                                ,CAST('browse/cruda/Columns' AS nvarchar(50))
+                                ,CAST('grid/cruda/Columns' AS nvarchar(50))
                                 ,CAST('6' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -4383,7 +4383,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('40' AS smallint)
                                 ,CAST('Tipos' AS nvarchar(20))
                                 ,CAST('Cadastro de tipos' AS nvarchar(50))
-                                ,CAST('browse/cruda/Types' AS nvarchar(50))
+                                ,CAST('grid/cruda/Types' AS nvarchar(50))
                                 ,CAST('6' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -4429,7 +4429,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('50' AS smallint)
                                 ,CAST('Sistemas x BD' AS nvarchar(20))
                                 ,CAST('Associação entre sistemas e bancos de dados' AS nvarchar(50))
-                                ,CAST('browse/cruda/SystemsDatabases' AS nvarchar(50))
+                                ,CAST('grid/cruda/SystemsDatabases' AS nvarchar(50))
                                 ,CAST('9' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -4452,7 +4452,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('55' AS smallint)
                                 ,CAST('Usuários x Sistemas' AS nvarchar(20))
                                 ,CAST('Associação entre usuários e sistemas' AS nvarchar(50))
-                                ,CAST('browse/cruda/SystemsUsers' AS nvarchar(50))
+                                ,CAST('grid/cruda/SystemsUsers' AS nvarchar(50))
                                 ,CAST('9' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5284,7 +5284,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5335,7 +5335,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5386,7 +5386,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5437,7 +5437,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5488,7 +5488,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5539,7 +5539,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5590,7 +5590,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5641,7 +5641,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5692,7 +5692,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5743,7 +5743,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5794,7 +5794,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5845,7 +5845,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5896,7 +5896,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5947,7 +5947,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5998,7 +5998,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6049,7 +6049,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6100,7 +6100,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6151,7 +6151,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6202,7 +6202,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6253,7 +6253,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6304,7 +6304,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6315,10 +6315,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('55' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
-                                ,CAST('AskBrowseable' AS nvarchar(25))
-                                ,CAST('Tipo pede navegável?' AS nvarchar(50))
-                                ,CAST('Pede navegável?' AS nvarchar(25))
-                                ,CAST('Pede navegável?' AS nvarchar(25))
+                                ,CAST('AskGridable' AS nvarchar(25))
+                                ,CAST('Tipo pede exibível em grade?' AS nvarchar(50))
+                                ,CAST('Pede exibível em grade?' AS nvarchar(25))
+                                ,CAST('Pede exibível em grade?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6355,7 +6355,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6406,7 +6406,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6457,7 +6457,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6508,7 +6508,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6559,7 +6559,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6610,7 +6610,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6661,7 +6661,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6712,7 +6712,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6763,7 +6763,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6814,7 +6814,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6865,7 +6865,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6916,7 +6916,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6967,7 +6967,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7018,7 +7018,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7069,7 +7069,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7120,7 +7120,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7171,7 +7171,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7222,7 +7222,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7273,7 +7273,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7324,7 +7324,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7375,7 +7375,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7426,7 +7426,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7477,7 +7477,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7528,7 +7528,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7579,7 +7579,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7630,7 +7630,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7681,7 +7681,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7732,7 +7732,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7783,7 +7783,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7834,7 +7834,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7885,7 +7885,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7936,7 +7936,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -7987,7 +7987,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8038,7 +8038,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8089,7 +8089,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8140,7 +8140,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8191,7 +8191,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8242,7 +8242,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8293,7 +8293,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8344,7 +8344,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8395,7 +8395,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8446,7 +8446,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8497,7 +8497,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8548,7 +8548,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8599,7 +8599,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8650,7 +8650,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8701,7 +8701,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8752,7 +8752,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8803,7 +8803,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8854,7 +8854,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8905,7 +8905,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -8956,7 +8956,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9007,7 +9007,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9058,7 +9058,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9109,7 +9109,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9160,7 +9160,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9211,7 +9211,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9262,7 +9262,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9313,7 +9313,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9364,7 +9364,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9415,7 +9415,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9466,7 +9466,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9517,7 +9517,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9568,7 +9568,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9619,7 +9619,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9670,7 +9670,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9721,7 +9721,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9772,7 +9772,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9823,7 +9823,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9874,7 +9874,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9925,7 +9925,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -9976,7 +9976,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10027,7 +10027,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10078,7 +10078,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10129,7 +10129,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10180,7 +10180,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10231,7 +10231,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10282,7 +10282,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10333,7 +10333,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10384,7 +10384,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10397,8 +10397,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('IsPrimarykey' AS nvarchar(25))
                                 ,CAST('Coluna é chave-primária?' AS nvarchar(50))
-                                ,CAST('É chave-primária?' AS nvarchar(25))
-                                ,CAST('É chave-primária?' AS nvarchar(25))
+                                ,CAST('Chave-primária?' AS nvarchar(25))
+                                ,CAST('Chave-primária?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -10435,7 +10435,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10448,8 +10448,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('IsAutoIncrement' AS nvarchar(25))
                                 ,CAST('Coluna é autoincremento?' AS nvarchar(50))
-                                ,CAST('É autoincremento?' AS nvarchar(25))
-                                ,CAST('É autoincremento?' AS nvarchar(25))
+                                ,CAST('Autoincremento?' AS nvarchar(25))
+                                ,CAST('Autoincremento?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -10486,7 +10486,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10499,8 +10499,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('IsRequired' AS nvarchar(25))
                                 ,CAST('Coluna é requerida?' AS nvarchar(50))
-                                ,CAST('É requerida?' AS nvarchar(25))
-                                ,CAST('É requerida?' AS nvarchar(25))
+                                ,CAST('Requerida?' AS nvarchar(25))
+                                ,CAST('Requerida?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -10537,7 +10537,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10550,8 +10550,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('IsListable' AS nvarchar(25))
                                 ,CAST('Coluna é listável?' AS nvarchar(50))
-                                ,CAST('É listável?' AS nvarchar(25))
-                                ,CAST('É listável?' AS nvarchar(25))
+                                ,CAST('Listável?' AS nvarchar(25))
+                                ,CAST('Listável?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -10588,7 +10588,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10601,8 +10601,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('IsFilterable' AS nvarchar(25))
                                 ,CAST('Coluna é filtrável?' AS nvarchar(50))
-                                ,CAST('É filtrável?' AS nvarchar(25))
-                                ,CAST('É filtrável?' AS nvarchar(25))
+                                ,CAST('Filtrável?' AS nvarchar(25))
+                                ,CAST('Filtrável?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -10639,7 +10639,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10652,8 +10652,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('IsEditable' AS nvarchar(25))
                                 ,CAST('Coluna é editável?' AS nvarchar(50))
-                                ,CAST('É editável?' AS nvarchar(25))
-                                ,CAST('É editável?' AS nvarchar(25))
+                                ,CAST('Editável?' AS nvarchar(25))
+                                ,CAST('Editável?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -10690,7 +10690,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10701,10 +10701,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('100' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
-                                ,CAST('IsBrowseable' AS nvarchar(25))
-                                ,CAST('Coluna é navegável?' AS nvarchar(50))
-                                ,CAST('É navegável?' AS nvarchar(25))
-                                ,CAST('É navegável?' AS nvarchar(25))
+                                ,CAST('IsGridable' AS nvarchar(25))
+                                ,CAST('Coluna é exibível em grade?' AS nvarchar(50))
+                                ,CAST('Exibível em grade?' AS nvarchar(25))
+                                ,CAST('Exibível em grade?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -10741,7 +10741,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10754,8 +10754,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('IsEncrypted' AS nvarchar(25))
                                 ,CAST('Coluna é encriptada?' AS nvarchar(50))
-                                ,CAST('É encriptada?' AS nvarchar(25))
-                                ,CAST('É encriptada?' AS nvarchar(25))
+                                ,CAST('Encriptada?' AS nvarchar(25))
+                                ,CAST('Encriptada?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -10792,7 +10792,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10843,7 +10843,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10894,7 +10894,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10945,7 +10945,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -10996,7 +10996,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -11047,7 +11047,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -11098,7 +11098,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -11149,7 +11149,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -11200,7 +11200,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -11251,7 +11251,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -11302,7 +11302,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -11353,7 +11353,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -11404,7 +11404,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -11455,7 +11455,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -11506,7 +11506,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsListable]
                                 ,[IsFilterable]
                                 ,[IsEditable]
-                                ,[IsBrowseable]
+                                ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -13100,7 +13100,7 @@ GO
 ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -13234,7 +13234,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -13315,7 +13315,7 @@ ALTER PROCEDURE[dbo].[TypeValidate](@LoginId INT
                 AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskPrimarykey'), JSON_QUERY(@LastRecord, '$.AskPrimarykey'), 'bit') = 1
                 AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskAutoincrement'), JSON_QUERY(@LastRecord, '$.AskAutoincrement'), 'bit') = 1
                 AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskFilterable'), JSON_QUERY(@LastRecord, '$.AskFilterable'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskBrowseable'), JSON_QUERY(@LastRecord, '$.AskBrowseable'), 'bit') = 1
+                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskGridable'), JSON_QUERY(@LastRecord, '$.AskGridable'), 'bit') = 1
                 AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskCodification'), JSON_QUERY(@LastRecord, '$.AskCodification'), 'bit') = 1
                 AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskFormula'), JSON_QUERY(@LastRecord, '$.AskFormula'), 'bit') = 1
                 AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AllowMaxLength'), JSON_QUERY(@LastRecord, '$.AllowMaxLength'), 'bit') = 1
@@ -13333,7 +13333,7 @@ ALTER PROCEDURE[dbo].[TypeValidate](@LoginId INT
                                   AND [AskPrimarykey] = JSON_QUERY(@LastRecord, '$.AskPrimarykey')
                                   AND [AskAutoincrement] = JSON_QUERY(@LastRecord, '$.AskAutoincrement')
                                   AND [AskFilterable] = JSON_QUERY(@LastRecord, '$.AskFilterable')
-                                  AND [AskBrowseable] = JSON_QUERY(@LastRecord, '$.AskBrowseable')
+                                  AND [AskGridable] = JSON_QUERY(@LastRecord, '$.AskGridable')
                                   AND [AskCodification] = JSON_QUERY(@LastRecord, '$.AskCodification')
                                   AND [AskFormula] = JSON_QUERY(@LastRecord, '$.AskFormula')
                                   AND [AllowMaxLength] = JSON_QUERY(@LastRecord, '$.AllowMaxLength')
@@ -13404,7 +13404,7 @@ ALTER PROCEDURE[dbo].[TypeValidate](@LoginId INT
                    ,@W_AskPrimarykey bit = CAST(JSON_QUERY(@ActualRecord, '$.AskPrimarykey') AS bit)
                    ,@W_AskAutoincrement bit = CAST(JSON_QUERY(@ActualRecord, '$.AskAutoincrement') AS bit)
                    ,@W_AskFilterable bit = CAST(JSON_QUERY(@ActualRecord, '$.AskFilterable') AS bit)
-                   ,@W_AskBrowseable bit = CAST(JSON_QUERY(@ActualRecord, '$.AskBrowseable') AS bit)
+                   ,@W_AskGridable bit = CAST(JSON_QUERY(@ActualRecord, '$.AskGridable') AS bit)
                    ,@W_AskCodification bit = CAST(JSON_QUERY(@ActualRecord, '$.AskCodification') AS bit)
                    ,@W_AskFormula bit = CAST(JSON_QUERY(@ActualRecord, '$.AskFormula') AS bit)
                    ,@W_AllowMaxLength bit = CAST(JSON_QUERY(@ActualRecord, '$.AllowMaxLength') AS bit)
@@ -13630,7 +13630,7 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId INT
                    ,@W_AskPrimarykey bit = CAST(JSON_QUERY(@ActualRecord, '$.AskPrimarykey') AS bit)
                    ,@W_AskAutoincrement bit = CAST(JSON_QUERY(@ActualRecord, '$.AskAutoincrement') AS bit)
                    ,@W_AskFilterable bit = CAST(JSON_QUERY(@ActualRecord, '$.AskFilterable') AS bit)
-                   ,@W_AskBrowseable bit = CAST(JSON_QUERY(@ActualRecord, '$.AskBrowseable') AS bit)
+                   ,@W_AskGridable bit = CAST(JSON_QUERY(@ActualRecord, '$.AskGridable') AS bit)
                    ,@W_AskCodification bit = CAST(JSON_QUERY(@ActualRecord, '$.AskCodification') AS bit)
                    ,@W_AskFormula bit = CAST(JSON_QUERY(@ActualRecord, '$.AskFormula') AS bit)
                    ,@W_AllowMaxLength bit = CAST(JSON_QUERY(@ActualRecord, '$.AllowMaxLength') AS bit)
@@ -13647,7 +13647,7 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId INT
                                                 ,[AskPrimarykey]
                                                 ,[AskAutoincrement]
                                                 ,[AskFilterable]
-                                                ,[AskBrowseable]
+                                                ,[AskGridable]
                                                 ,[AskCodification]
                                                 ,[AskFormula]
                                                 ,[AllowMaxLength]
@@ -13664,7 +13664,7 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId INT
                                                  ,@W_AskPrimarykey
                                                  ,@W_AskAutoincrement
                                                  ,@W_AskFilterable
-                                                 ,@W_AskBrowseable
+                                                 ,@W_AskGridable
                                                  ,@W_AskCodification
                                                  ,@W_AskFormula
                                                  ,@W_AllowMaxLength
@@ -13682,7 +13682,7 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId INT
                                               ,[AskPrimarykey] = @W_AskPrimarykey
                                               ,[AskAutoincrement] = @W_AskAutoincrement
                                               ,[AskFilterable] = @W_AskFilterable
-                                              ,[AskBrowseable] = @W_AskBrowseable
+                                              ,[AskGridable] = @W_AskGridable
                                               ,[AskCodification] = @W_AskCodification
                                               ,[AskFormula] = @W_AskFormula
                                               ,[AllowMaxLength] = @W_AllowMaxLength
@@ -13721,7 +13721,7 @@ GO
 ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -13767,7 +13767,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
                 ,@W_AskPrimarykey bit = CAST(JSON_QUERY(@RecordFilter, '$.AskPrimarykey') AS bit)
                 ,@W_AskAutoincrement bit = CAST(JSON_QUERY(@RecordFilter, '$.AskAutoincrement') AS bit)
                 ,@W_AskFilterable bit = CAST(JSON_QUERY(@RecordFilter, '$.AskFilterable') AS bit)
-                ,@W_AskBrowseable bit = CAST(JSON_QUERY(@RecordFilter, '$.AskBrowseable') AS bit)
+                ,@W_AskGridable bit = CAST(JSON_QUERY(@RecordFilter, '$.AskGridable') AS bit)
                 ,@W_AskCodification bit = CAST(JSON_QUERY(@RecordFilter, '$.AskCodification') AS bit)
                 ,@W_AskFormula bit = CAST(JSON_QUERY(@RecordFilter, '$.AskFormula') AS bit)
                 ,@W_AllowMaxLength bit = CAST(JSON_QUERY(@RecordFilter, '$.AllowMaxLength') AS bit)
@@ -13795,7 +13795,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
               ,[AskPrimarykey]
               ,[AskAutoincrement]
               ,[AskFilterable]
-              ,[AskBrowseable]
+              ,[AskGridable]
               ,[AskCodification]
               ,[AskFormula]
               ,[AllowMaxLength]
@@ -13809,7 +13809,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
                   AND [AskPrimarykey] = ISNULL(@W_AskPrimarykey, [AskPrimarykey])
                   AND [AskAutoincrement] = ISNULL(@W_AskAutoincrement, [AskAutoincrement])
                   AND [AskFilterable] = ISNULL(@W_AskFilterable, [AskFilterable])
-                  AND [AskBrowseable] = ISNULL(@W_AskBrowseable, [AskBrowseable])
+                  AND [AskGridable] = ISNULL(@W_AskGridable, [AskGridable])
                   AND [AskCodification] = ISNULL(@W_AskCodification, [AskCodification])
                   AND [AskFormula] = ISNULL(@W_AskFormula, [AskFormula])
                   AND [AllowMaxLength] = ISNULL(@W_AllowMaxLength, [AllowMaxLength])
@@ -13834,7 +13834,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
                                   ,CAST(JSON_QUERY([ActualRecord], '$.AskPrimarykey') AS bit) AS [AskPrimarykey]
                                   ,CAST(JSON_QUERY([ActualRecord], '$.AskAutoincrement') AS bit) AS [AskAutoincrement]
                                   ,CAST(JSON_QUERY([ActualRecord], '$.AskFilterable') AS bit) AS [AskFilterable]
-                                  ,CAST(JSON_QUERY([ActualRecord], '$.AskBrowseable') AS bit) AS [AskBrowseable]
+                                  ,CAST(JSON_QUERY([ActualRecord], '$.AskGridable') AS bit) AS [AskGridable]
                                   ,CAST(JSON_QUERY([ActualRecord], '$.AskCodification') AS bit) AS [AskCodification]
                                   ,CAST(JSON_QUERY([ActualRecord], '$.AskFormula') AS bit) AS [AskFormula]
                                   ,CAST(JSON_QUERY([ActualRecord], '$.AllowMaxLength') AS bit) AS [AllowMaxLength]
@@ -13855,7 +13855,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
                ,[tmp].[AskPrimarykey] = CAST(JSON_QUERY([ope].[ActualRecord], '$.AskPrimarykey') AS bit)
                ,[tmp].[AskAutoincrement] = CAST(JSON_QUERY([ope].[ActualRecord], '$.AskAutoincrement') AS bit)
                ,[tmp].[AskFilterable] = CAST(JSON_QUERY([ope].[ActualRecord], '$.AskFilterable') AS bit)
-               ,[tmp].[AskBrowseable] = CAST(JSON_QUERY([ope].[ActualRecord], '$.AskBrowseable') AS bit)
+               ,[tmp].[AskGridable] = CAST(JSON_QUERY([ope].[ActualRecord], '$.AskGridable') AS bit)
                ,[tmp].[AskCodification] = CAST(JSON_QUERY([ope].[ActualRecord], '$.AskCodification') AS bit)
                ,[tmp].[AskFormula] = CAST(JSON_QUERY([ope].[ActualRecord], '$.AskFormula') AS bit)
                ,[tmp].[AllowMaxLength] = CAST(JSON_QUERY([ope].[ActualRecord], '$.AllowMaxLength') AS bit)
@@ -13878,7 +13878,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -14269,7 +14269,7 @@ GO
 ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -14370,7 +14370,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -14857,7 +14857,7 @@ GO
 ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -15006,7 +15006,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -15438,7 +15438,7 @@ GO
 ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -15550,7 +15550,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -16008,7 +16008,7 @@ GO
 ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -16131,7 +16131,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -16555,7 +16555,7 @@ GO
 ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -16669,7 +16669,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -17093,7 +17093,7 @@ GO
 ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -17217,7 +17217,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -17680,7 +17680,7 @@ GO
 ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -17804,7 +17804,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -18228,7 +18228,7 @@ GO
 ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -18352,7 +18352,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -18806,7 +18806,7 @@ GO
 ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -18923,7 +18923,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -19347,7 +19347,7 @@ GO
 ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -19471,7 +19471,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -19561,7 +19561,7 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId INT
                 AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsListable'), JSON_QUERY(@LastRecord, '$.IsListable'), 'bit') = 1
                 AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsFilterable'), JSON_QUERY(@LastRecord, '$.IsFilterable'), 'bit') = 1
                 AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsEditable'), JSON_QUERY(@LastRecord, '$.IsEditable'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsBrowseable'), JSON_QUERY(@LastRecord, '$.IsBrowseable'), 'bit') = 1
+                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsGridable'), JSON_QUERY(@LastRecord, '$.IsGridable'), 'bit') = 1
                 AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsEncrypted'), JSON_QUERY(@LastRecord, '$.IsEncrypted'), 'bit') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
@@ -19585,7 +19585,7 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId INT
                                   AND [cruda].[IsEquals]([IsListable], JSON_QUERY(@LastRecord, '$.IsListable'), 'bit') = 1
                                   AND [cruda].[IsEquals]([IsFilterable], JSON_QUERY(@LastRecord, '$.IsFilterable'), 'bit') = 1
                                   AND [cruda].[IsEquals]([IsEditable], JSON_QUERY(@LastRecord, '$.IsEditable'), 'bit') = 1
-                                  AND [cruda].[IsEquals]([IsBrowseable], JSON_QUERY(@LastRecord, '$.IsBrowseable'), 'bit') = 1
+                                  AND [cruda].[IsEquals]([IsGridable], JSON_QUERY(@LastRecord, '$.IsGridable'), 'bit') = 1
                                   AND [cruda].[IsEquals]([IsEncrypted], JSON_QUERY(@LastRecord, '$.IsEncrypted'), 'bit') = 1) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Columns alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
@@ -19662,7 +19662,7 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId INT
                    ,@W_IsListable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsListable') AS bit)
                    ,@W_IsFilterable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsFilterable') AS bit)
                    ,@W_IsEditable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsEditable') AS bit)
-                   ,@W_IsBrowseable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsBrowseable') AS bit)
+                   ,@W_IsGridable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsGridable') AS bit)
                    ,@W_IsEncrypted bit = CAST(JSON_QUERY(@ActualRecord, '$.IsEncrypted') AS bit)
 
             IF @W_TableId IS NOT NULL AND @W_TableId < CAST('1' AS int) BEGIN
@@ -19933,7 +19933,7 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId INT
                    ,@W_IsListable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsListable') AS bit)
                    ,@W_IsFilterable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsFilterable') AS bit)
                    ,@W_IsEditable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsEditable') AS bit)
-                   ,@W_IsBrowseable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsBrowseable') AS bit)
+                   ,@W_IsGridable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsGridable') AS bit)
                    ,@W_IsEncrypted bit = CAST(JSON_QUERY(@ActualRecord, '$.IsEncrypted') AS bit)
 
             IF @Action = 'create'
@@ -19956,7 +19956,7 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId INT
                                                 ,[IsListable]
                                                 ,[IsFilterable]
                                                 ,[IsEditable]
-                                                ,[IsBrowseable]
+                                                ,[IsGridable]
                                                 ,[IsEncrypted]
                                                 ,[CreatedAt]
                                                 ,[CreatedBy])
@@ -19979,7 +19979,7 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId INT
                                                  ,@W_IsListable
                                                  ,@W_IsFilterable
                                                  ,@W_IsEditable
-                                                 ,@W_IsBrowseable
+                                                 ,@W_IsGridable
                                                  ,@W_IsEncrypted
                                                  ,GETDATE()
                                                  ,@UserName)
@@ -20003,7 +20003,7 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId INT
                                               ,[IsListable] = @W_IsListable
                                               ,[IsFilterable] = @W_IsFilterable
                                               ,[IsEditable] = @W_IsEditable
-                                              ,[IsBrowseable] = @W_IsBrowseable
+                                              ,[IsGridable] = @W_IsGridable
                                               ,[IsEncrypted] = @W_IsEncrypted
                                               ,[UpdatedAt] = GETDATE()
                                               ,[UpdatedBy] = @UserName
@@ -20039,7 +20039,7 @@ GO
 ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -20088,7 +20088,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                 ,@W_IsListable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsListable') AS bit)
                 ,@W_IsFilterable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsFilterable') AS bit)
                 ,@W_IsEditable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsEditable') AS bit)
-                ,@W_IsBrowseable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsBrowseable') AS bit)
+                ,@W_IsGridable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsGridable') AS bit)
                 ,@W_IsEncrypted bit = CAST(JSON_QUERY(@RecordFilter, '$.IsEncrypted') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int) BEGIN
@@ -20146,7 +20146,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
               ,[IsListable]
               ,[IsFilterable]
               ,[IsEditable]
-              ,[IsBrowseable]
+              ,[IsGridable]
               ,[IsEncrypted]
             INTO [dbo].[#tmp]
             FROM [dbo].[Columns]
@@ -20160,7 +20160,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                   AND (@W_IsListable IS NULL OR [IsListable] = @W_IsListable)
                   AND (@W_IsFilterable IS NULL OR [IsFilterable] = @W_IsFilterable)
                   AND (@W_IsEditable IS NULL OR [IsEditable] = @W_IsEditable)
-                  AND (@W_IsBrowseable IS NULL OR [IsBrowseable] = @W_IsBrowseable)
+                  AND (@W_IsGridable IS NULL OR [IsGridable] = @W_IsGridable)
                   AND (@W_IsEncrypted IS NULL OR [IsEncrypted] = @W_IsEncrypted)
             ORDER BY [Id]
         SET @ROWCOUNT = @@ROWCOUNT
@@ -20191,7 +20191,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                                   ,CAST(JSON_QUERY([ActualRecord], '$.IsListable') AS bit) AS [IsListable]
                                   ,CAST(JSON_QUERY([ActualRecord], '$.IsFilterable') AS bit) AS [IsFilterable]
                                   ,CAST(JSON_QUERY([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
-                                  ,CAST(JSON_QUERY([ActualRecord], '$.IsBrowseable') AS bit) AS [IsBrowseable]
+                                  ,CAST(JSON_QUERY([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
                                   ,CAST(JSON_QUERY([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -20218,7 +20218,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                ,[tmp].[IsListable] = CAST(JSON_QUERY([ope].[ActualRecord], '$.IsListable') AS bit)
                ,[tmp].[IsFilterable] = CAST(JSON_QUERY([ope].[ActualRecord], '$.IsFilterable') AS bit)
                ,[tmp].[IsEditable] = CAST(JSON_QUERY([ope].[ActualRecord], '$.IsEditable') AS bit)
-               ,[tmp].[IsBrowseable] = CAST(JSON_QUERY([ope].[ActualRecord], '$.IsBrowseable') AS bit)
+               ,[tmp].[IsGridable] = CAST(JSON_QUERY([ope].[ActualRecord], '$.IsGridable') AS bit)
                ,[tmp].[IsEncrypted] = CAST(JSON_QUERY([ope].[ActualRecord], '$.IsEncrypted') AS bit)
             FROM [dbo].[#tmp] [tmp]
                 INNER JOIN [cruda].[Operations] [ope] ON CAST(JSON_QUERY([ope].[ActualRecord], '$.Id') AS int) = [tmp].[Id]
@@ -20238,7 +20238,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -20667,7 +20667,7 @@ GO
 ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -20786,7 +20786,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -21225,7 +21225,7 @@ GO
 ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -21352,7 +21352,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 
@@ -21767,7 +21767,7 @@ GO
 ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingBrowseLastPage BIT
+                                          ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
@@ -21894,7 +21894,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
+            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT
                 SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END
         END
 

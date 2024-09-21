@@ -7,7 +7,7 @@ import TScreen from "./TScreen.class.mjs"
 import TSystem from "./TSystem.class.mjs"
 import TConfig from "./TConfig.class.mjs"
 
-export default class TBrowse {
+export default class TGrid {
     #Table = null
     #FilterValues = {}
     #RowCount = 0
@@ -15,7 +15,7 @@ export default class TBrowse {
     #PageCount = 0
     #RowNumber = 0
     #Primarykeys = null
-    #Data = null
+    #DataPage = null
 
     #HTML = {
         Container: null,
@@ -51,10 +51,10 @@ export default class TBrowse {
         if (!this.#Table)
             throw new Error("Tabela de banco-de-dados não encontrada.")
         this.#HTML.Container = document.createElement("table")
-        this.#HTML.Container.className = "browse box"
+        this.#HTML.Container.className = "grid box"
 
         let style = document.createElement("style")
-        style.innerText = TBrowse.#Style
+        style.innerText = TGrid.#Style
         this.#HTML.Container.appendChild(style)
 
         this.#HTML.Head = document.createElement("thead")
@@ -74,7 +74,7 @@ export default class TBrowse {
             throw new Error("Argumento styles não é do tipo Styles.")
         if (images.ClassName !== "Images")
             throw new Error("Argumento images não é do tipo Images.")
-        this.#Style = styles.Browse
+        this.#Style = styles.Grid
         this.#Images.Delete = images.Delete
         this.#Images.Query = images.Query
         this.#Images.Edit = images.Edit
@@ -107,7 +107,7 @@ export default class TBrowse {
                 LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(recordFilter),
                 OrderBy: null,
-                PaddingBrowseLastPage: TSystem.PaddingBrowseLastPage,
+                PaddingGridLastPage: TSystem.PaddingGridLastPage,
             },
             OutputParams: {},
             IOParams: {
@@ -131,6 +131,7 @@ export default class TBrowse {
         TScreen.Title = `Manutenção de ${this.#Table.Description}`
         this.#ReadDataPage(page)
             .then((data) => {
+                this.#DataPage = data
                 if (this.#RowCount > 1)
                     TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar."
                 else
@@ -140,10 +141,9 @@ export default class TBrowse {
                 this.#BuildHtmlFoot()
                 TScreen.WithBackgroundImage = true
                 TScreen.Main = this.#HTML.Container
-                this.#Data = data
             })
             .catch(error => {
-                TScreen.ShowError(error.Message, error.Action || `browse/${this.#Table.Database.Name}/${this.#Table.Name}`)
+                TScreen.ShowError(error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
             })
         /*
         globalThis.$ = new Proxy(this.#Table, {
@@ -192,12 +192,12 @@ export default class TBrowse {
         this.#RowNumber = rowNumber
         this.#Primarykeys = {}
         this.#Table.Columns.filter(column => column.IsPrimarykey)
-            .forEach(column => this.#Primarykeys[column.Name] = this.#Data[rowNumber][column.Name])
+            .forEach(column => this.#Primarykeys[column.Name] = this.#DataPage[rowNumber][column.Name])
     }
     #BuildHtmlHead() {
         let tr = document.createElement("tr")
 
-        this.#Table.Columns.filter(column => column.IsBrowseable)
+        this.#Table.Columns.filter(column => column.IsGridable)
             .forEach(column => {
                 let th = document.createElement("th")
 
@@ -224,7 +224,7 @@ export default class TBrowse {
                 this.#HTML.SelectedRow.style = "background-color: var(--background-color-control);"
             }
             tr.ondblclick = () => this.#HTML.QueryButton.click()
-            this.#Table.Columns.filter(column => column.IsBrowseable)
+            this.#Table.Columns.filter(column => column.IsGridable)
                 .forEach(column => {
                     const td = document.createElement("td")
 
@@ -288,7 +288,7 @@ export default class TBrowse {
         this.#HTML.CreateButton = document.createElement("button")
 
         this.#HTML.CreateButton.type = "button"
-        this.#HTML.CreateButton.style.backgroundImage = TBrowse.#Images.Insert
+        this.#HTML.CreateButton.style.backgroundImage = TGrid.#Images.Insert
         this.#HTML.CreateButton.title = "Incluir registro"
         this.#HTML.CreateButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.CreateButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
@@ -303,7 +303,7 @@ export default class TBrowse {
 
         this.#HTML.UpdateButton = document.createElement("button")
         this.#HTML.UpdateButton.type = "button"
-        this.#HTML.UpdateButton.style.backgroundImage = TBrowse.#Images.Edit
+        this.#HTML.UpdateButton.style.backgroundImage = TGrid.#Images.Edit
         this.#HTML.UpdateButton.title = "Alterar registro"
         this.#HTML.UpdateButton.hidden = this.#RowCount === 0
         this.#HTML.UpdateButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
@@ -318,7 +318,7 @@ export default class TBrowse {
 
         this.#HTML.DeleteButton = document.createElement("button")
         this.#HTML.DeleteButton.type = "button"
-        this.#HTML.DeleteButton.style.backgroundImage = TBrowse.#Images.Delete
+        this.#HTML.DeleteButton.style.backgroundImage = TGrid.#Images.Delete
         this.#HTML.DeleteButton.title = "Excluir registro"
         this.#HTML.DeleteButton.hidden = this.#RowCount === 0
         this.#HTML.DeleteButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
@@ -333,7 +333,7 @@ export default class TBrowse {
 
         this.#HTML.QueryButton = document.createElement("button")
         this.#HTML.QueryButton.type = "button"
-        this.#HTML.QueryButton.style.backgroundImage = TBrowse.#Images.Query
+        this.#HTML.QueryButton.style.backgroundImage = TGrid.#Images.Query
         this.#HTML.QueryButton.title = "Consultar registro"
         this.#HTML.QueryButton.hidden = this.#RowCount === 0
         this.#HTML.QueryButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
@@ -348,7 +348,7 @@ export default class TBrowse {
 
         this.#HTML.FilterButton = document.createElement("button")
         this.#HTML.FilterButton.type = "button"
-        this.#HTML.FilterButton.style.backgroundImage = TBrowse.#Images.Filter
+        this.#HTML.FilterButton.style.backgroundImage = TGrid.#Images.Filter
         this.#HTML.FilterButton.title = "Filtragem de registros"
         this.#HTML.FilterButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.FilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
@@ -363,7 +363,7 @@ export default class TBrowse {
 
         this.#HTML.ExitButton = document.createElement("button")
         this.#HTML.ExitButton.type = "button"
-        this.#HTML.ExitButton.style.backgroundImage = TBrowse.#Images.Exit
+        this.#HTML.ExitButton.style.backgroundImage = TGrid.#Images.Exit
         this.#HTML.ExitButton.title = "Retornar para menu principal"
         this.#HTML.ExitButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.ExitButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage

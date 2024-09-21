@@ -1,7 +1,7 @@
 "use strict"
 
 import TConfig from "./TConfig.class.mjs"
-import TBrowse from "./TBrowse.class.mjs"
+import TGrid from "./TGrid.class.mjs"
 import TForm from "./TForm.class.mjs"
 import TLogin from "./TLogin.class.mjs"
 import TMenu from "./TMenu.class.mjs"
@@ -24,7 +24,7 @@ export default class TSystem {
 
     static #Action = ""
     static #RowsPerPage = 0
-    static #PaddingBrowseLastPage = false
+    static #PaddingGridLastPage = false
     static #Types = []
     static #Domains = []
     static #Databases = []
@@ -46,13 +46,13 @@ export default class TSystem {
                 this.#Description = config.Data.System[0].Description
                 this.#ClientName = config.Data.System[0].ClientName
                 this.#RowsPerPage = config.RowsPerPage
-                this.#PaddingBrowseLastPage = config.PaddingBrowseLastPage
+                this.#PaddingGridLastPage = config.PaddingGridLastPage
                 TConfig.IdleTimeInMinutesLimit = config.IdleTimeInMinutesLimit
                 TLogin.Initialize(config.Styles)
                 TDialog.Initialize(config.Styles, config.Images)
                 TScreen.Initialize(config.Styles, config.Images, withBackgroundImage)
                 TMenu.Initialize(config.Styles, config.Data.Menus)
-                TBrowse.Initialize(config.Styles, config.Images)
+                TGrid.Initialize(config.Styles, config.Images)
                 TForm.Initialize(config.Styles, config.Images)
                 config.Data.Categories.forEach(row => this.#Categories.push(new TCategory(row)))
                 config.Data.Types.forEach(row => this.#Types.push(new TType(row)))
@@ -173,8 +173,8 @@ export default class TSystem {
                 TConfig.SetIdleTime()
                 TMenu.Renderize()
                 break
-            case TActions.BROWSE:
-                new TBrowse(newValue[1], newValue[2]).Renderize()
+            case TActions.GRID:
+                new TGrid(newValue[1], newValue[2]).Renderize()
                 break
             case TActions.RELOAD:
                 document.location.reload(true)
@@ -204,8 +204,8 @@ export default class TSystem {
     static get RowsPerPage() {
         return this.#RowsPerPage
     }
-    static get PaddingBrowseLastPage() {
-        return this.#PaddingBrowseLastPage
+    static get PaddingGridLastPage() {
+        return this.#PaddingGridLastPage
     }
     static get Types() {
         return this.#Types

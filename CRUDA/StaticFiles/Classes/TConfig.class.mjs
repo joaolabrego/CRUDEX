@@ -47,14 +47,13 @@ export default class TConfig {
         }
         body.Parameters = parameters
 
-        let crypto = new TCrypto(cryptoKey)
-        const response = await fetch(`${location}/${action}`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ Request: crypto.Encrypt(JSON.stringify(body)) }),
-        })
-
-        let result = JSON.parse(crypto.Encrypt((await response.json()).Response))
+        let crypto = new TCrypto(cryptoKey),
+            response = await fetch(`${location}/${action}`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({ Request: crypto.Encrypt(JSON.stringify(body)) }),
+            }),
+            result = JSON.parse(crypto.Encrypt((await response.json()).Response))
 
         if (result.ClassName === "Error")
             throw result

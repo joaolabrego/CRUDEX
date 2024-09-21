@@ -33,7 +33,7 @@ export default class TTablePage {
                 PageNumber: pageNumber,
                 LimitRows: TSystem.RowsPerPage,
                 MaxPage: 0,
-                PaddingBrowseLastPage: TSystem.PaddingBrowseLastPage,
+                PaddingGridLastPage: TSystem.PaddingGridLastPage,
             },
         }
         this.#Columns.filter(column => column.IsFilterable)

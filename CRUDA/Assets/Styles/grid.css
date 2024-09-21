@@ -1,9 +1,9 @@
-.browse {
+.grid {
     width: 100%;
     height: 100%;
     border-collapse: collapse;
     text-align: center;
-    font-size: var(--font-size-browse);
+    font-size: var(--font-size-grid);
     color: black;
     border: solid 0.1vmin black;
     font-weight: normal;
@@ -11,12 +11,12 @@
     max-width: 100%;
 }
 
-.browse input[type="checkbox"] {
-    width: var(--font-size-browse);
-    height: var(--font-size-browse);
+.grid input[type="checkbox"] {
+    width: var(--font-size-grid);
+    height: var(--font-size-grid);
 }
 
-.browse tbody tr:nth-of-type(odd) {
+.grid tbody tr:nth-of-type(odd) {
     background-color: var(--background-color-active);
 }
 
@@ -24,50 +24,50 @@
     background-color: var(--background-color-control);
 }
 
-.browse td,
-.browse th {
+.grid td,
+.grid th {
     padding: 1vmin;
     border-right: solid 0.1vmin black;
 }
 
-.browse th {
+.grid th {
     border-top: solid 1px black;
     text-align: center;
 }
 
-.browse td.real {
+.grid td.real {
     text-align: right;
 }
 
-.browse td.real::before {
+.grid td.real::before {
     content: 'R$ ';
 }
 
-.browse thead tr,
-.browse tfoot tr {
+.grid thead tr,
+.grid tfoot tr {
     background-color: var(--background-color-focus);
     position: sticky;
     height: 1.5vmin;
 }
 
-.browse thead tr {
+.grid thead tr {
     top: 0;
 }
 
-.browse tfoot tr {
+.grid tfoot tr {
     bottom: 0;
 }
 
-.browse tbody tr:nth-of-type(n):hover {
+.grid tbody tr:nth-of-type(n):hover {
     background-color: var(--background-color-focus);
 }
 
-.browse input[type=number]::-webkit-inner-spin-button,
-.browse input[type=number]::-webkit-outer-spin-button {
+.grid input[type=number]::-webkit-inner-spin-button,
+.grid input[type=number]::-webkit-outer-spin-button {
     opacity: 1;
 }
 
-.browse th button {
+.grid th button {
     text-transform: uppercase;
     outline: 0;
     background-color: var(--background-color-focus);
@@ -83,12 +83,12 @@
     margin: 0.5vmin 2.5vmin;
 }
 
-.browse th button:hover {
+.grid th button:hover {
     background: var(--background-color-control);
     background-size: 100% 100%;
 }
 
-.browse th button:active {
+.grid th button:active {
     background-color: var(--background-color-active);
     background-size: 100% 100%;
 }

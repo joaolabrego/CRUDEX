@@ -8,7 +8,7 @@
         public readonly string Dialog = string.Empty;
         public readonly string Login = string.Empty;
         public readonly string Menu = string.Empty;
-        public readonly string Browse = string.Empty;
+        public readonly string Grid = string.Empty;
         public readonly string Form = string.Empty;
         public Styles()
         {
@@ -20,7 +20,7 @@
             Dialog = File.ReadAllText(Path.Combine(directory, Settings.Get("DIALOG_STYLE")));
             Login = File.ReadAllText(Path.Combine(directory, Settings.Get("LOGIN_STYLE")));
             Menu = File.ReadAllText(Path.Combine(directory, Settings.Get("MENU_STYLE")));
-            Browse = File.ReadAllText(Path.Combine(directory, Settings.Get("BROWSE_STYLE")));
+            Grid = File.ReadAllText(Path.Combine(directory, Settings.Get("GRID_STYLE")));
             Form = File.ReadAllText(Path.Combine(directory, Settings.Get("FORM_STYLE")));
         }
     }

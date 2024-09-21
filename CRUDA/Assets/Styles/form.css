@@ -13,8 +13,8 @@
 }
 
 .form input[type="checkbox"] {
-    width: var(--font-size-browse);
-    height: var(--font-size-browse);
+    width: var(--font-size-grid);
+    height: var(--font-size-grid);
 }
 
 .form input {

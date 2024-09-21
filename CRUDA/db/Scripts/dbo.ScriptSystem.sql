@@ -104,7 +104,7 @@ BEGIN
 				,[T].[AskPrimarykey]
 				,[T].[AskAutoincrement]
 				,[T].[AskFilterable]
-				,[T].[AskBrowseable]
+				,[T].[AskGridable]
 				,[T].[AskCodification]
 				,[T].[AskFormula]
 				,[T].[AllowMaxLength]

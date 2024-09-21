@@ -13,7 +13,7 @@ export default class TType {
     #AskPrimarykey = false
     #AskAutoincrement = false
     #AskFilterable = false
-    #AskBrowseable = false
+    #AskGridable = false
     #AskCodification = false
     #AskFormula = false
     #AllowMaxLength = false
@@ -34,7 +34,7 @@ export default class TType {
         this.#AskPrimarykey = rowType.AskPrimarykey
         this.#AskAutoincrement = rowType.AskAutoincrement
         this.#AskFilterable = rowType.AskFilterable
-        this.#AskBrowseable = rowType.AskBrowseable
+        this.#AskGridable = rowType.AskGridable
         this.#AskCodification = rowType.AskCodification
         this.#AskFormula = rowType.AskFormula
         this.#AllowMaxLength = rowType.AllowMaxLength
@@ -108,11 +108,11 @@ export default class TType {
     set AskFilterable(value) {
         this.#AskFilterable = value
     }
-    get AskBrowseable() {
-        return this.#AskBrowseable
+    get AskGridable() {
+        return this.#AskGridable
     }
-    set AskBrowseable(value) {
-        this.#AskBrowseable = value
+    set AskGridable(value) {
+        this.#AskGridable = value
     }
     get AskCodification() {
         return this.#AskCodification

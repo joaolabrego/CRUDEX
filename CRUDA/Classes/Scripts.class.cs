@@ -1178,7 +1178,7 @@ namespace CRUDA.Classes
                 result.Append($"ALTER PROCEDURE[dbo].[{table["Name"]}Read](@LoginId INT\r\n");
                 result.Append($"                                          ,@RecordFilter NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@OrderBy NVARCHAR(MAX)\r\n");
-                result.Append($"                                          ,@PaddingBrowseLastPage BIT\r\n");
+                result.Append($"                                          ,@PaddingGridLastPage BIT\r\n");
                 result.Append($"                                          ,@PageNumber INT OUT\r\n");
                 result.Append($"                                          ,@LimitRows INT OUT\r\n");
                 result.Append($"                                          ,@MaxPage INT OUT) AS BEGIN\r\n");
@@ -1382,7 +1382,7 @@ namespace CRUDA.Classes
                 result.Append($"            IF @PageNumber < 0\r\n");
                 result.Append($"                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1\r\n");
                 result.Append($"            SET @offset = (@PageNumber - 1) * @LimitRows\r\n");
-                result.Append($"            IF @PaddingBrowseLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT\r\n");
+                result.Append($"            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @ROWCOUNT\r\n");
                 result.Append($"                SET @offset = CASE WHEN @ROWCOUNT > @LimitRows THEN @ROWCOUNT - @LimitRows ELSE 0 END\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");

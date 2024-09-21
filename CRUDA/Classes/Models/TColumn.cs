@@ -20,7 +20,7 @@
         public bool? IsListable { get; init; }
         public bool? IsFilterable { get; init; }
         public bool? IsEditable { get; init; }
-        public bool? IsBrowseable { get; init; }
+        public bool? IsGridable { get; init; }
         public bool? IsEncrypted { get; init; }
         public bool IsCalculated { get; init; }
     }

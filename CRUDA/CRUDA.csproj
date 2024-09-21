@@ -27,7 +27,7 @@
     <None Remove="StaticFiles\Classes\TDatabase.mjs" />
     <None Remove="StaticFiles\Classes\TDialog.mjs" />
     <None Remove="StaticFiles\Classes\TForm.mjs" />
-    <None Remove="StaticFiles\Classes\TBrowse.mjs" />
+    <None Remove="StaticFiles\Classes\TGrid.mjs" />
     <None Remove="StaticFiles\Classes\TLogin.mjs" />
     <None Remove="StaticFiles\Classes\TMenu.mjs" />
     <None Remove="StaticFiles\Classes\TScreen.mjs" />

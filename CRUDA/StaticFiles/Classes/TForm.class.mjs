@@ -2,6 +2,8 @@
 
 import TActions from "./TActions.class.mjs"
 import TScreen from "./TScreen.class.mjs"
+import TConfig from "./TConfig.class.mjs"
+import TLogin from "./TLogin.class.mjs"
 
 export default class TForm {
     #Action = ""
@@ -20,14 +22,15 @@ export default class TForm {
         ConfirmButton: null,
         CancelButton: null,
     }
-    #Browse = null
+    #Grid = null
+    #Record = null
 
-    constructor(browse, action) {
-        if (browse.ClassName !== "TBrowse")
-            throw new Error("Argumento browse não é do tipo TBrowse.")
-        this.#Browse = browse
+    constructor(grid, action) {
+        if (grid.ClassName !== "TGrid")
+            throw new Error("Argumento grid não é do tipo TGrid.")
+        this.#Grid = grid
         this.#Action = action
-        this.#ReturnAction = `browse/${this.#Browse.Table.Database.Name}/${this.#Browse.Table.Name}`
+        this.#ReturnAction = `grid/${this.#Grid.Table.Database.Name}/${this.#Grid.Table.Name}`
         this.#HTML.Container = document.createDocumentFragment()
         this.#BuildForm()
         this.#BuildButtonsBar()
@@ -42,15 +45,140 @@ export default class TForm {
         this.#Images.Cancel = images.Cancel
         this.#Images.Exit = images.Exit
     }
+    async #ReadRecord() {
+        let parameters = {
+            DatabaseName: this.#Grid.Table.Database.Name,
+            TableName: this.#Grid.Table.Name,
+            Action: TActions.READ,
+            InputParams: {
+                LoginId: TLogin.LoginId,
+                RecordFilter: JSON.stringify(this.#Grid.Primarykeys),
+                OrderBy: null,
+                PaddingGridLastPage: false,
+            },
+            OutputParams: {},
+            IOParams: {
+                PageNumber: 0,
+                LimitRows: 0,
+                MaxPage: 0,
+            },
+        }
+        let result = await TConfig.GetAPI(TActions.EXECUTE, parameters)
+
+        result = result.Tables[0][0]
+
+        return result
+    }
+    #GetCheckBox(column) {
+        let control = document.createElement("input"),
+            value = this.#Record[column.Name],
+            isEmptyValue = TConfig.IsEmpty(value)
+
+        control.type = column.Domain.Type.Category.HtmlInputType
+        control.checked = value
+        control.title = isEmptyValue ? 'nulo' : control.checked ? "sim" : "não"
+        control.indeterminate = isEmptyValue
+        control.onclick = (event) => {
+            let isEmptyValue = TConfig.IsEmpty()
+
+            if (event.target.readOnly)
+                return false
+            if (isEmptyValue)
+                this.#Record[column.Name] = false
+            else if (value === false)
+                this.#Record[column.Name] = true
+            else
+                this.#Record[column.Name] = null
+            event.target.indeterminate = isEmptyValue
+            event.target.checked = event.target.value = this.#Record[column.Name]
+            event.target.title = event.target.indeterminate ? "nulo" : event.target.checked ? "sim" : "não"
+        }
+
+        return control
+    }
+    #GetTextArea() {
+        let control = document.createElement("textarea")
+
+        control.rows = 5
+        control.cols = 50
+
+        return control
+    }
+    #GetNumberInput(column) {
+        let control = document.createElement("input")
+
+        control.type = column.Domain.Type.HtmlInputType
+        control.min = column.Domain.Minimum
+        control.max = column.Domain.Maximum
+        control.step = 1 / 10 ** (column.Domain.Decimals || 0)
+
+        return control
+    }
+    #GetTextInput(column) {
+        let control = document.createElement("input")
+
+        control.type = column.Domain.Type.Category.HtmlInputType
+        control.size = column.Domain.Length ?? 20
+        control.maxLength = column.Domain.Length
+
+        return control
+    }
+    #GetControl(column, action) {
+        let fieldset = document.createElement("fieldset"),
+            legend = document.createElement("legend"),
+            control
+
+        legend.innerText = column.Caption
+        fieldset.appendChild(legend)
+        switch (column.Domain.Type.Category.HtmlInputType) {
+            case "checkbox":
+                control = this.#GetCheckBox(column)
+                break
+            case "textarea":
+                control = this.#GetTextArea(column)
+                break
+            case "number":
+                control = this.#GetNumberInput(column)
+                break
+            case "text":
+                control = this.#GetTextInput(column)
+                break
+        }
+        control.onchange = event => {
+            let value = event.target.type === "checkbox" ? eval(event.target.value) : event.target.value
+
+            this.#Record[column.Name] = TConfig.IsEmpty(value) ? null : value
+        }
+        control.name = column.Name
+        control.onfocus = (event) => event.target.select()
+        control.value = this.#Record[column.Name]
+        control.readOnly = action === TActions.DELETE || action === TActions.QUERY
+        control.style.textAlign = column.Domain.Type.Category.HtmlInputAlign
+        fieldset.appendChild(control)
+
+        return fieldset
+    }
     async Configure() {
-        if (this.#Action === TActions.CREATE)
-            this.#Browse.Table.ClearValues()
-        else if (this.#Action === TActions.FILTER)
-            this.#Browse.Table.MoveFilters()
-        this.#Browse.Table.Columns.forEach(column => {
-            this.#HTML.Form.appendChild(column.GetFormControl(this.#Action))
-            if (!(this.#HTML.FirstInput || column.InputControl.readOnly)) {
-                this.#HTML.FirstInput = column.InputControl
+        let columns = this.#Grid.Table.Columns
+
+        this.#Record = {}
+        switch (this.#Action) {
+            case TActions.CREATE:
+                columns.forEach(column => this.#Record[column.Name] = null)
+                break
+            case TActions.FILTER:
+                columns = columns.filter(column => column.IsFilterable)
+                columns.forEach(column => this.#Record[column.Name] = this.#Grid.FilterValues[column.Name])
+                break
+            default:
+                await this.#ReadRecord().then(record => this.#Record = record)
+        }
+       columns.forEach(column => {
+            let control = this.#GetControl(column, this.#Action)
+
+            this.#HTML.Form.appendChild(control)
+            if (!(this.#HTML.FirstInput || control.readOnly)) {
+                this.#HTML.FirstInput = control
             }
         })
 
@@ -82,7 +210,7 @@ export default class TForm {
                 message = "Visualize as informações e clique sair para retornar..."
                 break
         }
-        TScreen.Title = `${title} de ${this.#Browse.Table.Description}`
+        TScreen.Title = `${title} de ${this.#Grid.Table.Description}`
         TScreen.LastMessage = TScreen.Message = message
         TScreen.WithBackgroundImage = false
         TScreen.Main = this.#HTML.Container
@@ -117,8 +245,8 @@ export default class TForm {
         this.#HTML.ConfirmButton.type = "button"
         this.#HTML.ConfirmButton.onclick = () => {
             if (this.#Action === TActions.FILTER)
-                this.#Browse.Table.SaveFilters()
-            this.#Browse.Renderize()
+                this.#Grid.Table.SaveFilters()
+            this.#Grid.Renderize()
                 .catch(error => TScreen.ShowError(error.Message, error.Action || this.#ReturnAction))
         }
 
@@ -132,9 +260,9 @@ export default class TForm {
             this.#HTML.CancelButton.style.backgroundImage = TForm.#Images.Cancel
             this.#HTML.CancelButton.onclick = () => {
                 if (this.#Action === TActions.FILTER)
-                    this.#Browse.Table.Columns.forEach(column =>
+                    this.#Grid.Table.Columns.forEach(column =>
                         column.FilterValue = column.LastValue)
-                this.#Browse.Renderize()
+                this.#Grid.Renderize()
                     .catch(error => TScreen.ShowError(error.Message, error.Action || this.#ReturnAction))
             }
             this.#HTML.ButtonsBar.appendChild(this.#HTML.CancelButton)

@@ -82,7 +82,7 @@ ALTER PROCEDURE[dbo].[ColumnRatify](@LoginId INT
 					,@W_IsListable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit)
 					,@W_IsFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit)
 					,@W_IsEditable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit)
-					,@W_IsBrowseable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBrowseable') AS bit)
+					,@W_IsGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsGridable') AS bit)
 					,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
 					,@W_IsCalculated bit = CAST(JSON_VALUE(@ActualRecord, '$.IsCalculated') AS bit)
 
@@ -105,7 +105,7 @@ ALTER PROCEDURE[dbo].[ColumnRatify](@LoginId INT
 											,[IsListable]
 											,[IsFilterable]
 											,[IsEditable]
-											,[IsBrowseable]
+											,[IsGridable]
 											,[IsEncrypted]
 											,[IsCalculated]
 											,[CreatedAt]
@@ -129,7 +129,7 @@ ALTER PROCEDURE[dbo].[ColumnRatify](@LoginId INT
 											,@IsListable
 											,@IsFilterable
 											,@IsEditable
-											,@IsBrowseable
+											,@IsGridable
 											,@IsEncrypted
 											,@IsCalculated
 											,GETDATE()
@@ -153,7 +153,7 @@ ALTER PROCEDURE[dbo].[ColumnRatify](@LoginId INT
 						,[IsListable] = @IsListable
 						,[IsFilterable] = @IsFilterable
 						,[IsEditable] = @IsEditable
-						,[IsBrowseable] = @IsBrowseable
+						,[IsGridable] = @IsGridable
 						,[IsEncrypted] = @IsEncrypted
 						,[IsCalculated] = @IsCalculated
 						,[UpdatedAt] = GETDATE()

@@ -10,7 +10,7 @@ namespace CRUDA_LIB
         public readonly string ClassName = "Config";
         public readonly int RowsPerPage = Convert.ToInt32(Settings.Get("ROWS_PER_PAGE"));
         public readonly int IdleTimeInMinutesLimit = Convert.ToInt32(Settings.Get("IDLE_TIME_IN_MINUTES_LIMIT"));
-        public readonly bool PaddingBrowseLastPage = Convert.ToBoolean(Settings.Get("PADDING_BROWSE_LAST_PAGE"));
+        public readonly bool PaddingGridLastPage = Convert.ToBoolean(Settings.Get("PADDING_GRID_LAST_PAGE"));
         public readonly dynamic Data;
         public readonly TDictionary? Parameters;
         public readonly Styles? Styles;
