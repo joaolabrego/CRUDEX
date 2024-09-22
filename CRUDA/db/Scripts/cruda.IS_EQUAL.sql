@@ -1,8 +1,8 @@
-IF (SELECT object_id('[cruda].[IsEquals]', 'FN')) IS NULL
-    EXEC('CREATE FUNCTION [cruda].[IsEquals]() RETURNS BIT AS BEGIN RETURN 1 END')
+IF (SELECT object_id('[cruda].[IS_EQUAL]', 'FN')) IS NULL
+    EXEC('CREATE FUNCTION [cruda].[IS_EQUAL]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
 
-ALTER FUNCTION [cruda].[IsEquals](
+ALTER FUNCTION [cruda].[IS_EQUAL](
     @LeftValue NVARCHAR(MAX),
     @RightValue NVARCHAR(4000),
     @TypeValue VARCHAR(25)

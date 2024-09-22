@@ -286,9 +286,9 @@ namespace CRUDA.Classes
             var result = new StringBuilder();
 
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar stored procedure [cruda].[IsEquals]\r\n");
+            result.Append($"Criar stored procedure [cruda].[IS_EQUAL]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.IsEquals.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.IS_EQUAL.sql")));
             result.Append($"/**********************************************************************************\r\n");
             result.Append($"Criar stored procedure [cruda].[JSON_EXTRACT]\r\n");
             result.Append($"**********************************************************************************/\r\n");
@@ -914,7 +914,7 @@ namespace CRUDA.Classes
                         result.Append($"            IF @Action = 'update'\r\n");
                         firstTime = false;
                     }
-                    result.Append($"                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}'), [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#DataType"]}') = 1\r\n");
+                    result.Append($"                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}'), [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#DataType"]}') = 1\r\n");
                 }
                 result.Append($"                RETURN 0\r\n");
                 firstTime = true;
@@ -935,7 +935,7 @@ namespace CRUDA.Classes
                     if (ToBoolean(column["IsRequired"]))
                         result.Append($"[{column["Name"]}] = [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}')");
                     else
-                        result.Append($"[cruda].[IsEquals]([{column["Name"]}], [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#DataType"]}') = 1");
+                        result.Append($"[cruda].[IS_EQUAL]([{column["Name"]}], [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#DataType"]}') = 1");
                 }
                 result.Append($") BEGIN\r\n");
                 result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Registro de {table["Name"]} alterado por outro usuário';\r\n");
@@ -1227,7 +1227,7 @@ namespace CRUDA.Classes
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
                 foreach (var column in filterableColumns)
-                    result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                    result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 foreach (var column in filterableColumns)
                 {
@@ -1253,7 +1253,7 @@ namespace CRUDA.Classes
                         result.Append($"        SELECT [Action] AS [_]\r\n");
                         firstTime = false;
                     }
-                    result.Append($"              ,CAST(JSON_QUERY([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
+                    result.Append($"              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
                 result.Append($"            INTO [dbo].[#tmpOperations]\r\n");
                 result.Append($"            FROM [cruda].[Operations]\r\n");
