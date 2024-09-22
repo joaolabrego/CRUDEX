@@ -1217,7 +1217,7 @@ namespace CRUDA.Classes
                 result.Append($"                                                    END) + '] ' + \r\n");
                 result.Append($"                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'\r\n");
                 result.Append($"                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'\r\n");
-                result.Append($"                                                         ELSE '[ASC]'\r\n");
+                result.Append($"                                                         ELSE 'ASC'\r\n");
                 result.Append($"                                                    END, ', ')\r\n");
                 result.Append($"                FROM STRING_SPLIT(@OrderBy, ',')\r\n");
                 result.Append($"        END\r\n");
@@ -1287,7 +1287,7 @@ namespace CRUDA.Classes
                         result.Append($"              ,[C].[{column["Name"]}]\r\n");
                 }
                 result.Append($"            INTO [dbo].[#tmp]\r\n");
-                result.Append($"            FROM [dbo].[Columns] [C]\r\n");
+                result.Append($"            FROM [dbo].[{table["Name"]}] [C]\r\n");
                 firstTime = true;
                 foreach (var column in pkColumnRows)
                 {

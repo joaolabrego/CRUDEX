@@ -13155,7 +13155,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -13202,7 +13202,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
               ,[C].[AskMinimum]
               ,[C].[AskMaximum]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[Categories] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -13795,7 +13795,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -13856,7 +13856,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
               ,[C].[AllowMaxLength]
               ,[C].[IsActive]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[Types] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -14375,7 +14375,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -14402,7 +14402,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
               ,[C].[Name]
               ,[C].[Mask]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[Masks] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -14963,7 +14963,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -15018,7 +15018,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
               ,[C].[Maximum]
               ,[C].[Codification]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[Domains] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[TypeId] = ISNULL(@W_TypeId, [C].[TypeId])
@@ -15552,7 +15552,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -15586,7 +15586,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
               ,[C].[MaxRetryLogins]
               ,[C].[IsOffAir]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[Systems] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -16127,7 +16127,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -16167,7 +16167,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
               ,[C].[Action]
               ,[C].[ParentMenuId]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[Menus] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
@@ -16676,7 +16676,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -16711,7 +16711,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
               ,[C].[RetryLogins]
               ,[C].[IsActive]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[Users] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -17221,7 +17221,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -17260,7 +17260,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
               ,[C].[UserId]
               ,[C].[Description]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[SystemsUsers] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
@@ -17805,7 +17805,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -17847,7 +17847,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
               ,[C].[Password]
               ,[C].[Folder]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[Databases] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -18362,7 +18362,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -18401,7 +18401,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
               ,[C].[DatabaseId]
               ,[C].[Description]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[SystemsDatabases] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
@@ -18937,7 +18937,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -18974,7 +18974,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
               ,[C].[IsPaged]
               ,[C].[CurrentId]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[Tables] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -19486,7 +19486,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -19525,7 +19525,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
               ,[C].[TableId]
               ,[C].[Description]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[DatabasesTables] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[DatabaseId] = ISNULL(@W_DatabaseId, [C].[DatabaseId])
@@ -20175,7 +20175,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -20829,7 +20829,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -20866,7 +20866,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
               ,[C].[Name]
               ,[C].[IsUnique]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[Indexes] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[TableId] = ISNULL(@W_TableId, [C].[TableId])
@@ -21389,7 +21389,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -21430,7 +21430,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
               ,[C].[ColumnId]
               ,[C].[IsDescending]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[Indexkeys] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[IndexId] = ISNULL(@W_IndexId, [C].[IndexId])
@@ -21929,7 +21929,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
                                                     END) + '] ' + 
                                                     CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
                                                          WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
-                                                         ELSE '[ASC]'
+                                                         ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
@@ -21970,7 +21970,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
               ,[C].[PublicKey]
               ,[C].[IsLogged]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
+            FROM [dbo].[Logins] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
