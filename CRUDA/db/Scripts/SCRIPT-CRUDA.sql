@@ -13138,42 +13138,53 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Categories'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Categories') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id tinyint = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS tinyint)
-                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_AskEncrypted bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskEncrypted') AS bit)
-                ,@W_AskMask bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskMask') AS bit)
-                ,@W_AskListable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskListable') AS bit)
-                ,@W_AskDefault bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskDefault') AS bit)
-                ,@W_AskMinimum bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskMinimum') AS bit)
-                ,@W_AskMaximum bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskMaximum') AS bit)
+                ,@W_Id tinyint = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS tinyint)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_AskEncrypted bit = CAST(JSON_QUERY(@RecordFilter, '$.AskEncrypted') AS bit)
+                ,@W_AskMask bit = CAST(JSON_QUERY(@RecordFilter, '$.AskMask') AS bit)
+                ,@W_AskListable bit = CAST(JSON_QUERY(@RecordFilter, '$.AskListable') AS bit)
+                ,@W_AskDefault bit = CAST(JSON_QUERY(@RecordFilter, '$.AskDefault') AS bit)
+                ,@W_AskMinimum bit = CAST(JSON_QUERY(@RecordFilter, '$.AskMinimum') AS bit)
+                ,@W_AskMaximum bit = CAST(JSON_QUERY(@RecordFilter, '$.AskMaximum') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS tinyint)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('255' AS tinyint)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''255''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.HtmlInputType') AS nvarchar(10)) AS [HtmlInputType]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.HtmlInputAlign') AS nvarchar(6)) AS [HtmlInputAlign]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskEncrypted') AS bit) AS [AskEncrypted]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskMask') AS bit) AS [AskMask]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskListable') AS bit) AS [AskListable]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskDefault') AS bit) AS [AskDefault]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskMinimum') AS bit) AS [AskMinimum]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS tinyint) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_QUERY([ActualRecord], '$.HtmlInputType') AS nvarchar(10)) AS [HtmlInputType]
+              ,CAST(JSON_QUERY([ActualRecord], '$.HtmlInputAlign') AS nvarchar(6)) AS [HtmlInputAlign]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskEncrypted') AS bit) AS [AskEncrypted]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskMask') AS bit) AS [AskMask]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskListable') AS bit) AS [AskListable]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskDefault') AS bit) AS [AskDefault]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskMinimum') AS bit) AS [AskMinimum]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -13191,7 +13202,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
               ,[C].[AskMinimum]
               ,[C].[AskMaximum]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Categories] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -13767,51 +13778,62 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Types'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Types') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id tinyint = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS tinyint)
-                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_AskLength bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskLength') AS bit)
-                ,@W_AskDecimals bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskDecimals') AS bit)
-                ,@W_AskPrimarykey bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskPrimarykey') AS bit)
-                ,@W_AskAutoincrement bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskAutoincrement') AS bit)
-                ,@W_AskFilterable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskFilterable') AS bit)
-                ,@W_AskGridable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskGridable') AS bit)
-                ,@W_AskCodification bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskCodification') AS bit)
-                ,@W_AskFormula bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskFormula') AS bit)
-                ,@W_AllowMaxLength bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AllowMaxLength') AS bit)
-                ,@W_IsActive bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsActive') AS bit)
+                ,@W_Id tinyint = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS tinyint)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_AskLength bit = CAST(JSON_QUERY(@RecordFilter, '$.AskLength') AS bit)
+                ,@W_AskDecimals bit = CAST(JSON_QUERY(@RecordFilter, '$.AskDecimals') AS bit)
+                ,@W_AskPrimarykey bit = CAST(JSON_QUERY(@RecordFilter, '$.AskPrimarykey') AS bit)
+                ,@W_AskAutoincrement bit = CAST(JSON_QUERY(@RecordFilter, '$.AskAutoincrement') AS bit)
+                ,@W_AskFilterable bit = CAST(JSON_QUERY(@RecordFilter, '$.AskFilterable') AS bit)
+                ,@W_AskGridable bit = CAST(JSON_QUERY(@RecordFilter, '$.AskGridable') AS bit)
+                ,@W_AskCodification bit = CAST(JSON_QUERY(@RecordFilter, '$.AskCodification') AS bit)
+                ,@W_AskFormula bit = CAST(JSON_QUERY(@RecordFilter, '$.AskFormula') AS bit)
+                ,@W_AllowMaxLength bit = CAST(JSON_QUERY(@RecordFilter, '$.AllowMaxLength') AS bit)
+                ,@W_IsActive bit = CAST(JSON_QUERY(@RecordFilter, '$.IsActive') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS tinyint)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('255' AS tinyint)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''255''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskLength') AS bit) AS [AskLength]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskDecimals') AS bit) AS [AskDecimals]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskPrimarykey') AS bit) AS [AskPrimarykey]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskAutoincrement') AS bit) AS [AskAutoincrement]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskFilterable') AS bit) AS [AskFilterable]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskGridable') AS bit) AS [AskGridable]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskCodification') AS bit) AS [AskCodification]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskFormula') AS bit) AS [AskFormula]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AllowMaxLength') AS bit) AS [AllowMaxLength]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS tinyint) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskLength') AS bit) AS [AskLength]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskDecimals') AS bit) AS [AskDecimals]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskPrimarykey') AS bit) AS [AskPrimarykey]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskAutoincrement') AS bit) AS [AskAutoincrement]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskFilterable') AS bit) AS [AskFilterable]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskGridable') AS bit) AS [AskGridable]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskCodification') AS bit) AS [AskCodification]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AskFormula') AS bit) AS [AskFormula]
+              ,CAST(JSON_QUERY([ActualRecord], '$.AllowMaxLength') AS bit) AS [AllowMaxLength]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -13834,7 +13856,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
               ,[C].[AllowMaxLength]
               ,[C].[IsActive]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Types] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -14336,29 +14358,40 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Masks'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Masks') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('-2147483648' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''-2147483648''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Mask') AS nvarchar(MAX)) AS [Mask]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Mask') AS nvarchar(MAX)) AS [Mask]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -14369,7 +14402,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
               ,[C].[Name]
               ,[C].[Mask]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Masks] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -14913,24 +14946,35 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Domains'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Domains') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_TypeId tinyint = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TypeId') AS tinyint)
-                ,@W_MaskId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.MaskId') AS int)
-                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_ValidValues nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.ValidValues') AS nvarchar(MAX))
-                ,@W_Codification nvarchar(5) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Codification') AS nvarchar(5))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_TypeId tinyint = CAST(JSON_QUERY(@RecordFilter, '$.TypeId') AS tinyint)
+                ,@W_MaskId int = CAST(JSON_QUERY(@RecordFilter, '$.MaskId') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_ValidValues nvarchar(MAX) = CAST(JSON_QUERY(@RecordFilter, '$.ValidValues') AS nvarchar(MAX))
+                ,@W_Codification nvarchar(5) = CAST(JSON_QUERY(@RecordFilter, '$.Codification') AS nvarchar(5))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -14945,17 +14989,17 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
         IF @W_MaskId IS NOT NULL AND @W_MaskId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de MaskId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TypeId') AS tinyint) AS [TypeId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.MaskId') AS int) AS [MaskId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Length') AS smallint) AS [Length]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Decimals') AS tinyint) AS [Decimals]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ValidValues') AS nvarchar(MAX)) AS [ValidValues]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Default') AS nvarchar(MAX)) AS [Default]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Codification') AS nvarchar(5)) AS [Codification]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.TypeId') AS tinyint) AS [TypeId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.MaskId') AS int) AS [MaskId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Length') AS smallint) AS [Length]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Decimals') AS tinyint) AS [Decimals]
+              ,CAST(JSON_QUERY([ActualRecord], '$.ValidValues') AS nvarchar(MAX)) AS [ValidValues]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Default') AS nvarchar(MAX)) AS [Default]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Codification') AS nvarchar(5)) AS [Codification]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -14974,7 +15018,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
               ,[C].[Maximum]
               ,[C].[Codification]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Domains] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[TypeId] = ISNULL(@W_TypeId, [C].[TypeId])
@@ -15491,33 +15535,44 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Systems'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Systems') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_ClientName nvarchar(15) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.ClientName') AS nvarchar(15))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_ClientName nvarchar(15) = CAST(JSON_QUERY(@RecordFilter, '$.ClientName') AS nvarchar(15))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ClientName') AS nvarchar(15)) AS [ClientName]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsOffAir') AS bit) AS [IsOffAir]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_QUERY([ActualRecord], '$.ClientName') AS nvarchar(15)) AS [ClientName]
+              ,CAST(JSON_QUERY([ActualRecord], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsOffAir') AS bit) AS [IsOffAir]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -15531,7 +15586,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
               ,[C].[MaxRetryLogins]
               ,[C].[IsOffAir]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Systems] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -16055,21 +16110,32 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Menus'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Menus') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_SystemId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
-                ,@W_Caption nvarchar(20) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Caption') AS nvarchar(20))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_SystemId int = CAST(JSON_QUERY(@RecordFilter, '$.SystemId') AS int)
+                ,@W_Caption nvarchar(20) = CAST(JSON_QUERY(@RecordFilter, '$.Caption') AS nvarchar(20))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -16080,13 +16146,13 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
         IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de SystemId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Caption') AS nvarchar(20)) AS [Caption]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Message') AS nvarchar(50)) AS [Message]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Action') AS nvarchar(50)) AS [Action]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ParentMenuId') AS int) AS [ParentMenuId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.SystemId') AS int) AS [SystemId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Caption') AS nvarchar(20)) AS [Caption]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Message') AS nvarchar(50)) AS [Message]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Action') AS nvarchar(50)) AS [Action]
+              ,CAST(JSON_QUERY([ActualRecord], '$.ParentMenuId') AS int) AS [ParentMenuId]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -16101,7 +16167,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
               ,[C].[Action]
               ,[C].[ParentMenuId]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Menus] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
@@ -16593,34 +16659,45 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Users'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Users') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_FullName nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.FullName') AS nvarchar(50))
-                ,@W_IsActive bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsActive') AS bit)
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_FullName nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.FullName') AS nvarchar(50))
+                ,@W_IsActive bit = CAST(JSON_QUERY(@RecordFilter, '$.IsActive') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.FullName') AS nvarchar(50)) AS [FullName]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.RetryLogins') AS tinyint) AS [RetryLogins]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
+              ,CAST(JSON_QUERY([ActualRecord], '$.FullName') AS nvarchar(50)) AS [FullName]
+              ,CAST(JSON_QUERY([ActualRecord], '$.RetryLogins') AS tinyint) AS [RetryLogins]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -16634,7 +16711,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
               ,[C].[RetryLogins]
               ,[C].[IsActive]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Users] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -17127,22 +17204,33 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'SystemsUsers'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'SystemsUsers') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_SystemId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
-                ,@W_UserId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.UserId') AS int)
-                ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_SystemId int = CAST(JSON_QUERY(@RecordFilter, '$.SystemId') AS int)
+                ,@W_UserId int = CAST(JSON_QUERY(@RecordFilter, '$.UserId') AS int)
+                ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.Description') AS nvarchar(50))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -17157,10 +17245,10 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
         IF @W_UserId IS NOT NULL AND @W_UserId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de UserId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.UserId') AS int) AS [UserId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.SystemId') AS int) AS [SystemId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.UserId') AS int) AS [UserId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -17172,7 +17260,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
               ,[C].[UserId]
               ,[C].[Description]
             INTO [dbo].[#tmp]
-            FROM [dbo].[SystemsUsers] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
@@ -17700,37 +17788,48 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Databases'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Databases') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_Alias nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_Alias nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Alias') AS nvarchar(25))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ServerName') AS nvarchar(50)) AS [ServerName]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.HostName') AS nvarchar(25)) AS [HostName]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Port') AS int) AS [Port]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Logon') AS nvarchar(256)) AS [Logon]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Folder') AS nvarchar(256)) AS [Folder]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
+              ,CAST(JSON_QUERY([ActualRecord], '$.ServerName') AS nvarchar(50)) AS [ServerName]
+              ,CAST(JSON_QUERY([ActualRecord], '$.HostName') AS nvarchar(25)) AS [HostName]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Port') AS int) AS [Port]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Logon') AS nvarchar(256)) AS [Logon]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Folder') AS nvarchar(256)) AS [Folder]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -17748,7 +17847,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
               ,[C].[Password]
               ,[C].[Folder]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Databases] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -18246,22 +18345,33 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'SystemsDatabases'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'SystemsDatabases') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_SystemId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
-                ,@W_DatabaseId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.DatabaseId') AS int)
-                ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_SystemId int = CAST(JSON_QUERY(@RecordFilter, '$.SystemId') AS int)
+                ,@W_DatabaseId int = CAST(JSON_QUERY(@RecordFilter, '$.DatabaseId') AS int)
+                ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.Description') AS nvarchar(50))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -18276,10 +18386,10 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
         IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de DatabaseId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.SystemId') AS int) AS [SystemId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -18291,7 +18401,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
               ,[C].[DatabaseId]
               ,[C].[Description]
             INTO [dbo].[#tmp]
-            FROM [dbo].[SystemsDatabases] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
@@ -18810,35 +18920,46 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Tables'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Tables') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_Alias nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
-                ,@W_IsPaged bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsPaged') AS bit)
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_Alias nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Alias') AS nvarchar(25))
+                ,@W_IsPaged bit = CAST(JSON_QUERY(@RecordFilter, '$.IsPaged') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ParentTableId') AS int) AS [ParentTableId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsPaged') AS bit) AS [IsPaged]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.CurrentId') AS int) AS [CurrentId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_QUERY([ActualRecord], '$.ParentTableId') AS int) AS [ParentTableId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsPaged') AS bit) AS [IsPaged]
+              ,CAST(JSON_QUERY([ActualRecord], '$.CurrentId') AS int) AS [CurrentId]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -18853,7 +18974,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
               ,[C].[IsPaged]
               ,[C].[CurrentId]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Tables] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -19348,22 +19469,33 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'DatabasesTables'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'DatabasesTables') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_DatabaseId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.DatabaseId') AS int)
-                ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
-                ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_DatabaseId int = CAST(JSON_QUERY(@RecordFilter, '$.DatabaseId') AS int)
+                ,@W_TableId int = CAST(JSON_QUERY(@RecordFilter, '$.TableId') AS int)
+                ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.Description') AS nvarchar(50))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -19378,10 +19510,10 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
         IF @W_TableId IS NOT NULL AND @W_TableId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de TableId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.TableId') AS int) AS [TableId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -19393,7 +19525,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
               ,[C].[TableId]
               ,[C].[Description]
             INTO [dbo].[#tmp]
-            FROM [dbo].[DatabasesTables] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[DatabaseId] = ISNULL(@W_DatabaseId, [C].[DatabaseId])
@@ -20026,30 +20158,41 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Columns'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Columns') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
-                ,@W_DomainId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.DomainId') AS int)
-                ,@W_ReferenceTableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.ReferenceTableId') AS int)
-                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_IsAutoIncrement bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsAutoIncrement') AS bit)
-                ,@W_IsRequired bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsRequired') AS bit)
-                ,@W_IsListable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsListable') AS bit)
-                ,@W_IsFilterable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsFilterable') AS bit)
-                ,@W_IsEditable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsEditable') AS bit)
-                ,@W_IsGridable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsGridable') AS bit)
-                ,@W_IsEncrypted bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsEncrypted') AS bit)
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_TableId int = CAST(JSON_QUERY(@RecordFilter, '$.TableId') AS int)
+                ,@W_DomainId int = CAST(JSON_QUERY(@RecordFilter, '$.DomainId') AS int)
+                ,@W_ReferenceTableId int = CAST(JSON_QUERY(@RecordFilter, '$.ReferenceTableId') AS int)
+                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_IsAutoIncrement bit = CAST(JSON_QUERY(@RecordFilter, '$.IsAutoIncrement') AS bit)
+                ,@W_IsRequired bit = CAST(JSON_QUERY(@RecordFilter, '$.IsRequired') AS bit)
+                ,@W_IsListable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsListable') AS bit)
+                ,@W_IsFilterable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsFilterable') AS bit)
+                ,@W_IsEditable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsEditable') AS bit)
+                ,@W_IsGridable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsGridable') AS bit)
+                ,@W_IsEncrypted bit = CAST(JSON_QUERY(@RecordFilter, '$.IsEncrypted') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -20068,27 +20211,27 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
         IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de ReferenceTableId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DomainId') AS int) AS [DomainId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ReferenceTableId') AS int) AS [ReferenceTableId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Title') AS nvarchar(25)) AS [Title]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Caption') AS nvarchar(25)) AS [Caption]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ValidValues') AS nvarchar(MAX)) AS [ValidValues]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Default') AS nvarchar(MAX)) AS [Default]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsPrimarykey') AS bit) AS [IsPrimarykey]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsAutoIncrement') AS bit) AS [IsAutoIncrement]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsRequired') AS bit) AS [IsRequired]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsListable') AS bit) AS [IsListable]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsFilterable') AS bit) AS [IsFilterable]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.TableId') AS int) AS [TableId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST(JSON_QUERY([ActualRecord], '$.DomainId') AS int) AS [DomainId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.ReferenceTableId') AS int) AS [ReferenceTableId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Title') AS nvarchar(25)) AS [Title]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Caption') AS nvarchar(25)) AS [Caption]
+              ,CAST(JSON_QUERY([ActualRecord], '$.ValidValues') AS nvarchar(MAX)) AS [ValidValues]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Default') AS nvarchar(MAX)) AS [Default]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsPrimarykey') AS bit) AS [IsPrimarykey]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsAutoIncrement') AS bit) AS [IsAutoIncrement]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsRequired') AS bit) AS [IsRequired]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsListable') AS bit) AS [IsListable]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsFilterable') AS bit) AS [IsFilterable]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -20669,22 +20812,33 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Indexes'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Indexes') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
-                ,@W_Name nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(50))
-                ,@W_IsUnique bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsUnique') AS bit)
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_TableId int = CAST(JSON_QUERY(@RecordFilter, '$.TableId') AS int)
+                ,@W_Name nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(50))
+                ,@W_IsUnique bit = CAST(JSON_QUERY(@RecordFilter, '$.IsUnique') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -20695,11 +20849,11 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
         IF @W_TableId IS NOT NULL AND @W_TableId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de TableId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.TableId') AS int) AS [TableId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -20712,7 +20866,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
               ,[C].[Name]
               ,[C].[IsUnique]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Indexes] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[TableId] = ISNULL(@W_TableId, [C].[TableId])
@@ -21218,22 +21372,33 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Indexkeys'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Indexkeys') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_IndexId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IndexId') AS int)
-                ,@W_ColumnId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.ColumnId') AS int)
-                ,@W_IsDescending bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsDescending') AS bit)
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_IndexId int = CAST(JSON_QUERY(@RecordFilter, '$.IndexId') AS int)
+                ,@W_ColumnId int = CAST(JSON_QUERY(@RecordFilter, '$.ColumnId') AS int)
+                ,@W_IsDescending bit = CAST(JSON_QUERY(@RecordFilter, '$.IsDescending') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -21248,11 +21413,11 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
         IF @W_ColumnId IS NOT NULL AND @W_ColumnId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de ColumnId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IndexId') AS int) AS [IndexId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ColumnId') AS int) AS [ColumnId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsDescending') AS bit) AS [IsDescending]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IndexId') AS int) AS [IndexId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST(JSON_QUERY([ActualRecord], '$.ColumnId') AS int) AS [ColumnId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsDescending') AS bit) AS [IsDescending]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -21265,7 +21430,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
               ,[C].[ColumnId]
               ,[C].[IsDescending]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Indexkeys] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[IndexId] = ISNULL(@W_IndexId, [C].[IndexId])
@@ -21747,22 +21912,33 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
             SET @OrderBy = '[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT [value]
-                        FROM STRING_SPLIT(@OrderBy, ',')
-                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]
-                        FROM [INFORMATION_SCHEMA].[COLUMNS]
-                        WHERE [TABLE_NAME] = 'Logins'
-                        ORDER BY [ORDINAL_POSITION]
-                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]
+                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]
+                                                    WHERE [TABLE_NAME] = 'Logins') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
+                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                         ELSE '[ASC]'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-                ,@W_SystemId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
-                ,@W_UserId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.UserId') AS int)
-                ,@W_IsLogged bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsLogged') AS bit)
+                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
+                ,@W_SystemId int = CAST(JSON_QUERY(@RecordFilter, '$.SystemId') AS int)
+                ,@W_UserId int = CAST(JSON_QUERY(@RecordFilter, '$.UserId') AS int)
+                ,@W_IsLogged bit = CAST(JSON_QUERY(@RecordFilter, '$.IsLogged') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -21777,11 +21953,11 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
         IF @W_UserId IS NOT NULL AND @W_UserId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de UserId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.UserId') AS int) AS [UserId]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.PublicKey') AS nvarchar(256)) AS [PublicKey]
-              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsLogged') AS bit) AS [IsLogged]
+              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST(JSON_QUERY([ActualRecord], '$.SystemId') AS int) AS [SystemId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.UserId') AS int) AS [UserId]
+              ,CAST(JSON_QUERY([ActualRecord], '$.PublicKey') AS nvarchar(256)) AS [PublicKey]
+              ,CAST(JSON_QUERY([ActualRecord], '$.IsLogged') AS bit) AS [IsLogged]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -21794,7 +21970,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
               ,[C].[PublicKey]
               ,[C].[IsLogged]
             INTO [dbo].[#tmp]
-            FROM [dbo].[Logins] [C]
+            FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
             WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])

@@ -1200,23 +1200,34 @@ namespace CRUDA.Classes
                 result.Append($"            SET @OrderBy = '[Id]'\r\n");
                 result.Append($"        ELSE BEGIN\r\n");
                 result.Append($"            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')\r\n");
-                result.Append($"            IF EXISTS(SELECT [value]\r\n");
-                result.Append($"                        FROM STRING_SPLIT(@OrderBy, ',')\r\n");
-                result.Append($"                        WHERE CHARINDEX(TRIM([value]), STUFF((SELECT ', ' + [COLUMN_NAME]\r\n");
-                result.Append($"                        FROM [INFORMATION_SCHEMA].[COLUMNS]\r\n");
-                result.Append($"                        WHERE [TABLE_NAME] = '{table["Name"]}'\r\n");
-                result.Append($"                        ORDER BY [ORDINAL_POSITION]\r\n");
-                result.Append($"                        FOR XML PATH(''), TYPE).[value]('.', 'VARCHAR(MAX)'), 1, 2, '')) = 0)\r\n");
+                result.Append($"            IF EXISTS(SELECT 1 \r\n");
+                result.Append($"                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)\r\n");
+                result.Append($"                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)\r\n");
+                result.Append($"                                           ELSE TRIM([value])\r\n");
+                result.Append($"                                      END AS [ColumnName]\r\n");
+                result.Append($"                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]\r\n");
+                result.Append($"                                      LEFT JOIN (SELECT [COLUMN_NAME] AS [ColumnName]\r\n");
+                result.Append($"                                                    FROM [INFORMATION_SCHEMA].[COLUMNS]\r\n");
+                result.Append($"                                                    WHERE [TABLE_NAME] = '{table["Name"]}') AS [T] ON [T].[ColumnName] = [O].[ColumnName]\r\n");
+                result.Append($"                         WHERE [T].[ColumnName] IS NULL)\r\n");
                 result.Append($"                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1\r\n");
-                result.Append($"            SELECT @OrderBy = STRING_AGG('[' + TRIM(value) + ']', ', ') FROM STRING_SPLIT(@OrderBy, ',')\r\n");
+                result.Append($"            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)\r\n");
+                result.Append($"                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)\r\n");
+                result.Append($"                                                         ELSE TRIM([value])\r\n");
+                result.Append($"                                                    END) + '] ' + \r\n");
+                result.Append($"                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'\r\n");
+                result.Append($"                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'\r\n");
+                result.Append($"                                                         ELSE '[ASC]'\r\n");
+                result.Append($"                                                    END, ', ')\r\n");
+                result.Append($"                FROM STRING_SPLIT(@OrderBy, ',')\r\n");
                 result.Append($"        END\r\n");
 
                 var filterableColumns = columnRows.FindAll(column => ToBoolean(column["IsFilterable"]));
-                
+
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
                 foreach (var column in filterableColumns)
-                    result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                    result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 foreach (var column in filterableColumns)
                 {
@@ -1235,14 +1246,14 @@ namespace CRUDA.Classes
                 }
 
                 firstTime = true;
-                foreach (var column in columnRows) 
+                foreach (var column in columnRows)
                 {
                     if (firstTime)
                     {
                         result.Append($"        SELECT [Action] AS [_]\r\n");
                         firstTime = false;
                     }
-                    result.Append($"              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
+                    result.Append($"              ,CAST(JSON_QUERY([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
                 result.Append($"            INTO [dbo].[#tmpOperations]\r\n");
                 result.Append($"            FROM [cruda].[Operations]\r\n");
@@ -1276,7 +1287,7 @@ namespace CRUDA.Classes
                         result.Append($"              ,[C].[{column["Name"]}]\r\n");
                 }
                 result.Append($"            INTO [dbo].[#tmp]\r\n");
-                result.Append($"            FROM [dbo].[{table["Name"]}] [C]\r\n");
+                result.Append($"            FROM [dbo].[Columns] [C]\r\n");
                 firstTime = true;
                 foreach (var column in pkColumnRows)
                 {

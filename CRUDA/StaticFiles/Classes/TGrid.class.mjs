@@ -197,16 +197,16 @@ export default class TGrid {
         this.#Table.Columns.filter(column => column.IsGridable)
             .forEach(column => {
                 let th = document.createElement("th"),
-                    columnNameAsc = "[" + column.Name + "] [ASC],",
-                    columnNameDesc = "[" + column.Name + "] [DESC],"
+                    columnNameAsc = "[" + column.Name + "] ASC,",
+                    columnNameDesc = "[" + column.Name + "] DESC,"
 
                 th.Name = column.Name
                 th.Value = this.#OrderBy.includes(columnNameAsc) ? false : this.#OrderBy.includes(columnNameDesc) ? true : null
                 th.innerHTML = column.Title + (th.Value === null ? "" : th.Value ? "&nbsp;\u25BC" : "&nbsp;\u25B2")
                 th.onclick = (event) => {
                     let column = this.#Table.GetColumn(th.Name),
-                        columnNameAsc = "[" + event.target.Name + "] [ASC],",
-                        columnNameDesc = "[" + event.target.Name + "] [DESC],"
+                        columnNameAsc = "[" + event.target.Name + "] ASC,",
+                        columnNameDesc = "[" + event.target.Name + "] DESC,"
 
                     this.#OrderBy = this.#OrderBy.replace(columnNameAsc, "").replace(columnNameDesc, "")
                     if (TConfig.IsEmpty(event.target.Value)) {
@@ -313,7 +313,9 @@ export default class TGrid {
         this.#HTML.RefreshButton.title = `Atualizar página${this.#OrderBy === "" ? "" : ` (${this.#OrderBy.slice(-1)})`}`
         this.#HTML.RefreshButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.RefreshButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
-        this.#HTML.RefreshButton.onclick = () => this.Renderize()
+        this.#HTML.RefreshButton.onclick = () => {
+            this.Renderize()
+        }
         this.#HTML.RefreshButton.title = `Atualizar página${this.#OrderBy === "" ? "" : ` (${this.#OrderBy.slice(0, -1)})`}`
         th.appendChild(this.#HTML.RefreshButton)
 
