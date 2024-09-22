@@ -204,42 +204,34 @@ export default class TGrid {
         this.#Table.Columns.filter(column => column.IsGridable)
             .forEach(column => {
                 let th = document.createElement("th"),
-                    checkbox = document.createElement("input"),
-                    existColumnNameAsc = this.#OrderBy.includes("[" + column.Name + "] [ASC],"),
-                    existColumnNameDesc = this.#OrderBy.includes("[" + column.Name + "] [DESC],")
+                    columnNameAsc = "[" + column.Name + "] [ASC],",
+                    columnNameDesc = "[" + column.Name + "] [DESC],"
 
-                checkbox.type = "checkbox"
-                checkbox.name = column.Name
-                checkbox.indeterminate = !(existColumnNameAsc || existColumnNameDesc)
-                checkbox.Value = checkbox.indeterminate ? null : existColumnNameDesc
-                checkbox.checked = existColumnNameDesc
-                checkbox.title = checkbox.indeterminate ? "ordem nenhuma" : checkbox.checked ? "ordem decrescente" : "ordem crescente"
-                checkbox.onclick = (event) => {
-                    let columnNameAsc = "[" + event.target.name + "] [ASC],",
-                        columnNameDesc = "[" + event.target.name + "] [DESC],"
+                th.Name = column.Name
+                th.Value = this.#OrderBy.includes(columnNameAsc) ? false : this.#OrderBy.includes(columnNameDesc) ? true : null
+                th.innerHTML = column.Title + (th.Value === null ? "" : th.Value ? "&nbsp;\u25BC" : "&nbsp;\u25B2")
+                th.onclick = (event) => {
+                    let column = this.#Table.GetColumn(th.Name),
+                        columnNameAsc = "[" + event.target.Name + "] [ASC],",
+                        columnNameDesc = "[" + event.target.Name + "] [DESC],"
 
                     this.#OrderBy = this.#OrderBy.replace(columnNameAsc, "").replace(columnNameDesc, "")
                     if (TConfig.IsEmpty(event.target.Value)) {
                         this.#OrderBy += columnNameAsc
-                        event.target.indeterminate = event.target.checked = event.target.Value = false
-                        checkbox.title = "ordem crescente"
+                        event.target.Value = false
+                        event.target.innerHTML = `${column.Title}&nbsp;\u25B2` 
                     }
                     else if (event.target.Value === false) {
                         this.#OrderBy += columnNameDesc
-                        event.target.indeterminate = false
-                        event.target.checked = event.target.Value = true
-                        event.target.title = "ordem decrescente"
+                        event.target.Value = true
+                        event.target.innerHTML = `${column.Title}&nbsp;\u25BC`
                     }
                     else {
-                        event.target.indeterminate = true
-                        event.target.checked = false
                         event.target.Value = null
-                        event.target.title = "ordem nenhuma"
+                        event.target.innerHTML = column.Title
                     }
                     this.#HTML.RefreshButton.title = `Atualizar página${this.#OrderBy === "" ? "" : ` (${this.#OrderBy.slice(0, -1)})`}`
                 }
-                th.innerHTML = column.Title + "&nbsp;"
-                th.appendChild(checkbox)
                 tr.appendChild(th)
                 //if (column.ReferenceTableId && !this.#ReferenceRecordsets[column.ReferenceTableId])
                 //   this.#ReferenceRecordsets[column.ReferenceTableId] = TSystem.GetTable(column.ReferenceTableId).ListTableRows()
@@ -329,6 +321,7 @@ export default class TGrid {
         this.#HTML.RefreshButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.RefreshButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.RefreshButton.onclick = () => this.Renderize()
+        this.#HTML.RefreshButton.title = `Atualizar página${this.#OrderBy === "" ? "" : ` (${this.#OrderBy.slice(0, -1)})`}`
         th.appendChild(this.#HTML.RefreshButton)
 
         this.#HTML.CreateButton = document.createElement("button")

@@ -82,6 +82,12 @@
     background-size: 100% 100%;
     margin: 0.5vmin 2.5vmin;
 }
+.grid thead th:hover {
+    background: var(--background-color);
+}
+.grid thead th:active {
+    background: var(--background-color-active);
+}
 
 .grid th button:hover {
     background: var(--background-color-control);
