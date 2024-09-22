@@ -310,7 +310,6 @@ export default class TGrid {
         this.#HTML.RefreshButton = document.createElement("button")
         this.#HTML.RefreshButton.type = "button"
         this.#HTML.RefreshButton.style.backgroundImage = TGrid.#Images.Refresh
-        this.#HTML.RefreshButton.title = `Atualizar página${this.#OrderBy === "" ? "" : ` (${this.#OrderBy.slice(-1)})`}`
         this.#HTML.RefreshButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.RefreshButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.RefreshButton.onclick = () => {
