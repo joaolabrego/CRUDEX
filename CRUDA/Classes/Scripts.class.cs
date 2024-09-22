@@ -1272,7 +1272,7 @@ namespace CRUDA.Classes
                         result.Append($"              ,[C].[{column["Name"]}]\r\n");
                 }
                 result.Append($"            INTO [dbo].[#tmp]\r\n");
-                result.Append($"            FROM [dbo].[Columns] [C]\r\n");
+                result.Append($"            FROM [dbo].[{table["Name"]}] [C]\r\n");
                 firstTime = true;
                 foreach (var column in pkColumnRows)
                 {

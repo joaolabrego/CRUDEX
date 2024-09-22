@@ -79,16 +79,20 @@ export default class TForm {
         control.title = isEmptyValue ? 'nulo' : control.checked ? "sim" : "não"
         control.indeterminate = isEmptyValue
         control.onclick = (event) => {
-            let isEmptyValue = TConfig.IsEmpty()
+            let isEmptyValue = TConfig.IsEmpty(this.#Record[column.Name])
 
             if (event.target.readOnly)
                 return false
-            if (isEmptyValue)
+            if (isEmptyValue) {
                 this.#Record[column.Name] = false
-            else if (value === false)
+                isEmptyValue = false
+            }
+            else if (this.#Record[column.Name] === false)
                 this.#Record[column.Name] = true
-            else
+            else {
                 this.#Record[column.Name] = null
+                isEmptyValue = true
+            }
             event.target.indeterminate = isEmptyValue
             event.target.checked = event.target.value = this.#Record[column.Name]
             event.target.title = event.target.indeterminate ? "nulo" : event.target.checked ? "sim" : "não"
@@ -107,7 +111,7 @@ export default class TForm {
     #GetNumberInput(column) {
         let control = document.createElement("input")
 
-        control.type = column.Domain.Type.HtmlInputType
+        control.type = column.Domain.Type.Category.HtmlInputType
         control.min = column.Domain.Minimum
         control.max = column.Domain.Maximum
         control.step = 1 / 10 ** (column.Domain.Decimals || 0)
@@ -162,13 +166,19 @@ export default class TForm {
         let columns = this.#Grid.Table.Columns
 
         this.#Record = {}
+        debugger
         switch (this.#Action) {
             case TActions.CREATE:
+                columns = columns.filter(column => column.IsEditable)
                 columns.forEach(column => this.#Record[column.Name] = null)
                 break
             case TActions.FILTER:
                 columns = columns.filter(column => column.IsFilterable)
                 columns.forEach(column => this.#Record[column.Name] = this.#Grid.FilterValues[column.Name])
+                break
+            case TActions.UPDATE:
+                columns = columns.filter(column => column.IsEditable)
+                await this.#ReadRecord().then(record => this.#Record = record)
                 break
             default:
                 await this.#ReadRecord().then(record => this.#Record = record)
