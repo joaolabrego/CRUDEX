@@ -166,7 +166,6 @@ export default class TForm {
         let columns = this.#Grid.Table.Columns
 
         this.#Record = {}
-        debugger
         switch (this.#Action) {
             case TActions.CREATE:
                 columns = columns.filter(column => column.IsEditable)

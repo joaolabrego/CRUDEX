@@ -180,7 +180,7 @@ export default class TSystem {
                 document.location.reload(true)
                 break
             case TActions.EXIT:
-                TScreen.ShowQuestion(`Confirma retornar ao ${newValue[1]}?`, newValue[1], lastValue)
+                TScreen.ShowQuestion(`Confirma retornar ao ${newValue[1]}?`, newValue[1], TActions.NONE)
                 break
             case TActions.NONE:
                 this.#Action = lastValue

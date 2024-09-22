@@ -16,6 +16,7 @@ export default class TGrid {
     #RowNumber = 0
     #Primarykeys = null
     #DataPage = null
+    #OrderBy = ""
 
     #HTML = {
         Container: null,
@@ -25,6 +26,7 @@ export default class TGrid {
         NumberInput: null,
         RangeInput: null,
         CreateButton: null,
+        RefreshButton: null,
         UpdateButton: null,
         DeleteButton: null,
         QueryButton: null,
@@ -41,6 +43,7 @@ export default class TGrid {
         Delete: "",
         Query: "",
         Exit: "",
+        Refresh: "",
     }
     constructor(databaseName, tableName) {
         let database = TSystem.GetDatabase(databaseName)
@@ -81,6 +84,7 @@ export default class TGrid {
         this.#Images.Exit = images.Exit
         this.#Images.Filter = images.Filter
         this.#Images.Insert = images.Insert
+        this.#Images.Refresh = images.Refresh
     }
     #OnChangeInput = (event) => {
         let control = event.target.className === "NumberInput" ? this.#HTML.RangeInput : this.#HTML.NumberInput
@@ -93,7 +97,7 @@ export default class TGrid {
         control.value = event.target.value
         this.Renderize(Number(event.target.value))
     }
-    async #ReadDataPage(pageNumber = this.#PageNumber) {
+    async #ReadDataPage(pageNumber) {
         let recordFilter = {}
 
         this.#Table.Columns.filter(column => column.IsFilterable)
@@ -106,7 +110,7 @@ export default class TGrid {
             InputParams: {
                 LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(recordFilter),
-                OrderBy: null,
+                OrderBy: this.#OrderBy.slice(0, -1),
                 PaddingGridLastPage: TSystem.PaddingGridLastPage,
             },
             OutputParams: {},
@@ -127,9 +131,9 @@ export default class TGrid {
 
         return result.Tables[0]
     }
-    async Renderize(page) {
+    async Renderize(pageNumber = this.#PageNumber) {
         TScreen.Title = `Manutenção de ${this.#Table.Description}`
-        this.#ReadDataPage(page)
+        this.#ReadDataPage(pageNumber)
             .then((data) => {
                 this.#DataPage = data
                 if (this.#RowCount > 1)
@@ -199,9 +203,43 @@ export default class TGrid {
 
         this.#Table.Columns.filter(column => column.IsGridable)
             .forEach(column => {
-                let th = document.createElement("th")
+                let th = document.createElement("th"),
+                    checkbox = document.createElement("input"),
+                    existColumnNameAsc = this.#OrderBy.includes("[" + column.Name + "] [ASC],"),
+                    existColumnNameDesc = this.#OrderBy.includes("[" + column.Name + "] [DESC],")
 
-                th.innerText = column.Title
+                checkbox.type = "checkbox"
+                checkbox.name = column.Name
+                checkbox.indeterminate = !(existColumnNameAsc || existColumnNameDesc)
+                checkbox.Value = checkbox.indeterminate ? null : existColumnNameDesc
+                checkbox.checked = existColumnNameDesc
+                checkbox.title = checkbox.indeterminate ? "ordem nenhuma" : checkbox.checked ? "ordem decrescente" : "ordem crescente"
+                checkbox.onclick = (event) => {
+                    let columnNameAsc = "[" + event.target.name + "] [ASC],",
+                        columnNameDesc = "[" + event.target.name + "] [DESC],"
+
+                    this.#OrderBy = this.#OrderBy.replace(columnNameAsc, "").replace(columnNameDesc, "")
+                    if (TConfig.IsEmpty(event.target.Value)) {
+                        this.#OrderBy += columnNameAsc
+                        event.target.indeterminate = event.target.checked = event.target.Value = false
+                        checkbox.title = "ordem crescente"
+                    }
+                    else if (event.target.Value === false) {
+                        this.#OrderBy += columnNameDesc
+                        event.target.indeterminate = false
+                        event.target.checked = event.target.Value = true
+                        event.target.title = "ordem decrescente"
+                    }
+                    else {
+                        event.target.indeterminate = true
+                        event.target.checked = false
+                        event.target.Value = null
+                        event.target.title = "ordem nenhuma"
+                    }
+                    this.#HTML.RefreshButton.title = `Atualizar página${this.#OrderBy === "" ? "" : ` (${this.#OrderBy.slice(0, -1)})`}`
+                }
+                th.innerHTML = column.Title + "&nbsp;"
+                th.appendChild(checkbox)
                 tr.appendChild(th)
                 //if (column.ReferenceTableId && !this.#ReferenceRecordsets[column.ReferenceTableId])
                 //   this.#ReferenceRecordsets[column.ReferenceTableId] = TSystem.GetTable(column.ReferenceTableId).ListTableRows()
@@ -284,9 +322,16 @@ export default class TGrid {
 
             th.appendChild(this.#HTML.RangeInput)
         }
+        this.#HTML.RefreshButton = document.createElement("button")
+        this.#HTML.RefreshButton.type = "button"
+        this.#HTML.RefreshButton.style.backgroundImage = TGrid.#Images.Refresh
+        this.#HTML.RefreshButton.title = `Atualizar página${this.#OrderBy === "" ? "" : ` (${this.#OrderBy.slice(-1)})`}`
+        this.#HTML.RefreshButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
+        this.#HTML.RefreshButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
+        this.#HTML.RefreshButton.onclick = () => this.Renderize()
+        th.appendChild(this.#HTML.RefreshButton)
 
         this.#HTML.CreateButton = document.createElement("button")
-
         this.#HTML.CreateButton.type = "button"
         this.#HTML.CreateButton.style.backgroundImage = TGrid.#Images.Insert
         this.#HTML.CreateButton.title = "Incluir registro"

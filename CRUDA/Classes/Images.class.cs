@@ -8,6 +8,7 @@
         public readonly string Alert;
         public readonly string Error;
         public readonly string Insert;
+        public readonly string Refresh;
         public readonly string Edit;
         public readonly string Filter;
         public readonly string Delete;
@@ -24,6 +25,7 @@
             Alert = ReadImageFile(Path.Combine(directory, $"{Settings.Get("ALERT_IMAGE")}"));
             Error = ReadImageFile(Path.Combine(directory, $"{Settings.Get("ERROR_IMAGE")}"));
             Insert = ReadImageFile(Path.Combine(directory, $"{Settings.Get("INSERT_IMAGE")}"), true);
+            Refresh = ReadImageFile(Path.Combine(directory, $"{Settings.Get("REFRESH_IMAGE")}"), true);
             Edit = ReadImageFile(Path.Combine(directory, $"{Settings.Get("EDIT_IMAGE")}"), true);
             Filter = ReadImageFile(Path.Combine(directory, $"{Settings.Get("FILTER_IMAGE")}"), true);
             Delete = ReadImageFile(Path.Combine(directory, $"{Settings.Get("DELETE_IMAGE")}"), true);
