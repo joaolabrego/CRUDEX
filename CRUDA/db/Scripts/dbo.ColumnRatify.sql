@@ -59,32 +59,32 @@ ALTER PROCEDURE[dbo].[ColumnRatify](@LoginId INT
 			THROW 51000, @ErrorMessage, 1
 		END
 
-		DECLARE @W_Id int = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS int)
+		DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
 		IF @Action = 'delete'
 			DELETE FROM [dbo].[Columns] WHERE [Id] = @W_Id
 		ELSE BEGIN
 
-			DECLARE @W_TableId int = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS int)
-					,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
-					,@W_DomainId int = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS int)
-					,@W_ReferenceTableId int = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS int)
-					,@W_Name varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS varchar(25))
-					,@W_Description varchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS varchar(50))
-					,@W_Title varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS varchar(25))
-					,@W_Caption varchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS varchar(25))
-					,@W_Default sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS sql_variant)
-					,@W_Minimum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS sql_variant)
-					,@W_Maximum sql_variant = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS sql_variant)
-					,@W_IsPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPrimarykey') AS bit)
-					,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@ActualRecord, '$.IsAutoIncrement') AS bit)
-					,@W_IsRequired bit = CAST(JSON_VALUE(@ActualRecord, '$.IsRequired') AS bit)
-					,@W_IsListable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit)
-					,@W_IsFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit)
-					,@W_IsEditable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit)
-					,@W_IsGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsGridable') AS bit)
-					,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
-					,@W_IsCalculated bit = CAST(JSON_VALUE(@ActualRecord, '$.IsCalculated') AS bit)
+			DECLARE @W_TableId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS int)
+					,@W_Sequence smallint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
+					,@W_DomainId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.DomainId') AS int)
+					,@W_ReferenceTableId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId') AS int)
+					,@W_Name varchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS varchar(25))
+					,@W_Description varchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS varchar(50))
+					,@W_Title varchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Title') AS varchar(25))
+					,@W_Caption varchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Caption') AS varchar(25))
+					,@W_Default sql_variant = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Default') AS sql_variant)
+					,@W_Minimum sql_variant = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS sql_variant)
+					,@W_Maximum sql_variant = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS sql_variant)
+					,@W_IsPrimarykey bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsPrimarykey') AS bit)
+					,@W_IsAutoIncrement bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsAutoIncrement') AS bit)
+					,@W_IsRequired bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsRequired') AS bit)
+					,@W_IsListable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsListable') AS bit)
+					,@W_IsFilterable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsFilterable') AS bit)
+					,@W_IsEditable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsEditable') AS bit)
+					,@W_IsGridable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsGridable') AS bit)
+					,@W_IsEncrypted bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted') AS bit)
+					,@W_IsCalculated bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsCalculated') AS bit)
 
 			IF @Action = 'create'
 				INSERT INTO [dbo].[Columns] ([Id]

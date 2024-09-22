@@ -37,18 +37,18 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
 		END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS int)
-                ,@W_TableId int = CAST(JSON_VALUE(@RecordFilter, '$.TableId') AS int)
-                ,@W_DomainId int = CAST(JSON_VALUE(@RecordFilter, '$.DomainId') AS int)
-                ,@W_ReferenceTableId int = CAST(JSON_VALUE(@RecordFilter, '$.ReferenceTableId') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@RecordFilter, '$.IsAutoIncrement') AS bit)
-                ,@W_IsRequired bit = CAST(JSON_VALUE(@RecordFilter, '$.IsRequired') AS bit)
-                ,@W_IsListable bit = CAST(JSON_VALUE(@RecordFilter, '$.IsListable') AS bit)
-                ,@W_IsFilterable bit = CAST(JSON_VALUE(@RecordFilter, '$.IsFilterable') AS bit)
-                ,@W_IsEditable bit = CAST(JSON_VALUE(@RecordFilter, '$.IsEditable') AS bit)
-                ,@W_IsGridable bit = CAST(JSON_VALUE(@RecordFilter, '$.IsGridable') AS bit)
-                ,@W_IsEncrypted bit = CAST(JSON_VALUE(@RecordFilter, '$.IsEncrypted') AS bit)
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
+                ,@W_DomainId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.DomainId') AS int)
+                ,@W_ReferenceTableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.ReferenceTableId') AS int)
+                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_IsAutoIncrement bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsAutoIncrement') AS bit)
+                ,@W_IsRequired bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsRequired') AS bit)
+                ,@W_IsListable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsListable') AS bit)
+                ,@W_IsFilterable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsFilterable') AS bit)
+                ,@W_IsEditable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsEditable') AS bit)
+                ,@W_IsGridable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsGridable') AS bit)
+                ,@W_IsEncrypted bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsEncrypted') AS bit)
 
 		IF @W_Id IS NOT NULL BEGIN
 			IF @W_Id < CAST('1' AS bigint)
@@ -74,27 +74,27 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
 			IF @W_ReferenceTableId > CAST('9007199254740990' AS bigint)
 				THROW 51000, 'Valor de @ReferenceTableId deve ser menor que ou igual à ''9007199254740990''.', 1
 		END
-        SELECT CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.TableId') AS int) AS [TableId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST(JSON_QUERY([ActualRecord], '$.DomainId') AS int) AS [DomainId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.ReferenceTableId') AS int) AS [ReferenceTableId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Title') AS nvarchar(25)) AS [Title]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Caption') AS nvarchar(25)) AS [Caption]
-              ,CAST(JSON_QUERY([ActualRecord], '$.ValidValues') AS nvarchar(MAX)) AS [ValidValues]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Default') AS nvarchar(MAX)) AS [Default]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsPrimarykey') AS bit) AS [IsPrimarykey]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsAutoIncrement') AS bit) AS [IsAutoIncrement]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsRequired') AS bit) AS [IsRequired]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsListable') AS bit) AS [IsListable]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsFilterable') AS bit) AS [IsFilterable]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
+        SELECT CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DomainId') AS int) AS [DomainId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ReferenceTableId') AS int) AS [ReferenceTableId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Title') AS nvarchar(25)) AS [Title]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Caption') AS nvarchar(25)) AS [Caption]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ValidValues') AS nvarchar(MAX)) AS [ValidValues]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Default') AS nvarchar(MAX)) AS [Default]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsPrimarykey') AS bit) AS [IsPrimarykey]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsAutoIncrement') AS bit) AS [IsAutoIncrement]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsRequired') AS bit) AS [IsRequired]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsListable') AS bit) AS [IsListable]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsFilterable') AS bit) AS [IsFilterable]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
 			  ,[Action] AS [_]
 		   INTO [dbo].[#tmpOperations]
            FROM [cruda].[Operations]

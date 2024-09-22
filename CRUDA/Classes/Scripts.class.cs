@@ -290,6 +290,10 @@ namespace CRUDA.Classes
             result.Append($"**********************************************************************************/\r\n");
             result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.IsEquals.sql")));
             result.Append($"/**********************************************************************************\r\n");
+            result.Append($"Criar stored procedure [cruda].[JSON_EXTRACT]\r\n");
+            result.Append($"**********************************************************************************/\r\n");
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.JSON_EXTRACT.sql")));
+            result.Append($"/**********************************************************************************\r\n");
             result.Append($"Criar tabela [cruda].[Transactions]\r\n");
             result.Append($"**********************************************************************************/\r\n");
             result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.TransactionsCreateTable.sql")));
@@ -552,11 +556,11 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
                 firstTime = true;
@@ -574,7 +578,7 @@ namespace CRUDA.Classes
                         result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
                                         firstTime = false;
                     }
-                    result.Append($"                  AND CAST(JSON_QUERY([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = @W_{column["Name"]}\r\n");
+                    result.Append($"                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = @W_{column["Name"]}\r\n");
                 }
                 result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
                 result.Append($"            INSERT INTO [cruda].[Operations] ([TransactionId]\r\n");
@@ -731,11 +735,11 @@ namespace CRUDA.Classes
                     {
                         if (firstTime)
                         {
-                            result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                             firstTime = false;
                         }
                         else
-                            result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                     }
                     result.Append($"\r\n");
                     firstTime = true;
@@ -763,11 +767,11 @@ namespace CRUDA.Classes
                         {
                             result.Append($"        ELSE BEGIN\r\n");
                             result.Append($"\r\n");
-                            result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                             firstTime = false;
                         }
                         else
-                            result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                     }
                     result.Append($"\r\n");
                 }
@@ -910,7 +914,7 @@ namespace CRUDA.Classes
                         result.Append($"            IF @Action = 'update'\r\n");
                         firstTime = false;
                     }
-                    result.Append($"                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.{column["Name"]}'), JSON_QUERY(@LastRecord, '$.{column["Name"]}'), '{column["#DataType"]}') = 1\r\n");
+                    result.Append($"                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}'), [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#DataType"]}') = 1\r\n");
                 }
                 result.Append($"                RETURN 0\r\n");
                 firstTime = true;
@@ -929,9 +933,9 @@ namespace CRUDA.Classes
                         result.Append($"                                  AND ");
                     }
                     if (ToBoolean(column["IsRequired"]))
-                        result.Append($"[{column["Name"]}] = JSON_QUERY(@LastRecord, '$.{column["Name"]}')");
+                        result.Append($"[{column["Name"]}] = [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}')");
                     else
-                        result.Append($"[cruda].[IsEquals]([{column["Name"]}], JSON_QUERY(@LastRecord, '$.{column["Name"]}'), '{column["#DataType"]}') = 1");
+                        result.Append($"[cruda].[IsEquals]([{column["Name"]}], [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#DataType"]}') = 1");
                 }
                 result.Append($") BEGIN\r\n");
                 result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Registro de {table["Name"]} alterado por outro usuário';\r\n");
@@ -969,11 +973,11 @@ namespace CRUDA.Classes
                     if (firstTime)
                     {
                         result.Append($"\r\n");
-                        result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"               ,W_{column["Name"]} AS {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"               ,W_{column["Name"]} AS {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
                 foreach (var column in pkColumnRows)
@@ -1048,11 +1052,11 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
                 foreach (var column in nopkColumnRows)
@@ -1212,7 +1216,7 @@ namespace CRUDA.Classes
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
                 foreach (var column in filterableColumns)
-                    result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_QUERY(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                    result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 foreach (var column in filterableColumns)
                 {
@@ -1238,7 +1242,7 @@ namespace CRUDA.Classes
                         result.Append($"        SELECT [Action] AS [_]\r\n");
                         firstTime = false;
                     }
-                    result.Append($"              ,CAST(JSON_QUERY([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
+                    result.Append($"              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
                 result.Append($"            INTO [dbo].[#tmpOperations]\r\n");
                 result.Append($"            FROM [cruda].[Operations]\r\n");

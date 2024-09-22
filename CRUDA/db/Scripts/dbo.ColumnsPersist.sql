@@ -25,7 +25,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId BIGINT
 		IF @TransactionId = 0
 			GOTO EXIT_PROCEDURE
 
-		DECLARE @W_Id BIGINT = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint) 
+		DECLARE @W_Id BIGINT = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint) 
 
 		SELECT @OperationId = [OperationId]
 				,@CreatedBy = [CreatedBy]
@@ -35,7 +35,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId BIGINT
 			WHERE [LoginId] = @LoginId
 					AND [TableName] = 'Columns'
 					AND [IsConfirmed] IS NULL
-					AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+					AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
 		IF @@ROWCOUNT = 0 BEGIN
 			INSERT INTO [cruda].[Operations] ([TransactionId]
 											  ,[TableName]

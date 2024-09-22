@@ -14,7 +14,6 @@ export default class TGrid {
     #PageNumber = 1
     #PageCount = 0
     #RowNumber = 0
-    #Primarykeys = null
     #DataPage = null
     #OrderBy = ""
 
@@ -127,7 +126,7 @@ export default class TGrid {
         this.#PageNumber = result.Parameters.PageNumber
         this.#PageCount = result.Parameters.MaxPage
         if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
-            this.#SetRowNumber(result.Parameters.ReturnValue - 1)
+            this.#RowNumber = tr.rowIndex - 1
 
         return result.Tables[0]
     }
@@ -192,12 +191,6 @@ export default class TGrid {
 
         return control
     }
-    #SetRowNumber(rowNumber) {
-        this.#RowNumber = rowNumber
-        this.#Primarykeys = {}
-        this.#Table.Columns.filter(column => column.IsPrimarykey)
-            .forEach(column => this.#Primarykeys[column.Name] = this.#DataPage[rowNumber][column.Name])
-    }
     #BuildHtmlHead() {
         let tr = document.createElement("tr")
 
@@ -247,7 +240,7 @@ export default class TGrid {
 
             tr.title = JSON.stringify(row).replace(/,/g, ",\n")
             tr.onclick = (event) => {
-                this.#SetRowNumber(tr.rowIndex - 1)
+                this.#RowNumber = tr.rowIndex - 1
                 if (this.#HTML.SelectedRow)
                     this.#HTML.SelectedRow.removeAttribute("style")
                 this.#HTML.SelectedRow = event.currentTarget
@@ -427,6 +420,11 @@ export default class TGrid {
      * @param {number} rowNumber
      */
     get Primarykeys() {
-        return this.#Primarykeys
+        let primarykeys = {}
+
+        this.#Table.Columns.filter(column => column.IsPrimarykey)
+            .forEach(column => primarykeys[column.Name] = this.#DataPage[this.#RowNumber][column.Name])
+
+        return primarykeys
     }
 }

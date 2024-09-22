@@ -465,12 +465,12 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 			THROW 51000, @ErrorMessage, 1
 		END
 	
-		DECLARE	@Action VARCHAR(15) = CAST(JSON_VALUE(@Parameters, '$.Action') AS VARCHAR(15))
-				,@LoginId BIGINT = CAST(JSON_VALUE(@Parameters, '$.LoginId') AS BIGINT)
-				,@SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
-				,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.UserName') AS VARCHAR(25))
-				,@Password VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.Password') AS VARCHAR(256))
-				,@PublicKey VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.PublicKey') AS VARCHAR(256))
+		DECLARE	@Action VARCHAR(15) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.Action') AS VARCHAR(15))
+				,@LoginId BIGINT = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.LoginId') AS BIGINT)
+				,@SystemName VARCHAR(25) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.SystemName') AS VARCHAR(25))
+				,@UserName VARCHAR(25) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.UserName') AS VARCHAR(25))
+				,@Password VARCHAR(256) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.Password') AS VARCHAR(256))
+				,@PublicKey VARCHAR(256) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.PublicKey') AS VARCHAR(256))
 				,@PasswordAux VARCHAR(256)
 				,@SystemId BIGINT
 				,@SystemIdAux BIGINT
@@ -1018,6 +1018,26 @@ BEGIN
 
     -- Compara��o final como VARBINARY(MAX) (fallback)
     RETURN CASE WHEN TRY_CAST(@LeftValue AS VARBINARY(MAX)) = TRY_CAST(@RightValue AS VARBINARY(MAX)) THEN 1 ELSE 0 END;
+END
+GO
+/**********************************************************************************
+Criar stored procedure [cruda].[JSON_EXTRACT]
+**********************************************************************************/
+IF (SELECT object_id('[cruda].[JSON_EXTRACT]', 'FN')) IS NULL
+    EXEC('CREATE FUNCTION [cruda].[JSON_EXTRACT]() RETURNS NVARCHAR(MAX) AS BEGIN RETURN '''' END')
+GO
+ALTER FUNCTION [cruda].[JSON_EXTRACT](@json NVARCHAR(MAX),
+                                              @propertyPath NVARCHAR(MAX))
+RETURNS NVARCHAR(MAX) AS
+BEGIN
+    DECLARE @result NVARCHAR(MAX);
+
+    SET @result = JSON_QUERY(@json, @propertyPath);
+
+    IF @result IS NULL
+        SET @result = JSON_VALUE(@json, @propertyPath);
+
+    RETURN @result;
 END
 GO
 /**********************************************************************************
@@ -12731,29 +12751,29 @@ ALTER PROCEDURE[dbo].[CategoryValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'tinyint') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Name'), JSON_QUERY(@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.HtmlInputType'), JSON_QUERY(@LastRecord, '$.HtmlInputType'), 'nvarchar(10)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.HtmlInputAlign'), JSON_QUERY(@LastRecord, '$.HtmlInputAlign'), 'nvarchar(6)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskEncrypted'), JSON_QUERY(@LastRecord, '$.AskEncrypted'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskMask'), JSON_QUERY(@LastRecord, '$.AskMask'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskListable'), JSON_QUERY(@LastRecord, '$.AskListable'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskDefault'), JSON_QUERY(@LastRecord, '$.AskDefault'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskMinimum'), JSON_QUERY(@LastRecord, '$.AskMinimum'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskMaximum'), JSON_QUERY(@LastRecord, '$.AskMaximum'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'tinyint') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputType'), [cruda].[JSON_EXTRACT](@LastRecord, '$.HtmlInputType'), 'nvarchar(10)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputAlign'), [cruda].[JSON_EXTRACT](@LastRecord, '$.HtmlInputAlign'), 'nvarchar(6)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskEncrypted'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskEncrypted'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskMask'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskMask'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskListable'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskListable'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskDefault'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskDefault'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskMinimum'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskMaximum'), 'bit') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Categories]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [Name] = JSON_QUERY(@LastRecord, '$.Name')
-                                  AND [cruda].[IsEquals]([HtmlInputType], JSON_QUERY(@LastRecord, '$.HtmlInputType'), 'nvarchar(10)') = 1
-                                  AND [cruda].[IsEquals]([HtmlInputAlign], JSON_QUERY(@LastRecord, '$.HtmlInputAlign'), 'nvarchar(6)') = 1
-                                  AND [AskEncrypted] = JSON_QUERY(@LastRecord, '$.AskEncrypted')
-                                  AND [AskMask] = JSON_QUERY(@LastRecord, '$.AskMask')
-                                  AND [AskListable] = JSON_QUERY(@LastRecord, '$.AskListable')
-                                  AND [AskDefault] = JSON_QUERY(@LastRecord, '$.AskDefault')
-                                  AND [AskMinimum] = JSON_QUERY(@LastRecord, '$.AskMinimum')
-                                  AND [AskMaximum] = JSON_QUERY(@LastRecord, '$.AskMaximum')) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [cruda].[IsEquals]([HtmlInputType], [cruda].[JSON_EXTRACT](@LastRecord, '$.HtmlInputType'), 'nvarchar(10)') = 1
+                                  AND [cruda].[IsEquals]([HtmlInputAlign], [cruda].[JSON_EXTRACT](@LastRecord, '$.HtmlInputAlign'), 'nvarchar(6)') = 1
+                                  AND [AskEncrypted] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskEncrypted')
+                                  AND [AskMask] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskMask')
+                                  AND [AskListable] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskListable')
+                                  AND [AskDefault] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskDefault')
+                                  AND [AskMinimum] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskMinimum')
+                                  AND [AskMaximum] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskMaximum')) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Categories alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -12781,7 +12801,7 @@ ALTER PROCEDURE[dbo].[CategoryValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id tinyint = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS tinyint)
+        DECLARE @W_Id tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -12811,15 +12831,15 @@ ALTER PROCEDURE[dbo].[CategoryValidate](@LoginId INT
             END
         END ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_HtmlInputType nvarchar(10) = CAST(JSON_QUERY(@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
-                   ,@W_HtmlInputAlign nvarchar(6) = CAST(JSON_QUERY(@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
-                   ,@W_AskEncrypted bit = CAST(JSON_QUERY(@ActualRecord, '$.AskEncrypted') AS bit)
-                   ,@W_AskMask bit = CAST(JSON_QUERY(@ActualRecord, '$.AskMask') AS bit)
-                   ,@W_AskListable bit = CAST(JSON_QUERY(@ActualRecord, '$.AskListable') AS bit)
-                   ,@W_AskDefault bit = CAST(JSON_QUERY(@ActualRecord, '$.AskDefault') AS bit)
-                   ,@W_AskMinimum bit = CAST(JSON_QUERY(@ActualRecord, '$.AskMinimum') AS bit)
-                   ,@W_AskMaximum bit = CAST(JSON_QUERY(@ActualRecord, '$.AskMaximum') AS bit)
+            DECLARE @W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_HtmlInputType nvarchar(10) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
+                   ,@W_HtmlInputAlign nvarchar(6) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
+                   ,@W_AskEncrypted bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskEncrypted') AS bit)
+                   ,@W_AskMask bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskMask') AS bit)
+                   ,@W_AskListable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskListable') AS bit)
+                   ,@W_AskDefault bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskDefault') AS bit)
+                   ,@W_AskMinimum bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum') AS bit)
+                   ,@W_AskMaximum bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum') AS bit)
 
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Name] = @W_Name) BEGIN
@@ -12869,7 +12889,7 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id tinyint = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS tinyint)
+        DECLARE @W_Id tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -12879,7 +12899,7 @@ ALTER PROCEDURE[dbo].[CategoryPersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS tinyint) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -13014,21 +13034,21 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id tinyint = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS tinyint)
+        DECLARE @W_Id tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Categories] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_HtmlInputType nvarchar(10) = CAST(JSON_QUERY(@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
-                   ,@W_HtmlInputAlign nvarchar(6) = CAST(JSON_QUERY(@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
-                   ,@W_AskEncrypted bit = CAST(JSON_QUERY(@ActualRecord, '$.AskEncrypted') AS bit)
-                   ,@W_AskMask bit = CAST(JSON_QUERY(@ActualRecord, '$.AskMask') AS bit)
-                   ,@W_AskListable bit = CAST(JSON_QUERY(@ActualRecord, '$.AskListable') AS bit)
-                   ,@W_AskDefault bit = CAST(JSON_QUERY(@ActualRecord, '$.AskDefault') AS bit)
-                   ,@W_AskMinimum bit = CAST(JSON_QUERY(@ActualRecord, '$.AskMinimum') AS bit)
-                   ,@W_AskMaximum bit = CAST(JSON_QUERY(@ActualRecord, '$.AskMaximum') AS bit)
+            DECLARE @W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_HtmlInputType nvarchar(10) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
+                   ,@W_HtmlInputAlign nvarchar(6) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
+                   ,@W_AskEncrypted bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskEncrypted') AS bit)
+                   ,@W_AskMask bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskMask') AS bit)
+                   ,@W_AskListable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskListable') AS bit)
+                   ,@W_AskDefault bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskDefault') AS bit)
+                   ,@W_AskMinimum bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum') AS bit)
+                   ,@W_AskMaximum bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Categories] ([Id]
@@ -13130,30 +13150,30 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id tinyint = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS tinyint)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_AskEncrypted bit = CAST(JSON_QUERY(@RecordFilter, '$.AskEncrypted') AS bit)
-                ,@W_AskMask bit = CAST(JSON_QUERY(@RecordFilter, '$.AskMask') AS bit)
-                ,@W_AskListable bit = CAST(JSON_QUERY(@RecordFilter, '$.AskListable') AS bit)
-                ,@W_AskDefault bit = CAST(JSON_QUERY(@RecordFilter, '$.AskDefault') AS bit)
-                ,@W_AskMinimum bit = CAST(JSON_QUERY(@RecordFilter, '$.AskMinimum') AS bit)
-                ,@W_AskMaximum bit = CAST(JSON_QUERY(@RecordFilter, '$.AskMaximum') AS bit)
+                ,@W_Id tinyint = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS tinyint)
+                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_AskEncrypted bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskEncrypted') AS bit)
+                ,@W_AskMask bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskMask') AS bit)
+                ,@W_AskListable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskListable') AS bit)
+                ,@W_AskDefault bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskDefault') AS bit)
+                ,@W_AskMinimum bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskMinimum') AS bit)
+                ,@W_AskMaximum bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskMaximum') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS tinyint)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('255' AS tinyint)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''255''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS tinyint) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_QUERY([ActualRecord], '$.HtmlInputType') AS nvarchar(10)) AS [HtmlInputType]
-              ,CAST(JSON_QUERY([ActualRecord], '$.HtmlInputAlign') AS nvarchar(6)) AS [HtmlInputAlign]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskEncrypted') AS bit) AS [AskEncrypted]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskMask') AS bit) AS [AskMask]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskListable') AS bit) AS [AskListable]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskDefault') AS bit) AS [AskDefault]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskMinimum') AS bit) AS [AskMinimum]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.HtmlInputType') AS nvarchar(10)) AS [HtmlInputType]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.HtmlInputAlign') AS nvarchar(6)) AS [HtmlInputAlign]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskEncrypted') AS bit) AS [AskEncrypted]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskMask') AS bit) AS [AskMask]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskListable') AS bit) AS [AskListable]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskDefault') AS bit) AS [AskDefault]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskMinimum') AS bit) AS [AskMinimum]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -13313,39 +13333,39 @@ ALTER PROCEDURE[dbo].[TypeValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'tinyint') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.CategoryId'), JSON_QUERY(@LastRecord, '$.CategoryId'), 'tinyint') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Name'), JSON_QUERY(@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Minimum'), JSON_QUERY(@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Maximum'), JSON_QUERY(@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskLength'), JSON_QUERY(@LastRecord, '$.AskLength'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskDecimals'), JSON_QUERY(@LastRecord, '$.AskDecimals'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskPrimarykey'), JSON_QUERY(@LastRecord, '$.AskPrimarykey'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskAutoincrement'), JSON_QUERY(@LastRecord, '$.AskAutoincrement'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskFilterable'), JSON_QUERY(@LastRecord, '$.AskFilterable'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskGridable'), JSON_QUERY(@LastRecord, '$.AskGridable'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskCodification'), JSON_QUERY(@LastRecord, '$.AskCodification'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AskFormula'), JSON_QUERY(@LastRecord, '$.AskFormula'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.AllowMaxLength'), JSON_QUERY(@LastRecord, '$.AllowMaxLength'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsActive'), JSON_QUERY(@LastRecord, '$.IsActive'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'tinyint') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.CategoryId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.CategoryId'), 'tinyint') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskLength'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskLength'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskDecimals'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskDecimals'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskPrimarykey'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskPrimarykey'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskAutoincrement'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskAutoincrement'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskFilterable'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskFilterable'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskGridable'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskGridable'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskCodification'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskCodification'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskFormula'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskFormula'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AllowMaxLength'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AllowMaxLength'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsActive'), 'bit') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Types]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [CategoryId] = JSON_QUERY(@LastRecord, '$.CategoryId')
-                                  AND [Name] = JSON_QUERY(@LastRecord, '$.Name')
-                                  AND [cruda].[IsEquals]([Minimum], JSON_QUERY(@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IsEquals]([Maximum], JSON_QUERY(@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
-                                  AND [AskLength] = JSON_QUERY(@LastRecord, '$.AskLength')
-                                  AND [AskDecimals] = JSON_QUERY(@LastRecord, '$.AskDecimals')
-                                  AND [AskPrimarykey] = JSON_QUERY(@LastRecord, '$.AskPrimarykey')
-                                  AND [AskAutoincrement] = JSON_QUERY(@LastRecord, '$.AskAutoincrement')
-                                  AND [AskFilterable] = JSON_QUERY(@LastRecord, '$.AskFilterable')
-                                  AND [AskGridable] = JSON_QUERY(@LastRecord, '$.AskGridable')
-                                  AND [AskCodification] = JSON_QUERY(@LastRecord, '$.AskCodification')
-                                  AND [AskFormula] = JSON_QUERY(@LastRecord, '$.AskFormula')
-                                  AND [AllowMaxLength] = JSON_QUERY(@LastRecord, '$.AllowMaxLength')
-                                  AND [IsActive] = JSON_QUERY(@LastRecord, '$.IsActive')) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [CategoryId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.CategoryId')
+                                  AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [cruda].[IsEquals]([Minimum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
+                                  AND [cruda].[IsEquals]([Maximum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
+                                  AND [AskLength] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskLength')
+                                  AND [AskDecimals] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskDecimals')
+                                  AND [AskPrimarykey] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskPrimarykey')
+                                  AND [AskAutoincrement] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskAutoincrement')
+                                  AND [AskFilterable] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskFilterable')
+                                  AND [AskGridable] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskGridable')
+                                  AND [AskCodification] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskCodification')
+                                  AND [AskFormula] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskFormula')
+                                  AND [AllowMaxLength] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AllowMaxLength')
+                                  AND [IsActive] = [cruda].[JSON_EXTRACT](@LastRecord, '$.IsActive')) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Types alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -13373,7 +13393,7 @@ ALTER PROCEDURE[dbo].[TypeValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id tinyint = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS tinyint)
+        DECLARE @W_Id tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -13403,20 +13423,20 @@ ALTER PROCEDURE[dbo].[TypeValidate](@LoginId INT
             END
         END ELSE BEGIN
 
-            DECLARE @W_CategoryId tinyint = CAST(JSON_QUERY(@ActualRecord, '$.CategoryId') AS tinyint)
-                   ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Minimum nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Minimum') AS nvarchar(MAX))
-                   ,@W_Maximum nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Maximum') AS nvarchar(MAX))
-                   ,@W_AskLength bit = CAST(JSON_QUERY(@ActualRecord, '$.AskLength') AS bit)
-                   ,@W_AskDecimals bit = CAST(JSON_QUERY(@ActualRecord, '$.AskDecimals') AS bit)
-                   ,@W_AskPrimarykey bit = CAST(JSON_QUERY(@ActualRecord, '$.AskPrimarykey') AS bit)
-                   ,@W_AskAutoincrement bit = CAST(JSON_QUERY(@ActualRecord, '$.AskAutoincrement') AS bit)
-                   ,@W_AskFilterable bit = CAST(JSON_QUERY(@ActualRecord, '$.AskFilterable') AS bit)
-                   ,@W_AskGridable bit = CAST(JSON_QUERY(@ActualRecord, '$.AskGridable') AS bit)
-                   ,@W_AskCodification bit = CAST(JSON_QUERY(@ActualRecord, '$.AskCodification') AS bit)
-                   ,@W_AskFormula bit = CAST(JSON_QUERY(@ActualRecord, '$.AskFormula') AS bit)
-                   ,@W_AllowMaxLength bit = CAST(JSON_QUERY(@ActualRecord, '$.AllowMaxLength') AS bit)
-                   ,@W_IsActive bit = CAST(JSON_QUERY(@ActualRecord, '$.IsActive') AS bit)
+            DECLARE @W_CategoryId tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.CategoryId') AS tinyint)
+                   ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Minimum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(MAX))
+                   ,@W_Maximum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(MAX))
+                   ,@W_AskLength bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskLength') AS bit)
+                   ,@W_AskDecimals bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskDecimals') AS bit)
+                   ,@W_AskPrimarykey bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskPrimarykey') AS bit)
+                   ,@W_AskAutoincrement bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskAutoincrement') AS bit)
+                   ,@W_AskFilterable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskFilterable') AS bit)
+                   ,@W_AskGridable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskGridable') AS bit)
+                   ,@W_AskCodification bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskCodification') AS bit)
+                   ,@W_AskFormula bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskFormula') AS bit)
+                   ,@W_AllowMaxLength bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AllowMaxLength') AS bit)
+                   ,@W_IsActive bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsActive') AS bit)
 
             IF @W_CategoryId IS NOT NULL AND @W_CategoryId < CAST('0' AS tinyint) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de CategoryId em @ActualRecord deve ser maior que ou igual à 0';
@@ -13478,7 +13498,7 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id tinyint = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS tinyint)
+        DECLARE @W_Id tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -13488,7 +13508,7 @@ ALTER PROCEDURE[dbo].[TypePersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS tinyint) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -13623,26 +13643,26 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id tinyint = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS tinyint)
+        DECLARE @W_Id tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Types] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_CategoryId tinyint = CAST(JSON_QUERY(@ActualRecord, '$.CategoryId') AS tinyint)
-                   ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Minimum nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Minimum') AS nvarchar(MAX))
-                   ,@W_Maximum nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Maximum') AS nvarchar(MAX))
-                   ,@W_AskLength bit = CAST(JSON_QUERY(@ActualRecord, '$.AskLength') AS bit)
-                   ,@W_AskDecimals bit = CAST(JSON_QUERY(@ActualRecord, '$.AskDecimals') AS bit)
-                   ,@W_AskPrimarykey bit = CAST(JSON_QUERY(@ActualRecord, '$.AskPrimarykey') AS bit)
-                   ,@W_AskAutoincrement bit = CAST(JSON_QUERY(@ActualRecord, '$.AskAutoincrement') AS bit)
-                   ,@W_AskFilterable bit = CAST(JSON_QUERY(@ActualRecord, '$.AskFilterable') AS bit)
-                   ,@W_AskGridable bit = CAST(JSON_QUERY(@ActualRecord, '$.AskGridable') AS bit)
-                   ,@W_AskCodification bit = CAST(JSON_QUERY(@ActualRecord, '$.AskCodification') AS bit)
-                   ,@W_AskFormula bit = CAST(JSON_QUERY(@ActualRecord, '$.AskFormula') AS bit)
-                   ,@W_AllowMaxLength bit = CAST(JSON_QUERY(@ActualRecord, '$.AllowMaxLength') AS bit)
-                   ,@W_IsActive bit = CAST(JSON_QUERY(@ActualRecord, '$.IsActive') AS bit)
+            DECLARE @W_CategoryId tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.CategoryId') AS tinyint)
+                   ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Minimum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(MAX))
+                   ,@W_Maximum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(MAX))
+                   ,@W_AskLength bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskLength') AS bit)
+                   ,@W_AskDecimals bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskDecimals') AS bit)
+                   ,@W_AskPrimarykey bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskPrimarykey') AS bit)
+                   ,@W_AskAutoincrement bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskAutoincrement') AS bit)
+                   ,@W_AskFilterable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskFilterable') AS bit)
+                   ,@W_AskGridable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskGridable') AS bit)
+                   ,@W_AskCodification bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskCodification') AS bit)
+                   ,@W_AskFormula bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskFormula') AS bit)
+                   ,@W_AllowMaxLength bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AllowMaxLength') AS bit)
+                   ,@W_IsActive bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsActive') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Types] ([Id]
@@ -13759,39 +13779,39 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id tinyint = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS tinyint)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_AskLength bit = CAST(JSON_QUERY(@RecordFilter, '$.AskLength') AS bit)
-                ,@W_AskDecimals bit = CAST(JSON_QUERY(@RecordFilter, '$.AskDecimals') AS bit)
-                ,@W_AskPrimarykey bit = CAST(JSON_QUERY(@RecordFilter, '$.AskPrimarykey') AS bit)
-                ,@W_AskAutoincrement bit = CAST(JSON_QUERY(@RecordFilter, '$.AskAutoincrement') AS bit)
-                ,@W_AskFilterable bit = CAST(JSON_QUERY(@RecordFilter, '$.AskFilterable') AS bit)
-                ,@W_AskGridable bit = CAST(JSON_QUERY(@RecordFilter, '$.AskGridable') AS bit)
-                ,@W_AskCodification bit = CAST(JSON_QUERY(@RecordFilter, '$.AskCodification') AS bit)
-                ,@W_AskFormula bit = CAST(JSON_QUERY(@RecordFilter, '$.AskFormula') AS bit)
-                ,@W_AllowMaxLength bit = CAST(JSON_QUERY(@RecordFilter, '$.AllowMaxLength') AS bit)
-                ,@W_IsActive bit = CAST(JSON_QUERY(@RecordFilter, '$.IsActive') AS bit)
+                ,@W_Id tinyint = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS tinyint)
+                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_AskLength bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskLength') AS bit)
+                ,@W_AskDecimals bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskDecimals') AS bit)
+                ,@W_AskPrimarykey bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskPrimarykey') AS bit)
+                ,@W_AskAutoincrement bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskAutoincrement') AS bit)
+                ,@W_AskFilterable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskFilterable') AS bit)
+                ,@W_AskGridable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskGridable') AS bit)
+                ,@W_AskCodification bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskCodification') AS bit)
+                ,@W_AskFormula bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskFormula') AS bit)
+                ,@W_AllowMaxLength bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AllowMaxLength') AS bit)
+                ,@W_IsActive bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsActive') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS tinyint)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('255' AS tinyint)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''255''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS tinyint) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskLength') AS bit) AS [AskLength]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskDecimals') AS bit) AS [AskDecimals]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskPrimarykey') AS bit) AS [AskPrimarykey]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskAutoincrement') AS bit) AS [AskAutoincrement]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskFilterable') AS bit) AS [AskFilterable]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskGridable') AS bit) AS [AskGridable]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskCodification') AS bit) AS [AskCodification]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AskFormula') AS bit) AS [AskFormula]
-              ,CAST(JSON_QUERY([ActualRecord], '$.AllowMaxLength') AS bit) AS [AllowMaxLength]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskLength') AS bit) AS [AskLength]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskDecimals') AS bit) AS [AskDecimals]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskPrimarykey') AS bit) AS [AskPrimarykey]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskAutoincrement') AS bit) AS [AskAutoincrement]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskFilterable') AS bit) AS [AskFilterable]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskGridable') AS bit) AS [AskGridable]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskCodification') AS bit) AS [AskCodification]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskFormula') AS bit) AS [AskFormula]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AllowMaxLength') AS bit) AS [AllowMaxLength]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -13978,15 +13998,15 @@ ALTER PROCEDURE[dbo].[MaskValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Name'), JSON_QUERY(@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Mask'), JSON_QUERY(@LastRecord, '$.Mask'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Mask'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Mask'), 'nvarchar(MAX)') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Masks]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [Name] = JSON_QUERY(@LastRecord, '$.Name')
-                                  AND [Mask] = JSON_QUERY(@LastRecord, '$.Mask')) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [Mask] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Mask')) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Masks alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -14014,7 +14034,7 @@ ALTER PROCEDURE[dbo].[MaskValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -14044,8 +14064,8 @@ ALTER PROCEDURE[dbo].[MaskValidate](@LoginId INT
             END
         END ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Mask nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Mask') AS nvarchar(MAX))
+            DECLARE @W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Mask nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Mask') AS nvarchar(MAX))
 
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Name] = @W_Name) BEGIN
@@ -14095,7 +14115,7 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -14105,7 +14125,7 @@ ALTER PROCEDURE[dbo].[MaskPersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -14240,14 +14260,14 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Masks] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Mask nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Mask') AS nvarchar(MAX))
+            DECLARE @W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Mask nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Mask') AS nvarchar(MAX))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Masks] ([Id]
@@ -14328,17 +14348,17 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('-2147483648' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''-2147483648''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Mask') AS nvarchar(MAX)) AS [Mask]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Mask') AS nvarchar(MAX)) AS [Mask]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -14459,31 +14479,31 @@ ALTER PROCEDURE[dbo].[DomainValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.TypeId'), JSON_QUERY(@LastRecord, '$.TypeId'), 'tinyint') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.MaskId'), JSON_QUERY(@LastRecord, '$.MaskId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Name'), JSON_QUERY(@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Length'), JSON_QUERY(@LastRecord, '$.Length'), 'smallint') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Decimals'), JSON_QUERY(@LastRecord, '$.Decimals'), 'tinyint') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.ValidValues'), JSON_QUERY(@LastRecord, '$.ValidValues'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Default'), JSON_QUERY(@LastRecord, '$.Default'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Minimum'), JSON_QUERY(@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Maximum'), JSON_QUERY(@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Codification'), JSON_QUERY(@LastRecord, '$.Codification'), 'nvarchar(5)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.TypeId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.TypeId'), 'tinyint') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.MaskId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.MaskId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Length'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Length'), 'smallint') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Decimals'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Decimals'), 'tinyint') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ValidValues'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Default'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Codification'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Codification'), 'nvarchar(5)') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Domains]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [TypeId] = JSON_QUERY(@LastRecord, '$.TypeId')
-                                  AND [cruda].[IsEquals]([MaskId], JSON_QUERY(@LastRecord, '$.MaskId'), 'int') = 1
-                                  AND [Name] = JSON_QUERY(@LastRecord, '$.Name')
-                                  AND [cruda].[IsEquals]([Length], JSON_QUERY(@LastRecord, '$.Length'), 'smallint') = 1
-                                  AND [cruda].[IsEquals]([Decimals], JSON_QUERY(@LastRecord, '$.Decimals'), 'tinyint') = 1
-                                  AND [cruda].[IsEquals]([ValidValues], JSON_QUERY(@LastRecord, '$.ValidValues'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IsEquals]([Default], JSON_QUERY(@LastRecord, '$.Default'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IsEquals]([Minimum], JSON_QUERY(@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IsEquals]([Maximum], JSON_QUERY(@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IsEquals]([Codification], JSON_QUERY(@LastRecord, '$.Codification'), 'nvarchar(5)') = 1) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [TypeId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.TypeId')
+                                  AND [cruda].[IsEquals]([MaskId], [cruda].[JSON_EXTRACT](@LastRecord, '$.MaskId'), 'int') = 1
+                                  AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [cruda].[IsEquals]([Length], [cruda].[JSON_EXTRACT](@LastRecord, '$.Length'), 'smallint') = 1
+                                  AND [cruda].[IsEquals]([Decimals], [cruda].[JSON_EXTRACT](@LastRecord, '$.Decimals'), 'tinyint') = 1
+                                  AND [cruda].[IsEquals]([ValidValues], [cruda].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(MAX)') = 1
+                                  AND [cruda].[IsEquals]([Default], [cruda].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(MAX)') = 1
+                                  AND [cruda].[IsEquals]([Minimum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
+                                  AND [cruda].[IsEquals]([Maximum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
+                                  AND [cruda].[IsEquals]([Codification], [cruda].[JSON_EXTRACT](@LastRecord, '$.Codification'), 'nvarchar(5)') = 1) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Domains alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -14511,7 +14531,7 @@ ALTER PROCEDURE[dbo].[DomainValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -14541,16 +14561,16 @@ ALTER PROCEDURE[dbo].[DomainValidate](@LoginId INT
             END
         END ELSE BEGIN
 
-            DECLARE @W_TypeId tinyint = CAST(JSON_QUERY(@ActualRecord, '$.TypeId') AS tinyint)
-                   ,@W_MaskId int = CAST(JSON_QUERY(@ActualRecord, '$.MaskId') AS int)
-                   ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Length smallint = CAST(JSON_QUERY(@ActualRecord, '$.Length') AS smallint)
-                   ,@W_Decimals tinyint = CAST(JSON_QUERY(@ActualRecord, '$.Decimals') AS tinyint)
-                   ,@W_ValidValues nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.ValidValues') AS nvarchar(MAX))
-                   ,@W_Default nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Default') AS nvarchar(MAX))
-                   ,@W_Minimum nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Minimum') AS nvarchar(MAX))
-                   ,@W_Maximum nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Maximum') AS nvarchar(MAX))
-                   ,@W_Codification nvarchar(5) = CAST(JSON_QUERY(@ActualRecord, '$.Codification') AS nvarchar(5))
+            DECLARE @W_TypeId tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.TypeId') AS tinyint)
+                   ,@W_MaskId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.MaskId') AS int)
+                   ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Length smallint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Length') AS smallint)
+                   ,@W_Decimals tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Decimals') AS tinyint)
+                   ,@W_ValidValues nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ValidValues') AS nvarchar(MAX))
+                   ,@W_Default nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Default') AS nvarchar(MAX))
+                   ,@W_Minimum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(MAX))
+                   ,@W_Maximum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(MAX))
+                   ,@W_Codification nvarchar(5) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Codification') AS nvarchar(5))
 
             IF @W_TypeId IS NOT NULL AND @W_TypeId < CAST('1' AS tinyint) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de TypeId em @ActualRecord deve ser maior que ou igual à 1';
@@ -14640,7 +14660,7 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -14650,7 +14670,7 @@ ALTER PROCEDURE[dbo].[DomainPersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -14785,22 +14805,22 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Domains] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_TypeId tinyint = CAST(JSON_QUERY(@ActualRecord, '$.TypeId') AS tinyint)
-                   ,@W_MaskId int = CAST(JSON_QUERY(@ActualRecord, '$.MaskId') AS int)
-                   ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Length smallint = CAST(JSON_QUERY(@ActualRecord, '$.Length') AS smallint)
-                   ,@W_Decimals tinyint = CAST(JSON_QUERY(@ActualRecord, '$.Decimals') AS tinyint)
-                   ,@W_ValidValues nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.ValidValues') AS nvarchar(MAX))
-                   ,@W_Default nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Default') AS nvarchar(MAX))
-                   ,@W_Minimum nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Minimum') AS nvarchar(MAX))
-                   ,@W_Maximum nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Maximum') AS nvarchar(MAX))
-                   ,@W_Codification nvarchar(5) = CAST(JSON_QUERY(@ActualRecord, '$.Codification') AS nvarchar(5))
+            DECLARE @W_TypeId tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.TypeId') AS tinyint)
+                   ,@W_MaskId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.MaskId') AS int)
+                   ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Length smallint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Length') AS smallint)
+                   ,@W_Decimals tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Decimals') AS tinyint)
+                   ,@W_ValidValues nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ValidValues') AS nvarchar(MAX))
+                   ,@W_Default nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Default') AS nvarchar(MAX))
+                   ,@W_Minimum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(MAX))
+                   ,@W_Maximum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(MAX))
+                   ,@W_Codification nvarchar(5) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Codification') AS nvarchar(5))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Domains] ([Id]
@@ -14905,12 +14925,12 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_TypeId tinyint = CAST(JSON_QUERY(@RecordFilter, '$.TypeId') AS tinyint)
-                ,@W_MaskId int = CAST(JSON_QUERY(@RecordFilter, '$.MaskId') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_ValidValues nvarchar(MAX) = CAST(JSON_QUERY(@RecordFilter, '$.ValidValues') AS nvarchar(MAX))
-                ,@W_Codification nvarchar(5) = CAST(JSON_QUERY(@RecordFilter, '$.Codification') AS nvarchar(5))
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_TypeId tinyint = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TypeId') AS tinyint)
+                ,@W_MaskId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.MaskId') AS int)
+                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_ValidValues nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.ValidValues') AS nvarchar(MAX))
+                ,@W_Codification nvarchar(5) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Codification') AS nvarchar(5))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -14925,17 +14945,17 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
         IF @W_MaskId IS NOT NULL AND @W_MaskId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de MaskId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.TypeId') AS tinyint) AS [TypeId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.MaskId') AS int) AS [MaskId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Length') AS smallint) AS [Length]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Decimals') AS tinyint) AS [Decimals]
-              ,CAST(JSON_QUERY([ActualRecord], '$.ValidValues') AS nvarchar(MAX)) AS [ValidValues]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Default') AS nvarchar(MAX)) AS [Default]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Codification') AS nvarchar(5)) AS [Codification]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TypeId') AS tinyint) AS [TypeId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.MaskId') AS int) AS [MaskId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Length') AS smallint) AS [Length]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Decimals') AS tinyint) AS [Decimals]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ValidValues') AS nvarchar(MAX)) AS [ValidValues]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Default') AS nvarchar(MAX)) AS [Default]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Codification') AS nvarchar(5)) AS [Codification]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -15092,21 +15112,21 @@ ALTER PROCEDURE[dbo].[SystemValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Name'), JSON_QUERY(@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Description'), JSON_QUERY(@LastRecord, '$.Description'), 'nvarchar(50)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.ClientName'), JSON_QUERY(@LastRecord, '$.ClientName'), 'nvarchar(15)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.MaxRetryLogins'), JSON_QUERY(@LastRecord, '$.MaxRetryLogins'), 'tinyint') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsOffAir'), JSON_QUERY(@LastRecord, '$.IsOffAir'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ClientName'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ClientName'), 'nvarchar(15)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.MaxRetryLogins'), [cruda].[JSON_EXTRACT](@LastRecord, '$.MaxRetryLogins'), 'tinyint') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsOffAir'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsOffAir'), 'bit') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Systems]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [Name] = JSON_QUERY(@LastRecord, '$.Name')
-                                  AND [Description] = JSON_QUERY(@LastRecord, '$.Description')
-                                  AND [ClientName] = JSON_QUERY(@LastRecord, '$.ClientName')
-                                  AND [MaxRetryLogins] = JSON_QUERY(@LastRecord, '$.MaxRetryLogins')
-                                  AND [IsOffAir] = JSON_QUERY(@LastRecord, '$.IsOffAir')) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [Description] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Description')
+                                  AND [ClientName] = [cruda].[JSON_EXTRACT](@LastRecord, '$.ClientName')
+                                  AND [MaxRetryLogins] = [cruda].[JSON_EXTRACT](@LastRecord, '$.MaxRetryLogins')
+                                  AND [IsOffAir] = [cruda].[JSON_EXTRACT](@LastRecord, '$.IsOffAir')) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Systems alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -15134,7 +15154,7 @@ ALTER PROCEDURE[dbo].[SystemValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -15176,11 +15196,11 @@ ALTER PROCEDURE[dbo].[SystemValidate](@LoginId INT
             END
         END ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_ClientName nvarchar(15) = CAST(JSON_QUERY(@ActualRecord, '$.ClientName') AS nvarchar(15))
-                   ,@W_MaxRetryLogins tinyint = CAST(JSON_QUERY(@ActualRecord, '$.MaxRetryLogins') AS tinyint)
-                   ,@W_IsOffAir bit = CAST(JSON_QUERY(@ActualRecord, '$.IsOffAir') AS bit)
+            DECLARE @W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_ClientName nvarchar(15) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ClientName') AS nvarchar(15))
+                   ,@W_MaxRetryLogins tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.MaxRetryLogins') AS tinyint)
+                   ,@W_IsOffAir bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsOffAir') AS bit)
 
             IF @W_MaxRetryLogins IS NOT NULL AND @W_MaxRetryLogins < CAST('1' AS tinyint) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de MaxRetryLogins em @ActualRecord deve ser maior que ou igual à 1';
@@ -15238,7 +15258,7 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -15248,7 +15268,7 @@ ALTER PROCEDURE[dbo].[SystemPersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -15383,17 +15403,17 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Systems] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_ClientName nvarchar(15) = CAST(JSON_QUERY(@ActualRecord, '$.ClientName') AS nvarchar(15))
-                   ,@W_MaxRetryLogins tinyint = CAST(JSON_QUERY(@ActualRecord, '$.MaxRetryLogins') AS tinyint)
-                   ,@W_IsOffAir bit = CAST(JSON_QUERY(@ActualRecord, '$.IsOffAir') AS bit)
+            DECLARE @W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_ClientName nvarchar(15) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ClientName') AS nvarchar(15))
+                   ,@W_MaxRetryLogins tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.MaxRetryLogins') AS tinyint)
+                   ,@W_IsOffAir bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsOffAir') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Systems] ([Id]
@@ -15483,21 +15503,21 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_ClientName nvarchar(15) = CAST(JSON_QUERY(@RecordFilter, '$.ClientName') AS nvarchar(15))
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_ClientName nvarchar(15) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.ClientName') AS nvarchar(15))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST(JSON_QUERY([ActualRecord], '$.ClientName') AS nvarchar(15)) AS [ClientName]
-              ,CAST(JSON_QUERY([ActualRecord], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsOffAir') AS bit) AS [IsOffAir]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ClientName') AS nvarchar(15)) AS [ClientName]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsOffAir') AS bit) AS [IsOffAir]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -15630,23 +15650,23 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.SystemId'), JSON_QUERY(@LastRecord, '$.SystemId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Sequence'), JSON_QUERY(@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Caption'), JSON_QUERY(@LastRecord, '$.Caption'), 'nvarchar(20)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Message'), JSON_QUERY(@LastRecord, '$.Message'), 'nvarchar(50)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Action'), JSON_QUERY(@LastRecord, '$.Action'), 'nvarchar(50)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.ParentMenuId'), JSON_QUERY(@LastRecord, '$.ParentMenuId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Caption'), 'nvarchar(20)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Message'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Message'), 'nvarchar(50)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Action'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar(50)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ParentMenuId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ParentMenuId'), 'int') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Menus]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [SystemId] = JSON_QUERY(@LastRecord, '$.SystemId')
-                                  AND [Sequence] = JSON_QUERY(@LastRecord, '$.Sequence')
-                                  AND [Caption] = JSON_QUERY(@LastRecord, '$.Caption')
-                                  AND [Message] = JSON_QUERY(@LastRecord, '$.Message')
-                                  AND [cruda].[IsEquals]([Action], JSON_QUERY(@LastRecord, '$.Action'), 'nvarchar(50)') = 1
-                                  AND [cruda].[IsEquals]([ParentMenuId], JSON_QUERY(@LastRecord, '$.ParentMenuId'), 'int') = 1) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [SystemId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.SystemId')
+                                  AND [Sequence] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Sequence')
+                                  AND [Caption] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Caption')
+                                  AND [Message] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Message')
+                                  AND [cruda].[IsEquals]([Action], [cruda].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar(50)') = 1
+                                  AND [cruda].[IsEquals]([ParentMenuId], [cruda].[JSON_EXTRACT](@LastRecord, '$.ParentMenuId'), 'int') = 1) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Menus alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -15674,7 +15694,7 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -15704,12 +15724,12 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId INT
             END
         END ELSE BEGIN
 
-            DECLARE @W_SystemId int = CAST(JSON_QUERY(@ActualRecord, '$.SystemId') AS int)
-                   ,@W_Sequence smallint = CAST(JSON_QUERY(@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_Caption nvarchar(20) = CAST(JSON_QUERY(@ActualRecord, '$.Caption') AS nvarchar(20))
-                   ,@W_Message nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Message') AS nvarchar(50))
-                   ,@W_Action nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Action') AS nvarchar(50))
-                   ,@W_ParentMenuId int = CAST(JSON_QUERY(@ActualRecord, '$.ParentMenuId') AS int)
+            DECLARE @W_SystemId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS int)
+                   ,@W_Sequence smallint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_Caption nvarchar(20) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Caption') AS nvarchar(20))
+                   ,@W_Message nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Message') AS nvarchar(50))
+                   ,@W_Action nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Action') AS nvarchar(50))
+                   ,@W_ParentMenuId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ParentMenuId') AS int)
 
             IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS int) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser maior que ou igual à 1';
@@ -15798,7 +15818,7 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -15808,7 +15828,7 @@ ALTER PROCEDURE[dbo].[MenuPersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -15943,18 +15963,18 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Menus] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_SystemId int = CAST(JSON_QUERY(@ActualRecord, '$.SystemId') AS int)
-                   ,@W_Sequence smallint = CAST(JSON_QUERY(@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_Caption nvarchar(20) = CAST(JSON_QUERY(@ActualRecord, '$.Caption') AS nvarchar(20))
-                   ,@W_Message nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Message') AS nvarchar(50))
-                   ,@W_Action nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Action') AS nvarchar(50))
-                   ,@W_ParentMenuId int = CAST(JSON_QUERY(@ActualRecord, '$.ParentMenuId') AS int)
+            DECLARE @W_SystemId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS int)
+                   ,@W_Sequence smallint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_Caption nvarchar(20) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Caption') AS nvarchar(20))
+                   ,@W_Message nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Message') AS nvarchar(50))
+                   ,@W_Action nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Action') AS nvarchar(50))
+                   ,@W_ParentMenuId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ParentMenuId') AS int)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Menus] ([Id]
@@ -16047,9 +16067,9 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_SystemId int = CAST(JSON_QUERY(@RecordFilter, '$.SystemId') AS int)
-                ,@W_Caption nvarchar(20) = CAST(JSON_QUERY(@RecordFilter, '$.Caption') AS nvarchar(20))
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_SystemId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
+                ,@W_Caption nvarchar(20) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Caption') AS nvarchar(20))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -16060,13 +16080,13 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
         IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de SystemId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.SystemId') AS int) AS [SystemId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Caption') AS nvarchar(20)) AS [Caption]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Message') AS nvarchar(50)) AS [Message]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Action') AS nvarchar(50)) AS [Action]
-              ,CAST(JSON_QUERY([ActualRecord], '$.ParentMenuId') AS int) AS [ParentMenuId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Caption') AS nvarchar(20)) AS [Caption]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Message') AS nvarchar(50)) AS [Message]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Action') AS nvarchar(50)) AS [Action]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ParentMenuId') AS int) AS [ParentMenuId]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -16202,21 +16222,21 @@ ALTER PROCEDURE[dbo].[UserValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Name'), JSON_QUERY(@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Password'), JSON_QUERY(@LastRecord, '$.Password'), 'nvarchar(256)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.FullName'), JSON_QUERY(@LastRecord, '$.FullName'), 'nvarchar(50)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.RetryLogins'), JSON_QUERY(@LastRecord, '$.RetryLogins'), 'tinyint') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsActive'), JSON_QUERY(@LastRecord, '$.IsActive'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Password'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar(256)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.FullName'), [cruda].[JSON_EXTRACT](@LastRecord, '$.FullName'), 'nvarchar(50)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.RetryLogins'), [cruda].[JSON_EXTRACT](@LastRecord, '$.RetryLogins'), 'tinyint') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsActive'), 'bit') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Users]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [Name] = JSON_QUERY(@LastRecord, '$.Name')
-                                  AND [Password] = JSON_QUERY(@LastRecord, '$.Password')
-                                  AND [FullName] = JSON_QUERY(@LastRecord, '$.FullName')
-                                  AND [RetryLogins] = JSON_QUERY(@LastRecord, '$.RetryLogins')
-                                  AND [IsActive] = JSON_QUERY(@LastRecord, '$.IsActive')) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [Password] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Password')
+                                  AND [FullName] = [cruda].[JSON_EXTRACT](@LastRecord, '$.FullName')
+                                  AND [RetryLogins] = [cruda].[JSON_EXTRACT](@LastRecord, '$.RetryLogins')
+                                  AND [IsActive] = [cruda].[JSON_EXTRACT](@LastRecord, '$.IsActive')) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Users alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -16244,7 +16264,7 @@ ALTER PROCEDURE[dbo].[UserValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -16278,11 +16298,11 @@ ALTER PROCEDURE[dbo].[UserValidate](@LoginId INT
             END
         END ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Password nvarchar(256) = CAST(JSON_QUERY(@ActualRecord, '$.Password') AS nvarchar(256))
-                   ,@W_FullName nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.FullName') AS nvarchar(50))
-                   ,@W_RetryLogins tinyint = CAST(JSON_QUERY(@ActualRecord, '$.RetryLogins') AS tinyint)
-                   ,@W_IsActive bit = CAST(JSON_QUERY(@ActualRecord, '$.IsActive') AS bit)
+            DECLARE @W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Password nvarchar(256) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Password') AS nvarchar(256))
+                   ,@W_FullName nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.FullName') AS nvarchar(50))
+                   ,@W_RetryLogins tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.RetryLogins') AS tinyint)
+                   ,@W_IsActive bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsActive') AS bit)
 
             IF @W_RetryLogins IS NOT NULL AND @W_RetryLogins < CAST('0' AS tinyint) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de RetryLogins em @ActualRecord deve ser maior que ou igual à 0';
@@ -16340,7 +16360,7 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -16350,7 +16370,7 @@ ALTER PROCEDURE[dbo].[UserPersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -16485,17 +16505,17 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Users] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Password nvarchar(256) = CAST(JSON_QUERY(@ActualRecord, '$.Password') AS nvarchar(256))
-                   ,@W_FullName nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.FullName') AS nvarchar(50))
-                   ,@W_RetryLogins tinyint = CAST(JSON_QUERY(@ActualRecord, '$.RetryLogins') AS tinyint)
-                   ,@W_IsActive bit = CAST(JSON_QUERY(@ActualRecord, '$.IsActive') AS bit)
+            DECLARE @W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Password nvarchar(256) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Password') AS nvarchar(256))
+                   ,@W_FullName nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.FullName') AS nvarchar(50))
+                   ,@W_RetryLogins tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.RetryLogins') AS tinyint)
+                   ,@W_IsActive bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsActive') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Users] ([Id]
@@ -16585,22 +16605,22 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_FullName nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.FullName') AS nvarchar(50))
-                ,@W_IsActive bit = CAST(JSON_QUERY(@RecordFilter, '$.IsActive') AS bit)
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_FullName nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.FullName') AS nvarchar(50))
+                ,@W_IsActive bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsActive') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
-              ,CAST(JSON_QUERY([ActualRecord], '$.FullName') AS nvarchar(50)) AS [FullName]
-              ,CAST(JSON_QUERY([ActualRecord], '$.RetryLogins') AS tinyint) AS [RetryLogins]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.FullName') AS nvarchar(50)) AS [FullName]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.RetryLogins') AS tinyint) AS [RetryLogins]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -16736,17 +16756,17 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.SystemId'), JSON_QUERY(@LastRecord, '$.SystemId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.UserId'), JSON_QUERY(@LastRecord, '$.UserId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Description'), JSON_QUERY(@LastRecord, '$.Description'), 'nvarchar(50)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.UserId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[SystemsUsers]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [SystemId] = JSON_QUERY(@LastRecord, '$.SystemId')
-                                  AND [UserId] = JSON_QUERY(@LastRecord, '$.UserId')
-                                  AND [Description] = JSON_QUERY(@LastRecord, '$.Description')) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [SystemId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.SystemId')
+                                  AND [UserId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.UserId')
+                                  AND [Description] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Description')) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de SystemsUsers alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -16774,7 +16794,7 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -16799,9 +16819,9 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId INT
         END
         IF @Action <> 'delete' BEGIN
 
-            DECLARE @W_SystemId int = CAST(JSON_QUERY(@ActualRecord, '$.SystemId') AS int)
-                   ,@W_UserId int = CAST(JSON_QUERY(@ActualRecord, '$.UserId') AS int)
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
+            DECLARE @W_SystemId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS int)
+                   ,@W_UserId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.UserId') AS int)
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
 
             IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS int) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser maior que ou igual à 1';
@@ -16882,7 +16902,7 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -16892,7 +16912,7 @@ ALTER PROCEDURE[dbo].[SystemUserPersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -17027,15 +17047,15 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[SystemsUsers] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_SystemId int = CAST(JSON_QUERY(@ActualRecord, '$.SystemId') AS int)
-                   ,@W_UserId int = CAST(JSON_QUERY(@ActualRecord, '$.UserId') AS int)
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
+            DECLARE @W_SystemId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS int)
+                   ,@W_UserId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.UserId') AS int)
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[SystemsUsers] ([Id]
@@ -17119,10 +17139,10 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_SystemId int = CAST(JSON_QUERY(@RecordFilter, '$.SystemId') AS int)
-                ,@W_UserId int = CAST(JSON_QUERY(@RecordFilter, '$.UserId') AS int)
-                ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.Description') AS nvarchar(50))
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_SystemId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
+                ,@W_UserId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.UserId') AS int)
+                ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -17137,10 +17157,10 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
         IF @W_UserId IS NOT NULL AND @W_UserId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de UserId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.SystemId') AS int) AS [SystemId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.UserId') AS int) AS [UserId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.UserId') AS int) AS [UserId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -17270,29 +17290,29 @@ ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Name'), JSON_QUERY(@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Description'), JSON_QUERY(@LastRecord, '$.Description'), 'nvarchar(50)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Alias'), JSON_QUERY(@LastRecord, '$.Alias'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.ServerName'), JSON_QUERY(@LastRecord, '$.ServerName'), 'nvarchar(50)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.HostName'), JSON_QUERY(@LastRecord, '$.HostName'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Port'), JSON_QUERY(@LastRecord, '$.Port'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Logon'), JSON_QUERY(@LastRecord, '$.Logon'), 'nvarchar(256)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Password'), JSON_QUERY(@LastRecord, '$.Password'), 'nvarchar(256)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Folder'), JSON_QUERY(@LastRecord, '$.Folder'), 'nvarchar(256)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ServerName'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ServerName'), 'nvarchar(50)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.HostName'), [cruda].[JSON_EXTRACT](@LastRecord, '$.HostName'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Port'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Port'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Logon'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Logon'), 'nvarchar(256)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Password'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar(256)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Folder'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Folder'), 'nvarchar(256)') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Databases]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [Name] = JSON_QUERY(@LastRecord, '$.Name')
-                                  AND [Description] = JSON_QUERY(@LastRecord, '$.Description')
-                                  AND [Alias] = JSON_QUERY(@LastRecord, '$.Alias')
-                                  AND [cruda].[IsEquals]([ServerName], JSON_QUERY(@LastRecord, '$.ServerName'), 'nvarchar(50)') = 1
-                                  AND [cruda].[IsEquals]([HostName], JSON_QUERY(@LastRecord, '$.HostName'), 'nvarchar(25)') = 1
-                                  AND [cruda].[IsEquals]([Port], JSON_QUERY(@LastRecord, '$.Port'), 'int') = 1
-                                  AND [cruda].[IsEquals]([Logon], JSON_QUERY(@LastRecord, '$.Logon'), 'nvarchar(256)') = 1
-                                  AND [cruda].[IsEquals]([Password], JSON_QUERY(@LastRecord, '$.Password'), 'nvarchar(256)') = 1
-                                  AND [cruda].[IsEquals]([Folder], JSON_QUERY(@LastRecord, '$.Folder'), 'nvarchar(256)') = 1) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [Description] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Description')
+                                  AND [Alias] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Alias')
+                                  AND [cruda].[IsEquals]([ServerName], [cruda].[JSON_EXTRACT](@LastRecord, '$.ServerName'), 'nvarchar(50)') = 1
+                                  AND [cruda].[IsEquals]([HostName], [cruda].[JSON_EXTRACT](@LastRecord, '$.HostName'), 'nvarchar(25)') = 1
+                                  AND [cruda].[IsEquals]([Port], [cruda].[JSON_EXTRACT](@LastRecord, '$.Port'), 'int') = 1
+                                  AND [cruda].[IsEquals]([Logon], [cruda].[JSON_EXTRACT](@LastRecord, '$.Logon'), 'nvarchar(256)') = 1
+                                  AND [cruda].[IsEquals]([Password], [cruda].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar(256)') = 1
+                                  AND [cruda].[IsEquals]([Folder], [cruda].[JSON_EXTRACT](@LastRecord, '$.Folder'), 'nvarchar(256)') = 1) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Databases alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -17320,7 +17340,7 @@ ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -17358,15 +17378,15 @@ ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId INT
             END
         END ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_Alias nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_ServerName nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.ServerName') AS nvarchar(50))
-                   ,@W_HostName nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.HostName') AS nvarchar(25))
-                   ,@W_Port int = CAST(JSON_QUERY(@ActualRecord, '$.Port') AS int)
-                   ,@W_Logon nvarchar(256) = CAST(JSON_QUERY(@ActualRecord, '$.Logon') AS nvarchar(256))
-                   ,@W_Password nvarchar(256) = CAST(JSON_QUERY(@ActualRecord, '$.Password') AS nvarchar(256))
-                   ,@W_Folder nvarchar(256) = CAST(JSON_QUERY(@ActualRecord, '$.Folder') AS nvarchar(256))
+            DECLARE @W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_Alias nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
+                   ,@W_ServerName nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ServerName') AS nvarchar(50))
+                   ,@W_HostName nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.HostName') AS nvarchar(25))
+                   ,@W_Port int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Port') AS int)
+                   ,@W_Logon nvarchar(256) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Logon') AS nvarchar(256))
+                   ,@W_Password nvarchar(256) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Password') AS nvarchar(256))
+                   ,@W_Folder nvarchar(256) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Folder') AS nvarchar(256))
 
             IF @W_Port IS NOT NULL AND @W_Port < CAST('1' AS int) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de Port em @ActualRecord deve ser maior que ou igual à 1';
@@ -17431,7 +17451,7 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -17441,7 +17461,7 @@ ALTER PROCEDURE[dbo].[DatabasePersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -17576,21 +17596,21 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Databases] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_Alias nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_ServerName nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.ServerName') AS nvarchar(50))
-                   ,@W_HostName nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.HostName') AS nvarchar(25))
-                   ,@W_Port int = CAST(JSON_QUERY(@ActualRecord, '$.Port') AS int)
-                   ,@W_Logon nvarchar(256) = CAST(JSON_QUERY(@ActualRecord, '$.Logon') AS nvarchar(256))
-                   ,@W_Password nvarchar(256) = CAST(JSON_QUERY(@ActualRecord, '$.Password') AS nvarchar(256))
-                   ,@W_Folder nvarchar(256) = CAST(JSON_QUERY(@ActualRecord, '$.Folder') AS nvarchar(256))
+            DECLARE @W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_Alias nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
+                   ,@W_ServerName nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ServerName') AS nvarchar(50))
+                   ,@W_HostName nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.HostName') AS nvarchar(25))
+                   ,@W_Port int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Port') AS int)
+                   ,@W_Logon nvarchar(256) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Logon') AS nvarchar(256))
+                   ,@W_Password nvarchar(256) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Password') AS nvarchar(256))
+                   ,@W_Folder nvarchar(256) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Folder') AS nvarchar(256))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Databases] ([Id]
@@ -17692,25 +17712,25 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_Alias nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Alias') AS nvarchar(25))
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_Alias nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
-              ,CAST(JSON_QUERY([ActualRecord], '$.ServerName') AS nvarchar(50)) AS [ServerName]
-              ,CAST(JSON_QUERY([ActualRecord], '$.HostName') AS nvarchar(25)) AS [HostName]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Port') AS int) AS [Port]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Logon') AS nvarchar(256)) AS [Logon]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Folder') AS nvarchar(256)) AS [Folder]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ServerName') AS nvarchar(50)) AS [ServerName]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.HostName') AS nvarchar(25)) AS [HostName]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Port') AS int) AS [Port]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Logon') AS nvarchar(256)) AS [Logon]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Folder') AS nvarchar(256)) AS [Folder]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -17855,17 +17875,17 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.SystemId'), JSON_QUERY(@LastRecord, '$.SystemId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.DatabaseId'), JSON_QUERY(@LastRecord, '$.DatabaseId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Description'), JSON_QUERY(@LastRecord, '$.Description'), 'nvarchar(50)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[SystemsDatabases]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [SystemId] = JSON_QUERY(@LastRecord, '$.SystemId')
-                                  AND [DatabaseId] = JSON_QUERY(@LastRecord, '$.DatabaseId')
-                                  AND [Description] = JSON_QUERY(@LastRecord, '$.Description')) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [SystemId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.SystemId')
+                                  AND [DatabaseId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.DatabaseId')
+                                  AND [Description] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Description')) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de SystemsDatabases alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -17893,7 +17913,7 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -17918,9 +17938,9 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId INT
         END
         IF @Action <> 'delete' BEGIN
 
-            DECLARE @W_SystemId int = CAST(JSON_QUERY(@ActualRecord, '$.SystemId') AS int)
-                   ,@W_DatabaseId int = CAST(JSON_QUERY(@ActualRecord, '$.DatabaseId') AS int)
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
+            DECLARE @W_SystemId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS int)
+                   ,@W_DatabaseId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId') AS int)
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
 
             IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS int) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser maior que ou igual à 1';
@@ -18001,7 +18021,7 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -18011,7 +18031,7 @@ ALTER PROCEDURE[dbo].[SystemDatabasePersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -18146,15 +18166,15 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_SystemId int = CAST(JSON_QUERY(@ActualRecord, '$.SystemId') AS int)
-                   ,@W_DatabaseId int = CAST(JSON_QUERY(@ActualRecord, '$.DatabaseId') AS int)
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
+            DECLARE @W_SystemId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS int)
+                   ,@W_DatabaseId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId') AS int)
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[SystemsDatabases] ([Id]
@@ -18238,10 +18258,10 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_SystemId int = CAST(JSON_QUERY(@RecordFilter, '$.SystemId') AS int)
-                ,@W_DatabaseId int = CAST(JSON_QUERY(@RecordFilter, '$.DatabaseId') AS int)
-                ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.Description') AS nvarchar(50))
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_SystemId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
+                ,@W_DatabaseId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.DatabaseId') AS int)
+                ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -18256,10 +18276,10 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
         IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de DatabaseId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.SystemId') AS int) AS [SystemId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -18389,23 +18409,23 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Name'), JSON_QUERY(@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Alias'), JSON_QUERY(@LastRecord, '$.Alias'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Description'), JSON_QUERY(@LastRecord, '$.Description'), 'nvarchar(50)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.ParentTableId'), JSON_QUERY(@LastRecord, '$.ParentTableId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsPaged'), JSON_QUERY(@LastRecord, '$.IsPaged'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.CurrentId'), JSON_QUERY(@LastRecord, '$.CurrentId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ParentTableId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsPaged'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsPaged'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.CurrentId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.CurrentId'), 'int') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Tables]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [Name] = JSON_QUERY(@LastRecord, '$.Name')
-                                  AND [Alias] = JSON_QUERY(@LastRecord, '$.Alias')
-                                  AND [Description] = JSON_QUERY(@LastRecord, '$.Description')
-                                  AND [cruda].[IsEquals]([ParentTableId], JSON_QUERY(@LastRecord, '$.ParentTableId'), 'int') = 1
-                                  AND [IsPaged] = JSON_QUERY(@LastRecord, '$.IsPaged')
-                                  AND [CurrentId] = JSON_QUERY(@LastRecord, '$.CurrentId')) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [Alias] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Alias')
+                                  AND [Description] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Description')
+                                  AND [cruda].[IsEquals]([ParentTableId], [cruda].[JSON_EXTRACT](@LastRecord, '$.ParentTableId'), 'int') = 1
+                                  AND [IsPaged] = [cruda].[JSON_EXTRACT](@LastRecord, '$.IsPaged')
+                                  AND [CurrentId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.CurrentId')) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Tables alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -18433,7 +18453,7 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -18475,12 +18495,12 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId INT
             END
         END ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_ParentTableId int = CAST(JSON_QUERY(@ActualRecord, '$.ParentTableId') AS int)
-                   ,@W_IsPaged bit = CAST(JSON_QUERY(@ActualRecord, '$.IsPaged') AS bit)
-                   ,@W_CurrentId int = CAST(JSON_QUERY(@ActualRecord, '$.CurrentId') AS int)
+            DECLARE @W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_ParentTableId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId') AS int)
+                   ,@W_IsPaged bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsPaged') AS bit)
+                   ,@W_CurrentId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.CurrentId') AS int)
 
             IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('0' AS int) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de ParentTableId em @ActualRecord deve ser maior que ou igual à 0';
@@ -18553,7 +18573,7 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -18563,7 +18583,7 @@ ALTER PROCEDURE[dbo].[TablePersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -18698,18 +18718,18 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Tables] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_ParentTableId int = CAST(JSON_QUERY(@ActualRecord, '$.ParentTableId') AS int)
-                   ,@W_IsPaged bit = CAST(JSON_QUERY(@ActualRecord, '$.IsPaged') AS bit)
-                   ,@W_CurrentId int = CAST(JSON_QUERY(@ActualRecord, '$.CurrentId') AS int)
+            DECLARE @W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_ParentTableId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId') AS int)
+                   ,@W_IsPaged bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsPaged') AS bit)
+                   ,@W_CurrentId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.CurrentId') AS int)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Tables] ([Id]
@@ -18802,23 +18822,23 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_Alias nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Alias') AS nvarchar(25))
-                ,@W_IsPaged bit = CAST(JSON_QUERY(@RecordFilter, '$.IsPaged') AS bit)
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_Alias nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
+                ,@W_IsPaged bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsPaged') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
         IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
             THROW 51000, 'Valor de Id deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST(JSON_QUERY([ActualRecord], '$.ParentTableId') AS int) AS [ParentTableId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsPaged') AS bit) AS [IsPaged]
-              ,CAST(JSON_QUERY([ActualRecord], '$.CurrentId') AS int) AS [CurrentId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ParentTableId') AS int) AS [ParentTableId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsPaged') AS bit) AS [IsPaged]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.CurrentId') AS int) AS [CurrentId]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -18957,17 +18977,17 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.DatabaseId'), JSON_QUERY(@LastRecord, '$.DatabaseId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.TableId'), JSON_QUERY(@LastRecord, '$.TableId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Description'), JSON_QUERY(@LastRecord, '$.Description'), 'nvarchar(50)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[DatabasesTables]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [DatabaseId] = JSON_QUERY(@LastRecord, '$.DatabaseId')
-                                  AND [TableId] = JSON_QUERY(@LastRecord, '$.TableId')
-                                  AND [Description] = JSON_QUERY(@LastRecord, '$.Description')) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [DatabaseId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.DatabaseId')
+                                  AND [TableId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.TableId')
+                                  AND [Description] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Description')) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de DatabasesTables alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -18995,7 +19015,7 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -19020,9 +19040,9 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId INT
         END
         IF @Action <> 'delete' BEGIN
 
-            DECLARE @W_DatabaseId int = CAST(JSON_QUERY(@ActualRecord, '$.DatabaseId') AS int)
-                   ,@W_TableId int = CAST(JSON_QUERY(@ActualRecord, '$.TableId') AS int)
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
+            DECLARE @W_DatabaseId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId') AS int)
+                   ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS int)
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
 
             IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId < CAST('1' AS int) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual à 1';
@@ -19103,7 +19123,7 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -19113,7 +19133,7 @@ ALTER PROCEDURE[dbo].[DatabaseTablePersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -19248,15 +19268,15 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_DatabaseId int = CAST(JSON_QUERY(@ActualRecord, '$.DatabaseId') AS int)
-                   ,@W_TableId int = CAST(JSON_QUERY(@ActualRecord, '$.TableId') AS int)
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
+            DECLARE @W_DatabaseId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId') AS int)
+                   ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS int)
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[DatabasesTables] ([Id]
@@ -19340,10 +19360,10 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_DatabaseId int = CAST(JSON_QUERY(@RecordFilter, '$.DatabaseId') AS int)
-                ,@W_TableId int = CAST(JSON_QUERY(@RecordFilter, '$.TableId') AS int)
-                ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.Description') AS nvarchar(50))
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_DatabaseId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.DatabaseId') AS int)
+                ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
+                ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -19358,10 +19378,10 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
         IF @W_TableId IS NOT NULL AND @W_TableId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de TableId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.TableId') AS int) AS [TableId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -19491,51 +19511,51 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.TableId'), JSON_QUERY(@LastRecord, '$.TableId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Sequence'), JSON_QUERY(@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.DomainId'), JSON_QUERY(@LastRecord, '$.DomainId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.ReferenceTableId'), JSON_QUERY(@LastRecord, '$.ReferenceTableId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Name'), JSON_QUERY(@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Description'), JSON_QUERY(@LastRecord, '$.Description'), 'nvarchar(50)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Title'), JSON_QUERY(@LastRecord, '$.Title'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Caption'), JSON_QUERY(@LastRecord, '$.Caption'), 'nvarchar(25)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.ValidValues'), JSON_QUERY(@LastRecord, '$.ValidValues'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Default'), JSON_QUERY(@LastRecord, '$.Default'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Minimum'), JSON_QUERY(@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Maximum'), JSON_QUERY(@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsPrimarykey'), JSON_QUERY(@LastRecord, '$.IsPrimarykey'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsAutoIncrement'), JSON_QUERY(@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsRequired'), JSON_QUERY(@LastRecord, '$.IsRequired'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsListable'), JSON_QUERY(@LastRecord, '$.IsListable'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsFilterable'), JSON_QUERY(@LastRecord, '$.IsFilterable'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsEditable'), JSON_QUERY(@LastRecord, '$.IsEditable'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsGridable'), JSON_QUERY(@LastRecord, '$.IsGridable'), 'bit') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsEncrypted'), JSON_QUERY(@LastRecord, '$.IsEncrypted'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.DomainId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.DomainId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ReferenceTableId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Title'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Title'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Caption'), 'nvarchar(25)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ValidValues'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Default'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsPrimarykey'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsPrimarykey'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsAutoIncrement'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsRequired'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsRequired'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsListable'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsListable'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsFilterable'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsFilterable'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsEditable'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsEditable'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsGridable'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsGridable'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsEncrypted'), 'bit') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Columns]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [TableId] = JSON_QUERY(@LastRecord, '$.TableId')
-                                  AND [Sequence] = JSON_QUERY(@LastRecord, '$.Sequence')
-                                  AND [DomainId] = JSON_QUERY(@LastRecord, '$.DomainId')
-                                  AND [cruda].[IsEquals]([ReferenceTableId], JSON_QUERY(@LastRecord, '$.ReferenceTableId'), 'int') = 1
-                                  AND [Name] = JSON_QUERY(@LastRecord, '$.Name')
-                                  AND [Description] = JSON_QUERY(@LastRecord, '$.Description')
-                                  AND [Title] = JSON_QUERY(@LastRecord, '$.Title')
-                                  AND [Caption] = JSON_QUERY(@LastRecord, '$.Caption')
-                                  AND [cruda].[IsEquals]([ValidValues], JSON_QUERY(@LastRecord, '$.ValidValues'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IsEquals]([Default], JSON_QUERY(@LastRecord, '$.Default'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IsEquals]([Minimum], JSON_QUERY(@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IsEquals]([Maximum], JSON_QUERY(@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IsEquals]([IsPrimarykey], JSON_QUERY(@LastRecord, '$.IsPrimarykey'), 'bit') = 1
-                                  AND [cruda].[IsEquals]([IsAutoIncrement], JSON_QUERY(@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
-                                  AND [IsRequired] = JSON_QUERY(@LastRecord, '$.IsRequired')
-                                  AND [cruda].[IsEquals]([IsListable], JSON_QUERY(@LastRecord, '$.IsListable'), 'bit') = 1
-                                  AND [cruda].[IsEquals]([IsFilterable], JSON_QUERY(@LastRecord, '$.IsFilterable'), 'bit') = 1
-                                  AND [cruda].[IsEquals]([IsEditable], JSON_QUERY(@LastRecord, '$.IsEditable'), 'bit') = 1
-                                  AND [cruda].[IsEquals]([IsGridable], JSON_QUERY(@LastRecord, '$.IsGridable'), 'bit') = 1
-                                  AND [cruda].[IsEquals]([IsEncrypted], JSON_QUERY(@LastRecord, '$.IsEncrypted'), 'bit') = 1) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [TableId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.TableId')
+                                  AND [Sequence] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Sequence')
+                                  AND [DomainId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.DomainId')
+                                  AND [cruda].[IsEquals]([ReferenceTableId], [cruda].[JSON_EXTRACT](@LastRecord, '$.ReferenceTableId'), 'int') = 1
+                                  AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [Description] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Description')
+                                  AND [Title] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Title')
+                                  AND [Caption] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Caption')
+                                  AND [cruda].[IsEquals]([ValidValues], [cruda].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(MAX)') = 1
+                                  AND [cruda].[IsEquals]([Default], [cruda].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(MAX)') = 1
+                                  AND [cruda].[IsEquals]([Minimum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
+                                  AND [cruda].[IsEquals]([Maximum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
+                                  AND [cruda].[IsEquals]([IsPrimarykey], [cruda].[JSON_EXTRACT](@LastRecord, '$.IsPrimarykey'), 'bit') = 1
+                                  AND [cruda].[IsEquals]([IsAutoIncrement], [cruda].[JSON_EXTRACT](@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
+                                  AND [IsRequired] = [cruda].[JSON_EXTRACT](@LastRecord, '$.IsRequired')
+                                  AND [cruda].[IsEquals]([IsListable], [cruda].[JSON_EXTRACT](@LastRecord, '$.IsListable'), 'bit') = 1
+                                  AND [cruda].[IsEquals]([IsFilterable], [cruda].[JSON_EXTRACT](@LastRecord, '$.IsFilterable'), 'bit') = 1
+                                  AND [cruda].[IsEquals]([IsEditable], [cruda].[JSON_EXTRACT](@LastRecord, '$.IsEditable'), 'bit') = 1
+                                  AND [cruda].[IsEquals]([IsGridable], [cruda].[JSON_EXTRACT](@LastRecord, '$.IsGridable'), 'bit') = 1
+                                  AND [cruda].[IsEquals]([IsEncrypted], [cruda].[JSON_EXTRACT](@LastRecord, '$.IsEncrypted'), 'bit') = 1) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Columns alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -19563,7 +19583,7 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -19593,26 +19613,26 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId INT
             END
         END ELSE BEGIN
 
-            DECLARE @W_TableId int = CAST(JSON_QUERY(@ActualRecord, '$.TableId') AS int)
-                   ,@W_Sequence smallint = CAST(JSON_QUERY(@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_DomainId int = CAST(JSON_QUERY(@ActualRecord, '$.DomainId') AS int)
-                   ,@W_ReferenceTableId int = CAST(JSON_QUERY(@ActualRecord, '$.ReferenceTableId') AS int)
-                   ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_Title nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Title') AS nvarchar(25))
-                   ,@W_Caption nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Caption') AS nvarchar(25))
-                   ,@W_ValidValues nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.ValidValues') AS nvarchar(MAX))
-                   ,@W_Default nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Default') AS nvarchar(MAX))
-                   ,@W_Minimum nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Minimum') AS nvarchar(MAX))
-                   ,@W_Maximum nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Maximum') AS nvarchar(MAX))
-                   ,@W_IsPrimarykey bit = CAST(JSON_QUERY(@ActualRecord, '$.IsPrimarykey') AS bit)
-                   ,@W_IsAutoIncrement bit = CAST(JSON_QUERY(@ActualRecord, '$.IsAutoIncrement') AS bit)
-                   ,@W_IsRequired bit = CAST(JSON_QUERY(@ActualRecord, '$.IsRequired') AS bit)
-                   ,@W_IsListable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsListable') AS bit)
-                   ,@W_IsFilterable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsFilterable') AS bit)
-                   ,@W_IsEditable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsEditable') AS bit)
-                   ,@W_IsGridable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsGridable') AS bit)
-                   ,@W_IsEncrypted bit = CAST(JSON_QUERY(@ActualRecord, '$.IsEncrypted') AS bit)
+            DECLARE @W_TableId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS int)
+                   ,@W_Sequence smallint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_DomainId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.DomainId') AS int)
+                   ,@W_ReferenceTableId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId') AS int)
+                   ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_Title nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Title') AS nvarchar(25))
+                   ,@W_Caption nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Caption') AS nvarchar(25))
+                   ,@W_ValidValues nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ValidValues') AS nvarchar(MAX))
+                   ,@W_Default nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Default') AS nvarchar(MAX))
+                   ,@W_Minimum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(MAX))
+                   ,@W_Maximum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(MAX))
+                   ,@W_IsPrimarykey bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsPrimarykey') AS bit)
+                   ,@W_IsAutoIncrement bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsAutoIncrement') AS bit)
+                   ,@W_IsRequired bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsRequired') AS bit)
+                   ,@W_IsListable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsListable') AS bit)
+                   ,@W_IsFilterable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsFilterable') AS bit)
+                   ,@W_IsEditable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsEditable') AS bit)
+                   ,@W_IsGridable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsGridable') AS bit)
+                   ,@W_IsEncrypted bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted') AS bit)
 
             IF @W_TableId IS NOT NULL AND @W_TableId < CAST('1' AS int) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de TableId em @ActualRecord deve ser maior que ou igual à 1';
@@ -19713,7 +19733,7 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -19723,7 +19743,7 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -19858,32 +19878,32 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Columns] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_TableId int = CAST(JSON_QUERY(@ActualRecord, '$.TableId') AS int)
-                   ,@W_Sequence smallint = CAST(JSON_QUERY(@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_DomainId int = CAST(JSON_QUERY(@ActualRecord, '$.DomainId') AS int)
-                   ,@W_ReferenceTableId int = CAST(JSON_QUERY(@ActualRecord, '$.ReferenceTableId') AS int)
-                   ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_Title nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Title') AS nvarchar(25))
-                   ,@W_Caption nvarchar(25) = CAST(JSON_QUERY(@ActualRecord, '$.Caption') AS nvarchar(25))
-                   ,@W_ValidValues nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.ValidValues') AS nvarchar(MAX))
-                   ,@W_Default nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Default') AS nvarchar(MAX))
-                   ,@W_Minimum nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Minimum') AS nvarchar(MAX))
-                   ,@W_Maximum nvarchar(MAX) = CAST(JSON_QUERY(@ActualRecord, '$.Maximum') AS nvarchar(MAX))
-                   ,@W_IsPrimarykey bit = CAST(JSON_QUERY(@ActualRecord, '$.IsPrimarykey') AS bit)
-                   ,@W_IsAutoIncrement bit = CAST(JSON_QUERY(@ActualRecord, '$.IsAutoIncrement') AS bit)
-                   ,@W_IsRequired bit = CAST(JSON_QUERY(@ActualRecord, '$.IsRequired') AS bit)
-                   ,@W_IsListable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsListable') AS bit)
-                   ,@W_IsFilterable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsFilterable') AS bit)
-                   ,@W_IsEditable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsEditable') AS bit)
-                   ,@W_IsGridable bit = CAST(JSON_QUERY(@ActualRecord, '$.IsGridable') AS bit)
-                   ,@W_IsEncrypted bit = CAST(JSON_QUERY(@ActualRecord, '$.IsEncrypted') AS bit)
+            DECLARE @W_TableId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS int)
+                   ,@W_Sequence smallint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_DomainId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.DomainId') AS int)
+                   ,@W_ReferenceTableId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId') AS int)
+                   ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_Title nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Title') AS nvarchar(25))
+                   ,@W_Caption nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Caption') AS nvarchar(25))
+                   ,@W_ValidValues nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ValidValues') AS nvarchar(MAX))
+                   ,@W_Default nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Default') AS nvarchar(MAX))
+                   ,@W_Minimum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(MAX))
+                   ,@W_Maximum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(MAX))
+                   ,@W_IsPrimarykey bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsPrimarykey') AS bit)
+                   ,@W_IsAutoIncrement bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsAutoIncrement') AS bit)
+                   ,@W_IsRequired bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsRequired') AS bit)
+                   ,@W_IsListable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsListable') AS bit)
+                   ,@W_IsFilterable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsFilterable') AS bit)
+                   ,@W_IsEditable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsEditable') AS bit)
+                   ,@W_IsGridable bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsGridable') AS bit)
+                   ,@W_IsEncrypted bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Columns] ([Id]
@@ -20018,18 +20038,18 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_TableId int = CAST(JSON_QUERY(@RecordFilter, '$.TableId') AS int)
-                ,@W_DomainId int = CAST(JSON_QUERY(@RecordFilter, '$.DomainId') AS int)
-                ,@W_ReferenceTableId int = CAST(JSON_QUERY(@RecordFilter, '$.ReferenceTableId') AS int)
-                ,@W_Name nvarchar(25) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(25))
-                ,@W_IsAutoIncrement bit = CAST(JSON_QUERY(@RecordFilter, '$.IsAutoIncrement') AS bit)
-                ,@W_IsRequired bit = CAST(JSON_QUERY(@RecordFilter, '$.IsRequired') AS bit)
-                ,@W_IsListable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsListable') AS bit)
-                ,@W_IsFilterable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsFilterable') AS bit)
-                ,@W_IsEditable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsEditable') AS bit)
-                ,@W_IsGridable bit = CAST(JSON_QUERY(@RecordFilter, '$.IsGridable') AS bit)
-                ,@W_IsEncrypted bit = CAST(JSON_QUERY(@RecordFilter, '$.IsEncrypted') AS bit)
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
+                ,@W_DomainId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.DomainId') AS int)
+                ,@W_ReferenceTableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.ReferenceTableId') AS int)
+                ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                ,@W_IsAutoIncrement bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsAutoIncrement') AS bit)
+                ,@W_IsRequired bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsRequired') AS bit)
+                ,@W_IsListable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsListable') AS bit)
+                ,@W_IsFilterable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsFilterable') AS bit)
+                ,@W_IsEditable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsEditable') AS bit)
+                ,@W_IsGridable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsGridable') AS bit)
+                ,@W_IsEncrypted bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsEncrypted') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -20048,27 +20068,27 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
         IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de ReferenceTableId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.TableId') AS int) AS [TableId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST(JSON_QUERY([ActualRecord], '$.DomainId') AS int) AS [DomainId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.ReferenceTableId') AS int) AS [ReferenceTableId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Title') AS nvarchar(25)) AS [Title]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Caption') AS nvarchar(25)) AS [Caption]
-              ,CAST(JSON_QUERY([ActualRecord], '$.ValidValues') AS nvarchar(MAX)) AS [ValidValues]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Default') AS nvarchar(MAX)) AS [Default]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsPrimarykey') AS bit) AS [IsPrimarykey]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsAutoIncrement') AS bit) AS [IsAutoIncrement]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsRequired') AS bit) AS [IsRequired]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsListable') AS bit) AS [IsListable]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsFilterable') AS bit) AS [IsFilterable]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DomainId') AS int) AS [DomainId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ReferenceTableId') AS int) AS [ReferenceTableId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Title') AS nvarchar(25)) AS [Title]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Caption') AS nvarchar(25)) AS [Caption]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ValidValues') AS nvarchar(MAX)) AS [ValidValues]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Default') AS nvarchar(MAX)) AS [Default]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsPrimarykey') AS bit) AS [IsPrimarykey]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsAutoIncrement') AS bit) AS [IsAutoIncrement]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsRequired') AS bit) AS [IsRequired]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsListable') AS bit) AS [IsListable]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsFilterable') AS bit) AS [IsFilterable]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -20273,19 +20293,19 @@ ALTER PROCEDURE[dbo].[IndexValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.DatabaseId'), JSON_QUERY(@LastRecord, '$.DatabaseId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.TableId'), JSON_QUERY(@LastRecord, '$.TableId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Name'), JSON_QUERY(@LastRecord, '$.Name'), 'nvarchar(50)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsUnique'), JSON_QUERY(@LastRecord, '$.IsUnique'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(50)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsUnique'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsUnique'), 'bit') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Indexes]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [DatabaseId] = JSON_QUERY(@LastRecord, '$.DatabaseId')
-                                  AND [TableId] = JSON_QUERY(@LastRecord, '$.TableId')
-                                  AND [Name] = JSON_QUERY(@LastRecord, '$.Name')
-                                  AND [IsUnique] = JSON_QUERY(@LastRecord, '$.IsUnique')) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [DatabaseId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.DatabaseId')
+                                  AND [TableId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.TableId')
+                                  AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [IsUnique] = [cruda].[JSON_EXTRACT](@LastRecord, '$.IsUnique')) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Indexes alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -20313,7 +20333,7 @@ ALTER PROCEDURE[dbo].[IndexValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -20343,10 +20363,10 @@ ALTER PROCEDURE[dbo].[IndexValidate](@LoginId INT
             END
         END ELSE BEGIN
 
-            DECLARE @W_DatabaseId int = CAST(JSON_QUERY(@ActualRecord, '$.DatabaseId') AS int)
-                   ,@W_TableId int = CAST(JSON_QUERY(@ActualRecord, '$.TableId') AS int)
-                   ,@W_Name nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(50))
-                   ,@W_IsUnique bit = CAST(JSON_QUERY(@ActualRecord, '$.IsUnique') AS bit)
+            DECLARE @W_DatabaseId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId') AS int)
+                   ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS int)
+                   ,@W_Name nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(50))
+                   ,@W_IsUnique bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsUnique') AS bit)
 
             IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId < CAST('1' AS int) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual à 1';
@@ -20420,7 +20440,7 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -20430,7 +20450,7 @@ ALTER PROCEDURE[dbo].[IndexPersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -20565,16 +20585,16 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Indexes] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_DatabaseId int = CAST(JSON_QUERY(@ActualRecord, '$.DatabaseId') AS int)
-                   ,@W_TableId int = CAST(JSON_QUERY(@ActualRecord, '$.TableId') AS int)
-                   ,@W_Name nvarchar(50) = CAST(JSON_QUERY(@ActualRecord, '$.Name') AS nvarchar(50))
-                   ,@W_IsUnique bit = CAST(JSON_QUERY(@ActualRecord, '$.IsUnique') AS bit)
+            DECLARE @W_DatabaseId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId') AS int)
+                   ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS int)
+                   ,@W_Name nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(50))
+                   ,@W_IsUnique bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsUnique') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Indexes] ([Id]
@@ -20661,10 +20681,10 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_TableId int = CAST(JSON_QUERY(@RecordFilter, '$.TableId') AS int)
-                ,@W_Name nvarchar(50) = CAST(JSON_QUERY(@RecordFilter, '$.Name') AS nvarchar(50))
-                ,@W_IsUnique bit = CAST(JSON_QUERY(@RecordFilter, '$.IsUnique') AS bit)
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
+                ,@W_Name nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(50))
+                ,@W_IsUnique bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsUnique') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -20675,11 +20695,11 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
         IF @W_TableId IS NOT NULL AND @W_TableId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de TableId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.TableId') AS int) AS [TableId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -20812,19 +20832,19 @@ ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IndexId'), JSON_QUERY(@LastRecord, '$.IndexId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Sequence'), JSON_QUERY(@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.ColumnId'), JSON_QUERY(@LastRecord, '$.ColumnId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsDescending'), JSON_QUERY(@LastRecord, '$.IsDescending'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IndexId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IndexId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ColumnId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ColumnId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsDescending'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsDescending'), 'bit') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Indexkeys]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [IndexId] = JSON_QUERY(@LastRecord, '$.IndexId')
-                                  AND [Sequence] = JSON_QUERY(@LastRecord, '$.Sequence')
-                                  AND [ColumnId] = JSON_QUERY(@LastRecord, '$.ColumnId')
-                                  AND [IsDescending] = JSON_QUERY(@LastRecord, '$.IsDescending')) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [IndexId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.IndexId')
+                                  AND [Sequence] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Sequence')
+                                  AND [ColumnId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.ColumnId')
+                                  AND [IsDescending] = [cruda].[JSON_EXTRACT](@LastRecord, '$.IsDescending')) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Indexkeys alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -20852,7 +20872,7 @@ ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -20877,10 +20897,10 @@ ALTER PROCEDURE[dbo].[IndexkeyValidate](@LoginId INT
         END
         IF @Action <> 'delete' BEGIN
 
-            DECLARE @W_IndexId int = CAST(JSON_QUERY(@ActualRecord, '$.IndexId') AS int)
-                   ,@W_Sequence smallint = CAST(JSON_QUERY(@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_ColumnId int = CAST(JSON_QUERY(@ActualRecord, '$.ColumnId') AS int)
-                   ,@W_IsDescending bit = CAST(JSON_QUERY(@ActualRecord, '$.IsDescending') AS bit)
+            DECLARE @W_IndexId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IndexId') AS int)
+                   ,@W_Sequence smallint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_ColumnId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ColumnId') AS int)
+                   ,@W_IsDescending bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsDescending') AS bit)
 
             IF @W_IndexId IS NOT NULL AND @W_IndexId < CAST('1' AS int) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de IndexId em @ActualRecord deve ser maior que ou igual à 1';
@@ -20969,7 +20989,7 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -20979,7 +20999,7 @@ ALTER PROCEDURE[dbo].[IndexkeyPersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -21114,16 +21134,16 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Indexkeys] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_IndexId int = CAST(JSON_QUERY(@ActualRecord, '$.IndexId') AS int)
-                   ,@W_Sequence smallint = CAST(JSON_QUERY(@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_ColumnId int = CAST(JSON_QUERY(@ActualRecord, '$.ColumnId') AS int)
-                   ,@W_IsDescending bit = CAST(JSON_QUERY(@ActualRecord, '$.IsDescending') AS bit)
+            DECLARE @W_IndexId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IndexId') AS int)
+                   ,@W_Sequence smallint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_ColumnId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.ColumnId') AS int)
+                   ,@W_IsDescending bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsDescending') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Indexkeys] ([Id]
@@ -21210,10 +21230,10 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_IndexId int = CAST(JSON_QUERY(@RecordFilter, '$.IndexId') AS int)
-                ,@W_ColumnId int = CAST(JSON_QUERY(@RecordFilter, '$.ColumnId') AS int)
-                ,@W_IsDescending bit = CAST(JSON_QUERY(@RecordFilter, '$.IsDescending') AS bit)
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_IndexId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IndexId') AS int)
+                ,@W_ColumnId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.ColumnId') AS int)
+                ,@W_IsDescending bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsDescending') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -21228,11 +21248,11 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
         IF @W_ColumnId IS NOT NULL AND @W_ColumnId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de ColumnId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IndexId') AS int) AS [IndexId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST(JSON_QUERY([ActualRecord], '$.ColumnId') AS int) AS [ColumnId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsDescending') AS bit) AS [IsDescending]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IndexId') AS int) AS [IndexId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ColumnId') AS int) AS [ColumnId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsDescending') AS bit) AS [IsDescending]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -21365,19 +21385,19 @@ ALTER PROCEDURE[dbo].[LoginValidate](@LoginId INT
                 THROW 51000, @ErrorMessage, 1
             END
             IF @Action = 'update'
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.Id'), JSON_QUERY(@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.SystemId'), JSON_QUERY(@LastRecord, '$.SystemId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.UserId'), JSON_QUERY(@LastRecord, '$.UserId'), 'int') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.PublicKey'), JSON_QUERY(@LastRecord, '$.PublicKey'), 'nvarchar(256)') = 1
-                AND [cruda].[IsEquals](JSON_QUERY(@ActualRecord, '$.IsLogged'), JSON_QUERY(@LastRecord, '$.IsLogged'), 'bit') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.UserId'), 'int') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.PublicKey'), [cruda].[JSON_EXTRACT](@LastRecord, '$.PublicKey'), 'nvarchar(256)') = 1
+                AND [cruda].[IsEquals]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsLogged'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsLogged'), 'bit') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Logins]
-                            WHERE [Id] = JSON_QUERY(@LastRecord, '$.Id')
-                                  AND [SystemId] = JSON_QUERY(@LastRecord, '$.SystemId')
-                                  AND [UserId] = JSON_QUERY(@LastRecord, '$.UserId')
-                                  AND [PublicKey] = JSON_QUERY(@LastRecord, '$.PublicKey')
-                                  AND [IsLogged] = JSON_QUERY(@LastRecord, '$.IsLogged')) BEGIN
+                            WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [SystemId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.SystemId')
+                                  AND [UserId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.UserId')
+                                  AND [PublicKey] = [cruda].[JSON_EXTRACT](@LastRecord, '$.PublicKey')
+                                  AND [IsLogged] = [cruda].[JSON_EXTRACT](@LastRecord, '$.IsLogged')) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Logins alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -21405,7 +21425,7 @@ ALTER PROCEDURE[dbo].[LoginValidate](@LoginId INT
             THROW 51000, @ErrorMessage, 1
         END
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @W_Id IS NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Valor de Id em @ActualRecord é requerido.';
@@ -21430,10 +21450,10 @@ ALTER PROCEDURE[dbo].[LoginValidate](@LoginId INT
         END
         IF @Action <> 'delete' BEGIN
 
-            DECLARE @W_SystemId int = CAST(JSON_QUERY(@ActualRecord, '$.SystemId') AS int)
-                   ,@W_UserId int = CAST(JSON_QUERY(@ActualRecord, '$.UserId') AS int)
-                   ,@W_PublicKey nvarchar(256) = CAST(JSON_QUERY(@ActualRecord, '$.PublicKey') AS nvarchar(256))
-                   ,@W_IsLogged bit = CAST(JSON_QUERY(@ActualRecord, '$.IsLogged') AS bit)
+            DECLARE @W_SystemId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS int)
+                   ,@W_UserId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.UserId') AS int)
+                   ,@W_PublicKey nvarchar(256) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.PublicKey') AS nvarchar(256))
+                   ,@W_IsLogged bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsLogged') AS bit)
 
             IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS int) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Valor de SystemId em @ActualRecord deve ser maior que ou igual à 1';
@@ -21498,7 +21518,7 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId INT
         IF @TransactionId = 0
             GOTO EXIT_PROCEDURE
 
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
@@ -21508,7 +21528,7 @@ ALTER PROCEDURE[dbo].[LoginPersist](@LoginId INT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) = @W_Id
+                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [cruda].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -21643,16 +21663,16 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId INT
             SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';
             THROW 51000, @ErrorMessage, 1
         END
-        DECLARE @W_Id int = CAST(JSON_QUERY(@ActualRecord, '$.Id') AS int)
+        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Logins] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_SystemId int = CAST(JSON_QUERY(@ActualRecord, '$.SystemId') AS int)
-                   ,@W_UserId int = CAST(JSON_QUERY(@ActualRecord, '$.UserId') AS int)
-                   ,@W_PublicKey nvarchar(256) = CAST(JSON_QUERY(@ActualRecord, '$.PublicKey') AS nvarchar(256))
-                   ,@W_IsLogged bit = CAST(JSON_QUERY(@ActualRecord, '$.IsLogged') AS bit)
+            DECLARE @W_SystemId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS int)
+                   ,@W_UserId int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.UserId') AS int)
+                   ,@W_PublicKey nvarchar(256) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.PublicKey') AS nvarchar(256))
+                   ,@W_IsLogged bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsLogged') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Logins] ([Id]
@@ -21739,10 +21759,10 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
-                ,@W_Id int = CAST(JSON_QUERY(@RecordFilter, '$.Id') AS int)
-                ,@W_SystemId int = CAST(JSON_QUERY(@RecordFilter, '$.SystemId') AS int)
-                ,@W_UserId int = CAST(JSON_QUERY(@RecordFilter, '$.UserId') AS int)
-                ,@W_IsLogged bit = CAST(JSON_QUERY(@RecordFilter, '$.IsLogged') AS bit)
+                ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                ,@W_SystemId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
+                ,@W_UserId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.UserId') AS int)
+                ,@W_IsLogged bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsLogged') AS bit)
 
         IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id deve ser maior que ou igual à ''1''', 1
@@ -21757,11 +21777,11 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
         IF @W_UserId IS NOT NULL AND @W_UserId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de UserId deve ser menor que ou igual à ''2147483647''', 1
         SELECT [Action] AS [_]
-              ,CAST(JSON_QUERY([ActualRecord], '$.Id') AS int) AS [Id]
-              ,CAST(JSON_QUERY([ActualRecord], '$.SystemId') AS int) AS [SystemId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.UserId') AS int) AS [UserId]
-              ,CAST(JSON_QUERY([ActualRecord], '$.PublicKey') AS nvarchar(256)) AS [PublicKey]
-              ,CAST(JSON_QUERY([ActualRecord], '$.IsLogged') AS bit) AS [IsLogged]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.UserId') AS int) AS [UserId]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.PublicKey') AS nvarchar(256)) AS [PublicKey]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsLogged') AS bit) AS [IsLogged]
             INTO [dbo].[#tmpOperations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
