@@ -227,6 +227,7 @@ export default class TGrid {
                 //   this.#ReferenceRecordsets[column.ReferenceTableId] = TSystem.GetTable(column.ReferenceTableId).ListTableRows()
             })
         this.#HTML.Head.innerHTML = null
+        tr.title = this.#OrderBy === "" ? "" : `Ordem: ${this.#OrderBy.slice(0, -1)}`
         this.#HTML.Head.appendChild(tr)
     }
 
