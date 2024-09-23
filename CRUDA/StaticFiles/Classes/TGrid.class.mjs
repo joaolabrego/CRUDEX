@@ -25,7 +25,6 @@ export default class TGrid {
         NumberInput: null,
         RangeInput: null,
         CreateButton: null,
-        RefreshButton: null,
         UpdateButton: null,
         DeleteButton: null,
         QueryButton: null,
@@ -42,7 +41,6 @@ export default class TGrid {
         Delete: "",
         Query: "",
         Exit: "",
-        Refresh: "",
     }
     constructor(databaseName, tableName) {
         let database = TSystem.GetDatabase(databaseName)
@@ -83,7 +81,6 @@ export default class TGrid {
         this.#Images.Exit = images.Exit
         this.#Images.Filter = images.Filter
         this.#Images.Insert = images.Insert
-        this.#Images.Refresh = images.Refresh
     }
     #OnChangeInput = (event) => {
         let control = event.target.className === "NumberInput" ? this.#HTML.RangeInput : this.#HTML.NumberInput
@@ -223,7 +220,7 @@ export default class TGrid {
                         event.target.Value = null
                         event.target.innerHTML = column.Title
                     }
-                    this.#HTML.RefreshButton.title = `Atualizar página${this.#OrderBy === "" ? "" : ` (${this.#OrderBy.slice(0, -1)})`}`
+                    this.Renderize()
                 }
                 tr.appendChild(th)
                 //if (column.ReferenceTableId && !this.#ReferenceRecordsets[column.ReferenceTableId])
@@ -307,16 +304,6 @@ export default class TGrid {
 
             th.appendChild(this.#HTML.RangeInput)
         }
-        this.#HTML.RefreshButton = document.createElement("button")
-        this.#HTML.RefreshButton.type = "button"
-        this.#HTML.RefreshButton.style.backgroundImage = TGrid.#Images.Refresh
-        this.#HTML.RefreshButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
-        this.#HTML.RefreshButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
-        this.#HTML.RefreshButton.onclick = () => {
-            this.Renderize()
-        }
-        this.#HTML.RefreshButton.title = `Atualizar página${this.#OrderBy === "" ? "" : ` (${this.#OrderBy.slice(0, -1)})`}`
-        th.appendChild(this.#HTML.RefreshButton)
 
         this.#HTML.CreateButton = document.createElement("button")
         this.#HTML.CreateButton.type = "button"
