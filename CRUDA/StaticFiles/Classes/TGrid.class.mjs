@@ -130,14 +130,14 @@ export default class TGrid {
     async Renderize(pageNumber = this.#PageNumber) {
         TScreen.Title = `Manutenção de ${this.#Table.Description}`
         this.#ReadDataPage(pageNumber)
-            .then((data) => {
-                this.#DataPage = data
+            .then((dataPage) => {
+                this.#DataPage = dataPage
                 if (this.#RowCount > 1)
                     TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar."
                 else
                     TScreen.LastMessage = TScreen.Message = "Clique em um dos botões."
                 this.#BuildHtmlHead()
-                this.#BuildHtmlBody(data)
+                this.#BuildHtmlBody(dataPage)
                 this.#BuildHtmlFoot()
                 TScreen.WithBackgroundImage = true
                 TScreen.Main = this.#HTML.Container
@@ -227,13 +227,13 @@ export default class TGrid {
                 //   this.#ReferenceRecordsets[column.ReferenceTableId] = TSystem.GetTable(column.ReferenceTableId).ListTableRows()
             })
         this.#HTML.Head.innerHTML = null
-        tr.title = this.#OrderBy === "" ? "" : `Ordem: ${this.#OrderBy.slice(0, -1)}`
+        tr.title = this.#OrderBy === "" ? "" : `Ordenação: ${this.#OrderBy.slice(0, -1)}`
         this.#HTML.Head.appendChild(tr)
     }
 
-    #BuildHtmlBody(data) {
+    #BuildHtmlBody(dataPage) {
         this.#HTML.Body.innerHTML = null
-        data.forEach((row, index) => {
+        dataPage.forEach((row, index) => {
             let tr = document.createElement("tr")
 
             tr.title = JSON.stringify(row).replace(/,/g, ",\n")
@@ -266,7 +266,7 @@ export default class TGrid {
 
         th.colSpan = this.#Table.Columns.length.toString()
         if (this.#RowCount > TSystem.RowsPerPage) {
-            label = document.createElement("label")
+            label = document.createElement("p")
             label.style.float = "left"
             label.innerHTML = "Página:&nbsp;&nbsp;"
 

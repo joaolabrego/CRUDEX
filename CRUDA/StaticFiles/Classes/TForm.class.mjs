@@ -71,18 +71,18 @@ export default class TForm {
     }
     #GetCheckBox(column) {
         let control = document.createElement("input"),
-            value = this.#Record[column.Name],
-            isEmptyValue = TConfig.IsEmpty(value)
+            isEmptyValue = TConfig.IsEmpty(this.#Record[column.Name])
 
         control.type = column.Domain.Type.Category.HtmlInputType
-        control.checked = value
-        control.title = isEmptyValue ? 'nulo' : control.checked ? "sim" : "não"
         control.indeterminate = isEmptyValue
+        control.checked = this.#Record[column.Name]
+        control.title = isEmptyValue ? 'nulo' : control.checked ? "sim" : "não"
         control.onclick = (event) => {
-            let isEmptyValue = TConfig.IsEmpty(this.#Record[column.Name])
-
             if (event.target.readOnly)
                 return false
+
+            let isEmptyValue = TConfig.IsEmpty(this.#Record[column.Name])
+
             if (isEmptyValue) {
                 this.#Record[column.Name] = false
                 isEmptyValue = false

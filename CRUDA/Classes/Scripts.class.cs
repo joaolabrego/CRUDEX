@@ -1276,15 +1276,14 @@ namespace CRUDA.Classes
                 }
                 result.Append($")\r\n");
                 firstTime = true;
-                foreach (var column in columnRows)
+                foreach (var column in pkColumnRows)
                 {
                     if (firstTime)
                     {
-                        result.Append($"        SELECT [C].[{column["Name"]}]\r\n");
+                        result.Append($"        SELECT CAST('C' AS CHAR(1)) AS [_] \r\n");
                         firstTime = false;
                     }
-                    else
-                        result.Append($"              ,[C].[{column["Name"]}]\r\n");
+                    result.Append($"              ,[C].[{column["Name"]}]\r\n");
                 }
                 result.Append($"            INTO [dbo].[#tmp]\r\n");
                 result.Append($"            FROM [dbo].[{table["Name"]}] [C]\r\n");
@@ -1316,63 +1315,47 @@ namespace CRUDA.Classes
                         result.Append($"(@W_{column["Name"]} IS NULL OR [C].[{column["Name"]}] = @W_{column["Name"]})\r\n");
                 }
                 firstTime = true;
-                foreach (var column in columnRows)
+                foreach (var column in pkColumnRows)
                 {
                     if (firstTime)
                     {
                         result.Append($"        UNION ALL\r\n");
-                        result.Append($"            SELECT [C].[{column["Name"]}]\r\n");
+                        result.Append($"            SELECT CAST('O' AS CHAR(1)) AS [_]\r\n");
                         firstTime = false;
                     }
-                    else
-                        result.Append($"                  ,[C].[{column["Name"]}]\r\n");
+                    result.Append($"                  ,[{column["Name"]}]\r\n");
                 }
-                result.Append($"                FROM [dbo].[#tmpOperations] [C]\r\n");
+                result.Append($"                FROM [dbo].[#tmpOperations]\r\n");
                 firstTime = true;
                 foreach (var column in filterableColumns)
                 {
                     if (firstTime)
                     {
-                        result.Append($"                WHERE [C].[_] = 'create'\r\n");
+                        result.Append($"                WHERE [_] IN ('create', 'update')\r\n");
                         firstTime = false;
                     }
                     result.Append($"                      AND ");
                     if (ToBoolean(column["IsRequired"]))
-                        result.Append($"[C].[{column["Name"]}] = ISNULL(@W_{column["Name"]}, [C].[{column["Name"]}])\r\n");
+                        result.Append($"[{column["Name"]}] = ISNULL(@W_{column["Name"]}, [{column["Name"]}])\r\n");
                     else
-                        result.Append($"(@W_{column["Name"]} IS NULL OR [C].[{column["Name"]}] = @W_{column["Name"]})\r\n");
-                }
-                firstTime = true;
-                foreach (var column in columnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"        UNION ALL\r\n");
-                        result.Append($"            SELECT [C].[{column["Name"]}]\r\n");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($"                  ,[C].[{column["Name"]}]\r\n");
-                }
-                result.Append($"                FROM [dbo].[#tmpOperations] [C]\r\n");
-                firstTime = true;
-                foreach (var column in filterableColumns)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"                WHERE [C].[_] = 'update'\r\n");
-                        firstTime = false;
-                    }
-                    result.Append($"                      AND ");
-                    if (ToBoolean(column["IsRequired"]))
-                        result.Append($"[C].[{column["Name"]}] = ISNULL(@W_{column["Name"]}, [C].[{column["Name"]}])\r\n");
-                    else
-                        result.Append($"(@W_{column["Name"]} IS NULL OR [C].[{column["Name"]}] = @W_{column["Name"]})\r\n");
+                        result.Append($"(@W_{column["Name"]} IS NULL OR [{column["Name"]}] = @W_{column["Name"]})\r\n");
                 }
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
                 result.Append($"               ,@OffSet INT\r\n");
                 result.Append($"\r\n");
+                firstTime = true;
+                foreach (var column in pkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([{column["Name"]}]");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($", [{column["Name"]}]");
+                }
+                result.Append($")\r\n");
                 result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
                 result.Append($"            SET @offset = 0\r\n");
                 result.Append($"            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END\r\n");
@@ -1393,14 +1376,25 @@ namespace CRUDA.Classes
                 result.Append($"               ,@className NVARCHAR(50) = 'RecordColumn'\r\n");
                 result.Append($"\r\n");
                 result.Append($"        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]\r\n");
-                result.Append($"        SET @sql = 'INSERT INTO [dbo].[#view]\r\n");
-                result.Append($"                        SELECT ''RecordColumn'' AS [ClassName], *\r\n");
-                result.Append($"                            FROM [dbo].[#tmp]\r\n");
-                result.Append($"                            ORDER BY ' + @OrderBy + '\r\n");
-                result.Append($"                            OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
-                result.Append($"                            FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'\r\n");
-                result.Append($"        EXEC(@sql)\r\n");
-                result.Append($"        SELECT * FROM [dbo].[#view]\r\n");
+                result.Append($"        SET @sql = 'SELECT @className AS [ClassName]\r\n");
+                foreach (var column in columnRows)
+                    result.Append($"                          ,[C].[{column["Name"]}]\r\n");
+                result.Append($"                        FROM [dbo].[#tmp] [T]\r\n");
+                result.Append($"                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]\r\n");
+                result.Append($"                        WHERE [T].[_] = ''C''\r\n");
+                result.Append($"                    UNION ALL\r\n");
+                result.Append($"                        SELECT @className AS [ClassName]\r\n");
+                foreach (var column in columnRows)
+                    result.Append($"                              ,[C].[{column["Name"]}]\r\n");
+                result.Append($"                            FROM [dbo].[#tmp] [T]\r\n");
+                result.Append($"                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]\r\n");
+                result.Append($"                            WHERE [T].[_] = ''O''\r\n");
+                result.Append($"                    ORDER BY ' + @OrderBy + '\r\n");
+                result.Append($"                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
+                result.Append($"                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'\r\n");
+                result.Append($"        EXEC sp_executesql @sql,\r\n");
+                result.Append($"                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',\r\n");
+                result.Append($"                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows\r\n");
                 result.Append($"\r\n");
                 result.Append($"        RETURN @RowCount\r\n");
                 result.Append($"    END TRY\r\n");
