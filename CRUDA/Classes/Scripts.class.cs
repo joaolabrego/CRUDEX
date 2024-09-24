@@ -1304,15 +1304,13 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"            WHERE ");
+                        result.Append($"            WHERE [D].[Id] IS NULL\r\n");
                         firstTime = false;
                     }
-                    else
-                        result.Append($"                  AND ");
                     if (ToBoolean(column["IsRequired"]))
-                        result.Append($"[C].[{column["Name"]}] = ISNULL(@W_{column["Name"]}, [C].[{column["Name"]}])\r\n");
+                        result.Append($"                  AND [C].[{column["Name"]}] = ISNULL(@W_{column["Name"]}, [C].[{column["Name"]}])\r\n");
                     else
-                        result.Append($"(@W_{column["Name"]} IS NULL OR [C].[{column["Name"]}] = @W_{column["Name"]})\r\n");
+                        result.Append($"                  AND (@W_{column["Name"]} IS NULL OR [C].[{column["Name"]}] = @W_{column["Name"]})\r\n");
                 }
                 firstTime = true;
                 foreach (var column in pkColumnRows)

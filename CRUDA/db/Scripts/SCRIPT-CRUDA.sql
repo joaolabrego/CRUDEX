@@ -13196,7 +13196,8 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Categories] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
                   AND [C].[AskEncrypted] = ISNULL(@W_AskEncrypted, [C].[AskEncrypted])
                   AND [C].[AskMask] = ISNULL(@W_AskMask, [C].[AskMask])
@@ -13836,7 +13837,8 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Types] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
                   AND [C].[AskLength] = ISNULL(@W_AskLength, [C].[AskLength])
                   AND [C].[AskDecimals] = ISNULL(@W_AskDecimals, [C].[AskDecimals])
@@ -14376,7 +14378,8 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Masks] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
@@ -14988,7 +14991,8 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Domains] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[TypeId] = ISNULL(@W_TypeId, [C].[TypeId])
                   AND (@W_MaskId IS NULL OR [C].[MaskId] = @W_MaskId)
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
@@ -15553,7 +15557,8 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Systems] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
                   AND [C].[ClientName] = ISNULL(@W_ClientName, [C].[ClientName])
         UNION ALL
@@ -16133,7 +16138,8 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Menus] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
                   AND [C].[Caption] = ISNULL(@W_Caption, [C].[Caption])
         UNION ALL
@@ -16677,7 +16683,8 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Users] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
                   AND [C].[FullName] = ISNULL(@W_FullName, [C].[FullName])
                   AND [C].[IsActive] = ISNULL(@W_IsActive, [C].[IsActive])
@@ -17227,7 +17234,8 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[SystemsUsers] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
                   AND [C].[UserId] = ISNULL(@W_UserId, [C].[UserId])
                   AND [C].[Description] = ISNULL(@W_Description, [C].[Description])
@@ -17809,7 +17817,8 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Databases] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
                   AND [C].[Alias] = ISNULL(@W_Alias, [C].[Alias])
         UNION ALL
@@ -18365,7 +18374,8 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[SystemsDatabases] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
                   AND [C].[DatabaseId] = ISNULL(@W_DatabaseId, [C].[DatabaseId])
                   AND [C].[Description] = ISNULL(@W_Description, [C].[Description])
@@ -18936,7 +18946,8 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Tables] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
                   AND [C].[Alias] = ISNULL(@W_Alias, [C].[Alias])
                   AND [C].[IsPaged] = ISNULL(@W_IsPaged, [C].[IsPaged])
@@ -19488,7 +19499,8 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[DatabasesTables] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[DatabaseId] = ISNULL(@W_DatabaseId, [C].[DatabaseId])
                   AND [C].[TableId] = ISNULL(@W_TableId, [C].[TableId])
                   AND [C].[Description] = ISNULL(@W_Description, [C].[Description])
@@ -20207,7 +20219,8 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Columns] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[TableId] = ISNULL(@W_TableId, [C].[TableId])
                   AND [C].[DomainId] = ISNULL(@W_DomainId, [C].[DomainId])
                   AND (@W_ReferenceTableId IS NULL OR [C].[ReferenceTableId] = @W_ReferenceTableId)
@@ -20805,7 +20818,8 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Indexes] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[TableId] = ISNULL(@W_TableId, [C].[TableId])
                   AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
                   AND [C].[IsUnique] = ISNULL(@W_IsUnique, [C].[IsUnique])
@@ -21369,7 +21383,8 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Indexkeys] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[IndexId] = ISNULL(@W_IndexId, [C].[IndexId])
                   AND [C].[ColumnId] = ISNULL(@W_ColumnId, [C].[ColumnId])
                   AND [C].[IsDescending] = ISNULL(@W_IsDescending, [C].[IsDescending])
@@ -21909,7 +21924,8 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
             INTO [dbo].[#tmp]
             FROM [dbo].[Logins] [C]
                 LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [C].[Id] = ISNULL(@W_Id, [C].[Id])
+            WHERE [D].[Id] IS NULL
+                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
                   AND [C].[UserId] = ISNULL(@W_UserId, [C].[UserId])
                   AND [C].[IsLogged] = ISNULL(@W_IsLogged, [C].[IsLogged])

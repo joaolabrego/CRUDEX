@@ -175,12 +175,15 @@ export default class TGrid {
 
         if (htmlInputType === "checkbox") {
             control = document.createElement("input")
-            control.type = htmlInputType
-            control.indeterminate = isEmptyValue
-            control.checked = value
-            control.title = isEmptyValue ? "nulo" : value ? "sim" : "não"
-            control.readOnly = true
-            control.onclick = () => false
+            if (isEmptyValue)
+                control.hidden = "hidden"
+            else {
+                control.type = htmlInputType
+                control.checked = value
+                control.title = value ? "sim" : "não"
+                control.readOnly = true
+                control.onclick = () => false
+            }
         }
         else {
             control = document.createTextNode(value ?? "")
