@@ -106,7 +106,7 @@ export default class TGrid {
             InputParams: {
                 LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(recordFilter),
-                OrderBy: this.#OrderBy.slice(0, -1),
+                OrderBy: this.OrderBy,
                 PaddingGridLastPage: TSystem.PaddingGridLastPage,
             },
             OutputParams: {},
@@ -227,7 +227,7 @@ export default class TGrid {
                 //   this.#ReferenceRecordsets[column.ReferenceTableId] = TSystem.GetTable(column.ReferenceTableId).ListTableRows()
             })
         this.#HTML.Head.innerHTML = null
-        tr.title = this.#OrderBy === "" ? "" : `Ordenação: ${this.#OrderBy.slice(0, -1)}`
+        tr.title = this.#OrderBy === "" ? "" : `Ordenação: ${this.OrderBy}`
         this.#HTML.Head.appendChild(tr)
     }
 
@@ -415,5 +415,8 @@ export default class TGrid {
             .forEach(column => primarykeys[column.Name] = this.#DataPage[this.#RowNumber][column.Name])
 
         return primarykeys
+    }
+    get OrderBy() {
+        return this.#OrderBy.slice(0, -1)
     }
 }
