@@ -1,17 +1,17 @@
-IF(SELECT object_id('[dbo].[NumberInWords]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [dbo].[NumberInWords]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
+IF(SELECT object_id('[cruda].[NUMBER_IN_WORDS]', 'FN')) IS NULL
+	EXEC('CREATE FUNCTION [cruda].[NUMBER_IN_WORDS]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
 GO
-ALTER FUNCTION [dbo].[NumberInWords](@Value AS DECIMAL(18,2)
-								    ,@EnglishOrPortuguese BIT = 1
-									,@CurrencyInSingular VARCHAR(50) = NULL
-									,@CurrencyInPlural VARCHAR(50) = NULL
-									,@CentsInSingular VARCHAR(50) = NULL
-									,@CentsInPlural VARCHAR(50) = NULL)
+ALTER FUNCTION [cruda].[NUMBER_IN_WORDS](@Value AS DECIMAL(18,2)
+										,@EnglishOrPortuguese BIT = 1
+										,@CurrencyInSingular VARCHAR(50) = NULL
+										,@CurrencyInPlural VARCHAR(50) = NULL
+										,@CentsInSingular VARCHAR(50) = NULL
+										,@CentsInPlural VARCHAR(50) = NULL)
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
 	DECLARE @Power INT = 0,
 		    @Separator VARCHAR(5) = '',
-		    @PartialValue BIGINT,
+		    @PartialValue INT,
 		    @Digito INT = 0,
 		    @LastDigit INT,
 			@Result VARCHAR(MAX) = '',
@@ -95,11 +95,11 @@ BEGIN
 			SET @ValueOfThousands = @Digito
 		END
 		IF @Digito = 1 BEGIN
-			 SET @Result = [cruda].[NumberInWordsOfHundreds](@Digito, @EnglishOrPortuguese) + ' ' + 
+			 SET @Result = [cruda].[HUNDREDS_IN_WORDS](@Digito, @EnglishOrPortuguese) + ' ' + 
 							  (SELECT NomeSingular FROM @Powers WHERE Id = @Power) + 
 							  @Separator + @Result
 		END ELSE IF @Digito > 0 BEGIN
-			 SET @Result = [cruda].[NumberInWordsOfHundreds](@Digito, @EnglishOrPortuguese) + ' ' + 
+			 SET @Result = [cruda].[HUNDREDS_IN_WORDS](@Digito, @EnglishOrPortuguese) + ' ' + 
 							  (SELECT NomePlural FROM @Powers WHERE Id = @Power) + 
 							  @Separator + @Result
 		END
@@ -135,15 +135,15 @@ BEGIN
 	IF @PartialValue > 0 BEGIN
 		IF @PartialValue = 1 BEGIN
 			IF @Result = '' BEGIN
-				SET @Result = [cruda].[NumberInWordsOfHundreds](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular + @Of + @CurrencyInSingular
+				SET @Result = [cruda].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular + @Of + @CurrencyInSingular
 			END ELSE BEGIN
-				SET @Result = @Result + @And + [cruda].[NumberInWordsOfHundreds](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular 
+				SET @Result = @Result + @And + [cruda].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular 
 			END
 		END ELSE BEGIN
 			IF @Result = '' BEGIN
-				SET @Result = [cruda].[NumberInWordsOfHundreds](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural + @Of + @CurrencyInPlural
+				SET @Result = [cruda].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural + @Of + @CurrencyInPlural
 			END ELSE BEGIN
-				SET @Result = @Result + @And + [cruda].[NumberInWordsOfHundreds](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural
+				SET @Result = @Result + @And + [cruda].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural
 			END
 		END
 	END		

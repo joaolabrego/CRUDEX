@@ -4,14 +4,14 @@ GO
 ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 										  ,@UserName VARCHAR(25)) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
+			,@ErrorMessage NVARCHAR(MAX)
 
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionCommit]: '
-				,@LoginId BIGINT
-				,@OperationId BIGINT
+		DECLARE @LoginId INT
+				,@OperationId INT
 				,@TableName VARCHAR(25)
 				,@IsConfirmed BIT
 				,@CreatedBy VARCHAR(25)
@@ -19,27 +19,21 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 
 		BEGIN TRANSACTION
 		SAVE TRANSACTION [SavePoint]
-		IF @TransactionId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @TransactionId IS NULL
+			THROW 51000, 'Valor de @TransactionId é requerido', 1
 		SELECT @LoginId = [LoginId]
 			  ,@IsConfirmed = [IsConfirmed]
 			  ,@CreatedBy = [CreatedBy]
 			FROM [cruda].[Transactions]
 			WHERE [Id] = @TransactionId
-		IF @@ROWCOUNT = 0 BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @@ROWCOUNT = 0
+			THROW 51000, 'Transação inexistente', 1
 		IF @IsConfirmed IS NOT NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+			SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
-		IF @UserName <> @CreatedBy BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @UserName <> @CreatedBy
+			THROW 51000, 'Erro grave de segurança', 1
 		WHILE 1 = 1 BEGIN
 			SELECT TOP 1 @OperationId = [Id]
 						,@TableName = [TableName]
@@ -61,11 +55,12 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TRANCOUNT BEGIN
-			ROLLBACK TRANSACTION [SavePoint]
-			COMMIT TRANSACTION
-		END;
-		THROW
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END
+        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
 	END CATCH
 END
 GO

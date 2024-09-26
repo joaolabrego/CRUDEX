@@ -95,7 +95,7 @@ namespace CRUDA.Classes
             if (IsNull(value))
                 return 0.0;
 
-            return Convert.ToDouble(value ?? 0);
+            return Convert.ToDouble(value ?? 0.0);
         }
         private static string ToString(object? value)
         {
@@ -271,13 +271,13 @@ namespace CRUDA.Classes
             result.Append($"**********************************************************************************/\r\n");
             result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.GetPublicKey.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar function [dbo].[NumberInWordsOfHundreds]\r\n");
+            result.Append($"Criar function [cruda].[HUNDREDS_IN_WORDS]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.NumberInWordsOfHundreds.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.HUNDREDS_IN_WORDS.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar function [dbo].[NumberInWords]\r\n");
+            result.Append($"Criar function [cruda].[NUMBER_IN_WORDS]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.NumberInWords.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.NUMBER_IN_WORDS.sql")));
 
             return result;
         }
@@ -332,11 +332,11 @@ namespace CRUDA.Classes
 
                 foreach (DataRow column in columnRows)
                 {
-                    var validations = GetConstraints(column, domains, types);
-                    var required = $"{(validations.TryGetValue("Required", out dynamic? value) ? value : "")}";
-                    var autoIncrement = $"{(validations.TryGetValue("AutoIncrement", out value) ? value : "")}";
-                    var defaultValue = $"{(validations.TryGetValue("Default", out value) ? value : "")}";
-                    var range = $"{(validations.TryGetValue("Range", out value) ? value : "")}";
+                    var constraints = GetConstraints(column, domains, types);
+                    var required = $"{(constraints.TryGetValue("Required", out dynamic? value) ? value : "")}";
+                    var autoIncrement = $"{(constraints.TryGetValue("AutoIncrement", out value) ? value : "")}";
+                    var defaultValue = $"{(constraints.TryGetValue("Default", out value) ? value : "")}";
+                    var range = $"{(constraints.TryGetValue("Range", out value) ? value : "")}";
                     var definition = $"[{column["Name"]}] {column["#DataType"]}{autoIncrement}{required}{defaultValue}{range}";
 
                     if (firstTime)
@@ -668,13 +668,13 @@ namespace CRUDA.Classes
                 result.Append($"                                             ,@UserName NVARCHAR(25)\r\n");
                 result.Append($"                                             ,@OperationId INT) AS BEGIN\r\n");
                 result.Append($"    DECLARE @TRANCOUNT INT = @@TRANCOUNT\r\n");
+                result.Append($"            ,@ErrorMessage NVARCHAR(MAX)\r\n");
                 result.Append($"\r\n");
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [{table["Alias"]}Commit]: '\r\n");
-                result.Append($"               ,@TransactionId INT\r\n");
+                result.Append($"        DECLARE @TransactionId INT\r\n");
                 result.Append($"               ,@TransactionIdAux INT\r\n");
                 result.Append($"               ,@TableName NVARCHAR(25)\r\n");
                 result.Append($"               ,@Action NVARCHAR(15)\r\n");
@@ -752,7 +752,7 @@ namespace CRUDA.Classes
                             firstTime = false;
                         }
                         else
-                            result.Append($"                                                  AND [{column["Name"]}] = @W_{column["Name"]}\r\n");
+                            result.Append($"                                                      AND [{column["Name"]}] = @W_{column["Name"]}\r\n");
                     }
                 }
 
@@ -914,7 +914,7 @@ namespace CRUDA.Classes
                         result.Append($"            IF @Action = 'update'\r\n");
                         firstTime = false;
                     }
-                    result.Append($"                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}'), [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#DataType"]}') = 1\r\n");
+                    result.Append($"                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}'), [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1\r\n");
                 }
                 result.Append($"                RETURN 0\r\n");
                 firstTime = true;
@@ -935,7 +935,7 @@ namespace CRUDA.Classes
                     if (ToBoolean(column["IsRequired"]))
                         result.Append($"[{column["Name"]}] = [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}')");
                     else
-                        result.Append($"[cruda].[IS_EQUAL]([{column["Name"]}], [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#DataType"]}') = 1");
+                        result.Append($"[cruda].[IS_EQUAL]([{column["Name"]}], [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1");
                 }
                 result.Append($") BEGIN\r\n");
                 result.Append($"                SET @ErrorMessage = @ErrorMessage + 'Registro de {table["Name"]} alterado por outro usuário';\r\n");
@@ -1186,6 +1186,8 @@ namespace CRUDA.Classes
                 result.Append($"                                          ,@PageNumber INT OUT\r\n");
                 result.Append($"                                          ,@LimitRows INT OUT\r\n");
                 result.Append($"                                          ,@MaxPage INT OUT) AS BEGIN\r\n");
+                result.Append($"    DECLARE @ErrorMessage NVARCHAR(MAX)\r\n");
+                result.Append($"\r\n");
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
@@ -1397,8 +1399,6 @@ namespace CRUDA.Classes
                 result.Append($"        RETURN @RowCount\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
-                result.Append($"        DECLARE @ErrorMessage NVARCHAR(MAX)\r\n");
-                result.Append($"\r\n");
                 result.Append($"        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));\r\n");
                 result.Append($"        THROW 51000, @ErrorMessage, 1;\r\n");
                 result.Append($"    END CATCH\r\n");

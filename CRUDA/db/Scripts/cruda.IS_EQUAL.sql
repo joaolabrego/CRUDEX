@@ -21,8 +21,8 @@ BEGIN
         RETURN CASE WHEN TRY_CAST(@LeftValue AS smallint) = TRY_CAST(@RightValue AS smallint) THEN 1 ELSE 0 END;
 	IF @TypeValue = 'tinyint'
         RETURN CASE WHEN TRY_CAST(@LeftValue AS tinyint) = TRY_CAST(@RightValue AS tinyint) THEN 1 ELSE 0 END;
-	IF @TypeValue = 'bigint'
-        RETURN CASE WHEN TRY_CAST(@LeftValue AS bigint) = TRY_CAST(@RightValue AS bigint) THEN 1 ELSE 0 END;
+	IF @TypeValue = 'int'
+        RETURN CASE WHEN TRY_CAST(@LeftValue AS int) = TRY_CAST(@RightValue AS int) THEN 1 ELSE 0 END;
 
 	-- Comparações decimais e monetárias
 	IF @TypeValue = 'decimal'

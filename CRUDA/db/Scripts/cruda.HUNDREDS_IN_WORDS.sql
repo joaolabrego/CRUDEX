@@ -1,8 +1,8 @@
-IF(SELECT object_id('[dbo].[NumberInWordsOfHundreds]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [dbo].[NumberInWordsOfHundreds]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
+IF(SELECT object_id('[cruda].[HUNDREDS_IN_WORDS]', 'FN')) IS NULL
+	EXEC('CREATE FUNCTION [cruda].[HUNDREDS_IN_WORDS]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
 GO
-ALTER FUNCTION [dbo].[NumberInWordsOfHundreds](@Value AS SMALLINT
-											  ,@EnglishOrPortuguese BIT)
+ALTER FUNCTION [cruda].[HUNDREDS_IN_WORDS](@Value AS SMALLINT
+										  ,@EnglishOrPortuguese BIT)
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
 	DECLARE @ThirdDigit INT = @Value / 100,

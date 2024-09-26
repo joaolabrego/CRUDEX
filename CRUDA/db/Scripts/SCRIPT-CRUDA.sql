@@ -378,55 +378,45 @@ ALTER PROCEDURE [dbo].[GenerateId](@SystemName VARCHAR(25)
 								  ,@TableName VARCHAR(25)) AS
 BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
+			,@ErrorMessage NVARCHAR(MAX)
 
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure GenerateId: '
-				,@SystemId BIGINT
-				,@DatabaseId BIGINT
-				,@TableId BIGINT
-				,@NextId BIGINT
+		DECLARE @SystemId INT
+				,@DatabaseId INT
+				,@TableId INT
+				,@NextId INT
 
 		BEGIN TRANSACTION
 		SAVE TRANSACTION [SavePoint]
 		SELECT @SystemId = [Id]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
-		IF @SystemId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Sistema não encontrado';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @SystemId IS NULL
+			THROW 51000, 'Sistema não encontrado', 1
 		SELECT @DatabaseId = [Id]
 			FROM [dbo].[Databases]
 			WHERE [Name] = @DatabaseName
-		IF @DatabaseId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Banco-de-dados não encontrado';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @DatabaseId IS NULL
+			THROW 51000, 'Banco-de-dados não encontrado', 1
 		IF NOT EXISTS(SELECT 1
 						FROM [dbo].[SystemsDatabases]
 						WHERE [SystemId] = @SystemId
-							  AND [DatabaseId] = @DatabaseId) BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Banco-de-dados não pertence ao sistema especificado';
-			THROW 51000, @ErrorMessage, 1
-		END
+							  AND [DatabaseId] = @DatabaseId)
+			THROW 51000, 'Banco-de-dados não pertence ao sistema especificado', 1
 		SELECT @TableId = [Id]
 			   ,@NextId = [CurrentId] + 1
 			FROM [dbo].[Tables]
 			WHERE [Name] = @TableName
-		IF @TableId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Tabela não encontrada';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @TableId IS NULL
+			THROW 51000, 'Tabela não encontrada', 1
 		IF NOT EXISTS(SELECT 1
 						FROM [dbo].[DatabasesTables]
 						WHERE [DatabaseId] = @DatabaseId
-							  AND [TableId] = @TableId) BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Tabela não pertence ao banco-de-dados especificado';
-			THROW 51000, @ErrorMessage, 1
-		END
+							  AND [TableId] = @TableId)
+			THROW 51000, 'Tabela não pertence ao banco-de-dados especificado', 1
 		UPDATE [dbo].[Tables] 
 			SET [CurrentId] = @NextId
 			WHERE [Id] = @TableId
@@ -435,11 +425,12 @@ BEGIN
 		RETURN @NextId
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TRANCOUNT BEGIN
-			ROLLBACK TRANSACTION [SavePoint]
-			COMMIT TRANSACTION
-		END;
-		THROW
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END
+        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
 	END CATCH
 END
 GO
@@ -451,6 +442,7 @@ IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
+			,@ErrorMessage NVARCHAR(MAX)
 
 	BEGIN TRY
 		SET NOCOUNT ON
@@ -458,88 +450,62 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		BEGIN TRANSACTION
 		SAVE TRANSACTION [SavePoint]
 
-		DECLARE	@ErrorMessage VARCHAR(256)
+		IF ISJSON(@Parameters) = 0
+			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
-		IF ISJSON(@Parameters) = 0 BEGIN
-			SET @ErrorMessage = 'Parâmetro login não está no formato JSON';
-			THROW 51000, @ErrorMessage, 1
-		END
-	
-		DECLARE	@Action VARCHAR(15) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.Action') AS VARCHAR(15))
-				,@LoginId BIGINT = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.LoginId') AS BIGINT)
+		DECLARE @Action VARCHAR(15) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.Action') AS VARCHAR(15))
+				,@LoginId INT = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.LoginId') AS INT)
 				,@SystemName VARCHAR(25) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.SystemName') AS VARCHAR(25))
 				,@UserName VARCHAR(25) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.UserName') AS VARCHAR(25))
 				,@Password VARCHAR(256) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.Password') AS VARCHAR(256))
 				,@PublicKey VARCHAR(256) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.PublicKey') AS VARCHAR(256))
 				,@PasswordAux VARCHAR(256)
-				,@SystemId BIGINT
-				,@SystemIdAux BIGINT
-				,@UserId BIGINT
-				,@UserIdAux BIGINT
+				,@SystemId INT
+				,@SystemIdAux INT
+				,@UserId INT
+				,@UserIdAux INT
 				,@MaxRetryLogins TINYINT
 				,@RetryLogins TINYINT
 				,@IsLogged BIT
 				,@IsActive BIT
 				,@IsOffAir BIT
 	
-		IF @Action IS NULL BEGIN
-			SET @ErrorMessage = 'Ação de login é requerida';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @Action NOT IN ('login','logout','authenticate') BEGIN
-			SET @ErrorMessage = 'Ação de login é inválida';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @SystemName IS NULL BEGIN
-			SET @ErrorMessage = 'Sistema é requerido';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @Action IS NULL
+			THROW 51000, 'Ação de login é requerida', 1
+		IF @Action NOT IN ('login','logout','authenticate')
+			THROW 51000, 'Ação de login é inválida', 1
+		IF @SystemName IS NULL
+			THROW 51000, 'Sistema é requerido', 1
 		SELECT @SystemId = [Id]
 			   ,@MaxRetryLogins = [MaxRetryLogins]
 			   ,@IsOffAir = [IsOffAir]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
-		IF @SystemId IS NULL BEGIN
-			SET @ErrorMessage = 'Sistema não cadastrado';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @IsOffAir = 1 BEGIN
-			SET @ErrorMessage = 'Sistema fora do ar';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @UserName IS NULL BEGIN
-			SET @ErrorMessage = 'Usuário é requerido';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @SystemId IS NULL
+			THROW 51000, 'Sistema não cadastrado', 1
+		IF @IsOffAir = 1
+			THROW 51000, 'Sistema fora do ar', 1
+		IF @UserName IS NULL
+			THROW 51000, 'Usuário é requerido', 1
 		SELECT	@UserId = [Id]
 				,@RetryLogins = [RetryLogins]
 				,@IsActive = [IsActive]
 				,@PasswordAux = [Password]
 			FROM [dbo].[Users]
 			WHERE [Name] = @UserName
-		IF @UserId IS NULL BEGIN
-			SET @ErrorMessage = 'Usuário não cadastrado';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @IsActive = 0 BEGIN
-			SET @ErrorMessage = 'Usuário está inativo';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @RetryLogins >= @MaxRetryLogins BEGIN
-			SET @ErrorMessage = 'Usuário está bloqueado';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @UserId IS NULL
+			THROW 51000, 'Usuário não cadastrado', 1
+		IF @IsActive = 0
+			THROW 51000, 'Usuário está inativo', 1
+		IF @RetryLogins >= @MaxRetryLogins
+			THROW 51000, 'Usuário está bloqueado', 1
 		IF NOT EXISTS(SELECT TOP 1 1
 						FROM [dbo].[SystemsUsers]
 						WHERE [SystemId] = @SystemId
-							  AND [UserId] =  @UserId) BEGIN
-			SET @ErrorMessage = 'Usuário não autorizado';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @Password IS NULL BEGIN
-			SET @ErrorMessage = 'Senha é requerida';
-			THROW 51000, @ErrorMessage, 1
-		END
+							  AND [UserId] =  @UserId)
+			THROW 51000, 'Usuário não autorizado', 1
+		IF @Password IS NULL
+			THROW 51000, 'Senha é requerida', 1
 		IF CAST(@PasswordAux AS VARCHAR(MAX)) <> CAST(@Password AS VARCHAR(MAX)) BEGIN
 			SET @RetryLogins = @RetryLogins + 1
 			UPDATE [dbo].[Users] 
@@ -547,16 +513,16 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 				WHERE [Id] = @UserId
 			COMMIT TRANSACTION 
 			IF @RetryLogins = @MaxRetryLogins
-				SET @ErrorMessage = 'Usuário está bloqueado';
-			ELSE
+				THROW 51000, 'Usuário está bloqueado', 1
+			ELSE BEGIN
 				SET @ErrorMessage = 'Senha é inválida (' + CAST(@MaxRetryLogins -  @RetryLogins AS VARCHAR(3)) + ' tentativas restantes)';
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @action = 'login' BEGIN
-			IF @PublicKey IS NULL BEGIN
-				SET @ErrorMessage = 'Chave pública é requerida';
 				THROW 51000, @ErrorMessage, 1
 			END
+		
+		END
+		IF @action = 'login' BEGIN
+			IF @PublicKey IS NULL
+				THROW 51000, 'Chave pública é requerida', 1
 			EXEC @LoginId = [dbo].[GenerateId] 'cruda', 'cruda', 'Logins'
 			INSERT [dbo].[Logins]([Id],
 								  [SystemId],
@@ -572,31 +538,22 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 								  1,
 								  GETDATE(),
 								  @UserName)
-		END ELSE IF @LoginId IS NULL BEGIN
-			SET @ErrorMessage = 'Id de login é requerido';
-			THROW 51000, @ErrorMessage, 1
-		END ELSE BEGIN
+		END ELSE IF @LoginId IS NULL
+			THROW 51000, 'Id de login é requerido', 1
+		ELSE BEGIN
 			SELECT @SystemIdAux = [SystemId],
 				   @UserIdAux = [UserId],
 				   @IsLogged = [IsLogged]
 				FROM [dbo].[Logins]
 				WHERE [Id] = @LoginId
-			IF @SystemIdAux IS NULL BEGIN
-				SET @ErrorMessage = 'Login não cadastrado';
-				THROW 51000, @ErrorMessage, 1
-			END
-			IF @SystemId <> @SystemIdAux BEGIN
-				SET @ErrorMessage = 'Sistema é inválido para este login';
-				THROW 51000, @ErrorMessage, 1
-			END
-			IF @UserId <> @UserIdAux BEGIN
-				SET @ErrorMessage = 'Usuário é inválido para este login';
-				THROW 51000, @ErrorMessage, 1
-			END
-			IF @IsLogged = 0 BEGIN
-				SET @ErrorMessage = 'Login já encerrado';
-				THROW 51000, @ErrorMessage, 1
-			END
+			IF @SystemIdAux IS NULL
+				THROW 51000, 'Login não cadastrado', 1
+			IF @SystemId <> @SystemIdAux
+				THROW 51000, 'Sistema é inválido para este login', 1
+			IF @UserId <> @UserIdAux
+				THROW 51000, 'Usuário é inválido para este login', 1
+			IF @IsLogged = 0
+				THROW 51000, 'Login já encerrado', 1
 			IF @action = 'logout'
 				UPDATE [dbo].[Logins]
 					SET [IsLogged] = 0,
@@ -612,11 +569,12 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		RETURN @LoginId
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TRANCOUNT BEGIN
-			ROLLBACK TRANSACTION [SavePoint]
-			COMMIT TRANSACTION
-		END;
-		THROW
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END
+        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
 	END CATCH
 END
 GO
@@ -626,40 +584,37 @@ Criar stored procedure [dbo].[GetPublicKey]
 IF(SELECT object_id('[dbo].[GetPublicKey]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[GetPublicKey] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT) AS BEGIN
+ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId INT) AS BEGIN
+	DECLARE @ErrorMessage NVARCHAR(MAX)
+
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @ErrorMessage VARCHAR(256)
-
-		IF @LoginId IS NULL BEGIN
-			SET @ErrorMessage = 'Parâmetro @LoginId é requerido';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @LoginId IS NULL
+			THROW 51000, 'Parâmetro @LoginId é requerido', 1
 		SELECT [PublicKey]
 			FROM [dbo].[Logins]
 			WHERE [Id] = @LoginId
-		IF @@ROWCOUNT = 0 BEGIN
-			SET @ErrorMessage = 'Valor @LoginId é inexistente';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @@ROWCOUNT = 0
+			THROW 51000, 'Valor @LoginId é inexistente', 1
 
 		RETURN @LoginId
 	END TRY
 	BEGIN CATCH
-		THROW
+        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
 	END CATCH
 END
 GO
 /**********************************************************************************
-Criar function [dbo].[NumberInWordsOfHundreds]
+Criar function [cruda].[HUNDREDS_IN_WORDS]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[NumberInWordsOfHundreds]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [dbo].[NumberInWordsOfHundreds]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
+IF(SELECT object_id('[cruda].[HUNDREDS_IN_WORDS]', 'FN')) IS NULL
+	EXEC('CREATE FUNCTION [cruda].[HUNDREDS_IN_WORDS]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
 GO
-ALTER FUNCTION [dbo].[NumberInWordsOfHundreds](@Value AS SMALLINT
-											  ,@EnglishOrPortuguese BIT)
+ALTER FUNCTION [cruda].[HUNDREDS_IN_WORDS](@Value AS SMALLINT
+										  ,@EnglishOrPortuguese BIT)
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
 	DECLARE @ThirdDigit INT = @Value / 100,
@@ -792,22 +747,22 @@ BEGIN
 END
 GO
 /**********************************************************************************
-Criar function [dbo].[NumberInWords]
+Criar function [cruda].[NUMBER_IN_WORDS]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[NumberInWords]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [dbo].[NumberInWords]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
+IF(SELECT object_id('[cruda].[NUMBER_IN_WORDS]', 'FN')) IS NULL
+	EXEC('CREATE FUNCTION [cruda].[NUMBER_IN_WORDS]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
 GO
-ALTER FUNCTION [dbo].[NumberInWords](@Value AS DECIMAL(18,2)
-								    ,@EnglishOrPortuguese BIT = 1
-									,@CurrencyInSingular VARCHAR(50) = NULL
-									,@CurrencyInPlural VARCHAR(50) = NULL
-									,@CentsInSingular VARCHAR(50) = NULL
-									,@CentsInPlural VARCHAR(50) = NULL)
+ALTER FUNCTION [cruda].[NUMBER_IN_WORDS](@Value AS DECIMAL(18,2)
+										,@EnglishOrPortuguese BIT = 1
+										,@CurrencyInSingular VARCHAR(50) = NULL
+										,@CurrencyInPlural VARCHAR(50) = NULL
+										,@CentsInSingular VARCHAR(50) = NULL
+										,@CentsInPlural VARCHAR(50) = NULL)
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
 	DECLARE @Power INT = 0,
 		    @Separator VARCHAR(5) = '',
-		    @PartialValue BIGINT,
+		    @PartialValue INT,
 		    @Digito INT = 0,
 		    @LastDigit INT,
 			@Result VARCHAR(MAX) = '',
@@ -891,11 +846,11 @@ BEGIN
 			SET @ValueOfThousands = @Digito
 		END
 		IF @Digito = 1 BEGIN
-			 SET @Result = [cruda].[NumberInWordsOfHundreds](@Digito, @EnglishOrPortuguese) + ' ' + 
+			 SET @Result = [cruda].[HUNDREDS_IN_WORDS](@Digito, @EnglishOrPortuguese) + ' ' + 
 							  (SELECT NomeSingular FROM @Powers WHERE Id = @Power) + 
 							  @Separator + @Result
 		END ELSE IF @Digito > 0 BEGIN
-			 SET @Result = [cruda].[NumberInWordsOfHundreds](@Digito, @EnglishOrPortuguese) + ' ' + 
+			 SET @Result = [cruda].[HUNDREDS_IN_WORDS](@Digito, @EnglishOrPortuguese) + ' ' + 
 							  (SELECT NomePlural FROM @Powers WHERE Id = @Power) + 
 							  @Separator + @Result
 		END
@@ -931,15 +886,15 @@ BEGIN
 	IF @PartialValue > 0 BEGIN
 		IF @PartialValue = 1 BEGIN
 			IF @Result = '' BEGIN
-				SET @Result = [cruda].[NumberInWordsOfHundreds](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular + @Of + @CurrencyInSingular
+				SET @Result = [cruda].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular + @Of + @CurrencyInSingular
 			END ELSE BEGIN
-				SET @Result = @Result + @And + [cruda].[NumberInWordsOfHundreds](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular 
+				SET @Result = @Result + @And + [cruda].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular 
 			END
 		END ELSE BEGIN
 			IF @Result = '' BEGIN
-				SET @Result = [cruda].[NumberInWordsOfHundreds](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural + @Of + @CurrencyInPlural
+				SET @Result = [cruda].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural + @Of + @CurrencyInPlural
 			END ELSE BEGIN
-				SET @Result = @Result + @And + [cruda].[NumberInWordsOfHundreds](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural
+				SET @Result = @Result + @And + [cruda].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural
 			END
 		END
 	END		
@@ -973,8 +928,8 @@ BEGIN
         RETURN CASE WHEN TRY_CAST(@LeftValue AS smallint) = TRY_CAST(@RightValue AS smallint) THEN 1 ELSE 0 END;
 	IF @TypeValue = 'tinyint'
         RETURN CASE WHEN TRY_CAST(@LeftValue AS tinyint) = TRY_CAST(@RightValue AS tinyint) THEN 1 ELSE 0 END;
-	IF @TypeValue = 'bigint'
-        RETURN CASE WHEN TRY_CAST(@LeftValue AS bigint) = TRY_CAST(@RightValue AS bigint) THEN 1 ELSE 0 END;
+	IF @TypeValue = 'int'
+        RETURN CASE WHEN TRY_CAST(@LeftValue AS int) = TRY_CAST(@RightValue AS int) THEN 1 ELSE 0 END;
 
 	-- Compara��es decimais e monet�rias
 	IF @TypeValue = 'decimal'
@@ -1046,7 +1001,7 @@ Criar tabela [cruda].[Transactions]
 IF (SELECT object_id('[cruda].[Transactions]', 'U')) IS NOT NULL
     DROP TABLE [cruda].[Transactions]
 CREATE TABLE [cruda].[Transactions]([Id] [int] IDENTITY(1,1) NOT NULL
-                                   ,[LoginId] [bigint] NOT NULL
+                                   ,[LoginId] [int] NOT NULL
                                    ,[IsConfirmed] [bit] NULL
                                    ,[CreatedAt] datetime NOT NULL
                                    ,[CreatedBy] varchar(25) NOT NULL
@@ -1087,23 +1042,21 @@ Criar stored procedure [cruda].TransactionBegin]
 IF(SELECT object_id('[cruda].[TransactionBegin]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [cruda].[TransactionBegin] AS PRINT 1')
 GO
-ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
+ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId INT
 										 ,@UserName VARCHAR(25)) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
+			,@ErrorMessage NVARCHAR(MAX)
 
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 		
-		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionBegin]: '
-				,@TransactionId	INT
+		DECLARE @TransactionId	INT
 
 		BEGIN TRANSACTION
 		SAVE TRANSACTION [SavePoint]
-		IF @LoginId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor de @LoginId é requerido';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @LoginId IS NULL
+			THROW 51000, 'Valor de @LoginId é requerido', 1
 		INSERT [cruda].[Transactions] ([LoginId]
 									  ,[IsConfirmed]
 									  ,[CreatedAt]
@@ -1118,11 +1071,12 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId BIGINT
 		RETURN CAST(@TransactionId AS INT)
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TRANCOUNT BEGIN
-			ROLLBACK TRANSACTION [SavePoint]
-			COMMIT TRANSACTION
-		END;
-		THROW
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END
+        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
 	END CATCH
 END
 GO
@@ -1135,14 +1089,14 @@ GO
 ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 										  ,@UserName VARCHAR(25)) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
+			,@ErrorMessage NVARCHAR(MAX)
 
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionCommit]: '
-				,@LoginId BIGINT
-				,@OperationId BIGINT
+		DECLARE @LoginId INT
+				,@OperationId INT
 				,@TableName VARCHAR(25)
 				,@IsConfirmed BIT
 				,@CreatedBy VARCHAR(25)
@@ -1150,27 +1104,21 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 
 		BEGIN TRANSACTION
 		SAVE TRANSACTION [SavePoint]
-		IF @TransactionId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @TransactionId IS NULL
+			THROW 51000, 'Valor de @TransactionId é requerido', 1
 		SELECT @LoginId = [LoginId]
 			  ,@IsConfirmed = [IsConfirmed]
 			  ,@CreatedBy = [CreatedBy]
 			FROM [cruda].[Transactions]
 			WHERE [Id] = @TransactionId
-		IF @@ROWCOUNT = 0 BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @@ROWCOUNT = 0
+			THROW 51000, 'Transação inexistente', 1
 		IF @IsConfirmed IS NOT NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+			SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
-		IF @UserName <> @CreatedBy BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @UserName <> @CreatedBy
+			THROW 51000, 'Erro grave de segurança', 1
 		WHILE 1 = 1 BEGIN
 			SELECT TOP 1 @OperationId = [Id]
 						,@TableName = [TableName]
@@ -1192,11 +1140,12 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TRANCOUNT BEGIN
-			ROLLBACK TRANSACTION [SavePoint]
-			COMMIT TRANSACTION
-		END;
-		THROW
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END
+        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
 	END CATCH
 END
 GO
@@ -1209,50 +1158,44 @@ GO
 ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 											,@UserName VARCHAR(25)) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
+			,@ErrorMessage NVARCHAR(MAX)
 
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @ErrorMessage VARCHAR(255) = 'Stored Procedure [TransactionRollback]: '
-				,@OperationId INT
+		DECLARE @OperationId INT
 				,@CreatedBy VARCHAR(25)
 				,@IsConfirmed BIT
 
 		BEGIN TRANSACTION
 		SAVE TRANSACTION [SavePoint]
-		IF @TransactionId IS NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Valor de @TransactionId é requerido';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @TransactionId IS NULL
+			THROW 51000, 'Valor de @TransactionId é requerido', 1
 		SELECT @IsConfirmed = [IsConfirmed]
 			  ,@CreatedBy = [CreatedBy]
 			FROM [cruda].[Transactions]
 			WHERE [Id] = @TransactionId
-		IF @@ROWCOUNT = 0 BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transação inexistente';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @@ROWCOUNT = 0
+			THROW 51000, 'Transação inexistente', 1
 		IF @IsConfirmed IS NOT NULL BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+			SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
-		IF @UserName <> @CreatedBy BEGIN
-			SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
-			THROW 51000, @ErrorMessage, 1
-		END
+
+		IF @UserName <> @CreatedBy
+			THROW 51000, 'Erro grave de segurança', 1
 		WHILE 1 = 1 BEGIN
 			SELECT TOP 1 @OperationId = [Id]
 						,@CreatedBy = [CreatedBy]
 				FROM [cruda].[Operations]
 				WHERE [TransactionId] = @TransactionId
 						AND [IsConfirmed] IS NULL
+				ORDER BY [Id]
 			IF @@ROWCOUNT = 0
 				BREAK
-			IF @UserName <> @CreatedBy BEGIN
-				SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';
-				THROW 51000, @ErrorMessage, 1
-			END
+			IF @UserName <> @CreatedBy
+				THROW 51000, 'Erro grave de segurança', 1
 			UPDATE [cruda].[Operations]
 				SET [IsConfirmed] = 0
 					,[UpdatedBy] = @UserName
@@ -1269,11 +1212,12 @@ ALTER PROCEDURE[cruda].[TransactionRollback](@TransactionId INT
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		IF @@TRANCOUNT > @TRANCOUNT BEGIN
-			ROLLBACK TRANSACTION [SavePoint]
-			COMMIT TRANSACTION
-		END;
-		THROW
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END
+        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
 	END CATCH
 END
 GO
@@ -6588,7 +6532,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('26' AS int)
                                 ,CAST('3' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID da máscara de edição' AS nvarchar(50))
@@ -6741,7 +6685,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('29' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID do domínio' AS nvarchar(50))
@@ -6843,7 +6787,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('31' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('3' AS int)
                                 ,CAST('MaskId' AS nvarchar(25))
                                 ,CAST('Id da máscara de edição do domínio' AS nvarchar(50))
@@ -7302,7 +7246,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('40' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID do sistema' AS nvarchar(50))
@@ -7608,7 +7552,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('46' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID do menu' AS nvarchar(50))
@@ -7659,7 +7603,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('47' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('SystemId' AS nvarchar(25))
                                 ,CAST('ID do sistema do menu' AS nvarchar(50))
@@ -7914,7 +7858,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('52' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('35' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('ParentMenuId' AS nvarchar(25))
                                 ,CAST('ID do menu-pai' AS nvarchar(50))
@@ -7965,7 +7909,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('53' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID do usuário' AS nvarchar(50))
@@ -8271,7 +8215,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('59' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID do sistema x usuário' AS nvarchar(50))
@@ -8322,7 +8266,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('60' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('SystemId' AS nvarchar(25))
                                 ,CAST('ID do sistema' AS nvarchar(50))
@@ -8373,7 +8317,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('61' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('UserId' AS nvarchar(25))
                                 ,CAST('ID do usuário' AS nvarchar(50))
@@ -8475,7 +8419,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('63' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID do banco-de-dados' AS nvarchar(50))
@@ -8985,7 +8929,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('73' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID do sistema x banco-de-dados' AS nvarchar(50))
@@ -9036,7 +8980,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('74' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('SystemId' AS nvarchar(25))
                                 ,CAST('ID do sistema' AS nvarchar(50))
@@ -9087,7 +9031,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('75' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('DatabaseId' AS nvarchar(25))
                                 ,CAST('ID do banco-de-dados' AS nvarchar(50))
@@ -9189,7 +9133,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('77' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID da tabela' AS nvarchar(50))
@@ -9393,7 +9337,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('81' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('25' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('ParentTableId' AS nvarchar(25))
                                 ,CAST('Id da tabela-pai' AS nvarchar(50))
@@ -9495,7 +9439,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('83' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('35' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('CurrentId' AS nvarchar(25))
                                 ,CAST('Id atual' AS nvarchar(50))
@@ -9546,7 +9490,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('84' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID do banco-de-dados x tabela' AS nvarchar(50))
@@ -9597,7 +9541,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('85' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('DatabaseId' AS nvarchar(25))
                                 ,CAST('ID do banco-de-dados' AS nvarchar(50))
@@ -9648,7 +9592,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('86' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('TableId' AS nvarchar(25))
                                 ,CAST('ID da tabela' AS nvarchar(50))
@@ -9750,7 +9694,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('88' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID da coluna' AS nvarchar(50))
@@ -9801,7 +9745,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('89' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('TableId' AS nvarchar(25))
                                 ,CAST('Tabela' AS nvarchar(50))
@@ -9903,7 +9847,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('91' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('20' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('DomainId' AS nvarchar(25))
                                 ,CAST('Domínio da coluna' AS nvarchar(50))
@@ -9954,7 +9898,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('92' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('25' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('ReferenceTableId' AS nvarchar(25))
                                 ,CAST('Tabela-referência' AS nvarchar(50))
@@ -10821,7 +10765,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('109' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID do índice' AS nvarchar(50))
@@ -10872,7 +10816,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('110' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('DatabaseId' AS nvarchar(25))
                                 ,CAST('ID do banco-de-dados do índice' AS nvarchar(50))
@@ -10923,7 +10867,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('111' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('TableId' AS nvarchar(25))
                                 ,CAST('ID da tabela do índice' AS nvarchar(50))
@@ -11076,7 +11020,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('114' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID da chave de índice' AS nvarchar(50))
@@ -11127,7 +11071,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('115' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('IndexId' AS nvarchar(25))
                                 ,CAST('ID do índice da chave' AS nvarchar(50))
@@ -11229,7 +11173,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('117' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('20' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('ColumnId' AS nvarchar(25))
                                 ,CAST('ID da coluna-chave do índice' AS nvarchar(50))
@@ -11331,7 +11275,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('119' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
                                 ,CAST('ID do Login de Acesso' AS nvarchar(50))
@@ -11382,7 +11326,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('120' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('SystemId' AS nvarchar(25))
                                 ,CAST('ID do Sistema' AS nvarchar(50))
@@ -11433,7 +11377,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('121' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('1' AS int)
+                                ,CAST('2' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('UserId' AS nvarchar(25))
                                 ,CAST('ID do usuário' AS nvarchar(50))
@@ -12752,9 +12696,9 @@ ALTER PROCEDURE[dbo].[CategoryValidate](@LoginId INT
             END
             IF @Action = 'update'
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'tinyint') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputType'), [cruda].[JSON_EXTRACT](@LastRecord, '$.HtmlInputType'), 'nvarchar(10)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputAlign'), [cruda].[JSON_EXTRACT](@LastRecord, '$.HtmlInputAlign'), 'nvarchar(6)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputType'), [cruda].[JSON_EXTRACT](@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputAlign'), [cruda].[JSON_EXTRACT](@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskEncrypted'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskEncrypted'), 'bit') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskMask'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskMask'), 'bit') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskListable'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskListable'), 'bit') = 1
@@ -12766,8 +12710,8 @@ ALTER PROCEDURE[dbo].[CategoryValidate](@LoginId INT
                             FROM [dbo].[Categories]
                             WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
                                   AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [cruda].[IS_EQUAL]([HtmlInputType], [cruda].[JSON_EXTRACT](@LastRecord, '$.HtmlInputType'), 'nvarchar(10)') = 1
-                                  AND [cruda].[IS_EQUAL]([HtmlInputAlign], [cruda].[JSON_EXTRACT](@LastRecord, '$.HtmlInputAlign'), 'nvarchar(6)') = 1
+                                  AND [cruda].[IS_EQUAL]([HtmlInputType], [cruda].[JSON_EXTRACT](@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
+                                  AND [cruda].[IS_EQUAL]([HtmlInputAlign], [cruda].[JSON_EXTRACT](@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
                                   AND [AskEncrypted] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskEncrypted')
                                   AND [AskMask] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskMask')
                                   AND [AskListable] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskListable')
@@ -12977,13 +12921,13 @@ ALTER PROCEDURE[dbo].[CategoryCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [CategoryCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -13124,6 +13068,8 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -13282,8 +13228,6 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -13338,9 +13282,9 @@ ALTER PROCEDURE[dbo].[TypeValidate](@LoginId INT
             IF @Action = 'update'
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'tinyint') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.CategoryId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.CategoryId'), 'tinyint') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskLength'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskLength'), 'bit') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskDecimals'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskDecimals'), 'bit') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskPrimarykey'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskPrimarykey'), 'bit') = 1
@@ -13357,8 +13301,8 @@ ALTER PROCEDURE[dbo].[TypeValidate](@LoginId INT
                             WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
                                   AND [CategoryId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.CategoryId')
                                   AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [cruda].[IS_EQUAL]([Minimum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IS_EQUAL]([Maximum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
+                                  AND [cruda].[IS_EQUAL]([Minimum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar') = 1
+                                  AND [cruda].[IS_EQUAL]([Maximum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar') = 1
                                   AND [AskLength] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskLength')
                                   AND [AskDecimals] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskDecimals')
                                   AND [AskPrimarykey] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskPrimarykey')
@@ -13589,13 +13533,13 @@ ALTER PROCEDURE[dbo].[TypeCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [TypeCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -13756,6 +13700,8 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -13941,8 +13887,6 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -13996,8 +13940,8 @@ ALTER PROCEDURE[dbo].[MaskValidate](@LoginId INT
             END
             IF @Action = 'update'
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Mask'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Mask'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Mask'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Mask'), 'nvarchar') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Masks]
@@ -14200,13 +14144,13 @@ ALTER PROCEDURE[dbo].[MaskCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [MaskCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -14319,6 +14263,8 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -14438,8 +14384,6 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -14495,14 +14439,14 @@ ALTER PROCEDURE[dbo].[DomainValidate](@LoginId INT
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.TypeId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.TypeId'), 'tinyint') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.MaskId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.MaskId'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Length'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Length'), 'smallint') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Decimals'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Decimals'), 'tinyint') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ValidValues'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Default'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Codification'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Codification'), 'nvarchar(5)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ValidValues'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Default'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Codification'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Codification'), 'nvarchar') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Domains]
@@ -14512,11 +14456,11 @@ ALTER PROCEDURE[dbo].[DomainValidate](@LoginId INT
                                   AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
                                   AND [cruda].[IS_EQUAL]([Length], [cruda].[JSON_EXTRACT](@LastRecord, '$.Length'), 'smallint') = 1
                                   AND [cruda].[IS_EQUAL]([Decimals], [cruda].[JSON_EXTRACT](@LastRecord, '$.Decimals'), 'tinyint') = 1
-                                  AND [cruda].[IS_EQUAL]([ValidValues], [cruda].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IS_EQUAL]([Default], [cruda].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IS_EQUAL]([Minimum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IS_EQUAL]([Maximum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IS_EQUAL]([Codification], [cruda].[JSON_EXTRACT](@LastRecord, '$.Codification'), 'nvarchar(5)') = 1) BEGIN
+                                  AND [cruda].[IS_EQUAL]([ValidValues], [cruda].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar') = 1
+                                  AND [cruda].[IS_EQUAL]([Default], [cruda].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar') = 1
+                                  AND [cruda].[IS_EQUAL]([Minimum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar') = 1
+                                  AND [cruda].[IS_EQUAL]([Maximum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar') = 1
+                                  AND [cruda].[IS_EQUAL]([Codification], [cruda].[JSON_EXTRACT](@LastRecord, '$.Codification'), 'nvarchar') = 1) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Domains alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -14761,13 +14705,13 @@ ALTER PROCEDURE[dbo].[DomainCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DomainCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -14912,6 +14856,8 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -15075,8 +15021,6 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -15130,9 +15074,9 @@ ALTER PROCEDURE[dbo].[SystemValidate](@LoginId INT
             END
             IF @Action = 'update'
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ClientName'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ClientName'), 'nvarchar(15)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ClientName'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ClientName'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.MaxRetryLogins'), [cruda].[JSON_EXTRACT](@LastRecord, '$.MaxRetryLogins'), 'tinyint') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsOffAir'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsOffAir'), 'bit') = 1
                 RETURN 0
@@ -15363,13 +15307,13 @@ ALTER PROCEDURE[dbo].[SystemCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -15494,6 +15438,8 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -15625,8 +15571,6 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -15682,9 +15626,9 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId INT
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Caption'), 'nvarchar(20)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Message'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Message'), 'nvarchar(50)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Action'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar(50)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Caption'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Message'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Message'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Action'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ParentMenuId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ParentMenuId'), 'int') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
@@ -15694,7 +15638,7 @@ ALTER PROCEDURE[dbo].[MenuValidate](@LoginId INT
                                   AND [Sequence] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Sequence')
                                   AND [Caption] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Caption')
                                   AND [Message] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Message')
-                                  AND [cruda].[IS_EQUAL]([Action], [cruda].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar(50)') = 1
+                                  AND [cruda].[IS_EQUAL]([Action], [cruda].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar') = 1
                                   AND [cruda].[IS_EQUAL]([ParentMenuId], [cruda].[JSON_EXTRACT](@LastRecord, '$.ParentMenuId'), 'int') = 1) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Menus alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
@@ -15935,13 +15879,13 @@ ALTER PROCEDURE[dbo].[MenuCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [MenuCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -16070,6 +16014,8 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -16208,8 +16154,6 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -16263,9 +16207,9 @@ ALTER PROCEDURE[dbo].[UserValidate](@LoginId INT
             END
             IF @Action = 'update'
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Password'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar(256)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.FullName'), [cruda].[JSON_EXTRACT](@LastRecord, '$.FullName'), 'nvarchar(50)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Password'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.FullName'), [cruda].[JSON_EXTRACT](@LastRecord, '$.FullName'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.RetryLogins'), [cruda].[JSON_EXTRACT](@LastRecord, '$.RetryLogins'), 'tinyint') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsActive'), 'bit') = 1
                 RETURN 0
@@ -16488,13 +16432,13 @@ ALTER PROCEDURE[dbo].[UserCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [UserCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -16619,6 +16563,8 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -16753,8 +16699,6 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -16810,7 +16754,7 @@ ALTER PROCEDURE[dbo].[SystemUserValidate](@LoginId INT
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.UserId'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[SystemsUsers]
@@ -17041,13 +16985,13 @@ ALTER PROCEDURE[dbo].[SystemUserCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemUserCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -17164,6 +17108,8 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -17300,8 +17246,6 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -17355,15 +17299,15 @@ ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId INT
             END
             IF @Action = 'update'
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar(25)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ServerName'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ServerName'), 'nvarchar(50)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.HostName'), [cruda].[JSON_EXTRACT](@LastRecord, '$.HostName'), 'nvarchar(25)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ServerName'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ServerName'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.HostName'), [cruda].[JSON_EXTRACT](@LastRecord, '$.HostName'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Port'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Port'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Logon'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Logon'), 'nvarchar(256)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Password'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar(256)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Folder'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Folder'), 'nvarchar(256)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Logon'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Logon'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Password'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Folder'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Folder'), 'nvarchar') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Databases]
@@ -17371,12 +17315,12 @@ ALTER PROCEDURE[dbo].[DatabaseValidate](@LoginId INT
                                   AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
                                   AND [Description] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Description')
                                   AND [Alias] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Alias')
-                                  AND [cruda].[IS_EQUAL]([ServerName], [cruda].[JSON_EXTRACT](@LastRecord, '$.ServerName'), 'nvarchar(50)') = 1
-                                  AND [cruda].[IS_EQUAL]([HostName], [cruda].[JSON_EXTRACT](@LastRecord, '$.HostName'), 'nvarchar(25)') = 1
+                                  AND [cruda].[IS_EQUAL]([ServerName], [cruda].[JSON_EXTRACT](@LastRecord, '$.ServerName'), 'nvarchar') = 1
+                                  AND [cruda].[IS_EQUAL]([HostName], [cruda].[JSON_EXTRACT](@LastRecord, '$.HostName'), 'nvarchar') = 1
                                   AND [cruda].[IS_EQUAL]([Port], [cruda].[JSON_EXTRACT](@LastRecord, '$.Port'), 'int') = 1
-                                  AND [cruda].[IS_EQUAL]([Logon], [cruda].[JSON_EXTRACT](@LastRecord, '$.Logon'), 'nvarchar(256)') = 1
-                                  AND [cruda].[IS_EQUAL]([Password], [cruda].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar(256)') = 1
-                                  AND [cruda].[IS_EQUAL]([Folder], [cruda].[JSON_EXTRACT](@LastRecord, '$.Folder'), 'nvarchar(256)') = 1) BEGIN
+                                  AND [cruda].[IS_EQUAL]([Logon], [cruda].[JSON_EXTRACT](@LastRecord, '$.Logon'), 'nvarchar') = 1
+                                  AND [cruda].[IS_EQUAL]([Password], [cruda].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar') = 1
+                                  AND [cruda].[IS_EQUAL]([Folder], [cruda].[JSON_EXTRACT](@LastRecord, '$.Folder'), 'nvarchar') = 1) BEGIN
                 SET @ErrorMessage = @ErrorMessage + 'Registro de Databases alterado por outro usuário';
                 THROW 51000, @ErrorMessage, 1
             END
@@ -17603,13 +17547,13 @@ ALTER PROCEDURE[dbo].[DatabaseCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DatabaseCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -17750,6 +17694,8 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -17893,8 +17839,6 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -17950,7 +17894,7 @@ ALTER PROCEDURE[dbo].[SystemDatabaseValidate](@LoginId INT
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[SystemsDatabases]
@@ -18181,13 +18125,13 @@ ALTER PROCEDURE[dbo].[SystemDatabaseCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [SystemDatabaseCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -18304,6 +18248,8 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -18440,8 +18386,6 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -18495,9 +18439,9 @@ ALTER PROCEDURE[dbo].[TableValidate](@LoginId INT
             END
             IF @Action = 'update'
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar(25)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ParentTableId'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsPaged'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsPaged'), 'bit') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.CurrentId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.CurrentId'), 'int') = 1
@@ -18746,13 +18690,13 @@ ALTER PROCEDURE[dbo].[TableCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [TableCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -18881,6 +18825,8 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -19018,8 +18964,6 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -19075,7 +19019,7 @@ ALTER PROCEDURE[dbo].[DatabaseTableValidate](@LoginId INT
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[DatabasesTables]
@@ -19306,13 +19250,13 @@ ALTER PROCEDURE[dbo].[DatabaseTableCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [DatabaseTableCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -19429,6 +19373,8 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -19565,8 +19511,6 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -19624,14 +19568,14 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId INT
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.DomainId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.DomainId'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ReferenceTableId'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(25)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar(50)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Title'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Title'), 'nvarchar(25)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Caption'), 'nvarchar(25)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ValidValues'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Default'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Description'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Title'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Title'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Caption'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.ValidValues'), [cruda].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Default'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsPrimarykey'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsPrimarykey'), 'bit') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsAutoIncrement'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsRequired'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsRequired'), 'bit') = 1
@@ -19652,10 +19596,10 @@ ALTER PROCEDURE[dbo].[ColumnValidate](@LoginId INT
                                   AND [Description] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Description')
                                   AND [Title] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Title')
                                   AND [Caption] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Caption')
-                                  AND [cruda].[IS_EQUAL]([ValidValues], [cruda].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IS_EQUAL]([Default], [cruda].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IS_EQUAL]([Minimum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(MAX)') = 1
-                                  AND [cruda].[IS_EQUAL]([Maximum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(MAX)') = 1
+                                  AND [cruda].[IS_EQUAL]([ValidValues], [cruda].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar') = 1
+                                  AND [cruda].[IS_EQUAL]([Default], [cruda].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar') = 1
+                                  AND [cruda].[IS_EQUAL]([Minimum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar') = 1
+                                  AND [cruda].[IS_EQUAL]([Maximum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar') = 1
                                   AND [cruda].[IS_EQUAL]([IsPrimarykey], [cruda].[JSON_EXTRACT](@LastRecord, '$.IsPrimarykey'), 'bit') = 1
                                   AND [cruda].[IS_EQUAL]([IsAutoIncrement], [cruda].[JSON_EXTRACT](@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
                                   AND [IsRequired] = [cruda].[JSON_EXTRACT](@LastRecord, '$.IsRequired')
@@ -19929,13 +19873,13 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [ColumnCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -20120,6 +20064,8 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -20335,8 +20281,6 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -20392,7 +20336,7 @@ ALTER PROCEDURE[dbo].[IndexValidate](@LoginId INT
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar(50)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsUnique'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsUnique'), 'bit') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
@@ -20624,13 +20568,13 @@ ALTER PROCEDURE[dbo].[IndexCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [IndexCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -20751,6 +20695,8 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -20886,8 +20832,6 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -21185,13 +21129,13 @@ ALTER PROCEDURE[dbo].[IndexkeyCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [IndexkeyCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -21312,6 +21256,8 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -21451,8 +21397,6 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
@@ -21508,7 +21452,7 @@ ALTER PROCEDURE[dbo].[LoginValidate](@LoginId INT
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.UserId'), 'int') = 1
-                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.PublicKey'), [cruda].[JSON_EXTRACT](@LastRecord, '$.PublicKey'), 'nvarchar(256)') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.PublicKey'), [cruda].[JSON_EXTRACT](@LastRecord, '$.PublicKey'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.IsLogged'), [cruda].[JSON_EXTRACT](@LastRecord, '$.IsLogged'), 'bit') = 1
                 RETURN 0
             IF NOT EXISTS(SELECT 1
@@ -21726,13 +21670,13 @@ ALTER PROCEDURE[dbo].[LoginCommit](@LoginId INT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId INT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [LoginCommit]: '
-               ,@TransactionId INT
+        DECLARE @TransactionId INT
                ,@TransactionIdAux INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -21853,6 +21797,8 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -21992,8 +21938,6 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH

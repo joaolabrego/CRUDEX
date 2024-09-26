@@ -5,6 +5,8 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -220,8 +222,6 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(MAX)
-
         SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
