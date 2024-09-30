@@ -13201,7 +13201,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
                           ,[C].[AskMinimum]
                           ,[C].[AskMaximum]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[Categories] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -13855,7 +13855,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
                           ,[C].[AllowMaxLength]
                           ,[C].[IsActive]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[Types] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -14364,7 +14364,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
                           ,[C].[Name]
                           ,[C].[Mask]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[Masks] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -14993,7 +14993,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
                           ,[C].[Maximum]
                           ,[C].[Codification]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[Domains] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -15548,7 +15548,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
                           ,[C].[MaxRetryLogins]
                           ,[C].[IsOffAir]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[Systems] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -16130,7 +16130,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
                           ,[C].[Action]
                           ,[C].[ParentMenuId]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[Menus] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -16676,7 +16676,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
                           ,[C].[RetryLogins]
                           ,[C].[IsActive]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[Users] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -17225,7 +17225,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
                           ,[C].[UserId]
                           ,[C].[Description]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[SystemsUsers] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -17812,7 +17812,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
                           ,[C].[Password]
                           ,[C].[Folder]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[Databases] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -18365,7 +18365,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
                           ,[C].[DatabaseId]
                           ,[C].[Description]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[SystemsDatabases] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -18940,7 +18940,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
                           ,[C].[IsPaged]
                           ,[C].[CurrentId]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[Tables] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -19490,7 +19490,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
                           ,[C].[TableId]
                           ,[C].[Description]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[DatabasesTables] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -20810,7 +20810,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
                           ,[C].[Name]
                           ,[C].[IsUnique]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[Indexes] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -21375,7 +21375,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
                           ,[C].[ColumnId]
                           ,[C].[IsDescending]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[Indexkeys] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]
@@ -21916,7 +21916,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
                           ,[C].[PublicKey]
                           ,[C].[IsLogged]
                         FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
+                            INNER JOIN [dbo].[Logins] [C] ON [C].[Id] = [T].[Id]
                         WHERE [T].[_] = ''C''
                     UNION ALL
                         SELECT @className AS [ClassName]

@@ -1380,7 +1380,7 @@ namespace CRUDA.Classes
                 foreach (var column in columnRows)
                     result.Append($"                          ,[C].[{column["Name"]}]\r\n");
                 result.Append($"                        FROM [dbo].[#tmp] [T]\r\n");
-                result.Append($"                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]\r\n");
+                result.Append($"                            INNER JOIN [dbo].[{table["Name"]}] [C] ON [C].[Id] = [T].[Id]\r\n");
                 result.Append($"                        WHERE [T].[_] = ''C''\r\n");
                 result.Append($"                    UNION ALL\r\n");
                 result.Append($"                        SELECT @className AS [ClassName]\r\n");
