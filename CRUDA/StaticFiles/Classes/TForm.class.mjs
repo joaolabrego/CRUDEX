@@ -63,11 +63,8 @@ export default class TForm {
                 MaxPage: 0,
             },
         }
-        let result = await TConfig.GetAPI(TActions.EXECUTE, parameters)
 
-        result = result.Tables[0][0]
-
-        return result
+        return (await TConfig.GetAPI(TActions.EXECUTE, parameters)).Tables[0][0]
     }
     #GetCheckBox(column) {
         let control = document.createElement("input"),

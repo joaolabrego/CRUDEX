@@ -73,7 +73,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
             THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual à ''1''', 1
         IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de ReferenceTableId deve ser menor que ou igual à ''2147483647''', 1
-        SELECT [Action] AS [_]
+        SELECT [Action] AS [OperationAction]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
@@ -95,18 +95,18 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT 'commited' AS [TransactionState] 
 			  ,[C].[Id]
-            INTO [dbo].[#tmp]
+            INTO [dbo].[#columns]
             FROM [dbo].[Columns] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL 
+                LEFT JOIN [dbo].[#operations] [O] ON [O].[Id] = [C].[Id]
+            WHERE [O].[Id] IS NULL
 				  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
                   AND [C].[TableId] = ISNULL(@W_TableId, [C].[TableId])
                   AND [C].[DomainId] = ISNULL(@W_DomainId, [C].[DomainId])
@@ -120,10 +120,10 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                   AND (@W_IsGridable IS NULL OR [C].[IsGridable] = @W_IsGridable)
                   AND (@W_IsEncrypted IS NULL OR [C].[IsEncrypted] = @W_IsEncrypted)
         UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
+            SELECT 'uncommited' AS [TransactionState]
 				  ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [OperationAction] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [TableId] = ISNULL(@W_TableId, [TableId])
                       AND [DomainId] = ISNULL(@W_DomainId, [DomainId])
@@ -139,10 +139,12 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-		CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+		CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#columns]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -152,16 +154,13 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
+        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#columns]
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[TransactionState]
 						  ,[C].[Id]
 						  ,[C].[TableId]
  						  ,[C].[Sequence]
@@ -183,11 +182,12 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
 						  ,[C].[IsEditable]
 						  ,[C].[IsGridable]
 						  ,[C].[IsEncrypted]
-					   FROM [dbo].[#tmp] [T]
+					   FROM [dbo].[#columns] [T]
 						   INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
-						WHERE [T].[_] = ''C''
+						WHERE [T].[TransactionState] = ''commited''
 				    UNION ALL
-						SELECT @className AS [ClassName]
+						SELECT @ClassName AS [ClassName]
+                              ,[T].[TransactionState]
 							  ,[C].[Id]
 							  ,[C].[TableId]
 							  ,[C].[Sequence]
@@ -209,20 +209,20 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
 							  ,[C].[IsEditable]
 							  ,[C].[IsGridable]
 							  ,[C].[IsEncrypted]
-						   FROM [dbo].[#tmp] [T]
-							   INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-						   WHERE [T].[_] = ''O''
+						   FROM [dbo].[#columns] [T]
+							   INNER JOIN [dbo].[#operations] [C] ON [C].[Id] = [T].[Id]
+						   WHERE [T].[TransactionState] = ''uncommited''
                     ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                    OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
 		EXEC sp_executesql @sql, 
-						   N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-						   @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+						   N'@ClassName NVARCHAR(50), @OffSet INT, @LimitRows INT',
+						   @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
     END CATCH
 END
