@@ -1196,7 +1196,7 @@ namespace CRUDA.Classes
                 result.Append($"        IF @RecordFilter IS NULL\r\n");
                 result.Append($"            THROW 51000, 'Valor de @RecordFilter é requerido', 1\r\n");
                 result.Append($"        IF ISJSON(@RecordFilter) = 0\r\n");
-                result.Append($"            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1\r\n");
+                result.Append($"            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1\r\n");
                 result.Append($"        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))\r\n");
                 result.Append($"        IF @OrderBy = ''\r\n");
                 result.Append($"            SET @OrderBy = '[Id]'\r\n");
@@ -1217,8 +1217,8 @@ namespace CRUDA.Classes
                 result.Append($"                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)\r\n");
                 result.Append($"                                                         ELSE TRIM([value])\r\n");
                 result.Append($"                                                    END) + '] ' + \r\n");
-                result.Append($"                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'\r\n");
-                result.Append($"                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'\r\n");
+                result.Append($"                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'\r\n");
+                result.Append($"                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'\r\n");
                 result.Append($"                                                         ELSE 'ASC'\r\n");
                 result.Append($"                                                    END, ', ')\r\n");
                 result.Append($"                FROM STRING_SPLIT(@OrderBy, ',')\r\n");
@@ -1257,7 +1257,7 @@ namespace CRUDA.Classes
                     }
                     result.Append($"              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
-                result.Append($"            INTO [dbo].[#tmpOperations]\r\n");
+                result.Append($"            INTO [dbo].[#operations]\r\n");
                 result.Append($"            FROM [cruda].[Operations]\r\n");
                 result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                  AND [TableName] = '{table["Name"]}'\r\n");
@@ -1270,7 +1270,7 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([{column["Name"]}]");
+                        result.Append($"        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([{column["Name"]}]");
                         firstTime = false;
                     }
                     else
@@ -1282,37 +1282,37 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"        SELECT CAST('C' AS CHAR(1)) AS [_] \r\n");
+                        result.Append($"        SELECT CAST('T' AS CHAR(1)) AS [_] \r\n");
                         firstTime = false;
                     }
-                    result.Append($"              ,[C].[{column["Name"]}]\r\n");
+                    result.Append($"              ,[T].[{column["Name"]}]\r\n");
                 }
-                result.Append($"            INTO [dbo].[#tmp]\r\n");
-                result.Append($"            FROM [dbo].[{table["Name"]}] [C]\r\n");
+                result.Append($"            INTO [dbo].[#table]\r\n");
+                result.Append($"            FROM [dbo].[{table["Name"]}] [T]\r\n");
                 firstTime = true;
                 foreach (var column in pkColumnRows)
                 {
                     if (firstTime)
                     {
-                        result.Append($"                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[{column["Name"]}] = [C].[{column["Name"]}]");
+                        result.Append($"                LEFT JOIN [dbo].[#operations] [#] ON [#].[{column["Name"]}] = [T].[{column["Name"]}]");
                         firstTime = false;
                     }
                     else
-                        result.Append($" AND [D].[{column["Name"]}] = [C].[{column["Name"]}]");
+                        result.Append($" AND [#].[{column["Name"]}] = [T].[{column["Name"]}]");
                 }
-                result.Append($" AND [D].[_] <> 'create'\r\n");
+                result.Append($"\r\n");
                 firstTime = true;
                 foreach (var column in filterableColumns)
                 {
                     if (firstTime)
                     {
-                        result.Append($"            WHERE [D].[Id] IS NULL\r\n");
+                        result.Append($"            WHERE [#].[{pkColumnRows[0]["Name"]}] IS NULL\r\n");
                         firstTime = false;
                     }
                     if (ToBoolean(column["IsRequired"]))
-                        result.Append($"                  AND [C].[{column["Name"]}] = ISNULL(@W_{column["Name"]}, [C].[{column["Name"]}])\r\n");
+                        result.Append($"                  AND [T].[{column["Name"]}] = ISNULL(@W_{column["Name"]}, [T].[{column["Name"]}])\r\n");
                     else
-                        result.Append($"                  AND (@W_{column["Name"]} IS NULL OR [C].[{column["Name"]}] = @W_{column["Name"]})\r\n");
+                        result.Append($"                  AND (@W_{column["Name"]} IS NULL OR [T].[{column["Name"]}] = @W_{column["Name"]})\r\n");
                 }
                 firstTime = true;
                 foreach (var column in pkColumnRows)
@@ -1325,13 +1325,13 @@ namespace CRUDA.Classes
                     }
                     result.Append($"                  ,[{column["Name"]}]\r\n");
                 }
-                result.Append($"                FROM [dbo].[#tmpOperations]\r\n");
+                result.Append($"                FROM [dbo].[#operations]\r\n");
                 firstTime = true;
                 foreach (var column in filterableColumns)
                 {
                     if (firstTime)
                     {
-                        result.Append($"                WHERE [_] IN ('create', 'update')\r\n");
+                        result.Append($"                WHERE [_] <> 'delete'\r\n");
                         firstTime = false;
                     }
                     result.Append($"                      AND ");
@@ -1343,13 +1343,15 @@ namespace CRUDA.Classes
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
                 result.Append($"               ,@OffSet INT\r\n");
+                result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
+                result.Append($"               ,@ClassName NVARCHAR(50) = 'RecordColumn'\r\n");
                 result.Append($"\r\n");
                 firstTime = true;
                 foreach (var column in pkColumnRows)
                 {
                     if (firstTime)
                     {
-                        result.Append($"        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([{column["Name"]}]");
+                        result.Append($"        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([{column["Name"]}]");
                         firstTime = false;
                     }
                     else
@@ -1357,7 +1359,7 @@ namespace CRUDA.Classes
                 }
                 result.Append($")\r\n");
                 result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
-                result.Append($"            SET @offset = 0\r\n");
+                result.Append($"            SET @OffSet = 0\r\n");
                 result.Append($"            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END\r\n");
                 result.Append($"            SET @PageNumber = 1\r\n");
                 result.Append($"            SET @MaxPage = 1\r\n");
@@ -1367,39 +1369,54 @@ namespace CRUDA.Classes
                 result.Append($"                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END\r\n");
                 result.Append($"            IF @PageNumber < 0\r\n");
                 result.Append($"                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1\r\n");
-                result.Append($"            SET @offset = (@PageNumber - 1) * @LimitRows\r\n");
-                result.Append($"            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount\r\n");
-                result.Append($"                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END\r\n");
+                result.Append($"            SET @OffSet = (@PageNumber - 1) * @LimitRows\r\n");
+                result.Append($"            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount\r\n");
+                result.Append($"                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END\r\n");
                 result.Append($"        END\r\n");
-                result.Append($"\r\n");
-                result.Append($"        DECLARE @sql NVARCHAR(MAX)\r\n");
-                result.Append($"               ,@className NVARCHAR(50) = 'RecordColumn'\r\n");
-                result.Append($"\r\n");
-                result.Append($"        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]\r\n");
-                result.Append($"        SET @sql = 'SELECT @className AS [ClassName]\r\n");
+                result.Append($"        SET @sql = 'SELECT @ClassName AS [ClassName]\r\n");
                 foreach (var column in columnRows)
-                    result.Append($"                          ,[C].[{column["Name"]}]\r\n");
-                result.Append($"                        FROM [dbo].[#tmp] [T]\r\n");
-                result.Append($"                            INNER JOIN [dbo].[{table["Name"]}] [C] ON [C].[Id] = [T].[Id]\r\n");
-                result.Append($"                        WHERE [T].[_] = ''C''\r\n");
+                    result.Append($"                          ,[T].[{column["Name"]}]\r\n");
+                result.Append($"                        FROM [dbo].[#table] [#]\r\n");
+                firstTime = true;
+                foreach (var column in pkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"                            INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                                                                  AND [T].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
+                }
+                result.Append($"                        WHERE [#].[_] = ''T''\r\n");
                 result.Append($"                    UNION ALL\r\n");
-                result.Append($"                        SELECT @className AS [ClassName]\r\n");
+                result.Append($"                        SELECT @ClassName AS [ClassName]\r\n");
                 foreach (var column in columnRows)
-                    result.Append($"                              ,[C].[{column["Name"]}]\r\n");
-                result.Append($"                            FROM [dbo].[#tmp] [T]\r\n");
-                result.Append($"                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]\r\n");
-                result.Append($"                            WHERE [T].[_] = ''O''\r\n");
+                    result.Append($"                              ,[O].[{column["Name"]}]\r\n");
+                result.Append($"                            FROM [dbo].[#table] [#]\r\n");
+                firstTime = true;
+                foreach (var column in pkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"                                INNER JOIN [dbo].[#operations] [O] ON [O].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                                                                  AND [O].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
+                }
+                result.Append($"                            WHERE [#].[_] = ''O''\r\n");
                 result.Append($"                    ORDER BY ' + @OrderBy + '\r\n");
                 result.Append($"                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
                 result.Append($"                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'\r\n");
                 result.Append($"        EXEC sp_executesql @sql,\r\n");
-                result.Append($"                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',\r\n");
-                result.Append($"                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows\r\n");
+                result.Append($"                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',\r\n");
+                result.Append($"                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows\r\n");
                 result.Append($"\r\n");
                 result.Append($"        RETURN @RowCount\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
-                result.Append($"        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));\r\n");
+                result.Append($"        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));\r\n");
                 result.Append($"        THROW 51000, @ErrorMessage, 1;\r\n");
                 result.Append($"    END CATCH\r\n");
                 result.Append($"END\r\n");

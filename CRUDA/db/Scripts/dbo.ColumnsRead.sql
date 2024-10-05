@@ -15,7 +15,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -73,7 +73,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
             THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual à ''1''', 1
         IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('2147483647' AS int)
             THROW 51000, 'Valor de ReferenceTableId deve ser menor que ou igual à ''2147483647''', 1
-        SELECT [Action] AS [OperationAction]
+        SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
@@ -101,48 +101,48 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT 'commited' AS [TransactionState] 
-			  ,[C].[Id]
-            INTO [dbo].[#columns]
-            FROM [dbo].[Columns] [C]
-                LEFT JOIN [dbo].[#operations] [O] ON [O].[Id] = [C].[Id]
-            WHERE [O].[Id] IS NULL
-				  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[TableId] = ISNULL(@W_TableId, [C].[TableId])
-                  AND [C].[DomainId] = ISNULL(@W_DomainId, [C].[DomainId])
-                  AND (@W_ReferenceTableId IS NULL OR [C].[ReferenceTableId] = @W_ReferenceTableId)
-                  AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
-                  AND (@W_IsAutoIncrement IS NULL OR [C].[IsAutoIncrement] = @W_IsAutoIncrement)
-                  AND [C].[IsRequired] = ISNULL(@W_IsRequired, [C].[IsRequired])
-                  AND (@W_IsListable IS NULL OR [C].[IsListable] = @W_IsListable)
-                  AND (@W_IsFilterable IS NULL OR [C].[IsFilterable] = @W_IsFilterable)
-                  AND (@W_IsEditable IS NULL OR [C].[IsEditable] = @W_IsEditable)
-                  AND (@W_IsGridable IS NULL OR [C].[IsGridable] = @W_IsGridable)
-                  AND (@W_IsEncrypted IS NULL OR [C].[IsEncrypted] = @W_IsEncrypted)
+        SELECT CAST('T' AS CHAR(1)) AS [_]
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Columns] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+				  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[TableId] = ISNULL(@W_TableId, [T].[TableId])
+                  AND [T].[DomainId] = ISNULL(@W_DomainId, [T].[DomainId])
+                  AND (@W_ReferenceTableId IS NULL OR [T].[ReferenceTableId] = @W_ReferenceTableId)
+                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
+                  AND (@W_IsAutoIncrement IS NULL OR [T].[IsAutoIncrement] = @W_IsAutoIncrement)
+                  AND [T].[IsRequired] = ISNULL(@W_IsRequired, [T].[IsRequired])
+                  AND (@W_IsListable IS NULL OR [T].[IsListable] = @W_IsListable)
+                  AND (@W_IsFilterable IS NULL OR [T].[IsFilterable] = @W_IsFilterable)
+                  AND (@W_IsEditable IS NULL OR [T].[IsEditable] = @W_IsEditable)
+                  AND (@W_IsGridable IS NULL OR [T].[IsGridable] = @W_IsGridable)
+                  AND (@W_IsEncrypted IS NULL OR [T].[IsEncrypted] = @W_IsEncrypted)
         UNION ALL
-            SELECT 'uncommited' AS [TransactionState]
-				  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [OperationAction] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [TableId] = ISNULL(@W_TableId, [TableId])
-                      AND [DomainId] = ISNULL(@W_DomainId, [DomainId])
-                      AND (@W_ReferenceTableId IS NULL OR [ReferenceTableId] = @W_ReferenceTableId)
-                      AND [Name] = ISNULL(@W_Name, [Name])
-                      AND (@W_IsAutoIncrement IS NULL OR [IsAutoIncrement] = @W_IsAutoIncrement)
-                      AND [IsRequired] = ISNULL(@W_IsRequired, [IsRequired])
-                      AND (@W_IsListable IS NULL OR [IsListable] = @W_IsListable)
-                      AND (@W_IsFilterable IS NULL OR [IsFilterable] = @W_IsFilterable)
-                      AND (@W_IsEditable IS NULL OR [IsEditable] = @W_IsEditable)
-                      AND (@W_IsGridable IS NULL OR [IsGridable] = @W_IsGridable)
-                      AND (@W_IsEncrypted IS NULL OR [IsEncrypted] = @W_IsEncrypted)
+            SELECT CAST('O' AS CHAR(1)) AS [_]
+                  ,[O].[Id]
+                FROM [dbo].[#operations] [O]
+                WHERE [_] <> 'delete'
+                      AND [O].[Id] = ISNULL(@W_Id, [O].[Id])
+                      AND [O].[TableId] = ISNULL(@W_TableId, [O].[TableId])
+                      AND [O].[DomainId] = ISNULL(@W_DomainId, [O].[DomainId])
+                      AND (@W_ReferenceTableId IS NULL OR [O].[ReferenceTableId] = @W_ReferenceTableId)
+                      AND [O].[Name] = ISNULL(@W_Name, [O].[Name])
+                      AND (@W_IsAutoIncrement IS NULL OR [O].[IsAutoIncrement] = @W_IsAutoIncrement)
+                      AND [O].[IsRequired] = ISNULL(@W_IsRequired, [O].[IsRequired])
+                      AND (@W_IsListable IS NULL OR [O].[IsListable] = @W_IsListable)
+                      AND (@W_IsFilterable IS NULL OR [O].[IsFilterable] = @W_IsFilterable)
+                      AND (@W_IsEditable IS NULL OR [O].[IsEditable] = @W_IsEditable)
+                      AND (@W_IsGridable IS NULL OR [O].[IsGridable] = @W_IsGridable)
+                      AND (@W_IsEncrypted IS NULL OR [O].[IsEncrypted] = @W_IsEncrypted)
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
                ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-		CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#columns]([Id])
+		CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -158,60 +158,57 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#columns]
         SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[TransactionState]
-						  ,[C].[Id]
-						  ,[C].[TableId]
- 						  ,[C].[Sequence]
-						  ,[C].[DomainId]
-						  ,[C].[ReferenceTableId]
-						  ,[C].[Name]
-						  ,[C].[Description]
-						  ,[C].[Title]
-						  ,[C].[Caption]
-						  ,[C].[ValidValues]
-						  ,[C].[Default]
-						  ,[C].[Minimum]
-						  ,[C].[Maximum]
-						  ,[C].[IsPrimarykey]
-						  ,[C].[IsAutoIncrement]
-						  ,[C].[IsRequired]
-						  ,[C].[IsListable]
-						  ,[C].[IsFilterable]
-						  ,[C].[IsEditable]
-						  ,[C].[IsGridable]
-						  ,[C].[IsEncrypted]
-					   FROM [dbo].[#columns] [T]
-						   INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
-						WHERE [T].[TransactionState] = ''commited''
+						  ,[T].[Id]
+						  ,[T].[TableId]
+ 						  ,[T].[Sequence]
+						  ,[T].[DomainId]
+						  ,[T].[ReferenceTableId]
+						  ,[T].[Name]
+						  ,[T].[Description]
+						  ,[T].[Title]
+						  ,[T].[Caption]
+						  ,[T].[ValidValues]
+						  ,[T].[Default]
+						  ,[T].[Minimum]
+						  ,[T].[Maximum]
+						  ,[T].[IsPrimarykey]
+						  ,[T].[IsAutoIncrement]
+						  ,[T].[IsRequired]
+						  ,[T].[IsListable]
+						  ,[T].[IsFilterable]
+						  ,[T].[IsEditable]
+						  ,[T].[IsGridable]
+						  ,[T].[IsEncrypted]
+					   FROM [dbo].[#table] [#]
+						   INNER JOIN [dbo].[Columns] [T] ON [T].[Id] = [#].[Id]
+						WHERE [#].[_] = ''T''
 				    UNION ALL
 						SELECT @ClassName AS [ClassName]
-                              ,[T].[TransactionState]
-							  ,[C].[Id]
-							  ,[C].[TableId]
-							  ,[C].[Sequence]
-							  ,[C].[DomainId]
-							  ,[C].[ReferenceTableId]
-							  ,[C].[Name]
-							  ,[C].[Description]
-							  ,[C].[Title]
-							  ,[C].[Caption]
-							  ,[C].[ValidValues]
-							  ,[C].[Default]
-							  ,[C].[Minimum]
-							  ,[C].[Maximum]
-							  ,[C].[IsPrimarykey]
-							  ,[C].[IsAutoIncrement]
-							  ,[C].[IsRequired]
-							  ,[C].[IsListable]
-							  ,[C].[IsFilterable]
-							  ,[C].[IsEditable]
-							  ,[C].[IsGridable]
-							  ,[C].[IsEncrypted]
-						   FROM [dbo].[#columns] [T]
-							   INNER JOIN [dbo].[#operations] [C] ON [C].[Id] = [T].[Id]
-						   WHERE [T].[TransactionState] = ''uncommited''
+							  ,[O].[Id]
+							  ,[O].[TableId]
+							  ,[O].[Sequence]
+							  ,[O].[DomainId]
+							  ,[O].[ReferenceTableId]
+							  ,[O].[Name]
+							  ,[O].[Description]
+							  ,[O].[Title]
+							  ,[O].[Caption]
+							  ,[O].[ValidValues]
+							  ,[O].[Default]
+							  ,[O].[Minimum]
+							  ,[O].[Maximum]
+							  ,[O].[IsPrimarykey]
+							  ,[O].[IsAutoIncrement]
+							  ,[O].[IsRequired]
+							  ,[O].[IsListable]
+							  ,[O].[IsFilterable]
+							  ,[O].[IsEditable]
+							  ,[O].[IsGridable]
+							  ,[O].[IsEncrypted]
+						   FROM [dbo].[#table] [#]
+							   INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+						   WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'

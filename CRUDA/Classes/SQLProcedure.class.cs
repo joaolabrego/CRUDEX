@@ -36,7 +36,7 @@ namespace CRUDA_LIB
 
                 return new TResult(dataset.Tables, command.Parameters);
             }
-            catch
+            catch (Exception ex)
             {
                 throw;
             }

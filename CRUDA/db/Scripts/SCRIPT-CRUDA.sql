@@ -13078,7 +13078,7 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -13099,8 +13099,8 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -13131,31 +13131,31 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskDefault') AS bit) AS [AskDefault]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskMinimum') AS bit) AS [AskMinimum]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Categories'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Categories] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
-                  AND [C].[AskEncrypted] = ISNULL(@W_AskEncrypted, [C].[AskEncrypted])
-                  AND [C].[AskMask] = ISNULL(@W_AskMask, [C].[AskMask])
-                  AND [C].[AskListable] = ISNULL(@W_AskListable, [C].[AskListable])
-                  AND [C].[AskDefault] = ISNULL(@W_AskDefault, [C].[AskDefault])
-                  AND [C].[AskMinimum] = ISNULL(@W_AskMinimum, [C].[AskMinimum])
-                  AND [C].[AskMaximum] = ISNULL(@W_AskMaximum, [C].[AskMaximum])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Categories] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
+                  AND [T].[AskEncrypted] = ISNULL(@W_AskEncrypted, [T].[AskEncrypted])
+                  AND [T].[AskMask] = ISNULL(@W_AskMask, [T].[AskMask])
+                  AND [T].[AskListable] = ISNULL(@W_AskListable, [T].[AskListable])
+                  AND [T].[AskDefault] = ISNULL(@W_AskDefault, [T].[AskDefault])
+                  AND [T].[AskMinimum] = ISNULL(@W_AskMinimum, [T].[AskMinimum])
+                  AND [T].[AskMaximum] = ISNULL(@W_AskMaximum, [T].[AskMaximum])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [Name] = ISNULL(@W_Name, [Name])
                       AND [AskEncrypted] = ISNULL(@W_AskEncrypted, [AskEncrypted])
@@ -13167,10 +13167,12 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -13180,55 +13182,50 @@ ALTER PROCEDURE[dbo].[CategoriesRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[Name]
-                          ,[C].[HtmlInputType]
-                          ,[C].[HtmlInputAlign]
-                          ,[C].[AskEncrypted]
-                          ,[C].[AskMask]
-                          ,[C].[AskListable]
-                          ,[C].[AskDefault]
-                          ,[C].[AskMinimum]
-                          ,[C].[AskMaximum]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Categories] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[Name]
+                          ,[T].[HtmlInputType]
+                          ,[T].[HtmlInputAlign]
+                          ,[T].[AskEncrypted]
+                          ,[T].[AskMask]
+                          ,[T].[AskListable]
+                          ,[T].[AskDefault]
+                          ,[T].[AskMinimum]
+                          ,[T].[AskMaximum]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Categories] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[Name]
-                              ,[C].[HtmlInputType]
-                              ,[C].[HtmlInputAlign]
-                              ,[C].[AskEncrypted]
-                              ,[C].[AskMask]
-                              ,[C].[AskListable]
-                              ,[C].[AskDefault]
-                              ,[C].[AskMinimum]
-                              ,[C].[AskMaximum]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[Name]
+                              ,[O].[HtmlInputType]
+                              ,[O].[HtmlInputAlign]
+                              ,[O].[AskEncrypted]
+                              ,[O].[AskMask]
+                              ,[O].[AskListable]
+                              ,[O].[AskDefault]
+                              ,[O].[AskMinimum]
+                              ,[O].[AskMaximum]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -13710,7 +13707,7 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -13731,8 +13728,8 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -13772,35 +13769,35 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskFormula') AS bit) AS [AskFormula]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AllowMaxLength') AS bit) AS [AllowMaxLength]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Types'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Types] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
-                  AND [C].[AskLength] = ISNULL(@W_AskLength, [C].[AskLength])
-                  AND [C].[AskDecimals] = ISNULL(@W_AskDecimals, [C].[AskDecimals])
-                  AND [C].[AskPrimarykey] = ISNULL(@W_AskPrimarykey, [C].[AskPrimarykey])
-                  AND [C].[AskAutoincrement] = ISNULL(@W_AskAutoincrement, [C].[AskAutoincrement])
-                  AND [C].[AskFilterable] = ISNULL(@W_AskFilterable, [C].[AskFilterable])
-                  AND [C].[AskGridable] = ISNULL(@W_AskGridable, [C].[AskGridable])
-                  AND [C].[AskCodification] = ISNULL(@W_AskCodification, [C].[AskCodification])
-                  AND [C].[AskFormula] = ISNULL(@W_AskFormula, [C].[AskFormula])
-                  AND [C].[AllowMaxLength] = ISNULL(@W_AllowMaxLength, [C].[AllowMaxLength])
-                  AND [C].[IsActive] = ISNULL(@W_IsActive, [C].[IsActive])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Types] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
+                  AND [T].[AskLength] = ISNULL(@W_AskLength, [T].[AskLength])
+                  AND [T].[AskDecimals] = ISNULL(@W_AskDecimals, [T].[AskDecimals])
+                  AND [T].[AskPrimarykey] = ISNULL(@W_AskPrimarykey, [T].[AskPrimarykey])
+                  AND [T].[AskAutoincrement] = ISNULL(@W_AskAutoincrement, [T].[AskAutoincrement])
+                  AND [T].[AskFilterable] = ISNULL(@W_AskFilterable, [T].[AskFilterable])
+                  AND [T].[AskGridable] = ISNULL(@W_AskGridable, [T].[AskGridable])
+                  AND [T].[AskCodification] = ISNULL(@W_AskCodification, [T].[AskCodification])
+                  AND [T].[AskFormula] = ISNULL(@W_AskFormula, [T].[AskFormula])
+                  AND [T].[AllowMaxLength] = ISNULL(@W_AllowMaxLength, [T].[AllowMaxLength])
+                  AND [T].[IsActive] = ISNULL(@W_IsActive, [T].[IsActive])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [Name] = ISNULL(@W_Name, [Name])
                       AND [AskLength] = ISNULL(@W_AskLength, [AskLength])
@@ -13816,10 +13813,12 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -13829,65 +13828,60 @@ ALTER PROCEDURE[dbo].[TypesRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[CategoryId]
-                          ,[C].[Name]
-                          ,[C].[Minimum]
-                          ,[C].[Maximum]
-                          ,[C].[AskLength]
-                          ,[C].[AskDecimals]
-                          ,[C].[AskPrimarykey]
-                          ,[C].[AskAutoincrement]
-                          ,[C].[AskFilterable]
-                          ,[C].[AskGridable]
-                          ,[C].[AskCodification]
-                          ,[C].[AskFormula]
-                          ,[C].[AllowMaxLength]
-                          ,[C].[IsActive]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Types] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[CategoryId]
+                          ,[T].[Name]
+                          ,[T].[Minimum]
+                          ,[T].[Maximum]
+                          ,[T].[AskLength]
+                          ,[T].[AskDecimals]
+                          ,[T].[AskPrimarykey]
+                          ,[T].[AskAutoincrement]
+                          ,[T].[AskFilterable]
+                          ,[T].[AskGridable]
+                          ,[T].[AskCodification]
+                          ,[T].[AskFormula]
+                          ,[T].[AllowMaxLength]
+                          ,[T].[IsActive]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Types] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[CategoryId]
-                              ,[C].[Name]
-                              ,[C].[Minimum]
-                              ,[C].[Maximum]
-                              ,[C].[AskLength]
-                              ,[C].[AskDecimals]
-                              ,[C].[AskPrimarykey]
-                              ,[C].[AskAutoincrement]
-                              ,[C].[AskFilterable]
-                              ,[C].[AskGridable]
-                              ,[C].[AskCodification]
-                              ,[C].[AskFormula]
-                              ,[C].[AllowMaxLength]
-                              ,[C].[IsActive]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[CategoryId]
+                              ,[O].[Name]
+                              ,[O].[Minimum]
+                              ,[O].[Maximum]
+                              ,[O].[AskLength]
+                              ,[O].[AskDecimals]
+                              ,[O].[AskPrimarykey]
+                              ,[O].[AskAutoincrement]
+                              ,[O].[AskFilterable]
+                              ,[O].[AskGridable]
+                              ,[O].[AskCodification]
+                              ,[O].[AskFormula]
+                              ,[O].[AllowMaxLength]
+                              ,[O].[IsActive]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -14273,7 +14267,7 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -14294,8 +14288,8 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -14313,34 +14307,36 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Mask') AS nvarchar(MAX)) AS [Mask]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Masks'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Masks] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Masks] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [Name] = ISNULL(@W_Name, [Name])
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -14350,41 +14346,36 @@ ALTER PROCEDURE[dbo].[MasksRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[Name]
-                          ,[C].[Mask]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Masks] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[Name]
+                          ,[T].[Mask]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Masks] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[Name]
-                              ,[C].[Mask]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[Name]
+                              ,[O].[Mask]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -14866,7 +14857,7 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -14887,8 +14878,8 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -14926,29 +14917,29 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Codification') AS nvarchar(5)) AS [Codification]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Domains'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Domains] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[TypeId] = ISNULL(@W_TypeId, [C].[TypeId])
-                  AND (@W_MaskId IS NULL OR [C].[MaskId] = @W_MaskId)
-                  AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
-                  AND (@W_ValidValues IS NULL OR [C].[ValidValues] = @W_ValidValues)
-                  AND (@W_Codification IS NULL OR [C].[Codification] = @W_Codification)
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Domains] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[TypeId] = ISNULL(@W_TypeId, [T].[TypeId])
+                  AND (@W_MaskId IS NULL OR [T].[MaskId] = @W_MaskId)
+                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
+                  AND (@W_ValidValues IS NULL OR [T].[ValidValues] = @W_ValidValues)
+                  AND (@W_Codification IS NULL OR [T].[Codification] = @W_Codification)
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [TypeId] = ISNULL(@W_TypeId, [TypeId])
                       AND (@W_MaskId IS NULL OR [MaskId] = @W_MaskId)
@@ -14958,10 +14949,12 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -14971,57 +14964,52 @@ ALTER PROCEDURE[dbo].[DomainsRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[TypeId]
-                          ,[C].[MaskId]
-                          ,[C].[Name]
-                          ,[C].[Length]
-                          ,[C].[Decimals]
-                          ,[C].[ValidValues]
-                          ,[C].[Default]
-                          ,[C].[Minimum]
-                          ,[C].[Maximum]
-                          ,[C].[Codification]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Domains] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[TypeId]
+                          ,[T].[MaskId]
+                          ,[T].[Name]
+                          ,[T].[Length]
+                          ,[T].[Decimals]
+                          ,[T].[ValidValues]
+                          ,[T].[Default]
+                          ,[T].[Minimum]
+                          ,[T].[Maximum]
+                          ,[T].[Codification]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Domains] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[TypeId]
-                              ,[C].[MaskId]
-                              ,[C].[Name]
-                              ,[C].[Length]
-                              ,[C].[Decimals]
-                              ,[C].[ValidValues]
-                              ,[C].[Default]
-                              ,[C].[Minimum]
-                              ,[C].[Maximum]
-                              ,[C].[Codification]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[TypeId]
+                              ,[O].[MaskId]
+                              ,[O].[Name]
+                              ,[O].[Length]
+                              ,[O].[Decimals]
+                              ,[O].[ValidValues]
+                              ,[O].[Default]
+                              ,[O].[Minimum]
+                              ,[O].[Maximum]
+                              ,[O].[Codification]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -15448,7 +15436,7 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -15469,8 +15457,8 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -15492,36 +15480,38 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ClientName') AS nvarchar(15)) AS [ClientName]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsOffAir') AS bit) AS [IsOffAir]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Systems'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Systems] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
-                  AND [C].[ClientName] = ISNULL(@W_ClientName, [C].[ClientName])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Systems] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
+                  AND [T].[ClientName] = ISNULL(@W_ClientName, [T].[ClientName])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [Name] = ISNULL(@W_Name, [Name])
                       AND [ClientName] = ISNULL(@W_ClientName, [ClientName])
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -15531,47 +15521,42 @@ ALTER PROCEDURE[dbo].[SystemsRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[Name]
-                          ,[C].[Description]
-                          ,[C].[ClientName]
-                          ,[C].[MaxRetryLogins]
-                          ,[C].[IsOffAir]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Systems] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[Name]
+                          ,[T].[Description]
+                          ,[T].[ClientName]
+                          ,[T].[MaxRetryLogins]
+                          ,[T].[IsOffAir]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Systems] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[Name]
-                              ,[C].[Description]
-                              ,[C].[ClientName]
-                              ,[C].[MaxRetryLogins]
-                              ,[C].[IsOffAir]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[Name]
+                              ,[O].[Description]
+                              ,[O].[ClientName]
+                              ,[O].[MaxRetryLogins]
+                              ,[O].[IsOffAir]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -16024,7 +16009,7 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -16045,8 +16030,8 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -16073,36 +16058,38 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Message') AS nvarchar(50)) AS [Message]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Action') AS nvarchar(50)) AS [Action]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ParentMenuId') AS int) AS [ParentMenuId]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Menus'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Menus] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
-                  AND [C].[Caption] = ISNULL(@W_Caption, [C].[Caption])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Menus] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[SystemId] = ISNULL(@W_SystemId, [T].[SystemId])
+                  AND [T].[Caption] = ISNULL(@W_Caption, [T].[Caption])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
                       AND [Caption] = ISNULL(@W_Caption, [Caption])
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -16112,49 +16099,44 @@ ALTER PROCEDURE[dbo].[MenusRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[SystemId]
-                          ,[C].[Sequence]
-                          ,[C].[Caption]
-                          ,[C].[Message]
-                          ,[C].[Action]
-                          ,[C].[ParentMenuId]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Menus] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[SystemId]
+                          ,[T].[Sequence]
+                          ,[T].[Caption]
+                          ,[T].[Message]
+                          ,[T].[Action]
+                          ,[T].[ParentMenuId]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Menus] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[SystemId]
-                              ,[C].[Sequence]
-                              ,[C].[Caption]
-                              ,[C].[Message]
-                              ,[C].[Action]
-                              ,[C].[ParentMenuId]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[SystemId]
+                              ,[O].[Sequence]
+                              ,[O].[Caption]
+                              ,[O].[Message]
+                              ,[O].[Action]
+                              ,[O].[ParentMenuId]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -16573,7 +16555,7 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -16594,8 +16576,8 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -16618,27 +16600,27 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.FullName') AS nvarchar(50)) AS [FullName]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.RetryLogins') AS tinyint) AS [RetryLogins]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Users'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Users] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
-                  AND [C].[FullName] = ISNULL(@W_FullName, [C].[FullName])
-                  AND [C].[IsActive] = ISNULL(@W_IsActive, [C].[IsActive])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Users] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
+                  AND [T].[FullName] = ISNULL(@W_FullName, [T].[FullName])
+                  AND [T].[IsActive] = ISNULL(@W_IsActive, [T].[IsActive])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [Name] = ISNULL(@W_Name, [Name])
                       AND [FullName] = ISNULL(@W_FullName, [FullName])
@@ -16646,10 +16628,12 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -16659,47 +16643,42 @@ ALTER PROCEDURE[dbo].[UsersRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[Name]
-                          ,[C].[Password]
-                          ,[C].[FullName]
-                          ,[C].[RetryLogins]
-                          ,[C].[IsActive]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Users] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[Name]
+                          ,[T].[Password]
+                          ,[T].[FullName]
+                          ,[T].[RetryLogins]
+                          ,[T].[IsActive]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Users] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[Name]
-                              ,[C].[Password]
-                              ,[C].[FullName]
-                              ,[C].[RetryLogins]
-                              ,[C].[IsActive]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[Name]
+                              ,[O].[Password]
+                              ,[O].[FullName]
+                              ,[O].[RetryLogins]
+                              ,[O].[IsActive]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -17118,7 +17097,7 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -17139,8 +17118,8 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -17169,27 +17148,27 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.UserId') AS int) AS [UserId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'SystemsUsers'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[SystemsUsers] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
-                  AND [C].[UserId] = ISNULL(@W_UserId, [C].[UserId])
-                  AND [C].[Description] = ISNULL(@W_Description, [C].[Description])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[SystemsUsers] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[SystemId] = ISNULL(@W_SystemId, [T].[SystemId])
+                  AND [T].[UserId] = ISNULL(@W_UserId, [T].[UserId])
+                  AND [T].[Description] = ISNULL(@W_Description, [T].[Description])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
                       AND [UserId] = ISNULL(@W_UserId, [UserId])
@@ -17197,10 +17176,12 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -17210,43 +17191,38 @@ ALTER PROCEDURE[dbo].[SystemsUsersRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[SystemId]
-                          ,[C].[UserId]
-                          ,[C].[Description]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[SystemsUsers] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[SystemId]
+                          ,[T].[UserId]
+                          ,[T].[Description]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[SystemsUsers] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[SystemId]
-                              ,[C].[UserId]
-                              ,[C].[Description]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[SystemId]
+                              ,[O].[UserId]
+                              ,[O].[Description]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -17704,7 +17680,7 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -17725,8 +17701,8 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -17752,36 +17728,38 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Logon') AS nvarchar(256)) AS [Logon]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Folder') AS nvarchar(256)) AS [Folder]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Databases'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Databases] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
-                  AND [C].[Alias] = ISNULL(@W_Alias, [C].[Alias])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Databases] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
+                  AND [T].[Alias] = ISNULL(@W_Alias, [T].[Alias])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [Name] = ISNULL(@W_Name, [Name])
                       AND [Alias] = ISNULL(@W_Alias, [Alias])
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -17791,55 +17769,50 @@ ALTER PROCEDURE[dbo].[DatabasesRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[Name]
-                          ,[C].[Description]
-                          ,[C].[Alias]
-                          ,[C].[ServerName]
-                          ,[C].[HostName]
-                          ,[C].[Port]
-                          ,[C].[Logon]
-                          ,[C].[Password]
-                          ,[C].[Folder]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Databases] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[Name]
+                          ,[T].[Description]
+                          ,[T].[Alias]
+                          ,[T].[ServerName]
+                          ,[T].[HostName]
+                          ,[T].[Port]
+                          ,[T].[Logon]
+                          ,[T].[Password]
+                          ,[T].[Folder]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Databases] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[Name]
-                              ,[C].[Description]
-                              ,[C].[Alias]
-                              ,[C].[ServerName]
-                              ,[C].[HostName]
-                              ,[C].[Port]
-                              ,[C].[Logon]
-                              ,[C].[Password]
-                              ,[C].[Folder]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[Name]
+                              ,[O].[Description]
+                              ,[O].[Alias]
+                              ,[O].[ServerName]
+                              ,[O].[HostName]
+                              ,[O].[Port]
+                              ,[O].[Logon]
+                              ,[O].[Password]
+                              ,[O].[Folder]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -18258,7 +18231,7 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -18279,8 +18252,8 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -18309,27 +18282,27 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'SystemsDatabases'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[SystemsDatabases] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
-                  AND [C].[DatabaseId] = ISNULL(@W_DatabaseId, [C].[DatabaseId])
-                  AND [C].[Description] = ISNULL(@W_Description, [C].[Description])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[SystemsDatabases] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[SystemId] = ISNULL(@W_SystemId, [T].[SystemId])
+                  AND [T].[DatabaseId] = ISNULL(@W_DatabaseId, [T].[DatabaseId])
+                  AND [T].[Description] = ISNULL(@W_Description, [T].[Description])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
                       AND [DatabaseId] = ISNULL(@W_DatabaseId, [DatabaseId])
@@ -18337,10 +18310,12 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -18350,43 +18325,38 @@ ALTER PROCEDURE[dbo].[SystemsDatabasesRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[SystemId]
-                          ,[C].[DatabaseId]
-                          ,[C].[Description]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[SystemsDatabases] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[SystemId]
+                          ,[T].[DatabaseId]
+                          ,[T].[Description]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[SystemsDatabases] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[SystemId]
-                              ,[C].[DatabaseId]
-                              ,[C].[Description]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[SystemId]
+                              ,[O].[DatabaseId]
+                              ,[O].[Description]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -18835,7 +18805,7 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -18856,8 +18826,8 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -18881,27 +18851,27 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ParentTableId') AS int) AS [ParentTableId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsPaged') AS bit) AS [IsPaged]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.CurrentId') AS int) AS [CurrentId]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Tables'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Tables] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
-                  AND [C].[Alias] = ISNULL(@W_Alias, [C].[Alias])
-                  AND [C].[IsPaged] = ISNULL(@W_IsPaged, [C].[IsPaged])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Tables] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
+                  AND [T].[Alias] = ISNULL(@W_Alias, [T].[Alias])
+                  AND [T].[IsPaged] = ISNULL(@W_IsPaged, [T].[IsPaged])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [Name] = ISNULL(@W_Name, [Name])
                       AND [Alias] = ISNULL(@W_Alias, [Alias])
@@ -18909,10 +18879,12 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -18922,49 +18894,44 @@ ALTER PROCEDURE[dbo].[TablesRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[Name]
-                          ,[C].[Alias]
-                          ,[C].[Description]
-                          ,[C].[ParentTableId]
-                          ,[C].[IsPaged]
-                          ,[C].[CurrentId]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Tables] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[Name]
+                          ,[T].[Alias]
+                          ,[T].[Description]
+                          ,[T].[ParentTableId]
+                          ,[T].[IsPaged]
+                          ,[T].[CurrentId]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[Name]
-                              ,[C].[Alias]
-                              ,[C].[Description]
-                              ,[C].[ParentTableId]
-                              ,[C].[IsPaged]
-                              ,[C].[CurrentId]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[Name]
+                              ,[O].[Alias]
+                              ,[O].[Description]
+                              ,[O].[ParentTableId]
+                              ,[O].[IsPaged]
+                              ,[O].[CurrentId]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -19383,7 +19350,7 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -19404,8 +19371,8 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -19434,27 +19401,27 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'DatabasesTables'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[DatabasesTables] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[DatabaseId] = ISNULL(@W_DatabaseId, [C].[DatabaseId])
-                  AND [C].[TableId] = ISNULL(@W_TableId, [C].[TableId])
-                  AND [C].[Description] = ISNULL(@W_Description, [C].[Description])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[DatabasesTables] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[DatabaseId] = ISNULL(@W_DatabaseId, [T].[DatabaseId])
+                  AND [T].[TableId] = ISNULL(@W_TableId, [T].[TableId])
+                  AND [T].[Description] = ISNULL(@W_Description, [T].[Description])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [DatabaseId] = ISNULL(@W_DatabaseId, [DatabaseId])
                       AND [TableId] = ISNULL(@W_TableId, [TableId])
@@ -19462,10 +19429,12 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -19475,43 +19444,38 @@ ALTER PROCEDURE[dbo].[DatabasesTablesRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[DatabaseId]
-                          ,[C].[TableId]
-                          ,[C].[Description]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[DatabasesTables] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[DatabaseId]
+                          ,[T].[TableId]
+                          ,[T].[Description]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[DatabasesTables] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[DatabaseId]
-                              ,[C].[TableId]
-                              ,[C].[Description]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[DatabaseId]
+                              ,[O].[TableId]
+                              ,[O].[Description]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -20074,7 +20038,7 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -20095,8 +20059,8 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -20154,35 +20118,35 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Columns] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[TableId] = ISNULL(@W_TableId, [C].[TableId])
-                  AND [C].[DomainId] = ISNULL(@W_DomainId, [C].[DomainId])
-                  AND (@W_ReferenceTableId IS NULL OR [C].[ReferenceTableId] = @W_ReferenceTableId)
-                  AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
-                  AND (@W_IsAutoIncrement IS NULL OR [C].[IsAutoIncrement] = @W_IsAutoIncrement)
-                  AND [C].[IsRequired] = ISNULL(@W_IsRequired, [C].[IsRequired])
-                  AND (@W_IsListable IS NULL OR [C].[IsListable] = @W_IsListable)
-                  AND (@W_IsFilterable IS NULL OR [C].[IsFilterable] = @W_IsFilterable)
-                  AND (@W_IsEditable IS NULL OR [C].[IsEditable] = @W_IsEditable)
-                  AND (@W_IsGridable IS NULL OR [C].[IsGridable] = @W_IsGridable)
-                  AND (@W_IsEncrypted IS NULL OR [C].[IsEncrypted] = @W_IsEncrypted)
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Columns] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[TableId] = ISNULL(@W_TableId, [T].[TableId])
+                  AND [T].[DomainId] = ISNULL(@W_DomainId, [T].[DomainId])
+                  AND (@W_ReferenceTableId IS NULL OR [T].[ReferenceTableId] = @W_ReferenceTableId)
+                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
+                  AND (@W_IsAutoIncrement IS NULL OR [T].[IsAutoIncrement] = @W_IsAutoIncrement)
+                  AND [T].[IsRequired] = ISNULL(@W_IsRequired, [T].[IsRequired])
+                  AND (@W_IsListable IS NULL OR [T].[IsListable] = @W_IsListable)
+                  AND (@W_IsFilterable IS NULL OR [T].[IsFilterable] = @W_IsFilterable)
+                  AND (@W_IsEditable IS NULL OR [T].[IsEditable] = @W_IsEditable)
+                  AND (@W_IsGridable IS NULL OR [T].[IsGridable] = @W_IsGridable)
+                  AND (@W_IsEncrypted IS NULL OR [T].[IsEncrypted] = @W_IsEncrypted)
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [TableId] = ISNULL(@W_TableId, [TableId])
                       AND [DomainId] = ISNULL(@W_DomainId, [DomainId])
@@ -20198,10 +20162,12 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -20211,77 +20177,72 @@ ALTER PROCEDURE[dbo].[ColumnsRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[TableId]
-                          ,[C].[Sequence]
-                          ,[C].[DomainId]
-                          ,[C].[ReferenceTableId]
-                          ,[C].[Name]
-                          ,[C].[Description]
-                          ,[C].[Title]
-                          ,[C].[Caption]
-                          ,[C].[ValidValues]
-                          ,[C].[Default]
-                          ,[C].[Minimum]
-                          ,[C].[Maximum]
-                          ,[C].[IsPrimarykey]
-                          ,[C].[IsAutoIncrement]
-                          ,[C].[IsRequired]
-                          ,[C].[IsListable]
-                          ,[C].[IsFilterable]
-                          ,[C].[IsEditable]
-                          ,[C].[IsGridable]
-                          ,[C].[IsEncrypted]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Columns] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[TableId]
+                          ,[T].[Sequence]
+                          ,[T].[DomainId]
+                          ,[T].[ReferenceTableId]
+                          ,[T].[Name]
+                          ,[T].[Description]
+                          ,[T].[Title]
+                          ,[T].[Caption]
+                          ,[T].[ValidValues]
+                          ,[T].[Default]
+                          ,[T].[Minimum]
+                          ,[T].[Maximum]
+                          ,[T].[IsPrimarykey]
+                          ,[T].[IsAutoIncrement]
+                          ,[T].[IsRequired]
+                          ,[T].[IsListable]
+                          ,[T].[IsFilterable]
+                          ,[T].[IsEditable]
+                          ,[T].[IsGridable]
+                          ,[T].[IsEncrypted]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Columns] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[TableId]
-                              ,[C].[Sequence]
-                              ,[C].[DomainId]
-                              ,[C].[ReferenceTableId]
-                              ,[C].[Name]
-                              ,[C].[Description]
-                              ,[C].[Title]
-                              ,[C].[Caption]
-                              ,[C].[ValidValues]
-                              ,[C].[Default]
-                              ,[C].[Minimum]
-                              ,[C].[Maximum]
-                              ,[C].[IsPrimarykey]
-                              ,[C].[IsAutoIncrement]
-                              ,[C].[IsRequired]
-                              ,[C].[IsListable]
-                              ,[C].[IsFilterable]
-                              ,[C].[IsEditable]
-                              ,[C].[IsGridable]
-                              ,[C].[IsEncrypted]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[TableId]
+                              ,[O].[Sequence]
+                              ,[O].[DomainId]
+                              ,[O].[ReferenceTableId]
+                              ,[O].[Name]
+                              ,[O].[Description]
+                              ,[O].[Title]
+                              ,[O].[Caption]
+                              ,[O].[ValidValues]
+                              ,[O].[Default]
+                              ,[O].[Minimum]
+                              ,[O].[Maximum]
+                              ,[O].[IsPrimarykey]
+                              ,[O].[IsAutoIncrement]
+                              ,[O].[IsRequired]
+                              ,[O].[IsListable]
+                              ,[O].[IsFilterable]
+                              ,[O].[IsEditable]
+                              ,[O].[IsGridable]
+                              ,[O].[IsEncrypted]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -20705,7 +20666,7 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -20726,8 +20687,8 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -20753,27 +20714,27 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Indexes'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Indexes] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[TableId] = ISNULL(@W_TableId, [C].[TableId])
-                  AND [C].[Name] = ISNULL(@W_Name, [C].[Name])
-                  AND [C].[IsUnique] = ISNULL(@W_IsUnique, [C].[IsUnique])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Indexes] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[TableId] = ISNULL(@W_TableId, [T].[TableId])
+                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
+                  AND [T].[IsUnique] = ISNULL(@W_IsUnique, [T].[IsUnique])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [TableId] = ISNULL(@W_TableId, [TableId])
                       AND [Name] = ISNULL(@W_Name, [Name])
@@ -20781,10 +20742,12 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -20794,45 +20757,40 @@ ALTER PROCEDURE[dbo].[IndexesRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[DatabaseId]
-                          ,[C].[TableId]
-                          ,[C].[Name]
-                          ,[C].[IsUnique]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Indexes] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[DatabaseId]
+                          ,[T].[TableId]
+                          ,[T].[Name]
+                          ,[T].[IsUnique]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Indexes] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[DatabaseId]
-                              ,[C].[TableId]
-                              ,[C].[Name]
-                              ,[C].[IsUnique]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[DatabaseId]
+                              ,[O].[TableId]
+                              ,[O].[Name]
+                              ,[O].[IsUnique]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -21266,7 +21224,7 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -21287,8 +21245,8 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -21318,27 +21276,27 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.ColumnId') AS int) AS [ColumnId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsDescending') AS bit) AS [IsDescending]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Indexkeys'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Indexkeys] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[IndexId] = ISNULL(@W_IndexId, [C].[IndexId])
-                  AND [C].[ColumnId] = ISNULL(@W_ColumnId, [C].[ColumnId])
-                  AND [C].[IsDescending] = ISNULL(@W_IsDescending, [C].[IsDescending])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Indexkeys] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[IndexId] = ISNULL(@W_IndexId, [T].[IndexId])
+                  AND [T].[ColumnId] = ISNULL(@W_ColumnId, [T].[ColumnId])
+                  AND [T].[IsDescending] = ISNULL(@W_IsDescending, [T].[IsDescending])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [IndexId] = ISNULL(@W_IndexId, [IndexId])
                       AND [ColumnId] = ISNULL(@W_ColumnId, [ColumnId])
@@ -21346,10 +21304,12 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -21359,45 +21319,40 @@ ALTER PROCEDURE[dbo].[IndexkeysRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[IndexId]
-                          ,[C].[Sequence]
-                          ,[C].[ColumnId]
-                          ,[C].[IsDescending]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Indexkeys] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[IndexId]
+                          ,[T].[Sequence]
+                          ,[T].[ColumnId]
+                          ,[T].[IsDescending]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Indexkeys] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[IndexId]
-                              ,[C].[Sequence]
-                              ,[C].[ColumnId]
-                              ,[C].[IsDescending]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[IndexId]
+                              ,[O].[Sequence]
+                              ,[O].[ColumnId]
+                              ,[O].[IsDescending]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
@@ -21807,7 +21762,7 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
         IF @RecordFilter IS NULL
             THROW 51000, 'Valor de @RecordFilter é requerido', 1
         IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
             SET @OrderBy = '[Id]'
@@ -21828,8 +21783,8 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
-                                                    CASE WHEN LTRIM(RTRIM(RIGHT([value], 4))) = 'DESC' THEN 'DESC'
-                                                         WHEN LTRIM(RTRIM(RIGHT([value], 3))) = 'ASC' THEN 'ASC'
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
@@ -21859,27 +21814,27 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.UserId') AS int) AS [UserId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.PublicKey') AS nvarchar(256)) AS [PublicKey]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IsLogged') AS bit) AS [IsLogged]
-            INTO [dbo].[#tmpOperations]
+            INTO [dbo].[#operations]
             FROM [cruda].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Logins'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#tmpOperations]([Id])
-        SELECT CAST('C' AS CHAR(1)) AS [_] 
-              ,[C].[Id]
-            INTO [dbo].[#tmp]
-            FROM [dbo].[Logins] [C]
-                LEFT JOIN [dbo].[#tmpOperations] [D] ON [D].[Id] = [C].[Id] AND [D].[_] <> 'create'
-            WHERE [D].[Id] IS NULL
-                  AND [C].[Id] = ISNULL(@W_Id, [C].[Id])
-                  AND [C].[SystemId] = ISNULL(@W_SystemId, [C].[SystemId])
-                  AND [C].[UserId] = ISNULL(@W_UserId, [C].[UserId])
-                  AND [C].[IsLogged] = ISNULL(@W_IsLogged, [C].[IsLogged])
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+        SELECT CAST('T' AS CHAR(1)) AS [_] 
+              ,[T].[Id]
+            INTO [dbo].[#table]
+            FROM [dbo].[Logins] [T]
+                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+            WHERE [#].[Id] IS NULL
+                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
+                  AND [T].[SystemId] = ISNULL(@W_SystemId, [T].[SystemId])
+                  AND [T].[UserId] = ISNULL(@W_UserId, [T].[UserId])
+                  AND [T].[IsLogged] = ISNULL(@W_IsLogged, [T].[IsLogged])
         UNION ALL
             SELECT CAST('O' AS CHAR(1)) AS [_]
                   ,[Id]
-                FROM [dbo].[#tmpOperations]
-                WHERE [_] IN ('create', 'update')
+                FROM [dbo].[#operations]
+                WHERE [_] <> 'delete'
                       AND [Id] = ISNULL(@W_Id, [Id])
                       AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
                       AND [UserId] = ISNULL(@W_UserId, [UserId])
@@ -21887,10 +21842,12 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+               ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
-        CREATE UNIQUE INDEX [#unqTmp] ON [dbo].[#tmp]([Id])
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @offset = 0
+            SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
             SET @MaxPage = 1
@@ -21900,45 +21857,40 @@ ALTER PROCEDURE[dbo].[LoginsRead](@LoginId INT
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
             IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @offset = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @offset + @LimitRows > @RowCount
-                SET @offset = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-
-        DECLARE @sql NVARCHAR(MAX)
-               ,@className NVARCHAR(50) = 'RecordColumn'
-
-        SELECT TOP 0 @className AS [ClassName], * INTO [dbo].[#view] FROM [dbo].[#tmp]
-        SET @sql = 'SELECT @className AS [ClassName]
-                          ,[C].[Id]
-                          ,[C].[SystemId]
-                          ,[C].[UserId]
-                          ,[C].[PublicKey]
-                          ,[C].[IsLogged]
-                        FROM [dbo].[#tmp] [T]
-                            INNER JOIN [dbo].[Logins] [C] ON [C].[Id] = [T].[Id]
-                        WHERE [T].[_] = ''C''
+        SET @sql = 'SELECT @ClassName AS [ClassName]
+                          ,[T].[Id]
+                          ,[T].[SystemId]
+                          ,[T].[UserId]
+                          ,[T].[PublicKey]
+                          ,[T].[IsLogged]
+                        FROM [dbo].[#table] [#]
+                            INNER JOIN [dbo].[Logins] [T] ON [T].[Id] = [#].[Id]
+                        WHERE [#].[_] = ''T''
                     UNION ALL
-                        SELECT @className AS [ClassName]
-                              ,[C].[Id]
-                              ,[C].[SystemId]
-                              ,[C].[UserId]
-                              ,[C].[PublicKey]
-                              ,[C].[IsLogged]
-                            FROM [dbo].[#tmp] [T]
-                                INNER JOIN [dbo].[#tmpOperations] [C] ON [C].[Id] = [T].[Id]
-                            WHERE [T].[_] = ''O''
+                        SELECT @ClassName AS [ClassName]
+                              ,[O].[Id]
+                              ,[O].[SystemId]
+                              ,[O].[UserId]
+                              ,[O].[PublicKey]
+                              ,[O].[IsLogged]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''O''
                     ORDER BY ' + @OrderBy + '
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@className NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @className = @className, @Offset = @offset, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
+                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
 
         RETURN @RowCount
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1;
     END CATCH
 END
