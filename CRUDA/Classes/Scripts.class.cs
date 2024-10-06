@@ -515,6 +515,7 @@ namespace CRUDA.Classes
         {
             var result = new StringBuilder();
             var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
+            var firstTime = true;
 
             if (columnRows.Count > 0)
             {
@@ -530,39 +531,26 @@ namespace CRUDA.Classes
                 result.Append($"                                              ,@LastRecord NVARCHAR(max)\r\n");
                 result.Append($"                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN\r\n");
                 result.Append($"    DECLARE @TRANCOUNT INT = @@TRANCOUNT\r\n");
+                result.Append($"           ,@ErrorMessage NVARCHAR(255)\r\n");
                 result.Append($"\r\n");
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @ErrorMessage NVARCHAR(255) = 'Stored Procedure [{table["Alias"]}Persist]: '\r\n");
-                result.Append($"               ,@TransactionId INT\r\n");
+                result.Append($"        DECLARE @TransactionId INT\r\n");
                 result.Append($"               ,@OperationId INT\r\n");
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
                 result.Append($"               ,@ActionAux NVARCHAR(15)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
+
+                var pkColumnRows = columnRows.FindAll(row => ToBoolean(row["IsPrimarykey"]));
+
+                foreach (var column in pkColumnRows)
+                    result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
                 result.Append($"        SAVE TRANSACTION [SavePoint]\r\n");
                 result.Append($"        EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
-                result.Append($"        IF @TransactionId = 0\r\n");
-                result.Append($"            GOTO EXIT_PROCEDURE\r\n");
-                result.Append($"\r\n");
-
-                var pkColumnRows = columnRows.FindAll(row => ToBoolean(row["IsPrimarykey"]));
-                var firstTime = true;
-
-                foreach (var column in pkColumnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
-                }
-                result.Append($"\r\n");
                 firstTime = true;
                 foreach (var column in pkColumnRows)
                 {
@@ -598,19 +586,18 @@ namespace CRUDA.Classes
                 result.Append($"                                             ,GETDATE()\r\n");
                 result.Append($"                                             ,@UserName)\r\n");
                 result.Append($"            SET @OperationId = @@IDENTITY\r\n");
-                result.Append($"        END IF @IsConfirmed IS NOT NULL BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;\r\n");
+                result.Append($"        END ELSE IF @IsConfirmed IS NOT NULL BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END ELSE IF @UserName <> @CreatedBy BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';\r\n");
-                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END ELSE IF @ActionAux = 'delete' BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Registro excluído nesta transação';\r\n");
-                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END ELSE IF @Action = 'create' BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Registro já existe nesta transação';\r\n");
-                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END ELSE IF @Action = 'update' BEGIN\r\n");
+                result.Append($"        END ELSE IF @UserName <> @CreatedBy\r\n");
+                result.Append($"            THROW 51000, 'Erro grave de segurança', 1\r\n");
+                result.Append($"        ELSE IF @ActionAux = 'delete'\r\n");
+                result.Append($"            THROW 51000, 'Registro excluído nesta transação', 1\r\n");
+                result.Append($"        ELSE IF @Action = 'create'\r\n");
+                result.Append($"            THROW 51000, 'Registro já existe nesta transação', 1\r\n");
+                result.Append($"        ELSE IF @Action = 'update' BEGIN\r\n");
+                result.Append($"            IF @ActionAux = 'create'\r\n");
+                result.Append($"                EXEC [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, 'create', NULL, @ActualRecord\r\n");
                 result.Append($"            UPDATE [cruda].[Operations]\r\n");
                 result.Append($"                SET [ActualRecord] = @ActualRecord\r\n");
                 result.Append($"                   ,[UpdatedAt] = GETDATE()\r\n");
@@ -631,9 +618,6 @@ namespace CRUDA.Classes
                 result.Append($"                   ,[UpdatedBy] = @UserName\r\n");
                 result.Append($"                WHERE [Id] = @OperationId\r\n");
                 result.Append($"        END\r\n");
-                result.Append($"\r\n");
-                result.Append($"        EXIT_PROCEDURE:\r\n");
-                result.Append($"\r\n");
                 result.Append($"        COMMIT TRANSACTION\r\n");
                 result.Append($"\r\n");
                 result.Append($"        RETURN CAST(@OperationId AS INT)\r\n");
@@ -643,7 +627,8 @@ namespace CRUDA.Classes
                 result.Append($"            ROLLBACK TRANSACTION [SavePoint];\r\n");
                 result.Append($"            COMMIT TRANSACTION\r\n");
                 result.Append($"        END;\r\n");
-                result.Append($"        THROW\r\n");
+                result.Append($"        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));\r\n");
+                result.Append($"        THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"    END CATCH\r\n");
                 result.Append($"END\r\n");
                 result.Append($"GO\r\n");
@@ -685,11 +670,9 @@ namespace CRUDA.Classes
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
                 result.Append($"        SAVE TRANSACTION [SavePoint]\r\n");
-                result.Append($"        IF @OperationId IS NULL BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Valor de @OperationId requerido';\r\n");
-                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END\r\n");
-                result.Append($"        SELECT @TransactionIdAux = [TransactionId]\r\n");
+                result.Append($"        IF @OperationId IS NULL\r\n");
+                result.Append($"            THROW 51000, 'Valor de @OperationId requerido', 1\r\n");
+                result.Append($"        SELECT @TransactionId = [TransactionId]\r\n");
                 result.Append($"               ,@TableName = [TableName]\r\n");
                 result.Append($"               ,@Action = [Action]\r\n");
                 result.Append($"               ,@CreatedBy = [CreatedBy]\r\n");
@@ -698,33 +681,19 @@ namespace CRUDA.Classes
                 result.Append($"               ,@IsConfirmed = [IsConfirmed]\r\n");
                 result.Append($"            FROM [cruda].[Operations]\r\n");
                 result.Append($"            WHERE [Id] = @OperationId\r\n");
-                result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';\r\n");
-                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END\r\n");
-                result.Append($"        IF @TableName <> '{table["Name"]}' BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Tabela da operação é inválida';\r\n");
-                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END\r\n");
+                result.Append($"        IF @@ROWCOUNT = 0\r\n");
+                result.Append($"            THROW 51000, 'Operação inexistente', 1\r\n");
+                result.Append($"        IF @TableName <> '{table["Name"]}'\r\n");
+                result.Append($"            THROW 51000, 'Tabela da operação é inválida', 1\r\n");
                 result.Append($"        IF @IsConfirmed IS NOT NULL BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
-                result.Append($"        IF @UserName <> @CreatedBy BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Erro grave de segurança';\r\n");
-                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END\r\n");
-                result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Operação inexistente';\r\n");
-                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END\r\n");
-                result.Append($"        EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
-                result.Append($"        IF @TransactionId = 0\r\n");
-                result.Append($"            GOTO EXIT_PROCEDURE\r\n");
-                result.Append($"        IF @TransactionIdAux <> @TransactionId BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = @ErrorMessage + 'Transação da operação é inválida';\r\n");
-                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END\r\n");
+                result.Append($"        IF @UserName <> @CreatedBy\r\n");
+                result.Append($"            THROW 51000, 'Erro grave de segurança', 1\r\n");
+                result.Append($"        EXEC @TransactionIdAux = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
+                result.Append($"        IF @TransactionId <> @TransactionIdAux\r\n");
+                result.Append($"            THROW 51000, 'Transação da operação é inválida', 1\r\n");
 
                 var pkColumnRows = columnRows.FindAll(row => ToBoolean(row["IsPrimarykey"]));
                 var firstTime = true;
@@ -828,9 +797,6 @@ namespace CRUDA.Classes
                         result.Append($"                          AND [{column["Name"]}] = @W_{column["Name"]}\r\n");
                 }
                 result.Append($"        END\r\n");
-                result.Append($"\r\n");
-                result.Append($"        EXIT_PROCEDURE:\r\n");
-                result.Append($"\r\n");
                 result.Append($"        UPDATE [cruda].[Operations]\r\n");
                 result.Append($"            SET [IsConfirmed] = 1\r\n");
                 result.Append($"                ,[UpdatedAt] = GETDATE()\r\n");
@@ -838,14 +804,15 @@ namespace CRUDA.Classes
                 result.Append($"            WHERE [Id] = @OperationId\r\n");
                 result.Append($"        COMMIT TRANSACTION\r\n");
                 result.Append("\r\n");
-                result.Append($"        RETURN 1\r\n");
+                result.Append($"        RETURN @TransactionId\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
                 result.Append($"        IF @@TRANCOUNT > @TRANCOUNT BEGIN\r\n");
                 result.Append($"            ROLLBACK TRANSACTION [SavePoint];\r\n");
                 result.Append($"            COMMIT TRANSACTION\r\n");
                 result.Append($"        END;\r\n");
-                result.Append($"        THROW\r\n");
+                result.Append($"        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));\r\n");
+                result.Append($"        THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"    END CATCH\r\n");
                 result.Append($"END\r\n");
                 result.Append($"GO\r\n");

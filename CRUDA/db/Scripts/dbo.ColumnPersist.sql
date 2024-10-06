@@ -14,17 +14,15 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId INT
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
         DECLARE @TransactionId INT
-
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
-
-        DECLARE @W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
                ,@OperationId INT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
+               ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
 
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
                 ,@CreatedBy = [CreatedBy]
                 ,@ActionAux = [Action]
