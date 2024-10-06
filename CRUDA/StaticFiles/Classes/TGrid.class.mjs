@@ -208,18 +208,18 @@ export default class TGrid {
                         columnNameAsc = "[" + event.target.Name + "] ASC,",
                         columnNameDesc = "[" + event.target.Name + "] DESC,"
 
-                    this.#OrderBy = this.#OrderBy.replace(columnNameAsc, "").replace(columnNameDesc, "")
                     if (TConfig.IsEmpty(event.target.Value)) {
                         this.#OrderBy += columnNameAsc
                         event.target.Value = false
                         event.target.innerHTML = `${column.Title}&nbsp;\u25B2` 
                     }
                     else if (event.target.Value === false) {
-                        this.#OrderBy += columnNameDesc
+                        this.#OrderBy = this.#OrderBy.replace(columnNameAsc, columnNameDesc)
                         event.target.Value = true
                         event.target.innerHTML = `${column.Title}&nbsp;\u25BC`
                     }
                     else {
+                        this.#OrderBy = this.#OrderBy.replace(columnNameDesc, "")
                         event.target.Value = null
                         event.target.innerHTML = column.Title
                     }

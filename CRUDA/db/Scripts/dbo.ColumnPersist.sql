@@ -89,7 +89,7 @@ ALTER PROCEDURE[dbo].[ColumnPersist](@LoginId INT
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1
     END CATCH
 END
