@@ -34,9 +34,9 @@ namespace CRUDA_LIB
 
                 new SqlDataAdapter(command).Fill(dataset);
 
-                return new TResult(dataset.Tables, command.Parameters);
+                return new TResult(dataset, command.Parameters);
             }
-            catch (Exception ex)
+            catch
             {
                 throw;
             }
@@ -62,7 +62,7 @@ namespace CRUDA_LIB
             var tableName = parms?["TableName"];
             var action = parms?["Action"];
             var config = GetConfig(systemName, databaseName, tableName);
-            var databaseRow = config.Tables[1].Rows[0];
+            var databaseRow = config.DataSet.Tables[1].Rows[0];
             var connectionString = $"Password={databaseRow["Password"]};Persist Security Info=True;User ID={databaseRow["Logon"]};" +
                                    $"Initial Catalog={databaseRow["Alias"]};Data Source={databaseRow["ServerName"]}";
             var procedureName = action switch

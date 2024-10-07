@@ -125,7 +125,7 @@ export default class TGrid {
         if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
             this.#RowNumber = tr.rowIndex - 1
 
-        return result.Tables[0]
+        return result.DataSet.Table
     }
     async Renderize(pageNumber = this.#PageNumber) {
         TScreen.Title = `Manutenção de ${this.#Table.Description}`

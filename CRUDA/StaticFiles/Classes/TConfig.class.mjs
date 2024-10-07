@@ -54,7 +54,6 @@ export default class TConfig {
                 body: JSON.stringify({ Request: crypto.Encrypt(JSON.stringify(body)) }),
             }),
             result = JSON.parse(crypto.Encrypt((await response.json()).Response))
-
         if (result.ClassName === "Error")
             throw result
 

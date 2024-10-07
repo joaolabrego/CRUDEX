@@ -51,7 +51,7 @@ namespace CRUDA_LIB
                     {
                         LoginId = loginId,
                     }
-                })).Tables[0].Rows[0]["PublicKey"].ToString() ?? string.Empty;
+                })).DataSet.Tables[0].Rows[0]["PublicKey"].ToString() ?? string.Empty;
         }
     }
 }

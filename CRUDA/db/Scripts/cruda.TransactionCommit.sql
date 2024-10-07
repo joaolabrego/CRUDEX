@@ -21,6 +21,8 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 		SAVE TRANSACTION [SavePoint]
 		IF @TransactionId IS NULL
 			THROW 51000, 'Valor de @TransactionId é requerido', 1
+		IF @UserName IS NULL
+			THROW 51000, 'Valor de @UserName é requerido', 1
 		SELECT @LoginId = [LoginId]
 			  ,@IsConfirmed = [IsConfirmed]
 			  ,@CreatedBy = [CreatedBy]
@@ -34,17 +36,13 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
 		END
 		IF @UserName <> @CreatedBy
 			THROW 51000, 'Erro grave de segurança', 1
-		WHILE 1 = 1 BEGIN
-			SELECT TOP 1 @OperationId = [Id]
-						,@TableName = [TableName]
-				FROM [cruda].[Operations]
-				WHERE [TransactionId] = @TransactionId
-						AND [IsConfirmed] IS NULL
-			IF @@ROWCOUNT = 0
-				BREAK
-			SET @sql = '[dbo].[' + @TableName + 'Commit] @LoginId = ' + CAST(@LoginId AS VARCHAR) + ', @OperationId = ' + CAST(@OperationId AS VARCHAR)
-			EXEC @sql
-		END
+		SET @sql = (SELECT STRING_AGG('[dbo].[' + [O].[TableName] + 'Commit] @LoginId = ' +
+									  CAST(@LoginId AS VARCHAR) + ', @OperationId = ' +
+									  CAST([O].[Id] AS VARCHAR), '; ')
+						FROM [cruda].[Operations] [O]
+						WHERE [O].[TransactionId] = @TransactionId
+							  AND [O].[IsConfirmed] IS NULL)
+		EXEC sp_executesql @sql
 		UPDATE [cruda].[Transactions]
 			SET [IsConfirmed] = 1
 				,[UpdatedBy] = @UserName
@@ -59,7 +57,7 @@ ALTER PROCEDURE[cruda].[TransactionCommit](@TransactionId INT
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1
 	END CATCH
 END

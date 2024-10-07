@@ -64,7 +64,7 @@ export default class TForm {
             },
         }
 
-        return (await TConfig.GetAPI(TActions.EXECUTE, parameters)).Tables[0][0]
+        return (await TConfig.GetAPI(TActions.EXECUTE, parameters)).DataSet.Table[0]
     }
     #GetCheckBox(column) {
         let control = document.createElement("input"),

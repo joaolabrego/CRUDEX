@@ -27,17 +27,17 @@ namespace CRUDA_LIB
             {
                 Data = new
                 {
-                    System = result.Tables[0].Rows[0].Table,
-                    Databases = result.Tables[1].Rows[0].Table,
-                    Tables = result.Tables[2].Rows[0].Table,
-                    Columns = result.Tables[3].Rows[0].Table,
-                    Domains = result.Tables[4].Rows[0].Table,
-                    Types = result.Tables[5].Rows[0].Table,
-                    Categories = result.Tables[6].Rows[0].Table,
-                    Menus = result.Tables[7].Rows[0].Table,
-                    Indexes = result.Tables[8].Rows[0].Table,
-                    Indexkeys = result.Tables[9].Rows[0].Table,
-                    Masks = result.Tables[10].Rows[0].Table,
+                    System = result.DataSet.Tables[0].Rows[0].Table,
+                    Databases = result.DataSet.Tables[1].Rows[0].Table,
+                    Tables = result.DataSet.Tables[2].Rows[0].Table,
+                    Columns = result.DataSet.Tables[3].Rows[0].Table,
+                    Domains = result.DataSet.Tables[4].Rows[0].Table,
+                    Types = result.DataSet.Tables[5].Rows[0].Table,
+                    Categories = result.DataSet.Tables[6].Rows[0].Table,
+                    Menus = result.DataSet.Tables[7].Rows[0].Table,
+                    Indexes = result.DataSet.Tables[8].Rows[0].Table,
+                    Indexkeys = result.DataSet.Tables[9].Rows[0].Table,
+                    Masks = result.DataSet.Tables[10].Rows[0].Table,
                 };
                 Styles = new Styles();
                 Images = new Images();
@@ -45,9 +45,9 @@ namespace CRUDA_LIB
             else
                 Data = new
                 {
-                    System = result.Tables[0].Rows[0].Table,
-                    Databases = result.Tables[1].Rows[0].Table,
-                    Tables = result.Tables[2].Rows[0].Table,
+                    System = result.DataSet.Tables[0].Rows[0].Table,
+                    Databases = result.DataSet.Tables[1].Rows[0].Table,
+                    Tables = result.DataSet.Tables[2].Rows[0].Table,
                 };
         }
         public static string GetHTML(string systemName, string? message = null)

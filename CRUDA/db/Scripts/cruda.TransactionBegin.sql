@@ -9,13 +9,14 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId INT
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-		
-		DECLARE @TransactionId	INT
-
 		BEGIN TRANSACTION
 		SAVE TRANSACTION [SavePoint]
 		IF @LoginId IS NULL
 			THROW 51000, 'Valor de @LoginId é requerido', 1
+		IF @UserName IS NULL
+			THROW 51000, 'Valor de @UserName é requerido', 1
+		IF EXISTS(SELECT 1 FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId AND [IsConfirmed] IS NULL)
+			THROW 51000, 'Há transação pendente neste @LoginId', 1
 		INSERT [cruda].[Transactions] ([LoginId]
 									  ,[IsConfirmed]
 									  ,[CreatedAt]
@@ -24,17 +25,19 @@ ALTER PROCEDURE[cruda].[TransactionBegin](@LoginId INT
 									   ,NULL
 									   ,GETDATE()
 									   ,@UserName)
-		SET @TransactionId = @@IDENTITY
+
+		DECLARE @TransactionId INT = @@IDENTITY
+
 		COMMIT TRANSACTION
 
-		RETURN CAST(@TransactionId AS INT)
+		RETURN @TransactionId
 	END TRY
 	BEGIN CATCH
         IF @@TRANCOUNT > @TRANCOUNT BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END
-        SET @ErrorMessage = 'Stored Procedure [' + ERROR_PROCEDURE() + '] Error: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
         THROW 51000, @ErrorMessage, 1
 	END CATCH
 END

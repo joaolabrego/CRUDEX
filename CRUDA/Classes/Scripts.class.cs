@@ -5,6 +5,8 @@ using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
 using Newtonsoft.Json.Linq;
+using CRUDA.Classes.Models;
+using Newtonsoft.Json;
 
 namespace CRUDA.Classes
 {
@@ -13,7 +15,7 @@ namespace CRUDA.Classes
         static readonly string DirectoryScripts = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_SCRIPTS"));
         public static void GenerateScript(string systemName, string databaseName, bool isExcel = true)
         {
-            var dataSet = isExcel ? ExcelToDataSet() : ExcelToDataSet();
+            var dataSet = isExcel ? ExcelToDataSet() : GetDataSet(systemName);
             var columns = (dataSet.Tables["Columns"] ?? throw new Exception("Tabela Columns não existe.")).AsEnumerable().ToList();
             var indexes = (dataSet.Tables["Indexes"] ?? throw new Exception("Tabela Indexes não existe.")).AsEnumerable().ToList();
             var indexkeys = (dataSet.Tables["Indexkeys"] ?? throw new Exception("Tabela Indexkeys não existe.")).AsEnumerable().ToList();
@@ -73,6 +75,36 @@ namespace CRUDA.Classes
                     UseHeaderRow = true
                 }
             });
+        }
+        public static DataSet GetDataSet(string systemName)
+        {
+            var dataset = SQLProcedure.Execute(Settings.ConnecionString(),
+                                               Settings.Get("SCRIPT_SYSTEM_PROCEDURE"),
+                                               Config.ToDictionary(Config.ToDictionary(new
+                                               {
+                                                   InputParams = new
+                                                   {
+                                                       SystemName = systemName,
+                                                   },}))).DataSet;
+
+            dataset.Tables[0].TableName = "Categories";
+            dataset.Tables[1].TableName = "Types";
+            dataset.Tables[2].TableName = "Masks";
+            dataset.Tables[3].TableName = "Domains";
+            dataset.Tables[4].TableName = "Systems";
+            dataset.Tables[5].TableName = "Menus";
+            dataset.Tables[6].TableName = "Users";
+            dataset.Tables[7].TableName = "SystemsUsers";
+            dataset.Tables[8].TableName = "Databases";
+            dataset.Tables[9].TableName = "SystemsDatabases";
+            dataset.Tables[10].TableName = "Tables";
+            dataset.Tables[11].TableName = "DatabasesTables";
+            dataset.Tables[12].TableName = "Columns";
+            dataset.Tables[13].TableName = "Indexes";
+            dataset.Tables[14].TableName = "Indexkeys";
+            dataset.Tables[15].TableName = "Logins";
+
+            return dataset;
         }
         private static bool IsNull(object? value)
         {
@@ -270,6 +302,10 @@ namespace CRUDA.Classes
             result.Append($"Criar stored procedure [dbo].[GetPublicKey]\r\n");
             result.Append($"**********************************************************************************/\r\n");
             result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.GetPublicKey.sql")));
+            result.Append($"/**********************************************************************************\r\n");
+            result.Append($"Criar stored procedure [dbo].[ScriptSystem]\r\n");
+            result.Append($"**********************************************************************************/\r\n");
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.ScriptSystem.sql")));
             result.Append($"/**********************************************************************************\r\n");
             result.Append($"Criar function [cruda].[HUNDREDS_IN_WORDS]\r\n");
             result.Append($"**********************************************************************************/\r\n");
@@ -670,6 +706,10 @@ namespace CRUDA.Classes
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
                 result.Append($"        SAVE TRANSACTION [SavePoint]\r\n");
+                result.Append($"        IF @LoginId IS NULL\r\n");
+                result.Append($"            THROW 51000, 'Valor de @LoginId requerido', 1\r\n");
+                result.Append($"        IF @UserName IS NULL\r\n");
+                result.Append($"            THROW 51000, 'Valor de @UserName requerido', 1\r\n");
                 result.Append($"        IF @OperationId IS NULL\r\n");
                 result.Append($"            THROW 51000, 'Valor de @OperationId requerido', 1\r\n");
                 result.Append($"        SELECT @TransactionId = [TransactionId]\r\n");

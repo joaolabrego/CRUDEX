@@ -22,6 +22,10 @@ ALTER PROCEDURE[dbo].[ColumnCommit](@LoginId INT
 
 		BEGIN TRANSACTION
 		SAVE TRANSACTION [SavePoint]
+		IF @LoginId IS NULL
+			THROW 51000, 'Valor de @LoginId é requerido', 1
+		IF @UserName IS NULL
+			THROW 51000, 'Valor de @UserName é requerido', 1
 		IF @OperationId IS NULL
 			THROW 51000, 'Valor de @OperationId requerido', 1
 		SELECT @TransactionIdAux = [TransactionId]

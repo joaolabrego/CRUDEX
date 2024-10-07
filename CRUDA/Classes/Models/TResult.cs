@@ -9,12 +9,11 @@ namespace CRUDA.Classes.Models
     public class TResult
     {
         public readonly string ClassName = "TResult";
-        public readonly DataTableCollection Tables;
+        public readonly DataSet DataSet;
         public TDictionary Parameters { get; } = [];
-        public TResult(DataTableCollection datatables, SqlParameterCollection parameters)
+        public TResult(DataSet dataset, SqlParameterCollection parameters)
         {
-            Tables = datatables;
-
+            DataSet = dataset;
             foreach (SqlParameter parameter in parameters)
                 Parameters.Add(parameter.ParameterName[(parameter.ParameterName.StartsWith('@') ? 1 : 0)..], parameter.Value);
         }
