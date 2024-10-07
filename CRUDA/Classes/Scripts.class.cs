@@ -13,9 +13,9 @@ namespace CRUDA.Classes
     public class Scripts
     {
         static readonly string DirectoryScripts = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_SCRIPTS"));
-        public static void GenerateScript(string systemName, string databaseName, bool isExcel = true)
+        public static void GenerateScript(string systemName, string databaseName, bool? isExcel = null)
         {
-            var dataSet = isExcel ? ExcelToDataSet() : GetDataSet(systemName);
+            var dataSet = (isExcel ?? systemName == "cruda") ? ExcelToDataSet() : GetDataSet(systemName);
             var columns = (dataSet.Tables["Columns"] ?? throw new Exception("Tabela Columns não existe.")).AsEnumerable().ToList();
             var indexes = (dataSet.Tables["Indexes"] ?? throw new Exception("Tabela Indexes não existe.")).AsEnumerable().ToList();
             var indexkeys = (dataSet.Tables["Indexkeys"] ?? throw new Exception("Tabela Indexkeys não existe.")).AsEnumerable().ToList();
