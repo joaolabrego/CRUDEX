@@ -4,9 +4,6 @@ using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
-using Newtonsoft.Json.Linq;
-using CRUDA.Classes.Models;
-using Newtonsoft.Json;
 
 namespace CRUDA.Classes
 {
