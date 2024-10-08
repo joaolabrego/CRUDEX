@@ -36,6 +36,7 @@ namespace CRUDA.Classes
             foreach (DataRow databaseTable in databasesTables)
             {
                 var table = tables.First(table => ToLong(table["Id"]) == ToLong(databaseTable["TableId"]));
+
                 if (firstTime)
                 {
                     stream.Write(GetScriptCreateDatabase(database));
