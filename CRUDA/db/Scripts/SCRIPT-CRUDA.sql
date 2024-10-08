@@ -5264,7 +5264,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Logins de Acesso aos Sistemas' AS nvarchar(50))
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS int)
+                                ,CAST('4' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
