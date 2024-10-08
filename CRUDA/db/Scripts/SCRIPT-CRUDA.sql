@@ -907,16 +907,16 @@ BEGIN
 		SELECT * FROM [dbo].[#Masks]
 		SELECT * FROM [dbo].[#Domains]
 		SELECT * FROM [dbo].[#Systems]
-		SELECT * FROM [dbo].[#Menus]
+		SELECT * FROM [dbo].[#Menus] ORDER BY [SystemId], [Sequence]
 		SELECT * FROM [dbo].[#Users]
 		SELECT * FROM [dbo].[#SystemsUsers]
 		SELECT * FROM [dbo].[#Databases]
 		SELECT * FROM [dbo].[#SystemsDatabases]
 		SELECT * FROM [dbo].[#Tables]
 		SELECT * FROM [dbo].[#DatabasesTables]
-		SELECT * FROM [dbo].[#Columns]
+		SELECT * FROM [dbo].[#Columns] ORDER BY [TableId], [Sequence]
 		SELECT * FROM [dbo].[#Indexes]
-		SELECT * FROM [dbo].[#Indexkeys]
+		SELECT * FROM [dbo].[#Indexkeys] ORDER BY [IndexId], [Sequence]
 		SELECT * FROM [dbo].[#Logins]
 	END TRY
 	BEGIN CATCH
@@ -2199,7 +2199,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('4' AS tinyint)
                                 ,CAST('datetime' AS nvarchar(25))
-                                ,CAST('datetime-local' AS nvarchar(10))
+                                ,CAST('datetime-l' AS nvarchar(10))
                                 ,CAST('right' AS nvarchar(6))
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
