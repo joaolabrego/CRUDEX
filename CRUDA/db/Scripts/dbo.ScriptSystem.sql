@@ -302,9 +302,9 @@ BEGIN
 		SELECT * FROM [dbo].[#SystemsDatabases]
 		SELECT * FROM [dbo].[#Tables]
 		SELECT * FROM [dbo].[#DatabasesTables]
-		SELECT * FROM [dbo].[#Columns]
+		SELECT * FROM [dbo].[#Columns] ORDER BY [TableId], [Sequence]
 		SELECT * FROM [dbo].[#Indexes]
-		SELECT * FROM [dbo].[#Indexkeys]
+		SELECT * FROM [dbo].[#Indexkeys] ORDER BY [IndexId], [Sequence]
 		SELECT * FROM [dbo].[#Logins]
 	END TRY
 	BEGIN CATCH
