@@ -295,7 +295,7 @@ BEGIN
 		SELECT * FROM [dbo].[#Masks]
 		SELECT * FROM [dbo].[#Domains]
 		SELECT * FROM [dbo].[#Systems]
-		SELECT * FROM [dbo].[#Menus]
+		SELECT * FROM [dbo].[#Menus] ORDER BY [SystemId], [Sequence]
 		SELECT * FROM [dbo].[#Users]
 		SELECT * FROM [dbo].[#SystemsUsers]
 		SELECT * FROM [dbo].[#Databases]
