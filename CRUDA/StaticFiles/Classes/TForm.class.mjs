@@ -251,7 +251,7 @@ export default class TForm {
         this.#HTML.ConfirmButton.type = "button"
         this.#HTML.ConfirmButton.onclick = () => {
             if (this.#Action === TActions.FILTER)
-                this.#Grid.Table.SaveFilters()
+                this.#Grid.SaveFilters(this.#Record)
             this.#Grid.Renderize()
                 .catch(error => TScreen.ShowError(error.Message, error.Action || this.#ReturnAction))
         }

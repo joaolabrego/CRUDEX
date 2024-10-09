@@ -82,6 +82,11 @@ export default class TGrid {
         this.#Images.Filter = images.Filter
         this.#Images.Insert = images.Insert
     }
+    SaveFilters(record) {
+        for (let key in this.#FilterValues)
+            if (record.hasOwnProperty(key))
+                this.#FilterValues[key] = TConfig.IsEmpty(record[key]) ? null : record[key]
+    }
     #OnChangeInput = (event) => {
         let control = event.target.className === "NumberInput" ? this.#HTML.RangeInput : this.#HTML.NumberInput
 
@@ -94,18 +99,13 @@ export default class TGrid {
         this.Renderize(Number(event.target.value))
     }
     async #ReadDataPage(pageNumber) {
-        let recordFilter = {}
-
-        this.#Table.Columns.filter(column => column.IsFilterable)
-            .forEach(column => recordFilter[column.Name] = TConfig.IsEmpty(column.FilterValue) ? null : column.FilterValue)
-
         let parameters = {
             DatabaseName: this.#Table.Database.Name,
             TableName: this.#Table.Name,
             Action: TActions.READ,
             InputParams: {
                 LoginId: TLogin.LoginId,
-                RecordFilter: JSON.stringify(recordFilter),
+                RecordFilter: JSON.stringify(this.#FilterValues),
                 OrderBy: this.OrderBy,
                 PaddingGridLastPage: TSystem.PaddingGridLastPage,
             },
