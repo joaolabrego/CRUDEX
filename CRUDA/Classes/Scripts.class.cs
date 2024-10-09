@@ -1241,7 +1241,7 @@ namespace CRUDA.Classes
                         result.Append($"            IF @W_{column["Name"]} > CAST('{value}' AS {column["#DataType"]})\r\n");
                         result.Append($"                THROW 51000, 'Valor de {column["Name"]} deve ser menor que ou igual a ''{value}''', 1\r\n");
                     }
-                    result.Append($"            SET @Where = @Where + ' AND [T].[{column["Name"]}] = CAST(''' + CAST(@W_{column["Name"]} AS NVARCHAR(MAX)) + ''' AS {column["#DataType"]})'\r\n");
+                    result.Append($"            SET @Where = @Where + ' AND [T].[{column["Name"]}] = @{column["Name"]}'\r\n");
                     result.Append($"        END\r\n");
                 }
                 firstTime = true;

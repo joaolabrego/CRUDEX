@@ -13420,28 +13420,28 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('255' AS tinyint)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''255''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS tinyint)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = CAST(''' + CAST(@W_Name AS NVARCHAR(MAX)) + ''' AS nvarchar(25))'
+            SET @Where = @Where + ' AND [T].[Name] = @Name'
         END
         IF @W_AskEncrypted IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskEncrypted] = CAST(''' + CAST(@W_AskEncrypted AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskEncrypted] = @AskEncrypted'
         END
         IF @W_AskMask IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskMask] = CAST(''' + CAST(@W_AskMask AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskMask] = @AskMask'
         END
         IF @W_AskListable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskListable] = CAST(''' + CAST(@W_AskListable AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskListable] = @AskListable'
         END
         IF @W_AskDefault IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskDefault] = CAST(''' + CAST(@W_AskDefault AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskDefault] = @AskDefault'
         END
         IF @W_AskMinimum IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskMinimum] = CAST(''' + CAST(@W_AskMinimum AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskMinimum] = @AskMinimum'
         END
         IF @W_AskMaximum IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskMaximum] = CAST(''' + CAST(@W_AskMaximum AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskMaximum] = @AskMaximum'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -14050,40 +14050,40 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('255' AS tinyint)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''255''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS tinyint)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = CAST(''' + CAST(@W_Name AS NVARCHAR(MAX)) + ''' AS nvarchar(25))'
+            SET @Where = @Where + ' AND [T].[Name] = @Name'
         END
         IF @W_AskLength IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskLength] = CAST(''' + CAST(@W_AskLength AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskLength] = @AskLength'
         END
         IF @W_AskDecimals IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskDecimals] = CAST(''' + CAST(@W_AskDecimals AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskDecimals] = @AskDecimals'
         END
         IF @W_AskPrimarykey IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskPrimarykey] = CAST(''' + CAST(@W_AskPrimarykey AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskPrimarykey] = @AskPrimarykey'
         END
         IF @W_AskAutoincrement IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskAutoincrement] = CAST(''' + CAST(@W_AskAutoincrement AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskAutoincrement] = @AskAutoincrement'
         END
         IF @W_AskFilterable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskFilterable] = CAST(''' + CAST(@W_AskFilterable AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskFilterable] = @AskFilterable'
         END
         IF @W_AskGridable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskGridable] = CAST(''' + CAST(@W_AskGridable AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskGridable] = @AskGridable'
         END
         IF @W_AskCodification IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskCodification] = CAST(''' + CAST(@W_AskCodification AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskCodification] = @AskCodification'
         END
         IF @W_AskFormula IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskFormula] = CAST(''' + CAST(@W_AskFormula AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AskFormula] = @AskFormula'
         END
         IF @W_AllowMaxLength IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AllowMaxLength] = CAST(''' + CAST(@W_AllowMaxLength AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[AllowMaxLength] = @AllowMaxLength'
         END
         IF @W_IsActive IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsActive] = CAST(''' + CAST(@W_IsActive AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsActive] = @IsActive'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -14578,10 +14578,10 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''-2147483648''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = CAST(''' + CAST(@W_Name AS NVARCHAR(MAX)) + ''' AS nvarchar(25))'
+            SET @Where = @Where + ' AND [T].[Name] = @Name'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -15120,30 +15120,30 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_TypeId IS NOT NULL BEGIN
             IF @W_TypeId < CAST('1' AS tinyint)
                 THROW 51000, 'Valor de TypeId deve ser maior que ou igual a ''1''', 1
             IF @W_TypeId > CAST('255' AS tinyint)
                 THROW 51000, 'Valor de TypeId deve ser menor que ou igual a ''255''', 1
-            SET @Where = @Where + ' AND [T].[TypeId] = CAST(''' + CAST(@W_TypeId AS NVARCHAR(MAX)) + ''' AS tinyint)'
+            SET @Where = @Where + ' AND [T].[TypeId] = @TypeId'
         END
         IF @W_MaskId IS NOT NULL BEGIN
             IF @W_MaskId < CAST('-2147483648' AS int)
                 THROW 51000, 'Valor de MaskId deve ser maior que ou igual a ''-2147483648''', 1
             IF @W_MaskId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de MaskId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[MaskId] = CAST(''' + CAST(@W_MaskId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[MaskId] = @MaskId'
         END
         IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = CAST(''' + CAST(@W_Name AS NVARCHAR(MAX)) + ''' AS nvarchar(25))'
+            SET @Where = @Where + ' AND [T].[Name] = @Name'
         END
         IF @W_ValidValues IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[ValidValues] = CAST(''' + CAST(@W_ValidValues AS NVARCHAR(MAX)) + ''' AS nvarchar(MAX))'
+            SET @Where = @Where + ' AND [T].[ValidValues] = @ValidValues'
         END
         IF @W_Codification IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Codification] = CAST(''' + CAST(@W_Codification AS NVARCHAR(MAX)) + ''' AS nvarchar(5))'
+            SET @Where = @Where + ' AND [T].[Codification] = @Codification'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -15659,13 +15659,13 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = CAST(''' + CAST(@W_Name AS NVARCHAR(MAX)) + ''' AS nvarchar(25))'
+            SET @Where = @Where + ' AND [T].[Name] = @Name'
         END
         IF @W_ClientName IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[ClientName] = CAST(''' + CAST(@W_ClientName AS NVARCHAR(MAX)) + ''' AS nvarchar(15))'
+            SET @Where = @Where + ' AND [T].[ClientName] = @ClientName'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -16181,17 +16181,17 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_SystemId IS NOT NULL BEGIN
             IF @W_SystemId < CAST('1' AS int)
                 THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
             IF @W_SystemId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[SystemId] = CAST(''' + CAST(@W_SystemId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
         END
         IF @W_Caption IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Caption] = CAST(''' + CAST(@W_Caption AS NVARCHAR(MAX)) + ''' AS nvarchar(20))'
+            SET @Where = @Where + ' AND [T].[Caption] = @Caption'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -16690,16 +16690,16 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = CAST(''' + CAST(@W_Name AS NVARCHAR(MAX)) + ''' AS nvarchar(25))'
+            SET @Where = @Where + ' AND [T].[Name] = @Name'
         END
         IF @W_FullName IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[FullName] = CAST(''' + CAST(@W_FullName AS NVARCHAR(MAX)) + ''' AS nvarchar(50))'
+            SET @Where = @Where + ' AND [T].[FullName] = @FullName'
         END
         IF @W_IsActive IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsActive] = CAST(''' + CAST(@W_IsActive AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsActive] = @IsActive'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -17185,24 +17185,24 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_SystemId IS NOT NULL BEGIN
             IF @W_SystemId < CAST('1' AS int)
                 THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
             IF @W_SystemId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[SystemId] = CAST(''' + CAST(@W_SystemId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
         END
         IF @W_UserId IS NOT NULL BEGIN
             IF @W_UserId < CAST('1' AS int)
                 THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
             IF @W_UserId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de UserId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[UserId] = CAST(''' + CAST(@W_UserId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[UserId] = @UserId'
         END
         IF @W_Description IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Description] = CAST(''' + CAST(@W_Description AS NVARCHAR(MAX)) + ''' AS nvarchar(50))'
+            SET @Where = @Where + ' AND [T].[Description] = @Description'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -17730,13 +17730,13 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = CAST(''' + CAST(@W_Name AS NVARCHAR(MAX)) + ''' AS nvarchar(25))'
+            SET @Where = @Where + ' AND [T].[Name] = @Name'
         END
         IF @W_Alias IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Alias] = CAST(''' + CAST(@W_Alias AS NVARCHAR(MAX)) + ''' AS nvarchar(25))'
+            SET @Where = @Where + ' AND [T].[Alias] = @Alias'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -18228,24 +18228,24 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_SystemId IS NOT NULL BEGIN
             IF @W_SystemId < CAST('1' AS int)
                 THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
             IF @W_SystemId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[SystemId] = CAST(''' + CAST(@W_SystemId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
         END
         IF @W_DatabaseId IS NOT NULL BEGIN
             IF @W_DatabaseId < CAST('1' AS int)
                 THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
             IF @W_DatabaseId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de DatabaseId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[DatabaseId] = CAST(''' + CAST(@W_DatabaseId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[DatabaseId] = @DatabaseId'
         END
         IF @W_Description IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Description] = CAST(''' + CAST(@W_Description AS NVARCHAR(MAX)) + ''' AS nvarchar(50))'
+            SET @Where = @Where + ' AND [T].[Description] = @Description'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -18760,16 +18760,16 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = CAST(''' + CAST(@W_Name AS NVARCHAR(MAX)) + ''' AS nvarchar(25))'
+            SET @Where = @Where + ' AND [T].[Name] = @Name'
         END
         IF @W_Alias IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Alias] = CAST(''' + CAST(@W_Alias AS NVARCHAR(MAX)) + ''' AS nvarchar(25))'
+            SET @Where = @Where + ' AND [T].[Alias] = @Alias'
         END
         IF @W_IsPaged IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsPaged] = CAST(''' + CAST(@W_IsPaged AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsPaged] = @IsPaged'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -19257,24 +19257,24 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_DatabaseId IS NOT NULL BEGIN
             IF @W_DatabaseId < CAST('1' AS int)
                 THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
             IF @W_DatabaseId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de DatabaseId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[DatabaseId] = CAST(''' + CAST(@W_DatabaseId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[DatabaseId] = @DatabaseId'
         END
         IF @W_TableId IS NOT NULL BEGIN
             IF @W_TableId < CAST('1' AS int)
                 THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
             IF @W_TableId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de TableId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[TableId] = CAST(''' + CAST(@W_TableId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[TableId] = @TableId'
         END
         IF @W_Description IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Description] = CAST(''' + CAST(@W_Description AS NVARCHAR(MAX)) + ''' AS nvarchar(50))'
+            SET @Where = @Where + ' AND [T].[Description] = @Description'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -19923,52 +19923,52 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_TableId IS NOT NULL BEGIN
             IF @W_TableId < CAST('1' AS int)
                 THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
             IF @W_TableId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de TableId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[TableId] = CAST(''' + CAST(@W_TableId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[TableId] = @TableId'
         END
         IF @W_DomainId IS NOT NULL BEGIN
             IF @W_DomainId < CAST('1' AS int)
                 THROW 51000, 'Valor de DomainId deve ser maior que ou igual a ''1''', 1
             IF @W_DomainId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de DomainId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[DomainId] = CAST(''' + CAST(@W_DomainId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[DomainId] = @DomainId'
         END
         IF @W_ReferenceTableId IS NOT NULL BEGIN
             IF @W_ReferenceTableId < CAST('1' AS int)
                 THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual a ''1''', 1
             IF @W_ReferenceTableId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de ReferenceTableId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[ReferenceTableId] = CAST(''' + CAST(@W_ReferenceTableId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[ReferenceTableId] = @ReferenceTableId'
         END
         IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = CAST(''' + CAST(@W_Name AS NVARCHAR(MAX)) + ''' AS nvarchar(25))'
+            SET @Where = @Where + ' AND [T].[Name] = @Name'
         END
         IF @W_IsAutoIncrement IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsAutoIncrement] = CAST(''' + CAST(@W_IsAutoIncrement AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsAutoIncrement] = @IsAutoIncrement'
         END
         IF @W_IsRequired IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsRequired] = CAST(''' + CAST(@W_IsRequired AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsRequired] = @IsRequired'
         END
         IF @W_IsListable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsListable] = CAST(''' + CAST(@W_IsListable AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsListable] = @IsListable'
         END
         IF @W_IsFilterable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsFilterable] = CAST(''' + CAST(@W_IsFilterable AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsFilterable] = @IsFilterable'
         END
         IF @W_IsEditable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsEditable] = CAST(''' + CAST(@W_IsEditable AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsEditable] = @IsEditable'
         END
         IF @W_IsGridable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsGridable] = CAST(''' + CAST(@W_IsGridable AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsGridable] = @IsGridable'
         END
         IF @W_IsEncrypted IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsEncrypted] = CAST(''' + CAST(@W_IsEncrypted AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsEncrypted] = @IsEncrypted'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -20509,20 +20509,20 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_TableId IS NOT NULL BEGIN
             IF @W_TableId < CAST('1' AS int)
                 THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
             IF @W_TableId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de TableId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[TableId] = CAST(''' + CAST(@W_TableId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[TableId] = @TableId'
         END
         IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = CAST(''' + CAST(@W_Name AS NVARCHAR(MAX)) + ''' AS nvarchar(50))'
+            SET @Where = @Where + ' AND [T].[Name] = @Name'
         END
         IF @W_IsUnique IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsUnique] = CAST(''' + CAST(@W_IsUnique AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsUnique] = @IsUnique'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -21020,24 +21020,24 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_IndexId IS NOT NULL BEGIN
             IF @W_IndexId < CAST('1' AS int)
                 THROW 51000, 'Valor de IndexId deve ser maior que ou igual a ''1''', 1
             IF @W_IndexId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de IndexId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[IndexId] = CAST(''' + CAST(@W_IndexId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[IndexId] = @IndexId'
         END
         IF @W_ColumnId IS NOT NULL BEGIN
             IF @W_ColumnId < CAST('1' AS int)
                 THROW 51000, 'Valor de ColumnId deve ser maior que ou igual a ''1''', 1
             IF @W_ColumnId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de ColumnId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[ColumnId] = CAST(''' + CAST(@W_ColumnId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[ColumnId] = @ColumnId'
         END
         IF @W_IsDescending IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsDescending] = CAST(''' + CAST(@W_IsDescending AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsDescending] = @IsDescending'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
@@ -21521,24 +21521,24 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
             IF @W_Id > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[Id] = CAST(''' + CAST(@W_Id AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_SystemId IS NOT NULL BEGIN
             IF @W_SystemId < CAST('1' AS int)
                 THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
             IF @W_SystemId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[SystemId] = CAST(''' + CAST(@W_SystemId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
         END
         IF @W_UserId IS NOT NULL BEGIN
             IF @W_UserId < CAST('1' AS int)
                 THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
             IF @W_UserId > CAST('2147483647' AS int)
                 THROW 51000, 'Valor de UserId deve ser menor que ou igual a ''2147483647''', 1
-            SET @Where = @Where + ' AND [T].[UserId] = CAST(''' + CAST(@W_UserId AS NVARCHAR(MAX)) + ''' AS int)'
+            SET @Where = @Where + ' AND [T].[UserId] = @UserId'
         END
         IF @W_IsLogged IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsLogged] = CAST(''' + CAST(@W_IsLogged AS NVARCHAR(MAX)) + ''' AS bit)'
+            SET @Where = @Where + ' AND [T].[IsLogged] = @IsLogged'
         END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
