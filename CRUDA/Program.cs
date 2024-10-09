@@ -37,7 +37,7 @@ namespace CRUDA_LIB
                 switch (action)
                 {
                     case null:
-                        //Scripts.GenerateScript("cruda", "cruda", false);
+                        Scripts.GenerateScript("cruda", "cruda", true);
                         context.Request.Headers.ContentType = "text/html;";
                         context.Response.WriteAsync(Config.GetHTML("cruda", "Nome do sistema é requerido na URL."), Encoding.UTF8);
                         break;

@@ -2199,7 +2199,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('4' AS tinyint)
                                 ,CAST('datetime' AS nvarchar(25))
-                                ,CAST('datetime-l' AS nvarchar(10))
+                                ,CAST('datetime-local' AS nvarchar(10))
                                 ,CAST('right' AS nvarchar(6))
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -5264,7 +5264,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Logins de Acesso aos Sistemas' AS nvarchar(50))
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,CAST('4' AS int)
+                                ,CAST('0' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -13387,6 +13387,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id tinyint = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS tinyint)
                 ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
                 ,@W_AskEncrypted bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskEncrypted') AS bit)
@@ -13396,10 +13398,6 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                 ,@W_AskMinimum bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskMinimum') AS bit)
                 ,@W_AskMaximum bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskMaximum') AS bit)
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS tinyint)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('255' AS tinyint)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''255''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
@@ -13417,37 +13415,66 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                   AND [TableName] = 'Categories'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Categories] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
-                  AND [T].[AskEncrypted] = ISNULL(@W_AskEncrypted, [T].[AskEncrypted])
-                  AND [T].[AskMask] = ISNULL(@W_AskMask, [T].[AskMask])
-                  AND [T].[AskListable] = ISNULL(@W_AskListable, [T].[AskListable])
-                  AND [T].[AskDefault] = ISNULL(@W_AskDefault, [T].[AskDefault])
-                  AND [T].[AskMinimum] = ISNULL(@W_AskMinimum, [T].[AskMinimum])
-                  AND [T].[AskMaximum] = ISNULL(@W_AskMaximum, [T].[AskMaximum])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [Name] = ISNULL(@W_Name, [Name])
-                      AND [AskEncrypted] = ISNULL(@W_AskEncrypted, [AskEncrypted])
-                      AND [AskMask] = ISNULL(@W_AskMask, [AskMask])
-                      AND [AskListable] = ISNULL(@W_AskListable, [AskListable])
-                      AND [AskDefault] = ISNULL(@W_AskDefault, [AskDefault])
-                      AND [AskMinimum] = ISNULL(@W_AskMinimum, [AskMinimum])
-                      AND [AskMaximum] = ISNULL(@W_AskMaximum, [AskMaximum])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS tinyint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('255' AS tinyint)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''255''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @W_Name'
+        END
+        IF @W_AskEncrypted IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskEncrypted] = @W_AskEncrypted'
+        END
+        IF @W_AskMask IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskMask] = @W_AskMask'
+        END
+        IF @W_AskListable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskListable] = @W_AskListable'
+        END
+        IF @W_AskDefault IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskDefault] = @W_AskDefault'
+        END
+        IF @W_AskMinimum IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskMinimum] = @W_AskMinimum'
+        END
+        IF @W_AskMaximum IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskMaximum] = @W_AskMaximum'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Categories] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] tinyint)
+        EXEC sp_executesql @sql
+                           ,N'@Id tinyint
+                           ,@Name nvarchar(25)
+                           ,@AskEncrypted bit
+                           ,@AskMask bit
+                           ,@AskListable bit
+                           ,@AskDefault bit
+                           ,@AskMinimum bit
+                           ,@AskMaximum bit'
+                           ,@Id = @W_Id
+                           ,@Name = @W_Name
+                           ,@AskEncrypted = @W_AskEncrypted
+                           ,@AskMask = @W_AskMask
+                           ,@AskListable = @W_AskListable
+                           ,@AskDefault = @W_AskDefault
+                           ,@AskMinimum = @W_AskMinimum
+                           ,@AskMaximum = @W_AskMaximum
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -13981,6 +14008,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id tinyint = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS tinyint)
                 ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
                 ,@W_AskLength bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AskLength') AS bit)
@@ -13994,10 +14023,6 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
                 ,@W_AllowMaxLength bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.AllowMaxLength') AS bit)
                 ,@W_IsActive bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsActive') AS bit)
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS tinyint)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('255' AS tinyint)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''255''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
@@ -14020,45 +14045,86 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
                   AND [TableName] = 'Types'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Types] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
-                  AND [T].[AskLength] = ISNULL(@W_AskLength, [T].[AskLength])
-                  AND [T].[AskDecimals] = ISNULL(@W_AskDecimals, [T].[AskDecimals])
-                  AND [T].[AskPrimarykey] = ISNULL(@W_AskPrimarykey, [T].[AskPrimarykey])
-                  AND [T].[AskAutoincrement] = ISNULL(@W_AskAutoincrement, [T].[AskAutoincrement])
-                  AND [T].[AskFilterable] = ISNULL(@W_AskFilterable, [T].[AskFilterable])
-                  AND [T].[AskGridable] = ISNULL(@W_AskGridable, [T].[AskGridable])
-                  AND [T].[AskCodification] = ISNULL(@W_AskCodification, [T].[AskCodification])
-                  AND [T].[AskFormula] = ISNULL(@W_AskFormula, [T].[AskFormula])
-                  AND [T].[AllowMaxLength] = ISNULL(@W_AllowMaxLength, [T].[AllowMaxLength])
-                  AND [T].[IsActive] = ISNULL(@W_IsActive, [T].[IsActive])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [Name] = ISNULL(@W_Name, [Name])
-                      AND [AskLength] = ISNULL(@W_AskLength, [AskLength])
-                      AND [AskDecimals] = ISNULL(@W_AskDecimals, [AskDecimals])
-                      AND [AskPrimarykey] = ISNULL(@W_AskPrimarykey, [AskPrimarykey])
-                      AND [AskAutoincrement] = ISNULL(@W_AskAutoincrement, [AskAutoincrement])
-                      AND [AskFilterable] = ISNULL(@W_AskFilterable, [AskFilterable])
-                      AND [AskGridable] = ISNULL(@W_AskGridable, [AskGridable])
-                      AND [AskCodification] = ISNULL(@W_AskCodification, [AskCodification])
-                      AND [AskFormula] = ISNULL(@W_AskFormula, [AskFormula])
-                      AND [AllowMaxLength] = ISNULL(@W_AllowMaxLength, [AllowMaxLength])
-                      AND [IsActive] = ISNULL(@W_IsActive, [IsActive])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS tinyint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('255' AS tinyint)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''255''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @W_Name'
+        END
+        IF @W_AskLength IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskLength] = @W_AskLength'
+        END
+        IF @W_AskDecimals IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskDecimals] = @W_AskDecimals'
+        END
+        IF @W_AskPrimarykey IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskPrimarykey] = @W_AskPrimarykey'
+        END
+        IF @W_AskAutoincrement IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskAutoincrement] = @W_AskAutoincrement'
+        END
+        IF @W_AskFilterable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskFilterable] = @W_AskFilterable'
+        END
+        IF @W_AskGridable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskGridable] = @W_AskGridable'
+        END
+        IF @W_AskCodification IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskCodification] = @W_AskCodification'
+        END
+        IF @W_AskFormula IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskFormula] = @W_AskFormula'
+        END
+        IF @W_AllowMaxLength IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AllowMaxLength] = @W_AllowMaxLength'
+        END
+        IF @W_IsActive IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsActive] = @W_IsActive'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Types] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] tinyint)
+        EXEC sp_executesql @sql
+                           ,N'@Id tinyint
+                           ,@Name nvarchar(25)
+                           ,@AskLength bit
+                           ,@AskDecimals bit
+                           ,@AskPrimarykey bit
+                           ,@AskAutoincrement bit
+                           ,@AskFilterable bit
+                           ,@AskGridable bit
+                           ,@AskCodification bit
+                           ,@AskFormula bit
+                           ,@AllowMaxLength bit
+                           ,@IsActive bit'
+                           ,@Id = @W_Id
+                           ,@Name = @W_Name
+                           ,@AskLength = @W_AskLength
+                           ,@AskDecimals = @W_AskDecimals
+                           ,@AskPrimarykey = @W_AskPrimarykey
+                           ,@AskAutoincrement = @W_AskAutoincrement
+                           ,@AskFilterable = @W_AskFilterable
+                           ,@AskGridable = @W_AskGridable
+                           ,@AskCodification = @W_AskCodification
+                           ,@AskFormula = @W_AskFormula
+                           ,@AllowMaxLength = @W_AllowMaxLength
+                           ,@IsActive = @W_IsActive
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -14492,13 +14558,11 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('-2147483648' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''-2147483648''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
@@ -14509,25 +14573,36 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
                   AND [TableName] = 'Masks'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Masks] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [Name] = ISNULL(@W_Name, [Name])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('-2147483648' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''-2147483648''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @W_Name'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Masks] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@Name nvarchar(25)'
+                           ,@Id = @W_Id
+                           ,@Name = @W_Name
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -15013,6 +15088,8 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_TypeId tinyint = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TypeId') AS tinyint)
                 ,@W_MaskId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.MaskId') AS int)
@@ -15020,18 +15097,6 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
                 ,@W_ValidValues nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.ValidValues') AS nvarchar(MAX))
                 ,@W_Codification nvarchar(5) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Codification') AS nvarchar(5))
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_TypeId IS NOT NULL AND @W_TypeId < CAST('1' AS tinyint)
-            THROW 51000, 'Valor de TypeId deve ser maior que ou igual a ''1''', 1
-        IF @W_TypeId IS NOT NULL AND @W_TypeId > CAST('255' AS tinyint)
-            THROW 51000, 'Valor de TypeId deve ser menor que ou igual a ''255''', 1
-        IF @W_MaskId IS NOT NULL AND @W_MaskId < CAST('-2147483648' AS int)
-            THROW 51000, 'Valor de MaskId deve ser maior que ou igual a ''-2147483648''', 1
-        IF @W_MaskId IS NOT NULL AND @W_MaskId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de MaskId deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TypeId') AS tinyint) AS [TypeId]
@@ -15050,33 +15115,64 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
                   AND [TableName] = 'Domains'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Domains] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[TypeId] = ISNULL(@W_TypeId, [T].[TypeId])
-                  AND (@W_MaskId IS NULL OR [T].[MaskId] = @W_MaskId)
-                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
-                  AND (@W_ValidValues IS NULL OR [T].[ValidValues] = @W_ValidValues)
-                  AND (@W_Codification IS NULL OR [T].[Codification] = @W_Codification)
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [TypeId] = ISNULL(@W_TypeId, [TypeId])
-                      AND (@W_MaskId IS NULL OR [MaskId] = @W_MaskId)
-                      AND [Name] = ISNULL(@W_Name, [Name])
-                      AND (@W_ValidValues IS NULL OR [ValidValues] = @W_ValidValues)
-                      AND (@W_Codification IS NULL OR [Codification] = @W_Codification)
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_TypeId IS NOT NULL BEGIN
+            IF @W_TypeId < CAST('1' AS tinyint)
+                THROW 51000, 'Valor de TypeId deve ser maior que ou igual a ''1''', 1
+            IF @W_TypeId > CAST('255' AS tinyint)
+                THROW 51000, 'Valor de TypeId deve ser menor que ou igual a ''255''', 1
+            SET @Where = @Where + ' AND [T].[TypeId] = @W_TypeId'
+        END
+        IF @W_MaskId IS NOT NULL BEGIN
+            IF @W_MaskId < CAST('-2147483648' AS int)
+                THROW 51000, 'Valor de MaskId deve ser maior que ou igual a ''-2147483648''', 1
+            IF @W_MaskId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de MaskId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[MaskId] = @W_MaskId'
+        END
+        IF @W_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @W_Name'
+        END
+        IF @W_ValidValues IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ValidValues] = @W_ValidValues'
+        END
+        IF @W_Codification IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Codification] = @W_Codification'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Domains] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@TypeId tinyint
+                           ,@MaskId int
+                           ,@Name nvarchar(25)
+                           ,@ValidValues nvarchar(MAX)
+                           ,@Codification nvarchar(5)'
+                           ,@Id = @W_Id
+                           ,@TypeId = @W_TypeId
+                           ,@MaskId = @W_MaskId
+                           ,@Name = @W_Name
+                           ,@ValidValues = @W_ValidValues
+                           ,@Codification = @W_Codification
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -15539,14 +15635,12 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
                 ,@W_ClientName nvarchar(15) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.ClientName') AS nvarchar(15))
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
@@ -15560,27 +15654,41 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
                   AND [TableName] = 'Systems'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Systems] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
-                  AND [T].[ClientName] = ISNULL(@W_ClientName, [T].[ClientName])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [Name] = ISNULL(@W_Name, [Name])
-                      AND [ClientName] = ISNULL(@W_ClientName, [ClientName])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @W_Name'
+        END
+        IF @W_ClientName IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ClientName] = @W_ClientName'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Systems] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@Name nvarchar(25)
+                           ,@ClientName nvarchar(15)'
+                           ,@Id = @W_Id
+                           ,@Name = @W_Name
+                           ,@ClientName = @W_ClientName
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -16048,18 +16156,12 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_SystemId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
                 ,@W_Caption nvarchar(20) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Caption') AS nvarchar(20))
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS int)
-            THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
@@ -16074,27 +16176,45 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
                   AND [TableName] = 'Menus'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Menus] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[SystemId] = ISNULL(@W_SystemId, [T].[SystemId])
-                  AND [T].[Caption] = ISNULL(@W_Caption, [T].[Caption])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
-                      AND [Caption] = ISNULL(@W_Caption, [Caption])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_SystemId IS NOT NULL BEGIN
+            IF @W_SystemId < CAST('1' AS int)
+                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
+            IF @W_SystemId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[SystemId] = @W_SystemId'
+        END
+        IF @W_Caption IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Caption] = @W_Caption'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Menus] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@SystemId int
+                           ,@Caption nvarchar(20)'
+                           ,@Id = @W_Id
+                           ,@SystemId = @W_SystemId
+                           ,@Caption = @W_Caption
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -16545,15 +16665,13 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
                 ,@W_FullName nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.FullName') AS nvarchar(50))
                 ,@W_IsActive bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsActive') AS bit)
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
@@ -16567,29 +16685,46 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
                   AND [TableName] = 'Users'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Users] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
-                  AND [T].[FullName] = ISNULL(@W_FullName, [T].[FullName])
-                  AND [T].[IsActive] = ISNULL(@W_IsActive, [T].[IsActive])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [Name] = ISNULL(@W_Name, [Name])
-                      AND [FullName] = ISNULL(@W_FullName, [FullName])
-                      AND [IsActive] = ISNULL(@W_IsActive, [IsActive])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @W_Name'
+        END
+        IF @W_FullName IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[FullName] = @W_FullName'
+        END
+        IF @W_IsActive IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsActive] = @W_IsActive'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Users] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@Name nvarchar(25)
+                           ,@FullName nvarchar(50)
+                           ,@IsActive bit'
+                           ,@Id = @W_Id
+                           ,@Name = @W_Name
+                           ,@FullName = @W_FullName
+                           ,@IsActive = @W_IsActive
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -17027,23 +17162,13 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_SystemId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
                 ,@W_UserId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.UserId') AS int)
                 ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS int)
-            THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_UserId IS NOT NULL AND @W_UserId < CAST('1' AS int)
-            THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
-        IF @W_UserId IS NOT NULL AND @W_UserId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de UserId deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
@@ -17055,29 +17180,54 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
                   AND [TableName] = 'SystemsUsers'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[SystemsUsers] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[SystemId] = ISNULL(@W_SystemId, [T].[SystemId])
-                  AND [T].[UserId] = ISNULL(@W_UserId, [T].[UserId])
-                  AND [T].[Description] = ISNULL(@W_Description, [T].[Description])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
-                      AND [UserId] = ISNULL(@W_UserId, [UserId])
-                      AND [Description] = ISNULL(@W_Description, [Description])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_SystemId IS NOT NULL BEGIN
+            IF @W_SystemId < CAST('1' AS int)
+                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
+            IF @W_SystemId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[SystemId] = @W_SystemId'
+        END
+        IF @W_UserId IS NOT NULL BEGIN
+            IF @W_UserId < CAST('1' AS int)
+                THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
+            IF @W_UserId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de UserId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[UserId] = @W_UserId'
+        END
+        IF @W_Description IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Description] = @W_Description'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[SystemsUsers] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@SystemId int
+                           ,@UserId int
+                           ,@Description nvarchar(50)'
+                           ,@Id = @W_Id
+                           ,@SystemId = @W_SystemId
+                           ,@UserId = @W_UserId
+                           ,@Description = @W_Description
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -17552,14 +17702,12 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
                 ,@W_Alias nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
@@ -17577,27 +17725,41 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
                   AND [TableName] = 'Databases'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Databases] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
-                  AND [T].[Alias] = ISNULL(@W_Alias, [T].[Alias])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [Name] = ISNULL(@W_Name, [Name])
-                      AND [Alias] = ISNULL(@W_Alias, [Alias])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @W_Name'
+        END
+        IF @W_Alias IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Alias] = @W_Alias'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Databases] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@Name nvarchar(25)
+                           ,@Alias nvarchar(25)'
+                           ,@Id = @W_Id
+                           ,@Name = @W_Name
+                           ,@Alias = @W_Alias
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -18043,23 +18205,13 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_SystemId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
                 ,@W_DatabaseId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.DatabaseId') AS int)
                 ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS int)
-            THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId < CAST('1' AS int)
-            THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
-        IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de DatabaseId deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
@@ -18071,29 +18223,54 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
                   AND [TableName] = 'SystemsDatabases'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[SystemsDatabases] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[SystemId] = ISNULL(@W_SystemId, [T].[SystemId])
-                  AND [T].[DatabaseId] = ISNULL(@W_DatabaseId, [T].[DatabaseId])
-                  AND [T].[Description] = ISNULL(@W_Description, [T].[Description])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
-                      AND [DatabaseId] = ISNULL(@W_DatabaseId, [DatabaseId])
-                      AND [Description] = ISNULL(@W_Description, [Description])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_SystemId IS NOT NULL BEGIN
+            IF @W_SystemId < CAST('1' AS int)
+                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
+            IF @W_SystemId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[SystemId] = @W_SystemId'
+        END
+        IF @W_DatabaseId IS NOT NULL BEGIN
+            IF @W_DatabaseId < CAST('1' AS int)
+                THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
+            IF @W_DatabaseId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de DatabaseId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[DatabaseId] = @W_DatabaseId'
+        END
+        IF @W_Description IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Description] = @W_Description'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[SystemsDatabases] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@SystemId int
+                           ,@DatabaseId int
+                           ,@Description nvarchar(50)'
+                           ,@Id = @W_Id
+                           ,@SystemId = @W_SystemId
+                           ,@DatabaseId = @W_DatabaseId
+                           ,@Description = @W_Description
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -18557,15 +18734,13 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
                 ,@W_Alias nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
                 ,@W_IsPaged bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsPaged') AS bit)
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
@@ -18580,29 +18755,46 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
                   AND [TableName] = 'Tables'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Tables] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
-                  AND [T].[Alias] = ISNULL(@W_Alias, [T].[Alias])
-                  AND [T].[IsPaged] = ISNULL(@W_IsPaged, [T].[IsPaged])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [Name] = ISNULL(@W_Name, [Name])
-                      AND [Alias] = ISNULL(@W_Alias, [Alias])
-                      AND [IsPaged] = ISNULL(@W_IsPaged, [IsPaged])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @W_Name'
+        END
+        IF @W_Alias IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Alias] = @W_Alias'
+        END
+        IF @W_IsPaged IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsPaged] = @W_IsPaged'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Tables] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@Name nvarchar(25)
+                           ,@Alias nvarchar(25)
+                           ,@IsPaged bit'
+                           ,@Id = @W_Id
+                           ,@Name = @W_Name
+                           ,@Alias = @W_Alias
+                           ,@IsPaged = @W_IsPaged
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -19042,23 +19234,13 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_DatabaseId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.DatabaseId') AS int)
                 ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
                 ,@W_Description nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId < CAST('1' AS int)
-            THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
-        IF @W_DatabaseId IS NOT NULL AND @W_DatabaseId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de DatabaseId deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_TableId IS NOT NULL AND @W_TableId < CAST('1' AS int)
-            THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-        IF @W_TableId IS NOT NULL AND @W_TableId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de TableId deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
@@ -19070,29 +19252,54 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
                   AND [TableName] = 'DatabasesTables'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[DatabasesTables] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[DatabaseId] = ISNULL(@W_DatabaseId, [T].[DatabaseId])
-                  AND [T].[TableId] = ISNULL(@W_TableId, [T].[TableId])
-                  AND [T].[Description] = ISNULL(@W_Description, [T].[Description])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [DatabaseId] = ISNULL(@W_DatabaseId, [DatabaseId])
-                      AND [TableId] = ISNULL(@W_TableId, [TableId])
-                      AND [Description] = ISNULL(@W_Description, [Description])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_DatabaseId IS NOT NULL BEGIN
+            IF @W_DatabaseId < CAST('1' AS int)
+                THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
+            IF @W_DatabaseId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de DatabaseId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[DatabaseId] = @W_DatabaseId'
+        END
+        IF @W_TableId IS NOT NULL BEGIN
+            IF @W_TableId < CAST('1' AS int)
+                THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
+            IF @W_TableId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de TableId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[TableId] = @W_TableId'
+        END
+        IF @W_Description IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Description] = @W_Description'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[DatabasesTables] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@DatabaseId int
+                           ,@TableId int
+                           ,@Description nvarchar(50)'
+                           ,@Id = @W_Id
+                           ,@DatabaseId = @W_DatabaseId
+                           ,@TableId = @W_TableId
+                           ,@Description = @W_Description
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -19668,6 +19875,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
                 ,@W_DomainId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.DomainId') AS int)
@@ -19681,22 +19890,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                 ,@W_IsGridable bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsGridable') AS bit)
                 ,@W_IsEncrypted bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsEncrypted') AS bit)
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_TableId IS NOT NULL AND @W_TableId < CAST('1' AS int)
-            THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-        IF @W_TableId IS NOT NULL AND @W_TableId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de TableId deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_DomainId IS NOT NULL AND @W_DomainId < CAST('1' AS int)
-            THROW 51000, 'Valor de DomainId deve ser maior que ou igual a ''1''', 1
-        IF @W_DomainId IS NOT NULL AND @W_DomainId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de DomainId deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS int)
-            THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual a ''1''', 1
-        IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de ReferenceTableId deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
@@ -19725,45 +19918,98 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Columns] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[TableId] = ISNULL(@W_TableId, [T].[TableId])
-                  AND [T].[DomainId] = ISNULL(@W_DomainId, [T].[DomainId])
-                  AND (@W_ReferenceTableId IS NULL OR [T].[ReferenceTableId] = @W_ReferenceTableId)
-                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
-                  AND (@W_IsAutoIncrement IS NULL OR [T].[IsAutoIncrement] = @W_IsAutoIncrement)
-                  AND [T].[IsRequired] = ISNULL(@W_IsRequired, [T].[IsRequired])
-                  AND (@W_IsListable IS NULL OR [T].[IsListable] = @W_IsListable)
-                  AND (@W_IsFilterable IS NULL OR [T].[IsFilterable] = @W_IsFilterable)
-                  AND (@W_IsEditable IS NULL OR [T].[IsEditable] = @W_IsEditable)
-                  AND (@W_IsGridable IS NULL OR [T].[IsGridable] = @W_IsGridable)
-                  AND (@W_IsEncrypted IS NULL OR [T].[IsEncrypted] = @W_IsEncrypted)
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [TableId] = ISNULL(@W_TableId, [TableId])
-                      AND [DomainId] = ISNULL(@W_DomainId, [DomainId])
-                      AND (@W_ReferenceTableId IS NULL OR [ReferenceTableId] = @W_ReferenceTableId)
-                      AND [Name] = ISNULL(@W_Name, [Name])
-                      AND (@W_IsAutoIncrement IS NULL OR [IsAutoIncrement] = @W_IsAutoIncrement)
-                      AND [IsRequired] = ISNULL(@W_IsRequired, [IsRequired])
-                      AND (@W_IsListable IS NULL OR [IsListable] = @W_IsListable)
-                      AND (@W_IsFilterable IS NULL OR [IsFilterable] = @W_IsFilterable)
-                      AND (@W_IsEditable IS NULL OR [IsEditable] = @W_IsEditable)
-                      AND (@W_IsGridable IS NULL OR [IsGridable] = @W_IsGridable)
-                      AND (@W_IsEncrypted IS NULL OR [IsEncrypted] = @W_IsEncrypted)
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_TableId IS NOT NULL BEGIN
+            IF @W_TableId < CAST('1' AS int)
+                THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
+            IF @W_TableId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de TableId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[TableId] = @W_TableId'
+        END
+        IF @W_DomainId IS NOT NULL BEGIN
+            IF @W_DomainId < CAST('1' AS int)
+                THROW 51000, 'Valor de DomainId deve ser maior que ou igual a ''1''', 1
+            IF @W_DomainId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de DomainId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[DomainId] = @W_DomainId'
+        END
+        IF @W_ReferenceTableId IS NOT NULL BEGIN
+            IF @W_ReferenceTableId < CAST('1' AS int)
+                THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual a ''1''', 1
+            IF @W_ReferenceTableId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de ReferenceTableId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[ReferenceTableId] = @W_ReferenceTableId'
+        END
+        IF @W_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @W_Name'
+        END
+        IF @W_IsAutoIncrement IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsAutoIncrement] = @W_IsAutoIncrement'
+        END
+        IF @W_IsRequired IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsRequired] = @W_IsRequired'
+        END
+        IF @W_IsListable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsListable] = @W_IsListable'
+        END
+        IF @W_IsFilterable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsFilterable] = @W_IsFilterable'
+        END
+        IF @W_IsEditable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsEditable] = @W_IsEditable'
+        END
+        IF @W_IsGridable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsGridable] = @W_IsGridable'
+        END
+        IF @W_IsEncrypted IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsEncrypted] = @W_IsEncrypted'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Columns] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@TableId int
+                           ,@DomainId int
+                           ,@ReferenceTableId int
+                           ,@Name nvarchar(25)
+                           ,@IsAutoIncrement bit
+                           ,@IsRequired bit
+                           ,@IsListable bit
+                           ,@IsFilterable bit
+                           ,@IsEditable bit
+                           ,@IsGridable bit
+                           ,@IsEncrypted bit'
+                           ,@Id = @W_Id
+                           ,@TableId = @W_TableId
+                           ,@DomainId = @W_DomainId
+                           ,@ReferenceTableId = @W_ReferenceTableId
+                           ,@Name = @W_Name
+                           ,@IsAutoIncrement = @W_IsAutoIncrement
+                           ,@IsRequired = @W_IsRequired
+                           ,@IsListable = @W_IsListable
+                           ,@IsFilterable = @W_IsFilterable
+                           ,@IsEditable = @W_IsEditable
+                           ,@IsGridable = @W_IsGridable
+                           ,@IsEncrypted = @W_IsEncrypted
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -20239,19 +20485,13 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_TableId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
                 ,@W_Name nvarchar(50) = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(50))
                 ,@W_IsUnique bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsUnique') AS bit)
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_TableId IS NOT NULL AND @W_TableId < CAST('1' AS int)
-            THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-        IF @W_TableId IS NOT NULL AND @W_TableId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de TableId deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
@@ -20264,29 +20504,50 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
                   AND [TableName] = 'Indexes'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Indexes] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[TableId] = ISNULL(@W_TableId, [T].[TableId])
-                  AND [T].[Name] = ISNULL(@W_Name, [T].[Name])
-                  AND [T].[IsUnique] = ISNULL(@W_IsUnique, [T].[IsUnique])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [TableId] = ISNULL(@W_TableId, [TableId])
-                      AND [Name] = ISNULL(@W_Name, [Name])
-                      AND [IsUnique] = ISNULL(@W_IsUnique, [IsUnique])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_TableId IS NOT NULL BEGIN
+            IF @W_TableId < CAST('1' AS int)
+                THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
+            IF @W_TableId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de TableId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[TableId] = @W_TableId'
+        END
+        IF @W_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @W_Name'
+        END
+        IF @W_IsUnique IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsUnique] = @W_IsUnique'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Indexes] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@TableId int
+                           ,@Name nvarchar(50)
+                           ,@IsUnique bit'
+                           ,@Id = @W_Id
+                           ,@TableId = @W_TableId
+                           ,@Name = @W_Name
+                           ,@IsUnique = @W_IsUnique
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -20735,23 +20996,13 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_IndexId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IndexId') AS int)
                 ,@W_ColumnId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.ColumnId') AS int)
                 ,@W_IsDescending bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsDescending') AS bit)
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_IndexId IS NOT NULL AND @W_IndexId < CAST('1' AS int)
-            THROW 51000, 'Valor de IndexId deve ser maior que ou igual a ''1''', 1
-        IF @W_IndexId IS NOT NULL AND @W_IndexId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de IndexId deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_ColumnId IS NOT NULL AND @W_ColumnId < CAST('1' AS int)
-            THROW 51000, 'Valor de ColumnId deve ser maior que ou igual a ''1''', 1
-        IF @W_ColumnId IS NOT NULL AND @W_ColumnId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de ColumnId deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.IndexId') AS int) AS [IndexId]
@@ -20764,29 +21015,54 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
                   AND [TableName] = 'Indexkeys'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Indexkeys] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[IndexId] = ISNULL(@W_IndexId, [T].[IndexId])
-                  AND [T].[ColumnId] = ISNULL(@W_ColumnId, [T].[ColumnId])
-                  AND [T].[IsDescending] = ISNULL(@W_IsDescending, [T].[IsDescending])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [IndexId] = ISNULL(@W_IndexId, [IndexId])
-                      AND [ColumnId] = ISNULL(@W_ColumnId, [ColumnId])
-                      AND [IsDescending] = ISNULL(@W_IsDescending, [IsDescending])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_IndexId IS NOT NULL BEGIN
+            IF @W_IndexId < CAST('1' AS int)
+                THROW 51000, 'Valor de IndexId deve ser maior que ou igual a ''1''', 1
+            IF @W_IndexId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de IndexId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[IndexId] = @W_IndexId'
+        END
+        IF @W_ColumnId IS NOT NULL BEGIN
+            IF @W_ColumnId < CAST('1' AS int)
+                THROW 51000, 'Valor de ColumnId deve ser maior que ou igual a ''1''', 1
+            IF @W_ColumnId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de ColumnId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[ColumnId] = @W_ColumnId'
+        END
+        IF @W_IsDescending IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsDescending] = @W_IsDescending'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Indexkeys] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@IndexId int
+                           ,@ColumnId int
+                           ,@IsDescending bit'
+                           ,@Id = @W_Id
+                           ,@IndexId = @W_IndexId
+                           ,@ColumnId = @W_ColumnId
+                           ,@IsDescending = @W_IsDescending
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
@@ -21221,23 +21497,13 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
                 ,@W_Id int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                 ,@W_SystemId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
                 ,@W_UserId int = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.UserId') AS int)
                 ,@W_IsLogged bit = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.IsLogged') AS bit)
 
-        IF @W_Id IS NOT NULL AND @W_Id < CAST('1' AS int)
-            THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-        IF @W_Id IS NOT NULL AND @W_Id > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_SystemId IS NOT NULL AND @W_SystemId < CAST('1' AS int)
-            THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-        IF @W_SystemId IS NOT NULL AND @W_SystemId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
-        IF @W_UserId IS NOT NULL AND @W_UserId < CAST('1' AS int)
-            THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
-        IF @W_UserId IS NOT NULL AND @W_UserId > CAST('2147483647' AS int)
-            THROW 51000, 'Valor de UserId deve ser menor que ou igual a ''2147483647''', 1
         SELECT [Action] AS [_]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
@@ -21250,29 +21516,54 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
                   AND [TableName] = 'Logins'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        SELECT CAST('T' AS CHAR(1)) AS [_] 
-              ,[T].[Id]
-            INTO [dbo].[#table]
-            FROM [dbo].[Logins] [T]
-                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
-            WHERE [#].[Id] IS NULL
-                  AND [T].[Id] = ISNULL(@W_Id, [T].[Id])
-                  AND [T].[SystemId] = ISNULL(@W_SystemId, [T].[SystemId])
-                  AND [T].[UserId] = ISNULL(@W_UserId, [T].[UserId])
-                  AND [T].[IsLogged] = ISNULL(@W_IsLogged, [T].[IsLogged])
-        UNION ALL
-            SELECT CAST('O' AS CHAR(1)) AS [_]
-                  ,[Id]
-                FROM [dbo].[#operations]
-                WHERE [_] <> 'delete'
-                      AND [Id] = ISNULL(@W_Id, [Id])
-                      AND [SystemId] = ISNULL(@W_SystemId, [SystemId])
-                      AND [UserId] = ISNULL(@W_UserId, [UserId])
-                      AND [IsLogged] = ISNULL(@W_IsLogged, [IsLogged])
+        IF @W_Id IS NOT NULL BEGIN
+            IF @W_Id < CAST('1' AS int)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            IF @W_Id > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @W_Id'
+        END
+        IF @W_SystemId IS NOT NULL BEGIN
+            IF @W_SystemId < CAST('1' AS int)
+                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
+            IF @W_SystemId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[SystemId] = @W_SystemId'
+        END
+        IF @W_UserId IS NOT NULL BEGIN
+            IF @W_UserId < CAST('1' AS int)
+                THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
+            IF @W_UserId > CAST('2147483647' AS int)
+                THROW 51000, 'Valor de UserId deve ser menor que ou igual a ''2147483647''', 1
+            SET @Where = @Where + ' AND [T].[UserId] = @W_UserId'
+        END
+        IF @W_IsLogged IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsLogged] = @W_IsLogged'
+        END
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Logins] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[Id]
+                                FROM [dbo].[#operations]
+                                WHERE [_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        EXEC sp_executesql @sql
+                           ,N'@Id int
+                           ,@SystemId int
+                           ,@UserId int
+                           ,@IsLogged bit'
+                           ,@Id = @W_Id
+                           ,@SystemId = @W_SystemId
+                           ,@UserId = @W_UserId
+                           ,@IsLogged = @W_IsLogged
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
                ,@ClassName NVARCHAR(50) = 'RecordColumn'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])

@@ -4,6 +4,7 @@ using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
+using Newtonsoft.Json.Linq;
 
 namespace CRUDA.Classes
 {
@@ -1190,25 +1191,11 @@ namespace CRUDA.Classes
 
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
+                result.Append($"               ,@Where VARCHAR(MAX) = ''\r\n");
+                result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
                 foreach (var column in filterableColumns)
                     result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 result.Append($"\r\n");
-                foreach (var column in filterableColumns)
-                {
-                    var validations = GetConstraints(column, domains, types);
-
-                    if (validations.TryGetValue("Minimum", out dynamic? value))
-                    {
-                        result.Append($"        IF @W_{column["Name"]} IS NOT NULL AND @W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]})\r\n");
-                        result.Append($"            THROW 51000, 'Valor de {column["Name"]} deve ser maior que ou igual a ''{value}''', 1\r\n");
-                    }
-                    if (validations.TryGetValue("Maximum", out value))
-                    {
-                        result.Append($"        IF @W_{column["Name"]} IS NOT NULL AND @W_{column["Name"]} > CAST('{value}' AS {column["#DataType"]})\r\n");
-                        result.Append($"            THROW 51000, 'Valor de {column["Name"]} deve ser menor que ou igual a ''{value}''', 1\r\n");
-                    }
-                }
-
                 firstTime = true;
                 foreach (var column in columnRows)
                 {
@@ -1239,24 +1226,42 @@ namespace CRUDA.Classes
                         result.Append($", [{column["Name"]}]");
                 }
                 result.Append($")\r\n");
+                foreach (var column in filterableColumns)
+                {
+                    var validations = GetConstraints(column, domains, types);
+
+                    result.Append($"        IF @W_{column["Name"]} IS NOT NULL BEGIN\r\n");
+                    if (validations.TryGetValue("Minimum", out dynamic? value))
+                    {
+                        result.Append($"            IF @W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]})\r\n");
+                        result.Append($"                THROW 51000, 'Valor de {column["Name"]} deve ser maior que ou igual a ''{value}''', 1\r\n");
+                    }
+                    if (validations.TryGetValue("Maximum", out value))
+                    {
+                        result.Append($"            IF @W_{column["Name"]} > CAST('{value}' AS {column["#DataType"]})\r\n");
+                        result.Append($"                THROW 51000, 'Valor de {column["Name"]} deve ser menor que ou igual a ''{value}''', 1\r\n");
+                    }
+                    result.Append($"            SET @Where = @Where + ' AND [T].[{column["Name"]}] = @W_{column["Name"]}'\r\n");
+                    result.Append($"        END\r\n");
+                }
                 firstTime = true;
                 foreach (var column in pkColumnRows)
                 {
                     if (firstTime)
                     {
-                        result.Append($"        SELECT CAST('T' AS CHAR(1)) AS [_] \r\n");
+                        result.Append($"        SET @sql = 'INSERT [dbo].[#table]\r\n");
+                        result.Append($"                        SELECT ''T'' AS [_]\r\n");
                         firstTime = false;
                     }
-                    result.Append($"              ,[T].[{column["Name"]}]\r\n");
+                    result.Append($"                              ,[T].[{column["Name"]}]\r\n");
                 }
-                result.Append($"            INTO [dbo].[#table]\r\n");
-                result.Append($"            FROM [dbo].[{table["Name"]}] [T]\r\n");
+                result.Append($"                            FROM [dbo].[{table["Name"]}] [T]\r\n");
                 firstTime = true;
                 foreach (var column in pkColumnRows)
                 {
                     if (firstTime)
                     {
-                        result.Append($"                LEFT JOIN [dbo].[#operations] [#] ON [#].[{column["Name"]}] = [T].[{column["Name"]}]");
+                        result.Append($"                                LEFT JOIN [dbo].[#operations] [#] ON [#].[{column["Name"]}] = [T].[{column["Name"]}]");
                         firstTime = false;
                     }
                     else
@@ -1264,48 +1269,48 @@ namespace CRUDA.Classes
                 }
                 result.Append($"\r\n");
                 firstTime = true;
-                foreach (var column in filterableColumns)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"            WHERE [#].[{pkColumnRows[0]["Name"]}] IS NULL\r\n");
-                        firstTime = false;
-                    }
-                    if (ToBoolean(column["IsRequired"]))
-                        result.Append($"                  AND [T].[{column["Name"]}] = ISNULL(@W_{column["Name"]}, [T].[{column["Name"]}])\r\n");
-                    else
-                        result.Append($"                  AND (@W_{column["Name"]} IS NULL OR [T].[{column["Name"]}] = @W_{column["Name"]})\r\n");
-                }
+                result.Append($"                            WHERE [#].[{pkColumnRows[0]["Name"]}] IS NULL' + @Where + '\r\n");
+
                 firstTime = true;
                 foreach (var column in pkColumnRows)
                 {
                     if (firstTime)
                     {
-                        result.Append($"        UNION ALL\r\n");
-                        result.Append($"            SELECT CAST('O' AS CHAR(1)) AS [_]\r\n");
+                        result.Append($"                        UNION ALL\r\n");
+                        result.Append($"                            SELECT ''O'' AS [_]\r\n");
                         firstTime = false;
                     }
-                    result.Append($"                  ,[{column["Name"]}]\r\n");
+                    result.Append($"                                  ,[{column["Name"]}]\r\n");
                 }
-                result.Append($"                FROM [dbo].[#operations]\r\n");
+                result.Append($"                                FROM [dbo].[#operations]\r\n");
+                firstTime = true;
+                result.Append($"                                WHERE [_] <> ''delete''' + @Where\r\n");
+                result.Append($"        CREATE TABLE [dbo].[#table]([_] CHAR(1)");
+                foreach (var column in pkColumnRows)
+                    result.Append($", [{column["Name"]}] {column["#DataType"]}");
+                result.Append($")\r\n");
                 firstTime = true;
                 foreach (var column in filterableColumns)
                 {
                     if (firstTime)
                     {
-                        result.Append($"                WHERE [_] <> 'delete'\r\n");
+                        result.Append($"        EXEC sp_executesql @sql\r\n");
+                        result.Append($"                           ,N'@{column["Name"]} {column["#DataType"]}");
                         firstTime = false;
                     }
-                    result.Append($"                      AND ");
-                    if (ToBoolean(column["IsRequired"]))
-                        result.Append($"[{column["Name"]}] = ISNULL(@W_{column["Name"]}, [{column["Name"]}])\r\n");
                     else
-                        result.Append($"(@W_{column["Name"]} IS NULL OR [{column["Name"]}] = @W_{column["Name"]})\r\n");
+                    {
+                        result.Append($"\r\n");
+                        result.Append($"                           ,@{column["Name"]} {column["#DataType"]}");
+                    }
                 }
+                result.Append($"'\r\n");
+                foreach (var column in filterableColumns)
+                    result.Append($"                           ,@{column["Name"]} = @W_{column["Name"]}\r\n");
+
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
                 result.Append($"               ,@OffSet INT\r\n");
-                result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
                 result.Append($"               ,@ClassName NVARCHAR(50) = 'RecordColumn'\r\n");
                 result.Append($"\r\n");
                 firstTime = true;
