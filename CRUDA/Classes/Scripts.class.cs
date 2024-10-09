@@ -1156,8 +1156,8 @@ namespace CRUDA.Classes
                 result.Append($"        IF @LoginId IS NULL\r\n");
                 result.Append($"            THROW 51000, 'Valor de @LoginId é requerido', 1\r\n");
                 result.Append($"        IF @RecordFilter IS NULL\r\n");
-                result.Append($"            THROW 51000, 'Valor de @RecordFilter é requerido', 1\r\n");
-                result.Append($"        IF ISJSON(@RecordFilter) = 0\r\n");
+                result.Append("            SET @RecordFilter = '{}'\r\n");
+                result.Append($"        ELSE IF ISJSON(@RecordFilter) = 0\r\n");
                 result.Append($"            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1\r\n");
                 result.Append($"        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))\r\n");
                 result.Append($"        IF @OrderBy = ''\r\n");
@@ -1194,7 +1194,7 @@ namespace CRUDA.Classes
                 result.Append($"               ,@Where VARCHAR(MAX) = ''\r\n");
                 result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
                 foreach (var column in filterableColumns)
-                    result.Append($"                ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                    result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 firstTime = true;
                 foreach (var column in columnRows)
@@ -1241,7 +1241,7 @@ namespace CRUDA.Classes
                         result.Append($"            IF @W_{column["Name"]} > CAST('{value}' AS {column["#DataType"]})\r\n");
                         result.Append($"                THROW 51000, 'Valor de {column["Name"]} deve ser menor que ou igual a ''{value}''', 1\r\n");
                     }
-                    result.Append($"            SET @Where = @Where + ' AND [T].[{column["Name"]}] = @W_{column["Name"]}'\r\n");
+                    result.Append($"            SET @Where = @Where + ' AND [T].[{column["Name"]}] = CAST(''' + CAST(@W_{column["Name"]} AS NVARCHAR(MAX)) + ''' AS {column["#DataType"]})'\r\n");
                     result.Append($"        END\r\n");
                 }
                 firstTime = true;
@@ -1280,11 +1280,11 @@ namespace CRUDA.Classes
                         result.Append($"                            SELECT ''O'' AS [_]\r\n");
                         firstTime = false;
                     }
-                    result.Append($"                                  ,[{column["Name"]}]\r\n");
+                    result.Append($"                                  ,[T].[{column["Name"]}]\r\n");
                 }
-                result.Append($"                                FROM [dbo].[#operations]\r\n");
+                result.Append($"                                FROM [dbo].[#operations] [T]\r\n");
                 firstTime = true;
-                result.Append($"                                WHERE [_] <> ''delete''' + @Where\r\n");
+                result.Append($"                                WHERE [T].[_] <> ''delete''' + @Where\r\n");
                 result.Append($"        CREATE TABLE [dbo].[#table]([_] CHAR(1)");
                 foreach (var column in pkColumnRows)
                     result.Append($", [{column["Name"]}] {column["#DataType"]}");
