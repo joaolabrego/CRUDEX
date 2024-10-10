@@ -120,7 +120,4 @@ export default class TLogin {
     static get Password() {
         return this.#HTML.Password.value
     }
-    static get PublicKey() {
-        return this.#PublicKey
-    }
 }

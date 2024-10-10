@@ -573,7 +573,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
             ROLLBACK TRANSACTION [SavePoint];
             COMMIT TRANSACTION
         END
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        SET @ErrorMessage = ERROR_MESSAGE();
         THROW 51000, @ErrorMessage, 1
 	END CATCH
 END

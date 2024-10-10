@@ -53,7 +53,7 @@ namespace CRUDA_LIB
             else
             {
                 if (value.IndexOf(DELIMITER_VALUE) > 0)
-                    throw new Exception($"Encrypt: Valor para criptografar não pode conter {DELIMITER_VALUE}.");
+                    throw new Exception($"Valor para criptografar não pode conter {DELIMITER_VALUE}");
                 value += DELIMITER_VALUE;
                 for (var i = value.Length; i <= DEFAULT_LENGTH; i++)
                     value += CHARSET[Rnd.Next(0, CHARSET.Length)];
