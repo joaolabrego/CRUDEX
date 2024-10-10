@@ -170,12 +170,11 @@ export default class TGrid {
     }
     #GetControl(column, value) {
         let control,
-            htmlInputType = column.Domain.Type.Category.HtmlInputType,
-            isEmptyValue = TConfig.IsEmpty(value)
+            htmlInputType = column.Domain.Type.Category.HtmlInputType
 
         if (htmlInputType === "checkbox") {
             control = document.createElement("input")
-            if (isEmptyValue)
+            if (TConfig.IsEmpty(value))
                 control.hidden = "hidden"
             else {
                 control.type = htmlInputType
