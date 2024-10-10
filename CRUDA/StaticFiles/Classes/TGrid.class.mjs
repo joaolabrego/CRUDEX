@@ -118,8 +118,9 @@ export default class TGrid {
     }
     async Renderize(pageNumber = this.#PageNumber) {
         TScreen.Title = `Manutenção de ${this.#Table.Description}`
+        
         this.#ReadDataPage(pageNumber)
-            .then((dataPage) => {
+            .then(dataPage => {
                 this.#DataPage = dataPage
                 if (this.#RowCount > 1)
                     TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar."
