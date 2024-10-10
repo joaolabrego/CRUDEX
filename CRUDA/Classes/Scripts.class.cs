@@ -4,7 +4,6 @@ using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
-using Newtonsoft.Json.Linq;
 
 namespace CRUDA.Classes
 {
@@ -152,18 +151,12 @@ namespace CRUDA.Classes
                 result.Add("AutoIncrement", " IDENTITY(1,1)");
             if ((value = ToString(column["Default"])) != string.Empty)
                 result.Add("Default", $" DEFAULT CAST('{value}' AS {column["#DataType"]})");
-            if ((value = ToString(column["Minimum"])) == string.Empty)
-                if ((value = ToString(domain["Minimum"])) == string.Empty)
-                    value = ToString(type["Minimum"]);
-            if (value != string.Empty)
+            if ((value = ToString(column["Minimum"] ?? domain["Minimum"] ?? type["Minimum"])) != string.Empty)
             {
-                result.Add("Range", $" CHECK ([{column["Name"]}] >= CAST('{value}' AS {column["#DataType"]})");
+                result.Add("Range", $" CHECK ([{column["Name"]}] >= CAST('{value}' AS {column["#DataType"]}))");
                 result.Add("Minimum", value);
             }
-            if ((value = ToString(column["Maximum"])) == string.Empty)
-                if ((value = ToString(domain["Maximum"])) == string.Empty)
-                    value = ToString(type["Maximum"]);
-            if (value != string.Empty)
+            if ((value = ToString(column["Maximum"] ?? domain["Maximum"] ?? type["Maximum"])) != string.Empty)
             {
                 if (result.ContainsKey("Range"))
                     result["Range"] += $" AND [{column["Name"]}] <= CAST('{value}' AS {column["#DataType"]}))";
@@ -1377,8 +1370,8 @@ namespace CRUDA.Classes
                 result.Append($"                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
                 result.Append($"                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'\r\n");
                 result.Append($"        EXEC sp_executesql @sql,\r\n");
-                result.Append($"                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',\r\n");
-                result.Append($"                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows\r\n");
+                result.Append($"                           N'@ClassName NVARCHAR(50)',\r\n");
+                result.Append($"                           @ClassName = @ClassName\r\n");
                 result.Append($"\r\n");
                 result.Append($"        RETURN @RowCount\r\n");
                 result.Append($"    END TRY\r\n");

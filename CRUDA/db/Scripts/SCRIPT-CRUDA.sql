@@ -1545,7 +1545,7 @@ Criar tabela [dbo].[Categories]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Categories]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Categories]
-CREATE TABLE [dbo].[Categories]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tinyint) AND [Id] <= CAST('255' AS tinyint))
+CREATE TABLE [dbo].[Categories]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[HtmlInputType] nvarchar(10) NULL
                                     ,[HtmlInputAlign] nvarchar(6) NULL
@@ -1567,8 +1567,8 @@ Criar tabela [dbo].[Types]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Types]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Types]
-CREATE TABLE [dbo].[Types]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tinyint) AND [Id] <= CAST('255' AS tinyint))
-                                    ,[CategoryId] tinyint NOT NULL CHECK ([CategoryId] >= CAST('0' AS tinyint) AND [CategoryId] <= CAST('255' AS tinyint))
+CREATE TABLE [dbo].[Types]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
+                                    ,[CategoryId] tinyint NOT NULL
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Minimum] nvarchar(MAX) NULL
                                     ,[Maximum] nvarchar(MAX) NULL
@@ -1594,7 +1594,7 @@ Criar tabela [dbo].[Masks]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Masks]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Masks]
-CREATE TABLE [dbo].[Masks]([Id] int NOT NULL CHECK ([Id] >= CAST('-2147483648' AS int) AND [Id] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[Masks]([Id] int NOT NULL
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Mask] nvarchar(MAX) NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
@@ -1609,12 +1609,12 @@ Criar tabela [dbo].[Domains]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Domains]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Domains]
-CREATE TABLE [dbo].[Domains]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
-                                    ,[TypeId] tinyint NOT NULL CHECK ([TypeId] >= CAST('1' AS tinyint) AND [TypeId] <= CAST('255' AS tinyint))
-                                    ,[MaskId] int NULL CHECK ([MaskId] >= CAST('-2147483648' AS int) AND [MaskId] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[Domains]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
+                                    ,[TypeId] tinyint NOT NULL CHECK ([TypeId] >= CAST('1' AS tinyint))
+                                    ,[MaskId] int NULL
                                     ,[Name] nvarchar(25) NOT NULL
-                                    ,[Length] smallint NULL CHECK ([Length] >= CAST('0' AS smallint) AND [Length] <= CAST('32767' AS smallint))
-                                    ,[Decimals] tinyint NULL CHECK ([Decimals] >= CAST('0' AS tinyint) AND [Decimals] <= CAST('255' AS tinyint))
+                                    ,[Length] smallint NULL CHECK ([Length] >= CAST('0' AS smallint))
+                                    ,[Decimals] tinyint NULL CHECK ([Decimals] >= CAST('0' AS tinyint))
                                     ,[ValidValues] nvarchar(MAX) NULL
                                     ,[Default] nvarchar(MAX) NULL
                                     ,[Minimum] nvarchar(MAX) NULL
@@ -1632,11 +1632,11 @@ Criar tabela [dbo].[Systems]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Systems]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Systems]
-CREATE TABLE [dbo].[Systems]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[Systems]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Description] nvarchar(50) NOT NULL
                                     ,[ClientName] nvarchar(15) NOT NULL
-                                    ,[MaxRetryLogins] tinyint NOT NULL DEFAULT CAST('5' AS tinyint) CHECK ([MaxRetryLogins] >= CAST('1' AS tinyint) AND [MaxRetryLogins] <= CAST('255' AS tinyint))
+                                    ,[MaxRetryLogins] tinyint NOT NULL DEFAULT CAST('5' AS tinyint) CHECK ([MaxRetryLogins] >= CAST('1' AS tinyint))
                                     ,[IsOffAir] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
@@ -1650,13 +1650,13 @@ Criar tabela [dbo].[Menus]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Menus]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Menus]
-CREATE TABLE [dbo].[Menus]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
-                                    ,[SystemId] int NOT NULL CHECK ([SystemId] >= CAST('1' AS int) AND [SystemId] <= CAST('2147483647' AS int))
-                                    ,[Sequence] smallint NOT NULL CHECK ([Sequence] >= CAST('1' AS smallint) AND [Sequence] <= CAST('32767' AS smallint))
+CREATE TABLE [dbo].[Menus]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
+                                    ,[SystemId] int NOT NULL CHECK ([SystemId] >= CAST('1' AS int))
+                                    ,[Sequence] smallint NOT NULL CHECK ([Sequence] >= CAST('1' AS smallint))
                                     ,[Caption] nvarchar(20) NOT NULL
                                     ,[Message] nvarchar(50) NOT NULL
                                     ,[Action] nvarchar(50) NULL
-                                    ,[ParentMenuId] int NULL CHECK ([ParentMenuId] >= CAST('1' AS int) AND [ParentMenuId] <= CAST('2147483647' AS int))
+                                    ,[ParentMenuId] int NULL CHECK ([ParentMenuId] >= CAST('1' AS int))
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
@@ -1670,11 +1670,11 @@ Criar tabela [dbo].[Users]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Users]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Users]
-CREATE TABLE [dbo].[Users]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[Users]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Password] nvarchar(256) NOT NULL
                                     ,[FullName] nvarchar(50) NOT NULL
-                                    ,[RetryLogins] tinyint NOT NULL DEFAULT CAST('0' AS tinyint) CHECK ([RetryLogins] >= CAST('0' AS tinyint) AND [RetryLogins] <= CAST('255' AS tinyint))
+                                    ,[RetryLogins] tinyint NOT NULL DEFAULT CAST('0' AS tinyint) CHECK ([RetryLogins] >= CAST('0' AS tinyint))
                                     ,[IsActive] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
@@ -1688,9 +1688,9 @@ Criar tabela [dbo].[SystemsUsers]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[SystemsUsers]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[SystemsUsers]
-CREATE TABLE [dbo].[SystemsUsers]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
-                                    ,[SystemId] int NOT NULL CHECK ([SystemId] >= CAST('1' AS int) AND [SystemId] <= CAST('2147483647' AS int))
-                                    ,[UserId] int NOT NULL CHECK ([UserId] >= CAST('1' AS int) AND [UserId] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[SystemsUsers]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
+                                    ,[SystemId] int NOT NULL CHECK ([SystemId] >= CAST('1' AS int))
+                                    ,[UserId] int NOT NULL CHECK ([UserId] >= CAST('1' AS int))
                                     ,[Description] nvarchar(50) NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
@@ -1705,13 +1705,13 @@ Criar tabela [dbo].[Databases]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Databases]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Databases]
-CREATE TABLE [dbo].[Databases]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[Databases]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Description] nvarchar(50) NOT NULL
                                     ,[Alias] nvarchar(25) NOT NULL
                                     ,[ServerName] nvarchar(50) NULL
                                     ,[HostName] nvarchar(25) NULL
-                                    ,[Port] int NULL CHECK ([Port] >= CAST('1' AS int) AND [Port] <= CAST('65535' AS int))
+                                    ,[Port] int NULL CHECK ([Port] >= CAST('1' AS int))
                                     ,[Logon] nvarchar(256) NULL
                                     ,[Password] nvarchar(256) NULL
                                     ,[Folder] nvarchar(256) NULL
@@ -1728,9 +1728,9 @@ Criar tabela [dbo].[SystemsDatabases]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[SystemsDatabases]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[SystemsDatabases]
-CREATE TABLE [dbo].[SystemsDatabases]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
-                                    ,[SystemId] int NOT NULL CHECK ([SystemId] >= CAST('1' AS int) AND [SystemId] <= CAST('2147483647' AS int))
-                                    ,[DatabaseId] int NOT NULL CHECK ([DatabaseId] >= CAST('1' AS int) AND [DatabaseId] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[SystemsDatabases]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
+                                    ,[SystemId] int NOT NULL CHECK ([SystemId] >= CAST('1' AS int))
+                                    ,[DatabaseId] int NOT NULL CHECK ([DatabaseId] >= CAST('1' AS int))
                                     ,[Description] nvarchar(50) NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
@@ -1745,13 +1745,13 @@ Criar tabela [dbo].[Tables]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Tables]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Tables]
-CREATE TABLE [dbo].[Tables]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[Tables]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Alias] nvarchar(25) NOT NULL
                                     ,[Description] nvarchar(50) NOT NULL
-                                    ,[ParentTableId] int NULL CHECK ([ParentTableId] >= CAST('0' AS int) AND [ParentTableId] <= CAST('2147483647' AS int))
+                                    ,[ParentTableId] int NULL CHECK ([ParentTableId] >= CAST('0' AS int))
                                     ,[IsPaged] bit NOT NULL
-                                    ,[CurrentId] int NOT NULL DEFAULT CAST('0' AS int) CHECK ([CurrentId] >= CAST('0' AS int) AND [CurrentId] <= CAST('2147483647' AS int))
+                                    ,[CurrentId] int NOT NULL DEFAULT CAST('0' AS int) CHECK ([CurrentId] >= CAST('0' AS int))
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
@@ -1765,9 +1765,9 @@ Criar tabela [dbo].[DatabasesTables]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[DatabasesTables]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[DatabasesTables]
-CREATE TABLE [dbo].[DatabasesTables]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
-                                    ,[DatabaseId] int NOT NULL CHECK ([DatabaseId] >= CAST('1' AS int) AND [DatabaseId] <= CAST('2147483647' AS int))
-                                    ,[TableId] int NOT NULL CHECK ([TableId] >= CAST('1' AS int) AND [TableId] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[DatabasesTables]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
+                                    ,[DatabaseId] int NOT NULL CHECK ([DatabaseId] >= CAST('1' AS int))
+                                    ,[TableId] int NOT NULL CHECK ([TableId] >= CAST('1' AS int))
                                     ,[Description] nvarchar(50) NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
@@ -1782,11 +1782,11 @@ Criar tabela [dbo].[Columns]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Columns]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Columns]
-CREATE TABLE [dbo].[Columns]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
-                                    ,[TableId] int NOT NULL CHECK ([TableId] >= CAST('1' AS int) AND [TableId] <= CAST('2147483647' AS int))
-                                    ,[Sequence] smallint NOT NULL CHECK ([Sequence] >= CAST('1' AS smallint) AND [Sequence] <= CAST('32767' AS smallint))
-                                    ,[DomainId] int NOT NULL CHECK ([DomainId] >= CAST('1' AS int) AND [DomainId] <= CAST('2147483647' AS int))
-                                    ,[ReferenceTableId] int NULL CHECK ([ReferenceTableId] >= CAST('1' AS int) AND [ReferenceTableId] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[Columns]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
+                                    ,[TableId] int NOT NULL CHECK ([TableId] >= CAST('1' AS int))
+                                    ,[Sequence] smallint NOT NULL CHECK ([Sequence] >= CAST('1' AS smallint))
+                                    ,[DomainId] int NOT NULL CHECK ([DomainId] >= CAST('1' AS int))
+                                    ,[ReferenceTableId] int NULL CHECK ([ReferenceTableId] >= CAST('1' AS int))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Description] nvarchar(50) NOT NULL
                                     ,[Title] nvarchar(25) NOT NULL
@@ -1816,9 +1816,9 @@ Criar tabela [dbo].[Indexes]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Indexes]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Indexes]
-CREATE TABLE [dbo].[Indexes]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
-                                    ,[DatabaseId] int NOT NULL CHECK ([DatabaseId] >= CAST('1' AS int) AND [DatabaseId] <= CAST('2147483647' AS int))
-                                    ,[TableId] int NOT NULL CHECK ([TableId] >= CAST('1' AS int) AND [TableId] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[Indexes]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
+                                    ,[DatabaseId] int NOT NULL CHECK ([DatabaseId] >= CAST('1' AS int))
+                                    ,[TableId] int NOT NULL CHECK ([TableId] >= CAST('1' AS int))
                                     ,[Name] nvarchar(50) NOT NULL
                                     ,[IsUnique] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
@@ -1833,10 +1833,10 @@ Criar tabela [dbo].[Indexkeys]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Indexkeys]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Indexkeys]
-CREATE TABLE [dbo].[Indexkeys]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
-                                    ,[IndexId] int NOT NULL CHECK ([IndexId] >= CAST('1' AS int) AND [IndexId] <= CAST('2147483647' AS int))
-                                    ,[Sequence] smallint NOT NULL CHECK ([Sequence] >= CAST('1' AS smallint) AND [Sequence] <= CAST('32767' AS smallint))
-                                    ,[ColumnId] int NOT NULL CHECK ([ColumnId] >= CAST('1' AS int) AND [ColumnId] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[Indexkeys]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
+                                    ,[IndexId] int NOT NULL CHECK ([IndexId] >= CAST('1' AS int))
+                                    ,[Sequence] smallint NOT NULL CHECK ([Sequence] >= CAST('1' AS smallint))
+                                    ,[ColumnId] int NOT NULL CHECK ([ColumnId] >= CAST('1' AS int))
                                     ,[IsDescending] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
@@ -1851,9 +1851,9 @@ Criar tabela [dbo].[Logins]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Logins]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Logins]
-CREATE TABLE [dbo].[Logins]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int) AND [Id] <= CAST('2147483647' AS int))
-                                    ,[SystemId] int NOT NULL CHECK ([SystemId] >= CAST('1' AS int) AND [SystemId] <= CAST('2147483647' AS int))
-                                    ,[UserId] int NOT NULL CHECK ([UserId] >= CAST('1' AS int) AND [UserId] <= CAST('2147483647' AS int))
+CREATE TABLE [dbo].[Logins]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
+                                    ,[SystemId] int NOT NULL CHECK ([SystemId] >= CAST('1' AS int))
+                                    ,[UserId] int NOT NULL CHECK ([UserId] >= CAST('1' AS int))
                                     ,[PublicKey] nvarchar(256) NOT NULL
                                     ,[IsLogged] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
@@ -13019,8 +13019,6 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS tinyint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('255' AS tinyint)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 255', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Categories', 1
@@ -13418,8 +13416,6 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS tinyint)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('255' AS tinyint)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''255''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
@@ -13526,8 +13522,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -13589,8 +13585,6 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS tinyint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('255' AS tinyint)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 255', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Types', 1
@@ -13660,10 +13654,6 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId INT
 
             IF @W_CategoryId IS NULL
                 THROW 51000, 'Valor de CategoryId em @ActualRecord é requerido.', 1
-            IF @W_CategoryId < CAST('0' AS tinyint)
-                THROW 51000, 'Valor de CategoryId em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF @W_CategoryId > CAST('255' AS tinyint)
-                THROW 51000, 'Valor de CategoryId em @ActualRecord deve ser menor que ou igual a 255', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_CategoryId)
                 THROW 51000, 'Valor de CategoryId em @ActualRecord inexiste em Categories', 1
             IF @W_Name IS NULL
@@ -14048,8 +14038,6 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS tinyint)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('255' AS tinyint)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''255''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
@@ -14186,8 +14174,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -14247,10 +14235,6 @@ ALTER PROCEDURE [dbo].[MaskValidate](@LoginId INT
             SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF @W_Id < CAST('-2147483648' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a -2147483648', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Masks', 1
@@ -14574,10 +14558,6 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
         IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('-2147483648' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''-2147483648''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
@@ -14640,8 +14620,8 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -14703,8 +14683,6 @@ ALTER PROCEDURE [dbo].[DomainValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Domains', 1
@@ -14764,26 +14742,16 @@ ALTER PROCEDURE [dbo].[DomainValidate](@LoginId INT
                 THROW 51000, 'Valor de TypeId em @ActualRecord é requerido.', 1
             IF @W_TypeId < CAST('1' AS tinyint)
                 THROW 51000, 'Valor de TypeId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_TypeId > CAST('255' AS tinyint)
-                THROW 51000, 'Valor de TypeId em @ActualRecord deve ser menor que ou igual a 255', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_TypeId)
                 THROW 51000, 'Valor de TypeId em @ActualRecord inexiste em Types', 1
-            IF @W_MaskId IS NOT NULL AND @W_MaskId < CAST('-2147483648' AS int)
-                THROW 51000, 'Valor de MaskId em @ActualRecord deve ser maior que ou igual a -2147483648', 1
-            IF @W_MaskId IS NOT NULL AND @W_MaskId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de MaskId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_MaskId)
                 THROW 51000, 'Valor de MaskId em @ActualRecord inexiste em Masks', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
             IF @W_Length IS NOT NULL AND @W_Length < CAST('0' AS smallint)
                 THROW 51000, 'Valor de Length em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF @W_Length IS NOT NULL AND @W_Length > CAST('32767' AS smallint)
-                THROW 51000, 'Valor de Length em @ActualRecord deve ser menor que ou igual a 32767', 1
             IF @W_Decimals IS NOT NULL AND @W_Decimals < CAST('0' AS tinyint)
                 THROW 51000, 'Valor de Decimals em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF @W_Decimals IS NOT NULL AND @W_Decimals > CAST('255' AS tinyint)
-                THROW 51000, 'Valor de Decimals em @ActualRecord deve ser menor que ou igual a 255', 1
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_Domains_Name já existe', 1
@@ -15118,22 +15086,14 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_TypeId IS NOT NULL BEGIN
             IF @W_TypeId < CAST('1' AS tinyint)
                 THROW 51000, 'Valor de TypeId deve ser maior que ou igual a ''1''', 1
-            IF @W_TypeId > CAST('255' AS tinyint)
-                THROW 51000, 'Valor de TypeId deve ser menor que ou igual a ''255''', 1
             SET @Where = @Where + ' AND [T].[TypeId] = @TypeId'
         END
         IF @W_MaskId IS NOT NULL BEGIN
-            IF @W_MaskId < CAST('-2147483648' AS int)
-                THROW 51000, 'Valor de MaskId deve ser maior que ou igual a ''-2147483648''', 1
-            IF @W_MaskId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de MaskId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[MaskId] = @MaskId'
         END
         IF @W_Name IS NOT NULL BEGIN
@@ -15226,8 +15186,8 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -15289,8 +15249,6 @@ ALTER PROCEDURE [dbo].[SystemValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Systems', 1
@@ -15347,8 +15305,6 @@ ALTER PROCEDURE [dbo].[SystemValidate](@LoginId INT
                 THROW 51000, 'Valor de MaxRetryLogins em @ActualRecord é requerido.', 1
             IF @W_MaxRetryLogins < CAST('1' AS tinyint)
                 THROW 51000, 'Valor de MaxRetryLogins em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_MaxRetryLogins > CAST('255' AS tinyint)
-                THROW 51000, 'Valor de MaxRetryLogins em @ActualRecord deve ser menor que ou igual a 255', 1
             IF @W_IsOffAir IS NULL
                 THROW 51000, 'Valor de IsOffAir em @ActualRecord é requerido.', 1
             IF @Action = 'create' BEGIN
@@ -15657,8 +15613,6 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
@@ -15732,8 +15686,8 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -15795,8 +15749,6 @@ ALTER PROCEDURE [dbo].[MenuValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Menus', 1
@@ -15844,24 +15796,18 @@ ALTER PROCEDURE [dbo].[MenuValidate](@LoginId INT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS int)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_SystemId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de SystemId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
                 THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
             IF @W_Sequence < CAST('1' AS smallint)
                 THROW 51000, 'Valor de Sequence em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_Sequence > CAST('32767' AS smallint)
-                THROW 51000, 'Valor de Sequence em @ActualRecord deve ser menor que ou igual a 32767', 1
             IF @W_Caption IS NULL
                 THROW 51000, 'Valor de Caption em @ActualRecord é requerido.', 1
             IF @W_Message IS NULL
                 THROW 51000, 'Valor de Message em @ActualRecord é requerido.', 1
             IF @W_ParentMenuId IS NOT NULL AND @W_ParentMenuId < CAST('1' AS int)
                 THROW 51000, 'Valor de ParentMenuId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_ParentMenuId IS NOT NULL AND @W_ParentMenuId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de ParentMenuId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_ParentMenuId)
                 THROW 51000, 'Valor de ParentMenuId em @ActualRecord inexiste em Menus', 1
             IF @Action = 'create' BEGIN
@@ -16179,15 +16125,11 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_SystemId IS NOT NULL BEGIN
             IF @W_SystemId < CAST('1' AS int)
                 THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-            IF @W_SystemId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
         END
         IF @W_Caption IS NOT NULL BEGIN
@@ -16260,8 +16202,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -16323,8 +16265,6 @@ ALTER PROCEDURE [dbo].[UserValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Users', 1
@@ -16377,8 +16317,6 @@ ALTER PROCEDURE [dbo].[UserValidate](@LoginId INT
                 THROW 51000, 'Valor de RetryLogins em @ActualRecord é requerido.', 1
             IF @W_RetryLogins < CAST('0' AS tinyint)
                 THROW 51000, 'Valor de RetryLogins em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF @W_RetryLogins > CAST('255' AS tinyint)
-                THROW 51000, 'Valor de RetryLogins em @ActualRecord deve ser menor que ou igual a 255', 1
             IF @W_IsActive IS NULL
                 THROW 51000, 'Valor de IsActive em @ActualRecord é requerido.', 1
             IF @Action = 'create' BEGIN
@@ -16688,8 +16626,6 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
@@ -16768,8 +16704,8 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -16831,8 +16767,6 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em SystemsUsers', 1
@@ -16868,16 +16802,12 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@LoginId INT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS int)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_SystemId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de SystemId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
                 THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_UserId IS NULL
                 THROW 51000, 'Valor de UserId em @ActualRecord é requerido.', 1
             IF @W_UserId < CAST('1' AS int)
                 THROW 51000, 'Valor de UserId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_UserId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de UserId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId)
                 THROW 51000, 'Valor de UserId em @ActualRecord inexiste em Users', 1
             IF @W_Description IS NULL
@@ -17183,22 +17113,16 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_SystemId IS NOT NULL BEGIN
             IF @W_SystemId < CAST('1' AS int)
                 THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-            IF @W_SystemId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
         END
         IF @W_UserId IS NOT NULL BEGIN
             IF @W_UserId < CAST('1' AS int)
                 THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
-            IF @W_UserId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de UserId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[UserId] = @UserId'
         END
         IF @W_Description IS NOT NULL BEGIN
@@ -17267,8 +17191,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -17330,8 +17254,6 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Databases', 1
@@ -17396,8 +17318,6 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId INT
                 THROW 51000, 'Valor de Alias em @ActualRecord é requerido.', 1
             IF @W_Port IS NOT NULL AND @W_Port < CAST('1' AS int)
                 THROW 51000, 'Valor de Port em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_Port IS NOT NULL AND @W_Port > CAST('65535' AS int)
-                THROW 51000, 'Valor de Port em @ActualRecord deve ser menor que ou igual a 65535', 1
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_Databases_Name já existe', 1
@@ -17728,8 +17648,6 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
@@ -17811,8 +17729,8 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -17874,8 +17792,6 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em SystemsDatabases', 1
@@ -17911,16 +17827,12 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@LoginId INT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS int)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_SystemId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de SystemId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
                 THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_DatabaseId IS NULL
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord é requerido.', 1
             IF @W_DatabaseId < CAST('1' AS int)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_DatabaseId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord inexiste em Databases', 1
             IF @W_Description IS NULL
@@ -18226,22 +18138,16 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_SystemId IS NOT NULL BEGIN
             IF @W_SystemId < CAST('1' AS int)
                 THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-            IF @W_SystemId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
         END
         IF @W_DatabaseId IS NOT NULL BEGIN
             IF @W_DatabaseId < CAST('1' AS int)
                 THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
-            IF @W_DatabaseId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de DatabaseId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[DatabaseId] = @DatabaseId'
         END
         IF @W_Description IS NOT NULL BEGIN
@@ -18310,8 +18216,8 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -18373,8 +18279,6 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Tables', 1
@@ -18432,16 +18336,12 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId INT
                 THROW 51000, 'Valor de Description em @ActualRecord é requerido.', 1
             IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('0' AS int)
                 THROW 51000, 'Valor de ParentTableId em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de ParentTableId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF @W_IsPaged IS NULL
                 THROW 51000, 'Valor de IsPaged em @ActualRecord é requerido.', 1
             IF @W_CurrentId IS NULL
                 THROW 51000, 'Valor de CurrentId em @ActualRecord é requerido.', 1
             IF @W_CurrentId < CAST('0' AS int)
                 THROW 51000, 'Valor de CurrentId em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF @W_CurrentId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de CurrentId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_Tables_Name já existe', 1
@@ -18758,8 +18658,6 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_Name IS NOT NULL BEGIN
@@ -18840,8 +18738,8 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -18903,8 +18801,6 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em DatabasesTables', 1
@@ -18940,16 +18836,12 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@LoginId INT
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord é requerido.', 1
             IF @W_DatabaseId < CAST('1' AS int)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_DatabaseId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord inexiste em Databases', 1
             IF @W_TableId IS NULL
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS int)
                 THROW 51000, 'Valor de TableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_TableId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de TableId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
                 THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Description IS NULL
@@ -19255,22 +19147,16 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_DatabaseId IS NOT NULL BEGIN
             IF @W_DatabaseId < CAST('1' AS int)
                 THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
-            IF @W_DatabaseId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de DatabaseId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[DatabaseId] = @DatabaseId'
         END
         IF @W_TableId IS NOT NULL BEGIN
             IF @W_TableId < CAST('1' AS int)
                 THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-            IF @W_TableId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de TableId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[TableId] = @TableId'
         END
         IF @W_Description IS NOT NULL BEGIN
@@ -19339,8 +19225,8 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -19402,8 +19288,6 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Columns', 1
@@ -19493,28 +19377,20 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId INT
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS int)
                 THROW 51000, 'Valor de TableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_TableId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de TableId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
                 THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
             IF @W_Sequence < CAST('1' AS smallint)
                 THROW 51000, 'Valor de Sequence em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_Sequence > CAST('32767' AS smallint)
-                THROW 51000, 'Valor de Sequence em @ActualRecord deve ser menor que ou igual a 32767', 1
             IF @W_DomainId IS NULL
                 THROW 51000, 'Valor de DomainId em @ActualRecord é requerido.', 1
             IF @W_DomainId < CAST('1' AS int)
                 THROW 51000, 'Valor de DomainId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_DomainId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de DomainId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId)
                 THROW 51000, 'Valor de DomainId em @ActualRecord inexiste em Domains', 1
             IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS int)
                 THROW 51000, 'Valor de ReferenceTableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de ReferenceTableId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ReferenceTableId)
                 THROW 51000, 'Valor de ReferenceTableId em @ActualRecord inexiste em Tables', 1
             IF @W_Name IS NULL
@@ -19921,29 +19797,21 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_TableId IS NOT NULL BEGIN
             IF @W_TableId < CAST('1' AS int)
                 THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-            IF @W_TableId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de TableId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[TableId] = @TableId'
         END
         IF @W_DomainId IS NOT NULL BEGIN
             IF @W_DomainId < CAST('1' AS int)
                 THROW 51000, 'Valor de DomainId deve ser maior que ou igual a ''1''', 1
-            IF @W_DomainId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de DomainId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[DomainId] = @DomainId'
         END
         IF @W_ReferenceTableId IS NOT NULL BEGIN
             IF @W_ReferenceTableId < CAST('1' AS int)
                 THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual a ''1''', 1
-            IF @W_ReferenceTableId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de ReferenceTableId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[ReferenceTableId] = @ReferenceTableId'
         END
         IF @W_Name IS NOT NULL BEGIN
@@ -20083,8 +19951,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -20146,8 +20014,6 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Indexes', 1
@@ -20189,16 +20055,12 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId INT
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord é requerido.', 1
             IF @W_DatabaseId < CAST('1' AS int)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_DatabaseId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord inexiste em Databases', 1
             IF @W_TableId IS NULL
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS int)
                 THROW 51000, 'Valor de TableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_TableId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de TableId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
                 THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Name IS NULL
@@ -20507,15 +20369,11 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_TableId IS NOT NULL BEGIN
             IF @W_TableId < CAST('1' AS int)
                 THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-            IF @W_TableId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de TableId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[TableId] = @TableId'
         END
         IF @W_Name IS NOT NULL BEGIN
@@ -20589,8 +20447,8 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -20652,8 +20510,6 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Indexkeys', 1
@@ -20692,22 +20548,16 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId INT
                 THROW 51000, 'Valor de IndexId em @ActualRecord é requerido.', 1
             IF @W_IndexId < CAST('1' AS int)
                 THROW 51000, 'Valor de IndexId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_IndexId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de IndexId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId)
                 THROW 51000, 'Valor de IndexId em @ActualRecord inexiste em Indexes', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
             IF @W_Sequence < CAST('1' AS smallint)
                 THROW 51000, 'Valor de Sequence em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_Sequence > CAST('32767' AS smallint)
-                THROW 51000, 'Valor de Sequence em @ActualRecord deve ser menor que ou igual a 32767', 1
             IF @W_ColumnId IS NULL
                 THROW 51000, 'Valor de ColumnId em @ActualRecord é requerido.', 1
             IF @W_ColumnId < CAST('1' AS int)
                 THROW 51000, 'Valor de ColumnId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_ColumnId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de ColumnId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId)
                 THROW 51000, 'Valor de ColumnId em @ActualRecord inexiste em Columns', 1
             IF @W_IsDescending IS NULL
@@ -21018,22 +20868,16 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_IndexId IS NOT NULL BEGIN
             IF @W_IndexId < CAST('1' AS int)
                 THROW 51000, 'Valor de IndexId deve ser maior que ou igual a ''1''', 1
-            IF @W_IndexId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de IndexId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[IndexId] = @IndexId'
         END
         IF @W_ColumnId IS NOT NULL BEGIN
             IF @W_ColumnId < CAST('1' AS int)
                 THROW 51000, 'Valor de ColumnId deve ser maior que ou igual a ''1''', 1
-            IF @W_ColumnId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de ColumnId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[ColumnId] = @ColumnId'
         END
         IF @W_IsDescending IS NOT NULL BEGIN
@@ -21104,8 +20948,8 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
@@ -21167,8 +21011,6 @@ ALTER PROCEDURE [dbo].[LoginValidate](@LoginId INT
         END
         IF @W_Id < CAST('1' AS int)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_Id < CAST('2147483647' AS int)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a 2147483647', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Logins', 1
@@ -21207,16 +21049,12 @@ ALTER PROCEDURE [dbo].[LoginValidate](@LoginId INT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS int)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_SystemId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de SystemId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
                 THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_UserId IS NULL
                 THROW 51000, 'Valor de UserId em @ActualRecord é requerido.', 1
             IF @W_UserId < CAST('1' AS int)
                 THROW 51000, 'Valor de UserId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_UserId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de UserId em @ActualRecord deve ser menor que ou igual a 2147483647', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId)
                 THROW 51000, 'Valor de UserId em @ActualRecord inexiste em Users', 1
             IF @W_PublicKey IS NULL
@@ -21519,22 +21357,16 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
         IF @W_Id IS NOT NULL BEGIN
             IF @W_Id < CAST('1' AS int)
                 THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            IF @W_Id > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de Id deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[Id] = @Id'
         END
         IF @W_SystemId IS NOT NULL BEGIN
             IF @W_SystemId < CAST('1' AS int)
                 THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-            IF @W_SystemId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de SystemId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
         END
         IF @W_UserId IS NOT NULL BEGIN
             IF @W_UserId < CAST('1' AS int)
                 THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
-            IF @W_UserId > CAST('2147483647' AS int)
-                THROW 51000, 'Valor de UserId deve ser menor que ou igual a ''2147483647''', 1
             SET @Where = @Where + ' AND [T].[UserId] = @UserId'
         END
         IF @W_IsLogged IS NOT NULL BEGIN
@@ -21605,8 +21437,8 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
                     OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                     FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50), @Offset INT, @LimitRows INT',
-                           @ClassName = @ClassName, @OffSet = @OffSet, @LimitRows = @LimitRows
+                           N'@ClassName NVARCHAR(50)',
+                           @ClassName = @ClassName
 
         RETURN @RowCount
     END TRY
