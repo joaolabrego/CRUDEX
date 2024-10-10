@@ -10,6 +10,7 @@
         public readonly string Insert;
         public readonly string Edit;
         public readonly string Filter;
+        public readonly string Unfilter;
         public readonly string Delete;
         public readonly string Query;
         public readonly string Exit;
@@ -26,6 +27,7 @@
             Insert = ReadImageFile(Path.Combine(directory, $"{Settings.Get("INSERT_IMAGE")}"), true);
             Edit = ReadImageFile(Path.Combine(directory, $"{Settings.Get("EDIT_IMAGE")}"), true);
             Filter = ReadImageFile(Path.Combine(directory, $"{Settings.Get("FILTER_IMAGE")}"), true);
+            Unfilter = ReadImageFile(Path.Combine(directory, $"{Settings.Get("UNFILTER_IMAGE")}"), true);
             Delete = ReadImageFile(Path.Combine(directory, $"{Settings.Get("DELETE_IMAGE")}"), true);
             Query = ReadImageFile(Path.Combine(directory, $"{Settings.Get("ZOOM_IMAGE")}"), true);
             Exit = ReadImageFile(Path.Combine(directory, $"{Settings.Get("EXIT_IMAGE")}"), true);

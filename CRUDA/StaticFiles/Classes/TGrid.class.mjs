@@ -29,6 +29,7 @@ export default class TGrid {
         DeleteButton: null,
         QueryButton: null,
         FilterButton: null,
+        UnfilterButton: null,
         ExitButton: null,
         SelectedRow: null,
     }
@@ -38,6 +39,7 @@ export default class TGrid {
         Insert: "",
         Edit: "",
         Filter: "",
+        UnFilter: "",
         Delete: "",
         Query: "",
         Exit: "",
@@ -80,12 +82,24 @@ export default class TGrid {
         this.#Images.Edit = images.Edit
         this.#Images.Exit = images.Exit
         this.#Images.Filter = images.Filter
+        this.#Images.Unfilter = images.Unfilter
         this.#Images.Insert = images.Insert
     }
     SaveFilters(record) {
         for (let key in this.#FilterValues)
             if (record.hasOwnProperty(key))
                 this.#FilterValues[key] = TConfig.IsEmpty(record[key]) ? null : record[key]
+    }
+    ClearFilters() {
+        for (let key in this.#FilterValues)
+            this.#FilterValues[key] = null
+    }
+    IsFiltered() {
+        for (let key in this.#FilterValues)
+            if (this.#FilterValues[key] != null)
+                return true
+
+        return false;
     }
     async #ReadDataPage(pageNumber) {
         let parameters = {
@@ -262,6 +276,7 @@ export default class TGrid {
     #BuildHtmlFoot() {
         let tr = document.createElement("tr"),
             th = document.createElement("th"),
+            filtered = this.IsFiltered(),
             label
 
         th.colSpan = this.#Table.Columns.length.toString()
@@ -368,6 +383,7 @@ export default class TGrid {
         this.#HTML.FilterButton.type = "button"
         this.#HTML.FilterButton.style.backgroundImage = TGrid.#Images.Filter
         this.#HTML.FilterButton.title = "Filtragem de registros"
+        this.#HTML.FilterButton.hidden = !filtered && this.#RowCount <= TSystem.RowsPerPage
         this.#HTML.FilterButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.FilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.FilterButton.onclick = () => {
@@ -378,6 +394,19 @@ export default class TGrid {
                 })
         }
         th.appendChild(this.#HTML.FilterButton)
+
+        this.#HTML.UnfilterButton = document.createElement("button")
+        this.#HTML.UnfilterButton.type = "button"
+        this.#HTML.UnfilterButton.style.backgroundImage = TGrid.#Images.Unfilter
+        this.#HTML.UnfilterButton.title = "Cancelar filtragem de registros"
+        this.#HTML.UnfilterButton.hidden = !filtered
+        this.#HTML.UnfilterButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
+        this.#HTML.UnfilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
+        this.#HTML.UnfilterButton.onclick = () => {
+            this.ClearFilters()
+            this.Renderize(this.#PageNumber)
+        }
+        th.appendChild(this.#HTML.UnfilterButton)
 
         this.#HTML.ExitButton = document.createElement("button")
         this.#HTML.ExitButton.type = "button"

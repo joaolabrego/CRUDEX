@@ -2141,7 +2141,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('2' AS tinyint)
                                 ,CAST('numeric' AS nvarchar(25))
-                                ,CAST('number' AS nvarchar(10))
+                                ,CAST('text' AS nvarchar(10))
                                 ,CAST('right' AS nvarchar(6))
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)

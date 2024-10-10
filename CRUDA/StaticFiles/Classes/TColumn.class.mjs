@@ -33,7 +33,7 @@ export default class TColumn {
     #Table = null
     #Domain = null
     #InputControl = null
-    #CheckBoxControl = null
+    //#CheckBoxControl = null
 
     constructor(table, rowColumn) {
         if (table.ClassName !== "TTable")

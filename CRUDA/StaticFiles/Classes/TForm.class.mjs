@@ -120,7 +120,7 @@ export default class TForm {
 
         control.type = column.Domain.Type.Category.HtmlInputType
         control.size = column.Domain.Length ?? 20
-        control.maxLength = column.Domain.Length
+        control.maxLength = column.Domain.Length ?? 20
 
         return control
     }
@@ -151,6 +151,7 @@ export default class TForm {
             this.#Record[column.Name] = TConfig.IsEmpty(value) ? null : value
         }
         control.name = column.Name
+        control.Column = column
         control.onfocus = (event) => event.target.select()
         control.value = this.#Record[column.Name]
         control.readOnly = action === TActions.DELETE || action === TActions.QUERY
