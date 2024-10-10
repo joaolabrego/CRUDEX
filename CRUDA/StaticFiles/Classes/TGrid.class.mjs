@@ -404,7 +404,7 @@ export default class TGrid {
         this.#HTML.UnfilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.UnfilterButton.onclick = () => {
             this.ClearFilters()
-            this.Renderize(this.#PageNumber)
+            this.Renderize()
         }
         th.appendChild(this.#HTML.UnfilterButton)
 
