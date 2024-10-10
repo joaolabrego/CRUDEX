@@ -31,11 +31,5 @@ namespace CRUDA_LIB
         {
             return Environment.GetEnvironmentVariable(key) ?? app.Configuration[key] ?? string.Empty;
         }
-        public static string GetStaticFile(string filename)
-        {
-            var path = Path.Combine(builder.Environment.ContentRootPath, "StaticFiles");
-
-            return Path.Combine(path, filename);
-        }
     }
 }
