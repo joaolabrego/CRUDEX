@@ -87,17 +87,6 @@ export default class TGrid {
             if (record.hasOwnProperty(key))
                 this.#FilterValues[key] = TConfig.IsEmpty(record[key]) ? null : record[key]
     }
-    #OnChangeInput = (event) => {
-        let control = event.target.className === "NumberInput" ? this.#HTML.RangeInput : this.#HTML.NumberInput
-
-        if (Number(event.target.value) > this.#PageCount)
-            event.target.value = this.#PageCount.toString()
-        else if (Number(event.target.value) < 1) {
-            event.target.value = "1"
-        }
-        control.value = event.target.value
-        this.Renderize(Number(event.target.value))
-    }
     async #ReadDataPage(pageNumber) {
         let parameters = {
             DatabaseName: this.#Table.Database.Name,
@@ -232,7 +221,6 @@ export default class TGrid {
         tr.title = this.#OrderBy === "" ? "" : `Ordenação: ${this.OrderBy}`
         this.#HTML.Head.appendChild(tr)
     }
-
     #BuildHtmlBody(dataPage) {
         this.#HTML.Body.innerHTML = null
         dataPage.forEach((row, index) => {
@@ -260,7 +248,16 @@ export default class TGrid {
                 tr.click()
         })
     }
+    #OnChangeInput = (event) => {
+        let value = Number(event.target.value)
 
+        if (value > this.#PageCount)
+            event.target.value = this.#PageCount.toString()
+        else if (value < 1)
+            event.target.value = "1"
+        (event.target.className === "numberInput" ? this.#HTML.RangeInput : this.#HTML.NumberInput).value = event.target.value
+        this.Renderize(value)
+    }
     #BuildHtmlFoot() {
         let tr = document.createElement("tr"),
             th = document.createElement("th"),
@@ -275,7 +272,6 @@ export default class TGrid {
             th.appendChild(label)
 
             this.#HTML.NumberInput = document.createElement("input")
-            this.#HTML.NumberInput.id = "NumberInput"
             this.#HTML.NumberInput.style.float = "left"
             this.#HTML.NumberInput.className = "numberInput"
             this.#HTML.NumberInput.type = "number"
@@ -294,7 +290,6 @@ export default class TGrid {
             th.appendChild(label)
 
             this.#HTML.RangeInput = document.createElement("input")
-            this.#HTML.RangeInput.id = "RangeInput"
             this.#HTML.RangeInput.style.float = "left"
             this.#HTML.RangeInput.className = "rangeInput"
             this.#HTML.RangeInput.type = "range"

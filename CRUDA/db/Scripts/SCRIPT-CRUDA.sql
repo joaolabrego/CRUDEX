@@ -5218,7 +5218,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Índices' AS nvarchar(50))
                                 ,CAST('11' AS int)
                                 ,CAST('1' AS bit)
-                                ,CAST('23' AS int)
+                                ,CAST('24' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5241,7 +5241,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Chaves de índices' AS nvarchar(50))
                                 ,CAST('14' AS int)
                                 ,CAST('1' AS bit)
-                                ,CAST('34' AS int)
+                                ,CAST('36' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
