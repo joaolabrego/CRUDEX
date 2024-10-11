@@ -6663,7 +6663,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -6714,7 +6714,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -6765,7 +6765,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -6816,7 +6816,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -10539,7 +10539,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -10590,7 +10590,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -10641,7 +10641,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -10692,7 +10692,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -10743,7 +10743,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -10794,7 +10794,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'

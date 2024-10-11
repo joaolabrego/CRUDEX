@@ -101,6 +101,17 @@ export default class TGrid {
 
         return false;
     }
+    Filter() {
+        var filter = ""
+
+        for (let key in this.#FilterValues) {
+            let value = this.#FilterValues[key]
+
+            if (value !== null)
+                filter += `${(filter === "" ? "" : " AND ")}${key} = '${value}'`
+        }
+        return filter;
+    }
     async #ReadDataPage(pageNumber) {
         let parameters = {
             DatabaseName: this.#Table.Database.Name,
@@ -398,7 +409,7 @@ export default class TGrid {
         this.#HTML.UnfilterButton = document.createElement("button")
         this.#HTML.UnfilterButton.type = "button"
         this.#HTML.UnfilterButton.style.backgroundImage = TGrid.#Images.Unfilter
-        this.#HTML.UnfilterButton.title = "Cancelar filtragem de registros"
+        this.#HTML.UnfilterButton.title = filtered ? `Cancelar filtragem de registros (${this.Filter()})"` : ""
         this.#HTML.UnfilterButton.hidden = !filtered
         this.#HTML.UnfilterButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.UnfilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage

@@ -14,7 +14,6 @@
             static #numericMask = "#"
             static #alphabeticMask = "@"
             static #alphanumericMask = "*"
-            static #anyMask = "&"
             static #dayMask = "d"
             static #monthMask = "M"
             static #yearMask = "y"
@@ -24,7 +23,6 @@
             static #allMasks = this.#numericMask +
                 this.#alphabeticMask +
                 this.#alphanumericMask +
-                this.anyMask +
                 this.#dayMask +
                 this.#monthMask +
                 this.#yearMask +
@@ -60,6 +58,7 @@
 
                 let rawMask = mask.replace(new RegExp(`[^${this.#allMasks}]`, "g"), "")
 
+                value = value.replace(/[^0-9A-Za-z]/g, "")
                 if (options.indexOf("upper") > -1)
                     value = value.toUpperCase()
                 else if (options.indexOf("lower") > -1)
@@ -82,10 +81,6 @@
                             result += value[i++]
                         else
                             break
-                    }
-                    else if (mask[j] === this.#anyMask) {
-                        result += value[i++]
-                        console.log(result)
                     }
                     else if (mask[j] === this.#dayMask) {
                         let indexDay = rawMask.indexOf(mask[j])
@@ -260,8 +255,8 @@
                 if (scale) {
                     floatingpoint = mask.length
                     mask += this.#decimalSeparator + "#".repeat(scale)
-                    decimalswithcomma = mask.length - floatingpoint
                 }
+                decimalswithcomma = floatingpoint === -1 ? 0 : mask.length - floatingpoint
                 if (value[0] === this.#minusSignal) {
                     signal = value.at(-1) === this.#minusSignal ? "" : this.#minusSignal
                     value = value.slice(1)
@@ -283,7 +278,7 @@
                     this.toFloat(result)
                 }
                 else
-                    result = "0," + "0".repeat(decimalswithcomma - 1)
+                    result = ""
 
                 return result
             }
@@ -320,19 +315,6 @@
                     seconds = Number(value.slice(12, 14))
 
                 return new Date(year, month - 1, day, hours, minutes, seconds)
-            }
-
-            static toTime(value) {
-                value = value.replace(/\D/g, "")
-
-                let day = Number(value.slice(0, 2)),
-                    month = Number(value.slice(2, 4)),
-                    year = Number(value.slice(4, 8)),
-                    hours = Number(value.slice(8, 10)),
-                    minutes = Number(value.slice(10, 12)),
-                    seconds = Number(value.slice(12, 14))
-
-                return new Date(1, 0, 1, hours, minutes, seconds)
             }
 
             static checkDigitParameters = {
@@ -423,12 +405,6 @@
     <br><br>
     <label>PLACA DE VEÍCULO MERCOSUL (AAA9A99):</label>
     <input type="text" style="text-align:left;" oninput="TMask.formatValueInput(this,'@@@#@##','lower')">
-    <br><br>
-    <label>LOGIN</label>
-    <input type="text" style="text-align:left;" oninput="TMask.formatValueInput(this,'*************************','lower')">
-    <br><br>
-    <label>QUALQUER</label>
-    <input type="text" style="text-align:left;" oninput="TMask.formatValueInput(this,'&&&&&&&&&&&&&&&&&&&&','lower')">
     <br><br>
     <script>
         function validateCpfCnpj(input) {
