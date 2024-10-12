@@ -253,6 +253,7 @@ BEGIN
 					,[T].[Id]
 					,[T].[CategoryId]
 					,[T].[Name]
+					,[T].[MaxLength]
 				    ,[T].[Minimum]
 					,[T].[Maximum]
 					,[T].[AskLength]
@@ -1570,6 +1571,7 @@ IF (SELECT object_id('[dbo].[Types]', 'U')) IS NOT NULL
 CREATE TABLE [dbo].[Types]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
                                     ,[CategoryId] tinyint NOT NULL
                                     ,[Name] nvarchar(25) NOT NULL
+                                    ,[MaxLength] int NULL CHECK ([MaxLength] >= CAST('1' AS int))
                                     ,[Minimum] nvarchar(MAX) NULL
                                     ,[Maximum] nvarchar(MAX) NULL
                                     ,[AskLength] bit NOT NULL
@@ -2392,6 +2394,7 @@ Inserir dados na tabela [dbo].[Types]
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2411,6 +2414,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('1' AS tinyint)
                                 ,CAST('2' AS tinyint)
                                 ,CAST('bigint' AS nvarchar(25))
+                                ,CAST('15' AS int)
                                 ,CAST('-9007199254740990' AS nvarchar(MAX))
                                 ,CAST('9007199254740990' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -2431,6 +2435,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2452,6 +2457,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('binary' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -2470,6 +2476,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2491,6 +2498,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('bit' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -2509,6 +2517,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2530,6 +2539,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('char' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -2548,6 +2558,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2567,6 +2578,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('5' AS tinyint)
                                 ,CAST('3' AS tinyint)
                                 ,CAST('date' AS nvarchar(25))
+                                ,CAST('10' AS int)
                                 ,CAST('01/01/0001' AS nvarchar(MAX))
                                 ,CAST('31/12/9999' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -2587,6 +2599,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2606,6 +2619,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('6' AS tinyint)
                                 ,CAST('4' AS tinyint)
                                 ,CAST('datetime' AS nvarchar(25))
+                                ,CAST('20' AS int)
                                 ,CAST('01/01/1753 00:00:00.000' AS nvarchar(MAX))
                                 ,CAST('31/12/9999 23:59:59.997' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -2626,6 +2640,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2645,6 +2660,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('7' AS tinyint)
                                 ,CAST('4' AS tinyint)
                                 ,CAST('datetime2' AS nvarchar(25))
+                                ,CAST('25' AS int)
                                 ,CAST('01/01/0001 00:00:00.0000000' AS nvarchar(MAX))
                                 ,CAST('31/12/9999 23:59:59.9999999' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -2665,6 +2681,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2684,6 +2701,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('8' AS tinyint)
                                 ,CAST('4' AS tinyint)
                                 ,CAST('datetimeoffset' AS nvarchar(25))
+                                ,CAST('25' AS int)
                                 ,CAST('01/01/0001 00:00:00.0000000' AS nvarchar(MAX))
                                 ,CAST('31/12/9999 23:59:59.9999999' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -2704,6 +2722,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2723,6 +2742,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('9' AS tinyint)
                                 ,CAST('2' AS tinyint)
                                 ,CAST('decimal' AS nvarchar(25))
+                                ,CAST('15' AS int)
                                 ,CAST('-9007199254740990' AS nvarchar(MAX))
                                 ,CAST('9007199254740990' AS nvarchar(MAX))
                                 ,CAST('1' AS bit)
@@ -2743,6 +2763,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2762,6 +2783,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('10' AS tinyint)
                                 ,CAST('2' AS tinyint)
                                 ,CAST('float' AS nvarchar(25))
+                                ,CAST('15' AS int)
                                 ,CAST('-9007199254740990' AS nvarchar(MAX))
                                 ,CAST('9007199254740990' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -2782,6 +2804,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2803,6 +2826,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('geography' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -2821,6 +2845,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2842,6 +2867,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('geometry' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -2860,6 +2886,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2881,6 +2908,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('hierarchyid' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -2899,6 +2927,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2920,6 +2949,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('image' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -2938,6 +2968,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2957,6 +2988,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('15' AS tinyint)
                                 ,CAST('2' AS tinyint)
                                 ,CAST('int' AS nvarchar(25))
+                                ,CAST('10' AS int)
                                 ,CAST('-2147483648' AS nvarchar(MAX))
                                 ,CAST('2147483647' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -2977,6 +3009,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -2996,6 +3029,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('16' AS tinyint)
                                 ,CAST('2' AS tinyint)
                                 ,CAST('money' AS nvarchar(25))
+                                ,CAST('15' AS int)
                                 ,CAST('-922337203685477' AS nvarchar(MAX))
                                 ,CAST('922337203685477' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -3016,6 +3050,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3037,6 +3072,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('nchar' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -3055,6 +3091,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3076,6 +3113,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('ntext' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -3094,6 +3132,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3113,6 +3152,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('19' AS tinyint)
                                 ,CAST('2' AS tinyint)
                                 ,CAST('numeric' AS nvarchar(25))
+                                ,CAST('15' AS int)
                                 ,CAST('-9007199254740990' AS nvarchar(MAX))
                                 ,CAST('9007199254740990' AS nvarchar(MAX))
                                 ,CAST('1' AS bit)
@@ -3133,6 +3173,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3154,6 +3195,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('nvarchar' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -3172,6 +3214,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3191,6 +3234,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('21' AS tinyint)
                                 ,CAST('2' AS tinyint)
                                 ,CAST('real' AS nvarchar(25))
+                                ,CAST('15' AS int)
                                 ,CAST('-9007199254740990' AS nvarchar(MAX))
                                 ,CAST('9007199254740990' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -3211,6 +3255,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3230,6 +3275,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('22' AS tinyint)
                                 ,CAST('4' AS tinyint)
                                 ,CAST('smalldatetime' AS nvarchar(25))
+                                ,CAST('10' AS int)
                                 ,CAST('01/01/1900' AS nvarchar(MAX))
                                 ,CAST('06/06/2079' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -3250,6 +3296,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3269,6 +3316,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('23' AS tinyint)
                                 ,CAST('2' AS tinyint)
                                 ,CAST('smallint' AS nvarchar(25))
+                                ,CAST('5' AS int)
                                 ,CAST('-32768' AS nvarchar(MAX))
                                 ,CAST('32767' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -3289,6 +3337,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3308,6 +3357,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('24' AS tinyint)
                                 ,CAST('2' AS tinyint)
                                 ,CAST('smallmoney' AS nvarchar(25))
+                                ,CAST('5' AS int)
                                 ,CAST('214748' AS nvarchar(MAX))
                                 ,CAST('214748' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -3328,6 +3378,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3349,6 +3400,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('sql_variant' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -3367,6 +3419,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3388,6 +3441,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('sysname' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -3406,6 +3460,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3427,6 +3482,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('text' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -3445,6 +3501,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3464,6 +3521,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('28' AS tinyint)
                                 ,CAST('6' AS tinyint)
                                 ,CAST('time' AS nvarchar(25))
+                                ,CAST('15' AS int)
                                 ,CAST('00:00:00.0000000' AS nvarchar(MAX))
                                 ,CAST('23:59:59.9999999' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -3484,6 +3542,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3505,6 +3564,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('timestamp' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -3523,6 +3583,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3542,6 +3603,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('30' AS tinyint)
                                 ,CAST('2' AS tinyint)
                                 ,CAST('tinyint' AS nvarchar(25))
+                                ,CAST('3' AS int)
                                 ,CAST('0' AS nvarchar(MAX))
                                 ,CAST('255' AS nvarchar(MAX))
                                 ,CAST('0' AS bit)
@@ -3562,6 +3624,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3583,6 +3646,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('uniqueidentifier' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -3601,6 +3665,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3622,6 +3687,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('varbinary' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -3640,6 +3706,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3661,6 +3728,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('varchar' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -3679,6 +3747,7 @@ GO
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
+                                ,[MaxLength]
                                 ,[Minimum]
                                 ,[Maximum]
                                 ,[AskLength]
@@ -3698,6 +3767,7 @@ INSERT INTO [dbo].[Types] ([Id]
                          VALUES (CAST('34' AS tinyint)
                                 ,CAST('7' AS tinyint)
                                 ,CAST('xml' AS nvarchar(25))
+                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
@@ -5195,7 +5265,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Colunas' AS nvarchar(50))
                                 ,CAST('11' AS int)
                                 ,CAST('1' AS bit)
-                                ,CAST('123' AS int)
+                                ,CAST('124' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6239,6 +6309,57 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('14' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('20' AS smallint)
+                                ,CAST('2' AS int)
+                                ,NULL
+                                ,CAST('MaxLength' AS nvarchar(25))
+                                ,CAST('Tamanho máximo' AS nvarchar(50))
+                                ,CAST('Tamanho máximo' AS nvarchar(25))
+                                ,CAST('Tamanho máximo' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS nvarchar(MAX))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('15' AS int)
+                                ,CAST('2' AS int)
+                                ,CAST('25' AS smallint)
                                 ,CAST('17' AS int)
                                 ,NULL
                                 ,CAST('Minimum' AS nvarchar(25))
@@ -6287,9 +6408,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('15' AS int)
+                         VALUES (CAST('16' AS int)
                                 ,CAST('2' AS int)
-                                ,CAST('25' AS smallint)
+                                ,CAST('30' AS smallint)
                                 ,CAST('17' AS int)
                                 ,NULL
                                 ,CAST('Maximum' AS nvarchar(25))
@@ -6338,9 +6459,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('16' AS int)
+                         VALUES (CAST('17' AS int)
                                 ,CAST('2' AS int)
-                                ,CAST('30' AS smallint)
+                                ,CAST('35' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskLength' AS nvarchar(25))
@@ -6389,9 +6510,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('17' AS int)
+                         VALUES (CAST('18' AS int)
                                 ,CAST('2' AS int)
-                                ,CAST('35' AS smallint)
+                                ,CAST('40' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskDecimals' AS nvarchar(25))
@@ -6440,9 +6561,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('18' AS int)
+                         VALUES (CAST('19' AS int)
                                 ,CAST('2' AS int)
-                                ,CAST('40' AS smallint)
+                                ,CAST('45' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskPrimarykey' AS nvarchar(25))
@@ -6491,9 +6612,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('19' AS int)
+                         VALUES (CAST('20' AS int)
                                 ,CAST('2' AS int)
-                                ,CAST('45' AS smallint)
+                                ,CAST('50' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskAutoincrement' AS nvarchar(25))
@@ -6542,9 +6663,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('20' AS int)
+                         VALUES (CAST('21' AS int)
                                 ,CAST('2' AS int)
-                                ,CAST('50' AS smallint)
+                                ,CAST('55' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskFilterable' AS nvarchar(25))
@@ -6593,9 +6714,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('21' AS int)
+                         VALUES (CAST('22' AS int)
                                 ,CAST('2' AS int)
-                                ,CAST('55' AS smallint)
+                                ,CAST('60' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskGridable' AS nvarchar(25))
@@ -6644,9 +6765,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('22' AS int)
+                         VALUES (CAST('23' AS int)
                                 ,CAST('2' AS int)
-                                ,CAST('60' AS smallint)
+                                ,CAST('65' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskCodification' AS nvarchar(25))
@@ -6695,9 +6816,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('23' AS int)
+                         VALUES (CAST('24' AS int)
                                 ,CAST('2' AS int)
-                                ,CAST('65' AS smallint)
+                                ,CAST('70' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskFormula' AS nvarchar(25))
@@ -6746,9 +6867,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('24' AS int)
+                         VALUES (CAST('25' AS int)
                                 ,CAST('2' AS int)
-                                ,CAST('70' AS smallint)
+                                ,CAST('75' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AllowMaxLength' AS nvarchar(25))
@@ -6797,9 +6918,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('25' AS int)
+                         VALUES (CAST('26' AS int)
                                 ,CAST('2' AS int)
-                                ,CAST('75' AS smallint)
+                                ,CAST('80' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('IsActive' AS nvarchar(25))
@@ -6848,7 +6969,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('26' AS int)
+                         VALUES (CAST('27' AS int)
                                 ,CAST('3' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -6899,7 +7020,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('27' AS int)
+                         VALUES (CAST('28' AS int)
                                 ,CAST('3' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS int)
@@ -6950,7 +7071,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('28' AS int)
+                         VALUES (CAST('29' AS int)
                                 ,CAST('3' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('12' AS int)
@@ -7001,7 +7122,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('29' AS int)
+                         VALUES (CAST('30' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -7052,7 +7173,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('30' AS int)
+                         VALUES (CAST('31' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('5' AS int)
@@ -7103,7 +7224,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('31' AS int)
+                         VALUES (CAST('32' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('2' AS int)
@@ -7154,7 +7275,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('32' AS int)
+                         VALUES (CAST('33' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('9' AS int)
@@ -7205,7 +7326,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('33' AS int)
+                         VALUES (CAST('34' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('4' AS int)
@@ -7256,7 +7377,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('34' AS int)
+                         VALUES (CAST('35' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('5' AS int)
@@ -7307,7 +7428,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('35' AS int)
+                         VALUES (CAST('36' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('35' AS smallint)
                                 ,CAST('12' AS int)
@@ -7358,7 +7479,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('36' AS int)
+                         VALUES (CAST('37' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('40' AS smallint)
                                 ,CAST('17' AS int)
@@ -7409,7 +7530,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('37' AS int)
+                         VALUES (CAST('38' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('45' AS smallint)
                                 ,CAST('17' AS int)
@@ -7460,7 +7581,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('38' AS int)
+                         VALUES (CAST('39' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('50' AS smallint)
                                 ,CAST('17' AS int)
@@ -7511,7 +7632,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('39' AS int)
+                         VALUES (CAST('40' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('55' AS smallint)
                                 ,CAST('18' AS int)
@@ -7562,7 +7683,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('40' AS int)
+                         VALUES (CAST('41' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -7613,7 +7734,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('41' AS int)
+                         VALUES (CAST('42' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS int)
@@ -7664,7 +7785,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('42' AS int)
+                         VALUES (CAST('43' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('10' AS int)
@@ -7715,7 +7836,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('43' AS int)
+                         VALUES (CAST('44' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('7' AS int)
@@ -7766,7 +7887,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('44' AS int)
+                         VALUES (CAST('45' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('5' AS int)
@@ -7817,7 +7938,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('45' AS int)
+                         VALUES (CAST('46' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS int)
@@ -7868,7 +7989,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('46' AS int)
+                         VALUES (CAST('47' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -7919,7 +8040,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('47' AS int)
+                         VALUES (CAST('48' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -7970,7 +8091,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('48' AS int)
+                         VALUES (CAST('49' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS int)
@@ -8021,7 +8142,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('49' AS int)
+                         VALUES (CAST('50' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('8' AS int)
@@ -8072,7 +8193,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('50' AS int)
+                         VALUES (CAST('51' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('10' AS int)
@@ -8123,7 +8244,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('51' AS int)
+                         VALUES (CAST('52' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('10' AS int)
@@ -8174,7 +8295,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('52' AS int)
+                         VALUES (CAST('53' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('35' AS smallint)
                                 ,CAST('2' AS int)
@@ -8225,7 +8346,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('53' AS int)
+                         VALUES (CAST('54' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -8276,7 +8397,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('54' AS int)
+                         VALUES (CAST('55' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS int)
@@ -8327,7 +8448,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('55' AS int)
+                         VALUES (CAST('56' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('11' AS int)
@@ -8378,7 +8499,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('56' AS int)
+                         VALUES (CAST('57' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
@@ -8429,7 +8550,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('57' AS int)
+                         VALUES (CAST('58' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('5' AS int)
@@ -8480,7 +8601,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('58' AS int)
+                         VALUES (CAST('59' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS int)
@@ -8531,7 +8652,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('59' AS int)
+                         VALUES (CAST('60' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -8582,7 +8703,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('60' AS int)
+                         VALUES (CAST('61' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -8633,7 +8754,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('61' AS int)
+                         VALUES (CAST('62' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('2' AS int)
@@ -8684,7 +8805,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('62' AS int)
+                         VALUES (CAST('63' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
@@ -8735,7 +8856,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('63' AS int)
+                         VALUES (CAST('64' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -8786,7 +8907,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('64' AS int)
+                         VALUES (CAST('65' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS int)
@@ -8837,7 +8958,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('65' AS int)
+                         VALUES (CAST('66' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('10' AS int)
@@ -8888,7 +9009,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('66' AS int)
+                         VALUES (CAST('67' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('9' AS int)
@@ -8939,7 +9060,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('67' AS int)
+                         VALUES (CAST('68' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('10' AS int)
@@ -8990,7 +9111,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('68' AS int)
+                         VALUES (CAST('69' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('9' AS int)
@@ -9041,7 +9162,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('69' AS int)
+                         VALUES (CAST('70' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('35' AS smallint)
                                 ,CAST('3' AS int)
@@ -9092,7 +9213,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('70' AS int)
+                         VALUES (CAST('71' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('40' AS smallint)
                                 ,CAST('11' AS int)
@@ -9143,7 +9264,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('71' AS int)
+                         VALUES (CAST('72' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('45' AS smallint)
                                 ,CAST('11' AS int)
@@ -9194,7 +9315,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('72' AS int)
+                         VALUES (CAST('73' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('50' AS smallint)
                                 ,CAST('11' AS int)
@@ -9245,7 +9366,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('73' AS int)
+                         VALUES (CAST('74' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -9296,7 +9417,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('74' AS int)
+                         VALUES (CAST('75' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -9347,7 +9468,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('75' AS int)
+                         VALUES (CAST('76' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('2' AS int)
@@ -9398,7 +9519,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('76' AS int)
+                         VALUES (CAST('77' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
@@ -9449,7 +9570,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('77' AS int)
+                         VALUES (CAST('78' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -9500,7 +9621,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('78' AS int)
+                         VALUES (CAST('79' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS int)
@@ -9551,7 +9672,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('79' AS int)
+                         VALUES (CAST('80' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS int)
@@ -9602,7 +9723,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('80' AS int)
+                         VALUES (CAST('81' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
@@ -9653,7 +9774,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('81' AS int)
+                         VALUES (CAST('82' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('2' AS int)
@@ -9704,7 +9825,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('82' AS int)
+                         VALUES (CAST('83' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS int)
@@ -9755,7 +9876,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('83' AS int)
+                         VALUES (CAST('84' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('35' AS smallint)
                                 ,CAST('2' AS int)
@@ -9806,7 +9927,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('84' AS int)
+                         VALUES (CAST('85' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -9857,7 +9978,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('85' AS int)
+                         VALUES (CAST('86' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -9908,7 +10029,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('86' AS int)
+                         VALUES (CAST('87' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('2' AS int)
@@ -9959,7 +10080,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('87' AS int)
+                         VALUES (CAST('88' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
@@ -10010,7 +10131,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('88' AS int)
+                         VALUES (CAST('89' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -10061,7 +10182,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('89' AS int)
+                         VALUES (CAST('90' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -10112,7 +10233,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('90' AS int)
+                         VALUES (CAST('91' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS int)
@@ -10163,7 +10284,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('91' AS int)
+                         VALUES (CAST('92' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('2' AS int)
@@ -10214,7 +10335,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('92' AS int)
+                         VALUES (CAST('93' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('2' AS int)
@@ -10265,7 +10386,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('93' AS int)
+                         VALUES (CAST('94' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('9' AS int)
@@ -10316,7 +10437,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('94' AS int)
+                         VALUES (CAST('95' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('35' AS smallint)
                                 ,CAST('10' AS int)
@@ -10367,7 +10488,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('95' AS int)
+                         VALUES (CAST('96' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('40' AS smallint)
                                 ,CAST('9' AS int)
@@ -10418,7 +10539,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('96' AS int)
+                         VALUES (CAST('97' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('45' AS smallint)
                                 ,CAST('9' AS int)
@@ -10469,7 +10590,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('97' AS int)
+                         VALUES (CAST('98' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('50' AS smallint)
                                 ,CAST('12' AS int)
@@ -10520,7 +10641,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('98' AS int)
+                         VALUES (CAST('99' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('55' AS smallint)
                                 ,CAST('17' AS int)
@@ -10571,7 +10692,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('99' AS int)
+                         VALUES (CAST('100' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('60' AS smallint)
                                 ,CAST('17' AS int)
@@ -10622,7 +10743,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('100' AS int)
+                         VALUES (CAST('101' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('65' AS smallint)
                                 ,CAST('17' AS int)
@@ -10673,7 +10794,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('101' AS int)
+                         VALUES (CAST('102' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('70' AS smallint)
                                 ,CAST('6' AS int)
@@ -10724,7 +10845,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('102' AS int)
+                         VALUES (CAST('103' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('75' AS smallint)
                                 ,CAST('6' AS int)
@@ -10775,7 +10896,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('103' AS int)
+                         VALUES (CAST('104' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('80' AS smallint)
                                 ,CAST('6' AS int)
@@ -10826,7 +10947,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('104' AS int)
+                         VALUES (CAST('105' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('85' AS smallint)
                                 ,CAST('6' AS int)
@@ -10877,7 +10998,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('105' AS int)
+                         VALUES (CAST('106' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('90' AS smallint)
                                 ,CAST('6' AS int)
@@ -10928,7 +11049,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('106' AS int)
+                         VALUES (CAST('107' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('95' AS smallint)
                                 ,CAST('6' AS int)
@@ -10979,7 +11100,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('107' AS int)
+                         VALUES (CAST('108' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('100' AS smallint)
                                 ,CAST('6' AS int)
@@ -11030,7 +11151,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('108' AS int)
+                         VALUES (CAST('109' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('105' AS smallint)
                                 ,CAST('6' AS int)
@@ -11081,7 +11202,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('109' AS int)
+                         VALUES (CAST('110' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -11132,7 +11253,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('110' AS int)
+                         VALUES (CAST('111' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -11183,7 +11304,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('111' AS int)
+                         VALUES (CAST('112' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('2' AS int)
@@ -11234,7 +11355,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('112' AS int)
+                         VALUES (CAST('113' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
@@ -11285,7 +11406,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('113' AS int)
+                         VALUES (CAST('114' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS int)
@@ -11336,7 +11457,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('114' AS int)
+                         VALUES (CAST('115' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -11387,7 +11508,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('115' AS int)
+                         VALUES (CAST('116' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -11438,7 +11559,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('116' AS int)
+                         VALUES (CAST('117' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS int)
@@ -11489,7 +11610,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('117' AS int)
+                         VALUES (CAST('118' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('2' AS int)
@@ -11540,7 +11661,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('118' AS int)
+                         VALUES (CAST('119' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS int)
@@ -11591,7 +11712,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('119' AS int)
+                         VALUES (CAST('120' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -11642,7 +11763,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('120' AS int)
+                         VALUES (CAST('121' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -11693,7 +11814,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('121' AS int)
+                         VALUES (CAST('122' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('2' AS int)
@@ -11744,7 +11865,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('122' AS int)
+                         VALUES (CAST('123' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('11' AS int)
@@ -11795,7 +11916,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('123' AS int)
+                         VALUES (CAST('124' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS int)
@@ -12333,7 +12454,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('3' AS int)
                                 ,CAST('3' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('27' AS int)
+                                ,CAST('28' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12352,7 +12473,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('4' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('32' AS int)
+                                ,CAST('33' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12371,7 +12492,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('5' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('41' AS int)
+                                ,CAST('42' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12390,7 +12511,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('6' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('47' AS int)
+                                ,CAST('48' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12409,7 +12530,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('7' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('48' AS int)
+                                ,CAST('49' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12428,7 +12549,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('8' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('47' AS int)
+                                ,CAST('48' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12447,7 +12568,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('9' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('49' AS int)
+                                ,CAST('50' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12466,7 +12587,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('10' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('54' AS int)
+                                ,CAST('55' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12485,7 +12606,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('11' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('60' AS int)
+                                ,CAST('61' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12504,7 +12625,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('12' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('61' AS int)
+                                ,CAST('62' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12523,7 +12644,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('13' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('62' AS int)
+                                ,CAST('63' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12542,7 +12663,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('14' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('64' AS int)
+                                ,CAST('65' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12561,7 +12682,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('15' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('66' AS int)
+                                ,CAST('67' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12580,7 +12701,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('16' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('74' AS int)
+                                ,CAST('75' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12599,7 +12720,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('17' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('75' AS int)
+                                ,CAST('76' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12618,7 +12739,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('18' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('76' AS int)
+                                ,CAST('77' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12637,7 +12758,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('19' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('78' AS int)
+                                ,CAST('79' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12656,7 +12777,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('20' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('79' AS int)
+                                ,CAST('80' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12675,7 +12796,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('21' AS int)
                                 ,CAST('17' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('84' AS int)
+                                ,CAST('85' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12694,7 +12815,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('22' AS int)
                                 ,CAST('17' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('86' AS int)
+                                ,CAST('87' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12713,7 +12834,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('23' AS int)
                                 ,CAST('18' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('87' AS int)
+                                ,CAST('88' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12732,7 +12853,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('24' AS int)
                                 ,CAST('19' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('89' AS int)
+                                ,CAST('90' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12751,7 +12872,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('25' AS int)
                                 ,CAST('19' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('93' AS int)
+                                ,CAST('94' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12770,7 +12891,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('26' AS int)
                                 ,CAST('20' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('89' AS int)
+                                ,CAST('90' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12789,7 +12910,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('27' AS int)
                                 ,CAST('20' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('90' AS int)
+                                ,CAST('91' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12808,7 +12929,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('28' AS int)
                                 ,CAST('21' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('110' AS int)
+                                ,CAST('111' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12827,7 +12948,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('29' AS int)
                                 ,CAST('21' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('112' AS int)
+                                ,CAST('113' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12846,7 +12967,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('30' AS int)
                                 ,CAST('22' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('115' AS int)
+                                ,CAST('116' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12865,7 +12986,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('31' AS int)
                                 ,CAST('22' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('116' AS int)
+                                ,CAST('117' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12884,7 +13005,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('32' AS int)
                                 ,CAST('23' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('115' AS int)
+                                ,CAST('116' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12903,7 +13024,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('33' AS int)
                                 ,CAST('23' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('117' AS int)
+                                ,CAST('118' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12922,7 +13043,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('34' AS int)
                                 ,CAST('24' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('120' AS int)
+                                ,CAST('121' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12941,7 +13062,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('35' AS int)
                                 ,CAST('24' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('121' AS int)
+                                ,CAST('122' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12960,7 +13081,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('36' AS int)
                                 ,CAST('24' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('123' AS int)
+                                ,CAST('124' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13599,6 +13720,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId INT
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Id'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Id'), 'tinyint') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.CategoryId'), [cruda].[JSON_EXTRACT](@LastRecord, '$.CategoryId'), 'tinyint') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.MaxLength'), [cruda].[JSON_EXTRACT](@LastRecord, '$.MaxLength'), 'int') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar') = 1
                 AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskLength'), [cruda].[JSON_EXTRACT](@LastRecord, '$.AskLength'), 'bit') = 1
@@ -13617,6 +13739,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId INT
                             WHERE [Id] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Id')
                                   AND [CategoryId] = [cruda].[JSON_EXTRACT](@LastRecord, '$.CategoryId')
                                   AND [Name] = [cruda].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [cruda].[IS_EQUAL]([MaxLength], [cruda].[JSON_EXTRACT](@LastRecord, '$.MaxLength'), 'int') = 1
                                   AND [cruda].[IS_EQUAL]([Minimum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar') = 1
                                   AND [cruda].[IS_EQUAL]([Maximum], [cruda].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar') = 1
                                   AND [AskLength] = [cruda].[JSON_EXTRACT](@LastRecord, '$.AskLength')
@@ -13639,6 +13762,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId INT
 
             DECLARE @W_CategoryId tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.CategoryId') AS tinyint)
                    ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_MaxLength int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.MaxLength') AS int)
                    ,@W_Minimum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(MAX))
                    ,@W_Maximum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(MAX))
                    ,@W_AskLength bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskLength') AS bit)
@@ -13658,6 +13782,8 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId INT
                 THROW 51000, 'Valor de CategoryId em @ActualRecord inexiste em Categories', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
+            IF @W_MaxLength IS NOT NULL AND @W_MaxLength < CAST('1' AS int)
+                THROW 51000, 'Valor de MaxLength em @ActualRecord deve ser maior que ou igual a 1', 1
             IF @W_AskLength IS NULL
                 THROW 51000, 'Valor de AskLength em @ActualRecord é requerido.', 1
             IF @W_AskDecimals IS NULL
@@ -13858,6 +13984,7 @@ ALTER PROCEDURE [dbo].[TypeCommit](@LoginId INT
 
             DECLARE @W_CategoryId tinyint = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.CategoryId') AS tinyint)
                    ,@W_Name nvarchar(25) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_MaxLength int = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.MaxLength') AS int)
                    ,@W_Minimum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(MAX))
                    ,@W_Maximum nvarchar(MAX) = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(MAX))
                    ,@W_AskLength bit = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.AskLength') AS bit)
@@ -13875,6 +14002,7 @@ ALTER PROCEDURE [dbo].[TypeCommit](@LoginId INT
                 INSERT INTO [dbo].[Types] ([Id]
                                                 ,[CategoryId]
                                                 ,[Name]
+                                                ,[MaxLength]
                                                 ,[Minimum]
                                                 ,[Maximum]
                                                 ,[AskLength]
@@ -13892,6 +14020,7 @@ ALTER PROCEDURE [dbo].[TypeCommit](@LoginId INT
                                           VALUES (@W_Id
                                                  ,@W_CategoryId
                                                  ,@W_Name
+                                                 ,@W_MaxLength
                                                  ,@W_Minimum
                                                  ,@W_Maximum
                                                  ,@W_AskLength
@@ -13910,6 +14039,7 @@ ALTER PROCEDURE [dbo].[TypeCommit](@LoginId INT
                 UPDATE [dbo].[Types] SET [Id] = @W_Id
                                               ,[CategoryId] = @W_CategoryId
                                               ,[Name] = @W_Name
+                                              ,[MaxLength] = @W_MaxLength
                                               ,[Minimum] = @W_Minimum
                                               ,[Maximum] = @W_Maximum
                                               ,[AskLength] = @W_AskLength
@@ -14017,6 +14147,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.MaxLength') AS int) AS [MaxLength]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(MAX)) AS [Minimum]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(MAX)) AS [Maximum]
               ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.AskLength') AS bit) AS [AskLength]
@@ -14135,6 +14266,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
                           ,[T].[Id]
                           ,[T].[CategoryId]
                           ,[T].[Name]
+                          ,[T].[MaxLength]
                           ,[T].[Minimum]
                           ,[T].[Maximum]
                           ,[T].[AskLength]
@@ -14155,6 +14287,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
                               ,[O].[Id]
                               ,[O].[CategoryId]
                               ,[O].[Name]
+                              ,[O].[MaxLength]
                               ,[O].[Minimum]
                               ,[O].[Maximum]
                               ,[O].[AskLength]

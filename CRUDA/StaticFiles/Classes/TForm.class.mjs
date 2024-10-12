@@ -119,7 +119,7 @@ export default class TForm {
         let control = document.createElement("input")
 
         control.type = column.Domain.Type.Category.HtmlInputType
-        control.size = column.Domain.Length ?? 20
+        control.size = column.Domain.Type.MaxLength ?? column.Domain.Length ?? 20
         control.maxLength = column.Domain.Length ?? 20
 
         return control
@@ -253,7 +253,7 @@ export default class TForm {
         this.#HTML.ConfirmButton.onclick = async () => {
             if (this.#Action === TActions.FILTER)
                 this.#Grid.SaveFilters(this.#Record)
-            await this.#Grid.Renderize()
+            await this.#Grid.Renderize().catch(error => TScreen.ShowError(error.Message, error.Action || this.#ReturnAction))
         }
 
         this.#HTML.ButtonsBar.appendChild(this.#HTML.ConfirmButton)
@@ -264,13 +264,7 @@ export default class TForm {
             this.#HTML.CancelButton.className = "button box"
             this.#HTML.CancelButton.type = "reset"
             this.#HTML.CancelButton.style.backgroundImage = TForm.#Images.Cancel
-            this.#HTML.CancelButton.onclick = () => {
-                if (this.#Action === TActions.FILTER)
-                    this.#Grid.Table.Columns.forEach(column =>
-                        column.FilterValue = column.LastValue)
-                this.#Grid.Renderize()
-                    .catch(error => TScreen.ShowError(error.Message, error.Action || this.#ReturnAction))
-            }
+            this.#HTML.CancelButton.onclick = () => this.#Grid.Renderize().catch(error => TScreen.ShowError(error.Message, error.Action || this.#ReturnAction))
             this.#HTML.ButtonsBar.appendChild(this.#HTML.CancelButton)
         }
 

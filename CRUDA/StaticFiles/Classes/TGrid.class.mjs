@@ -16,6 +16,7 @@ export default class TGrid {
     #RowNumber = 0
     #DataPage = null
     #OrderBy = ""
+    #RenderingInProgress = false
 
     #HTML = {
         Container: null,
@@ -53,9 +54,53 @@ export default class TGrid {
         if (!this.#Table)
             throw new Error("Tabela de banco-de-dados não encontrada.")
         this.#HTML.Container = document.createElement("table")
+        this.#HTML.Container.setAttribute('tabindex', '0');
+        this.#HTML.Container.onkeydown = event => {
+            let rows = this.#HTML.Container.rows
+            switch (event.key) {
+                case "ArrowUp":
+                    if (this.#HTML.SelectedRow.rowIndex > 1)
+                        rows[this.#HTML.SelectedRow.rowIndex - 1].click()
+                    else if (this.#PageNumber === 1) {
+                        this.Renderize(this.#PageCount)
+                        rows[rows.length - 2].click()
+                    }
+                    else {
+                        this.Renderize(this.#PageNumber - 1)
+                        rows[rows.length - 2].click()
+                    }
+                    break;
+                case "ArrowDown":
+                    if (this.#HTML.SelectedRow.rowIndex < rows.length - 2)
+                        rows[this.#HTML.SelectedRow.rowIndex + 1].click()
+                    else if (this.#PageNumber === this.#PageCount) {
+                        this.Renderize(1)
+                        rows[1].click()
+                    }
+                    else {
+                        this.Renderize(this.#PageNumber + 1)
+                        rows[1].click()
+                    }
+
+                    break;
+                case "PageUp":
+                    if (this.#PageNumber > 1)
+                        this.Renderize(this.#PageNumber - 1)
+                    else
+                        this.Renderize(this.#PageCount)
+                    break;
+                case "PageDown":
+                    if (this.#PageNumber < this.#PageCount)
+                        this.Renderize(this.#PageNumber + 1)
+                    else
+                        this.Renderize(1)
+                    break;
+            }
+        }
         this.#HTML.Container.className = "grid box"
 
         let style = document.createElement("style")
+
         style.innerText = TGrid.#Style
         this.#HTML.Container.appendChild(style)
 
@@ -142,8 +187,10 @@ export default class TGrid {
         return result.DataSet.Table
     }
     async Renderize(pageNumber = this.#PageNumber) {
+        if (this.#RenderingInProgress)
+            return
+        this.#RenderingInProgress = true
         TScreen.Title = `Manutenção de ${this.#Table.Description}`
-        
         this.#ReadDataPage(pageNumber)
             .then(dataPage => {
                 this.#DataPage = dataPage
@@ -156,10 +203,12 @@ export default class TGrid {
                 this.#BuildHtmlFoot()
                 TScreen.WithBackgroundImage = true
                 TScreen.Main = this.#HTML.Container
+                this.#HTML.Container.focus()
             })
             .catch(error => {
                 TScreen.ShowError(error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
             })
+            .finally(() => this.#RenderingInProgress = false)
         /*
         globalThis.$ = new Proxy(this.#Table, {
             get: (target, key) => {

@@ -6,6 +6,7 @@ export default class TType {
     #Id = 0
     #CategoryId = 0
     #Name = ""
+    #MaxLength = null
     #Minimum = ""
     #Maximum = ""
     #AskLength = false
@@ -27,6 +28,7 @@ export default class TType {
         this.#Id = rowType.Id
         this.#CategoryId = rowType.CategoryId
         this.#Name = rowType.Name
+        this.#MaxLength = rowType.MaxLength 
         this.#Minimum = rowType.Minimum
         this.#Maximum = rowType.Maximum
         this.#AskLength = rowType.AskLength
@@ -59,6 +61,12 @@ export default class TType {
     }
     set Name(value) {
         this.#Name = value
+    }
+    get MaxLength() {
+        return this.#MaxLength
+    }
+    set MaxLength(value) {
+        this.#MaxLength = value
     }
     set Minimum(value) {
         this.#Minimum = value

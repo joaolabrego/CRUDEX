@@ -154,6 +154,7 @@ BEGIN
 					,[T].[Id]
 					,[T].[CategoryId]
 					,[T].[Name]
+					,[T].[MaxLength]
 				    ,[T].[Minimum]
 					,[T].[Maximum]
 					,[T].[AskLength]
