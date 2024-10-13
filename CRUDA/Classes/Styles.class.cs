@@ -10,6 +10,7 @@
         public readonly string Menu = string.Empty;
         public readonly string Grid = string.Empty;
         public readonly string Form = string.Empty;
+        public readonly string DropDown = string.Empty;
         public Styles()
         {
             var directory = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_STYLES"));
@@ -22,6 +23,7 @@
             Menu = File.ReadAllText(Path.Combine(directory, Settings.Get("MENU_STYLE")));
             Grid = File.ReadAllText(Path.Combine(directory, Settings.Get("GRID_STYLE")));
             Form = File.ReadAllText(Path.Combine(directory, Settings.Get("FORM_STYLE")));
+            DropDown = File.ReadAllText(Path.Combine(directory, Settings.Get("DROPDOWN_STYLE")));
         }
     }
 }

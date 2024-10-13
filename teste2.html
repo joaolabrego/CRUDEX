@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Exemplo Select2 com Digitação Livre e AJAX</title>
+        <!-- Inclusão do CSS do Select2 -->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .select-container {
+            width: 300px;
+        }
+    </style>
+    </head>
+    <body>
+
+        <div class="select-container">
+            <label for="select2-dropdown">Digite ou selecione uma fruta:</label>
+            <select id="select2-dropdown" style="width: 100%;"></select>
+        </div>
+
+        <!-- Inclusão do JavaScript do Select2 -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+        <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectElement = document.getElementById('select2-dropdown');
+
+        // Inicializar Select2 com suporte a digitação livre e consulta AJAX
+        $(selectElement).select2({
+            placeholder: 'Digite ou selecione uma fruta',
+            tags: true, // Permitir digitação livre
+            ajax: {
+                url: 'https://api.exemplo.com/frutas', // URL da API que retornará os dados do banco de dados
+                dataType: 'json',
+                delay: 250, // Atraso de 250ms entre cada requisição para evitar consultas excessivas
+                data: function (params) {
+                    return {
+                        search: params.term // Parâmetro de busca enviado à API
+                    };
+                },
+                processResults: function (data) {
+                    // Mapeia os dados recebidos para o formato que o Select2 espera
+                    return {
+                        results: data.map(item => ({
+                            id: item.id,
+                            text: item.description
+                        }))
+                    };
+                },
+                cache: true // Cacheia as respostas para evitar múltiplas consultas idênticas
+            },
+            minimumInputLength: 2, // Só faz a consulta ao digitar dois ou mais caracteres
+            allowClear: true // Permitir limpar a seleção
+        });
+    });
+</script>
+
+    </body>
+</html>

@@ -57,52 +57,101 @@ export default class TGrid {
         this.#HTML.Container.setAttribute('tabindex', '0');
         this.#HTML.Container.onkeydown = event => {
             let rows = this.#HTML.Container.rows
-            switch (event.key) {
-                case "ArrowUp":
-                    if (this.#HTML.SelectedRow.rowIndex > 1)
-                        rows[this.#HTML.SelectedRow.rowIndex - 1].click()
-                    else if (this.#PageNumber === 1) {
-                        this.Renderize(this.#PageCount)
-                        rows[rows.length - 2].click()
-                    }
-                    else {
-                        this.Renderize(this.#PageNumber - 1)
-                        rows[rows.length - 2].click()
-                    }
-                    break;
-                case "ArrowDown":
-                    if (this.#HTML.SelectedRow.rowIndex < rows.length - 2)
-                        rows[this.#HTML.SelectedRow.rowIndex + 1].click()
-                    else if (this.#PageNumber === this.#PageCount) {
-                        this.Renderize(1)
-                        rows[1].click()
-                    }
-                    else {
-                        this.Renderize(this.#PageNumber + 1)
-                        rows[1].click()
-                    }
 
-                    break;
-                case "PageUp":
-                    if (this.#PageNumber > 1)
-                        this.Renderize(this.#PageNumber - 1)
-                    else
-                        this.Renderize(this.#PageCount)
-                    break;
-                case "PageDown":
-                    if (this.#PageNumber < this.#PageCount)
-                        this.Renderize(this.#PageNumber + 1)
-                    else
-                        this.Renderize(1)
-                    break;
+            if (event.ctrlKey) {
+                switch (event.key) {
+                    case "i":
+                        if (!this.#HTML.CreateButton.hidden) {
+                            event.preventDefault()
+                            this.#HTML.CreateButton.click()
+                        }
+                        break;
+                    case "a":
+                        if (!this.#HTML.UpdateButton.hidden) {
+                            event.preventDefault()
+                            this.#HTML.UpdateButton.click()
+                        }
+                        break;
+                    case "e":
+                        if (!this.#HTML.DeleteButton.hidden) {
+                            event.preventDefault()
+                            this.#HTML.DeleteButton.click()
+                        }
+                        break;
+                    case "c":
+                        if (!this.#HTML.QueryButton.hidden) {
+                            event.preventDefault()
+                            this.#HTML.QueryButton.click()
+                        }
+                        break;
+                    case "f":
+                        if (!this.#HTML.FilterButton.hidden) {
+                            event.preventDefault()
+                            this.#HTML.FilterButton.click()
+                        }
+                        break;
+                    case "l":
+                        if (!this.#HTML.UnfilterButton.hidden) {
+                            event.preventDefault()
+                            this.#HTML.UnfilterButton.click()
+                        }
+                        break;
+                    case "r":
+                        if (!this.#HTML.ExitButton.hidden) {
+                            event.preventDefault()
+                            this.#HTML.ExitButton.click()
+                        }
+                        break;
+                }
+            }
+            else {
+                switch (event.key) {
+                    case "ArrowUp":
+                        if (this.#HTML.SelectedRow.rowIndex > 1)
+                            rows[this.#HTML.SelectedRow.rowIndex - 1].click()
+                        else if (this.#PageNumber === 1) {
+                            this.Renderize(this.#PageCount)
+                            rows[rows.length - 2].click()
+                        }
+                        else {
+                            this.Renderize(this.#PageNumber - 1)
+                            rows[rows.length - 2].click()
+                        }
+                        break;
+                    case "ArrowDown":
+                        if (this.#HTML.SelectedRow.rowIndex < rows.length - 2)
+                            rows[this.#HTML.SelectedRow.rowIndex + 1].click()
+                        else if (this.#PageNumber === this.#PageCount) {
+                            this.Renderize(1)
+                            rows[1].click()
+                        }
+                        else {
+                            this.Renderize(this.#PageNumber + 1)
+                            rows[1].click()
+                        }
+
+                        break;
+                    case "PageUp":
+                        if (this.#PageNumber > 1)
+                            this.Renderize(this.#PageNumber - 1)
+                        else
+                            this.Renderize(this.#PageCount)
+                        break;
+                    case "PageDown":
+                        if (this.#PageNumber < this.#PageCount)
+                            this.Renderize(this.#PageNumber + 1)
+                        else
+                            this.Renderize(1)
+                        break;
+                }
             }
         }
-        this.#HTML.Container.className = "grid box"
 
         let style = document.createElement("style")
 
         style.innerText = TGrid.#Style
         this.#HTML.Container.appendChild(style)
+        this.#HTML.Container.className = "grid box"
 
         this.#HTML.Head = document.createElement("thead")
         this.#HTML.Container.appendChild(this.#HTML.Head)
@@ -146,17 +195,6 @@ export default class TGrid {
 
         return false;
     }
-    Filter() {
-        var filter = ""
-
-        for (let key in this.#FilterValues) {
-            let value = this.#FilterValues[key]
-
-            if (value !== null)
-                filter += `${(filter === "" ? "" : " AND ")}${key} = '${value}'`
-        }
-        return filter;
-    }
     async #ReadDataPage(pageNumber) {
         let parameters = {
             DatabaseName: this.#Table.Database.Name,
@@ -190,7 +228,6 @@ export default class TGrid {
         if (this.#RenderingInProgress)
             return
         this.#RenderingInProgress = true
-        TScreen.Title = `Manutenção de ${this.#Table.Description}`
         this.#ReadDataPage(pageNumber)
             .then(dataPage => {
                 this.#DataPage = dataPage
@@ -198,6 +235,7 @@ export default class TGrid {
                     TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar."
                 else
                     TScreen.LastMessage = TScreen.Message = "Clique em um dos botões."
+                TScreen.Title = `Manutenção de ${this.#Table.Description}`
                 this.#BuildHtmlHead()
                 this.#BuildHtmlBody(dataPage)
                 this.#BuildHtmlFoot()
@@ -382,7 +420,8 @@ export default class TGrid {
         this.#HTML.CreateButton = document.createElement("button")
         this.#HTML.CreateButton.type = "button"
         this.#HTML.CreateButton.style.backgroundImage = TGrid.#Images.Insert
-        this.#HTML.CreateButton.title = "Incluir registro"
+        this.#HTML.CreateButton.title = "Incluir registro (ctrl-i)"
+        this.#HTML.CreateButton.hidden = false
         this.#HTML.CreateButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.CreateButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.CreateButton.onclick = () => {
@@ -397,7 +436,7 @@ export default class TGrid {
         this.#HTML.UpdateButton = document.createElement("button")
         this.#HTML.UpdateButton.type = "button"
         this.#HTML.UpdateButton.style.backgroundImage = TGrid.#Images.Edit
-        this.#HTML.UpdateButton.title = "Alterar registro"
+        this.#HTML.UpdateButton.title = "Alterar registro (ctrl-a)"
         this.#HTML.UpdateButton.hidden = this.#RowCount === 0
         this.#HTML.UpdateButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.UpdateButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
@@ -412,7 +451,7 @@ export default class TGrid {
         this.#HTML.DeleteButton = document.createElement("button")
         this.#HTML.DeleteButton.type = "button"
         this.#HTML.DeleteButton.style.backgroundImage = TGrid.#Images.Delete
-        this.#HTML.DeleteButton.title = "Excluir registro"
+        this.#HTML.DeleteButton.title = "Excluir registro (ctrl-e)"
         this.#HTML.DeleteButton.hidden = this.#RowCount === 0
         this.#HTML.DeleteButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.DeleteButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
@@ -427,7 +466,7 @@ export default class TGrid {
         this.#HTML.QueryButton = document.createElement("button")
         this.#HTML.QueryButton.type = "button"
         this.#HTML.QueryButton.style.backgroundImage = TGrid.#Images.Query
-        this.#HTML.QueryButton.title = "Consultar registro"
+        this.#HTML.QueryButton.title = "Consultar registro (ctrl-c)"
         this.#HTML.QueryButton.hidden = this.#RowCount === 0
         this.#HTML.QueryButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.QueryButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
@@ -442,23 +481,19 @@ export default class TGrid {
         this.#HTML.FilterButton = document.createElement("button")
         this.#HTML.FilterButton.type = "button"
         this.#HTML.FilterButton.style.backgroundImage = TGrid.#Images.Filter
-        this.#HTML.FilterButton.title = "Filtragem de registros"
+        this.#HTML.FilterButton.title = "Filtragem de registros (ctrl-f)"
         this.#HTML.FilterButton.hidden = !filtered && this.#RowCount <= TSystem.RowsPerPage
         this.#HTML.FilterButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.FilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
-        this.#HTML.FilterButton.onclick = () => {
-            new TForm(this, TActions.FILTER).Configure()
-                .then(form => {
-                    if (form)
-                        form.Renderize()
-                })
+        this.#HTML.FilterButton.onclick = async () => {
+            (await new TForm(this, TActions.FILTER).Configure()).Renderize()
         }
         th.appendChild(this.#HTML.FilterButton)
 
         this.#HTML.UnfilterButton = document.createElement("button")
         this.#HTML.UnfilterButton.type = "button"
         this.#HTML.UnfilterButton.style.backgroundImage = TGrid.#Images.Unfilter
-        this.#HTML.UnfilterButton.title = filtered ? `Cancelar filtragem de registros (${this.Filter()})"` : ""
+        this.#HTML.UnfilterButton.title = `Limpar filtros de registros (ctrl-l): ${this.Filter}`
         this.#HTML.UnfilterButton.hidden = !filtered
         this.#HTML.UnfilterButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.UnfilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
@@ -471,7 +506,8 @@ export default class TGrid {
         this.#HTML.ExitButton = document.createElement("button")
         this.#HTML.ExitButton.type = "button"
         this.#HTML.ExitButton.style.backgroundImage = TGrid.#Images.Exit
-        this.#HTML.ExitButton.title = "Retornar para menu principal"
+        this.#HTML.ExitButton.title = "Retornar para menu principal (ctrl-r)"
+        this.#HTML.ExitButton.hidden = false
         this.#HTML.ExitButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
         this.#HTML.ExitButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.ExitButton.onclick = () => TSystem.Action = `${TActions.EXIT}/${TActions.MENU}`
@@ -505,5 +541,19 @@ export default class TGrid {
     }
     get OrderBy() {
         return this.#OrderBy.slice(0, -1)
+    }
+    get Filter() {
+        var filter = ""
+
+        for (let key in this.#FilterValues) {
+            let value = this.#FilterValues[key]
+
+            if (value !== null)
+                filter += `${(filter === "" ? "" : " AND ")}${key} = '${value}'`
+        }
+        return filter;
+    }
+    get Container() {
+        return this.#HTML.Container
     }
 }

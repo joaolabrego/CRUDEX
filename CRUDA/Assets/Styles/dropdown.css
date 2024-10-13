@@ -1,0 +1,74 @@
+﻿.container {
+    position: relative;
+    display: inline-block;
+}
+
+.input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.arrow {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+.dialog {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    background-color: var(--background-color-control);
+    margin: auto;
+    padding: 1vmin;
+}
+
+.dialog table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.dialog input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.dialog button {
+    text-transform: uppercase;
+    outline: 0;
+    background: var(--background-color-control);
+    width: 15vmin;
+    height: var(--control-height);
+    border: 0;
+    font-size: inherit;
+    padding: 1vmin;
+    background-color: var(--background-color);
+    font-weight: inherit;
+    cursor: pointer;
+    border-radius: var(--border-radius);
+    margin-top: 3vmin;
+    margin-right: 2vmin;
+}
+
+.grid {
+    width: 100%;
+    height: 100%;
+    border-collapse: collapse;
+    text-align: center;
+    font-size: var(--font-size-grid);
+    color: black;
+    border: solid 0.1vmin black;
+    font-weight: normal;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.grid tbody tr:nth-of-type(odd) {
+    background-color: var(--background-color-active);
+}
+
+.grid td {
+    padding: 1vmin;
+    border-right: solid 0.1vmin black;
+}

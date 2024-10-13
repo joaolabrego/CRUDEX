@@ -25,3 +25,4 @@
     static get GENERATE() { return "generate" }
     static get CHECK() { return "check" }
 }
+Object.freeze(TActions)

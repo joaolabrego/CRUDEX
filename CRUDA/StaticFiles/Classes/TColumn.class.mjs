@@ -38,7 +38,7 @@ export default class TColumn {
     constructor(table, rowColumn) {
         if (table.ClassName !== "TTable")
             throw new Error("Argumento table não é do tipo TTable.")
-        if (rowColumn.ClassName !== "RecordColumn")
+        if (rowColumn.ClassName !== "Column")
             throw new Error("Argumento rowColumn não é do tipo Column.")
         this.#Id = rowColumn.Id
         this.#TableId = rowColumn.TableId

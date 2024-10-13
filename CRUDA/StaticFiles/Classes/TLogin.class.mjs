@@ -36,7 +36,7 @@ export default class TLogin {
         this.#HTML.UserName.setAttribute("placeholder", "username")
         this.#HTML.UserName.setAttribute("required", "true")
         this.#HTML.UserName.setAttribute("autocomplete", "off")
-        this.#HTML.UserName.setAttribute("value", "adm")
+        this.#HTML.UserName.setAttribute("value", "labrego")
         this.#HTML.UserName.onfocus = () => this.#HTML.UserName.select()
         this.#HTML.UserName.oninput = () => TScreen.UserName = this.#HTML.UserName.value
 
@@ -49,7 +49,7 @@ export default class TLogin {
         this.#HTML.Password.setAttribute("placeholder", "password")
         this.#HTML.Password.setAttribute("required", "true")
         this.#HTML.Password.setAttribute("autocomplete", "off")
-        this.#HTML.Password.setAttribute("value", "adm")
+        this.#HTML.Password.setAttribute("value", "diva")
         this.#HTML.Password.onfocus = () => this.#HTML.Password.select()
 
         this.#HTML.Container.appendChild(this.#HTML.Password)

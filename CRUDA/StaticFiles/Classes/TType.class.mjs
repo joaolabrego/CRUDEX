@@ -23,7 +23,7 @@ export default class TType {
     #Category = null
 
     constructor(rowType) {
-        if (rowType.ClassName !== "RecordType")
+        if (rowType.ClassName !== "Type")
             throw new Error("Argumento rowType não é do tipo Type.")
         this.#Id = rowType.Id
         this.#CategoryId = rowType.CategoryId

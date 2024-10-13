@@ -6,7 +6,7 @@ export default class TMask {
 	#Mask = ""
 
     constructor(rowMask){
-        if (rowMask.ClassName !== "RecordMask")
+        if (rowMask.ClassName !== "Mask")
             throw new Error("Argumento rowMask não é do tipo Mask.")
         this.#Id = rowMask.Id
         this.#Name = rowMask.Name

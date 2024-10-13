@@ -1,5 +1,6 @@
 "use strict"
 
+import TScreen from "./TScreen.class.mjs"
 import TSystem from "./TSystem.class.mjs"
 
 export default class TDialog {
@@ -52,7 +53,6 @@ export default class TDialog {
     }
 
     static Show(type, message, confirmAction = null, cancelAction = null, timeout = null) {
-        TSystem.Message = ""
         this.#HTML.Message.innerText = message
         this.#HTML.Confirm.onclick = () => {
             clearTimeout(this.#Timer)

@@ -21,7 +21,6 @@ export default class TTable {
 
     #Database = null
     #Recordset = null
-    #DataSet = null
     #ParentTable = null
     #Columns = []
     #Indexes = []
@@ -29,7 +28,7 @@ export default class TTable {
     constructor(database, rowTable) {
         if (database.ClassName !== "TDatabase")
             throw new Error("Argumento database não é do tipo TDatabase.")
-        if (rowTable.ClassName !== "RecordTable")
+        if (rowTable.ClassName !== "Table")
             throw new Error("Argumento rowTable não é do tipo Table.")
         this.#Id = rowTable.Id
         this.#Name = rowTable.Name

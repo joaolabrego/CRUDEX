@@ -150,12 +150,31 @@ export default class TForm {
 
             this.#Record[column.Name] = TConfig.IsEmpty(value) ? null : value
         }
+        control.onkeydown = event => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+
+                let focusableElements = Array.from(document.querySelectorAll('input, textarea'))
+                let currentIndex = focusableElements.indexOf(document.activeElement)
+
+                if (currentIndex > -1 && currentIndex < focusableElements.length - 1)
+                    focusableElements[currentIndex + 1].focus()
+                else
+                    focusableElements[0].focus()
+            }
+            else if (this.#Action == TActions.FILTER && !event.target.Column.IsRequired && (event.key == "Backspace" || event.key == "Delete")) {
+                if (event.target.value === "") 
+                    event.target.placeholder = event.target.placeholder ? "" : "null"
+            }
+        }
         control.name = column.Name
         control.Column = column
         control.onfocus = (event) => event.target.select()
         control.value = this.#Record[column.Name]
         control.readOnly = action === TActions.DELETE || action === TActions.QUERY
         control.style.textAlign = column.Domain.Type.Category.HtmlInputAlign
+        if (!(this.#HTML.FirstInput || control.readOnly))
+            this.#HTML.FirstInput = control
         fieldset.appendChild(control)
 
         return fieldset
@@ -184,9 +203,6 @@ export default class TForm {
             let control = this.#GetControl(column, this.#Action)
 
             this.#HTML.Form.appendChild(control)
-            if (!(this.#HTML.FirstInput || control.readOnly)) {
-                this.#HTML.FirstInput = control
-            }
         })
 
         return this
@@ -221,6 +237,7 @@ export default class TForm {
         TScreen.LastMessage = TScreen.Message = message
         TScreen.WithBackgroundImage = false
         TScreen.Main = this.#HTML.Container
+        //TScreen.AppendIntoMain(this.#Grid.Container)
         if (this.#HTML.FirstInput)
             this.#HTML.FirstInput.focus()
     }

@@ -1304,7 +1304,7 @@ namespace CRUDA.Classes
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
                 result.Append($"               ,@OffSet INT\r\n");
-                result.Append($"               ,@ClassName NVARCHAR(50) = 'RecordColumn'\r\n");
+                result.Append($"               ,@ClassName NVARCHAR(50) = '{table["Alias"]}'\r\n");
                 result.Append($"\r\n");
                 firstTime = true;
                 foreach (var column in pkColumnRows)

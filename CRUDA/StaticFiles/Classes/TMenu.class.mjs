@@ -18,9 +18,9 @@ export default class TMenu {
 
             li.title = item.Message
             if (firstItem)
-                li.className += "firstItem"
+                li.className = "firstItem"
             if (lastItem)
-                li.className += " lastItem"
+                li.className = " lastItem"
 
             const a = document.createElement("a")
             a.innerText = item.Caption
@@ -57,7 +57,7 @@ export default class TMenu {
         const ul = document.createElement("ul")
         rowsMenu.filter(row => !row.ParentMenuId)
             .forEach(row => {
-                if (row.ClassName !== "RecordMenu")
+                if (row.ClassName !== "Menu")
                     throw new Error("Item de argumento rowsMenu não é do tipo Menu.")
                 ul.appendChild(GetOptions(row))
             })

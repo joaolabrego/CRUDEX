@@ -9,7 +9,7 @@ export default class TDatabase {
 
     #Tables = []
     constructor(rowDatabase) {
-        if (rowDatabase.ClassName !== "RecordDatabase")
+        if (rowDatabase.ClassName !== "Database")
             throw new Error("Argumento rowDatabase não é do tipo Database.")
         this.#Id = rowDatabase.Id
         this.#Name = rowDatabase.Name

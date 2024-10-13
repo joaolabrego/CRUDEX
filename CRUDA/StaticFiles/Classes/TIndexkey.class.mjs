@@ -11,7 +11,7 @@ export default class TIndexkey {
     constructor(index, rowIndexkey) {
         if (index.ClassName !== "TIndex")
             throw new Error("Argumento index não é do tipo TIndex.")
-        if (rowIndexkey.ClassName !== "RecordIndexkey")
+        if (rowIndexkey.ClassName !== "Indexkey")
             throw new Error("Argumento rowIndexkey não é do tipo Indexkey.")
         this.#Id = rowIndexkey.Id
         this.#IndexId = rowIndexkey.IndexId

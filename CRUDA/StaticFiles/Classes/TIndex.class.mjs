@@ -10,7 +10,7 @@ export default class TIndex {
     constructor(table, rowIndex) {
         if (table.ClassName !== "TTable")
             throw new Error("Argumento table não é do tipo TTable.")
-        if (rowIndex.ClassName !== "RecordIndex")
+        if (rowIndex.ClassName !== "Index")
             throw new Error("Argumento rowIndex não é do tipo Index.")
         this.#Id = rowIndex.Id
         this.#TableId = rowIndex.TableId

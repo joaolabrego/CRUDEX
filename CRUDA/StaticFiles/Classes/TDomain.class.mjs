@@ -18,7 +18,7 @@ export default class TDomain {
 	#Type = null
 
 	constructor(rowDomain) {
-		if (rowDomain.ClassName !== "RecordDomain")
+		if (rowDomain.ClassName !== "Domain")
 			throw new Error("Argumento rowDomain não é do tipo Domain.")
 		this.#Id = rowDomain.Id
 		this.#TypeId = rowDomain.TypeId

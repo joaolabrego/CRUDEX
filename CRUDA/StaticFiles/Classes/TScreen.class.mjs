@@ -82,7 +82,9 @@ export default class TScreen {
         this.Message = ""
         this.#Update()
     }
-
+    static AppendIntoMain(container) {
+        this.#HTML.Main.appendChild(container)
+    }
     static #Update() {
         let now = new Date(),
             localdate = now.toLocaleDateString(TConfig.Locale).toUpperCase(),

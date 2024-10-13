@@ -114,7 +114,7 @@ BEGIN
 			THROW 51000, @ErrorMessage, 1
 		END
 		-- 0 [Systems]
-		SELECT 	'RecordSystem' AS [ClassName]
+		SELECT 	'System' AS [ClassName]
 				,[Id]
 				,[Name]
 				,[Description]
@@ -142,7 +142,7 @@ BEGIN
 		END
 
 		-- 1 [Databases]
-		SELECT 	'RecordDatabase' AS [ClassName]
+		SELECT 	'Database' AS [ClassName]
 				,[D].[Id]
 				,[D].[Name]
 				,[D].[Description]
@@ -173,7 +173,7 @@ BEGIN
 		END
 
 		-- 2 [Tables]
-		SELECT	'RecordTable' AS [ClassName]
+		SELECT	'Table' AS [ClassName]
 				,[T].[Id]
 				,[DT].[DatabaseId]
 				,[T].[Name]
@@ -194,7 +194,7 @@ BEGIN
 
 		IF @DatabaseName IS NULL BEGIN
 			-- 3 [Columns]
-			SELECT	'RecordColumn' AS [ClassName]
+			SELECT	'Column' AS [ClassName]
 					,[C].[Id]
 					,[C].[TableId]
 					,[C].[Sequence]
@@ -226,7 +226,7 @@ BEGIN
 			CREATE INDEX [#ColumnsDomainId] ON [dbo].[#Columns]([DomainId])
 
 			-- 4 [Domains]
-			SELECT	'RecordDomain' AS [ClassName]
+			SELECT	'Domain' AS [ClassName]
 					,[D].[Id]
 					,[D].[TypeId]
 					,[D].[MaskId]
@@ -249,7 +249,7 @@ BEGIN
 			CREATE INDEX [#DomainsTypeId] ON [dbo].[#Domains]([TypeId])
 
 			-- 5 [Types]
-			SELECT 	'RecordType' AS [ClassName]
+			SELECT 	'Type' AS [ClassName]
 					,[T].[Id]
 					,[T].[CategoryId]
 					,[T].[Name]
@@ -276,7 +276,7 @@ BEGIN
 			CREATE INDEX [#TypesCategoryId] ON [dbo].[#Types]([CategoryId])
 
 			-- 6 [Categories]
-			SELECT 	'RecordCategory' AS [ClassName]
+			SELECT 	'Category' AS [ClassName]
 					,[C].[Id]
 					,[C].[Name]
 					,[C].[HtmlInputType]
@@ -296,7 +296,7 @@ BEGIN
 			END
 
 			-- 7 [Menus]
-			SELECT 	'RecordMenu' AS [ClassName]
+			SELECT 	'Menu' AS [ClassName]
 					,[M].[Id]
 					,[M].[SystemId]
 					,[M].[Sequence]
@@ -313,7 +313,7 @@ BEGIN
 			END
 
 			-- 8 [Indexes]
-			SELECT 	'RecordIndex' AS [ClassName]
+			SELECT 	'Index' AS [ClassName]
 					,[I].[Id]
 					,[I].[TableId]
 					,[I].[Name]
@@ -324,7 +324,7 @@ BEGIN
 			ALTER TABLE [dbo].[#Indexes] ADD PRIMARY KEY NONCLUSTERED([Id])
 
 			-- 9 [Indexkeys]
-			SELECT 	'RecordIndexkey' AS [ClassName]
+			SELECT 	'Indexkey' AS [ClassName]
 					,[IK].[Id]
 					,[IK].[IndexId]
 					,[IK].[Sequence]
@@ -334,7 +334,7 @@ BEGIN
 				FROM [dbo].[Indexkeys] [IK]
 					INNER JOIN [dbo].[#Indexes] [I] ON [I].[Id] = [IK].IndexId
 			-- 10 [Masks]
-			SELECT 	'RecordMask' AS [ClassName]
+			SELECT 	'Mask' AS [ClassName]
 					,[M].[Id]
 					,[M].[Name]
 					,[M].[Mask]
@@ -13592,7 +13592,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'Category'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -14244,7 +14244,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'Type'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -14716,7 +14716,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'Mask'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -15266,7 +15266,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'Domain'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -15776,7 +15776,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'System'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -16290,7 +16290,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'Menu'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -16794,7 +16794,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'User'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -17285,7 +17285,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'SystemUser'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -17811,7 +17811,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'Database'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -18310,7 +18310,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'SystemDatabase'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -18826,7 +18826,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'Table'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -19319,7 +19319,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'DatabaseTable'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -20011,7 +20011,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'Column'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -20539,7 +20539,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'Index'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -21040,7 +21040,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'Indexkey'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -21529,7 +21529,7 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'RecordColumn'
+               ,@ClassName NVARCHAR(50) = 'Login'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN

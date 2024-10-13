@@ -11,7 +11,7 @@ export default class TCategory {
 	#AskMaximum = false
 
 	constructor(rowCategory) {
-		if (rowCategory.ClassName !== "RecordCategory")
+		if (rowCategory.ClassName !== "Category")
 			throw new Error("Argumento rowCategory não é do tipo Category.")
 		this.#Id = rowCategory.Id
 		this.#Name = rowCategory.Name
