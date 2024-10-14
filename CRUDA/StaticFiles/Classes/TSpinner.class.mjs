@@ -12,7 +12,7 @@ export default class TSpinner {
         style.innerText = styles.Spinner
         this.#Container = document.createElement("dialog")
         this.#Container.appendChild(style)
-        this.#Container.className = "dialog"
+        this.#Container.className = "spinner"
     }
     static Show() {
         this.#Container.showModal()

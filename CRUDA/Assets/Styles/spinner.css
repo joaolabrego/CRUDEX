@@ -1,4 +1,4 @@
-﻿.dialog {
+﻿.spinner {
     width: min(15vmin, 15vmax);
     height: min(15vmin, 15vmax);
     border: min(2vmin, 2vmax) solid gainsboro;
@@ -6,6 +6,7 @@
     border-radius: 50%;
     animation: spin 2s linear infinite;
     padding: 0;
+    margin: auto;
     background-color: transparent;
 }
 
@@ -19,6 +20,6 @@
     }
 }
 
-.dialog::backdrop {
+.spinner::backdrop {
     background-color: rgba(0, 0, 0, 0.5);
 }
