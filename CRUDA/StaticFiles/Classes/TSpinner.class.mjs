@@ -9,7 +9,6 @@ export default class TSpinner {
 
         let style = document.createElement("style")
 
-        debugger
         style.innerText = styles.Spinner
         this.#Container = document.createElement("dialog")
         this.#Container.appendChild(style)
