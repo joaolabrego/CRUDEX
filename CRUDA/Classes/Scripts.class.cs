@@ -5,14 +5,14 @@ using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
 
-namespace CRUDA.Classes
+namespace crudax.Classes
 {
     public class Scripts
     {
         static readonly string DirectoryScripts = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_SCRIPTS"));
         public static void GenerateScript(string systemName, string databaseName, bool? isExcel = null)
         {
-            var dataSet = (isExcel ?? systemName == "cruda") ? ExcelToDataSet() : GetDataSet(systemName);
+            var dataSet = (isExcel ?? systemName == "crudax") ? ExcelToDataSet() : GetDataSet(systemName);
             var columns = (dataSet.Tables["Columns"] ?? throw new Exception("Tabela Columns não existe.")).AsEnumerable().ToList();
             var indexes = (dataSet.Tables["Indexes"] ?? throw new Exception("Tabela Indexes não existe.")).AsEnumerable().ToList();
             var indexkeys = (dataSet.Tables["Indexkeys"] ?? throw new Exception("Tabela Indexkeys não existe.")).AsEnumerable().ToList();
@@ -37,7 +37,7 @@ namespace CRUDA.Classes
                 if (firstTime)
                 {
                     stream.Write(GetScriptCreateDatabase(database));
-                    if (systemName == "cruda")
+                    if (systemName == "crudax")
                         stream.Write(GetScriptOthers());
                     stream.Write(GetScriptTransactions());
                     firstTime = false;
@@ -186,9 +186,9 @@ namespace CRUDA.Classes
             result.Append($"CREATE DATABASE [{databaseAlias}]\r\n");
             result.Append($"    CONTAINMENT = NONE\r\n");
             result.Append($"    ON PRIMARY\r\n");
-            result.Append($"    (NAME = N'cruda', FILENAME = N'{filename}.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)\r\n");
+            result.Append($"    (NAME = N'${databaseName}', FILENAME = N'{filename}.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)\r\n");
             result.Append($"    LOG ON\r\n");
-            result.Append($"    (NAME = N'cruda_log', FILENAME = N'{filename}.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)\r\n");
+            result.Append($"    (NAME = N'${databaseName}_log', FILENAME = N'{filename}.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)\r\n");
             result.Append($"    WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF\r\n");
             result.Append($"GO\r\n");
             result.Append($"ALTER DATABASE[{databaseAlias}] SET COMPATIBILITY_LEVEL = 160\r\n");
@@ -271,7 +271,7 @@ namespace CRUDA.Classes
             result.Append($"GO\r\n");
             result.Append($"SET QUOTED_IDENTIFIER ON\r\n");
             result.Append($"GO\r\n");
-            result.Append($"CREATE SCHEMA cruda AUTHORIZATION [dbo]\r\n");
+            result.Append($"CREATE SCHEMA crudax AUTHORIZATION [dbo]\r\n");
             result.Append($"GO\r\n");
 
             return result;
@@ -301,13 +301,13 @@ namespace CRUDA.Classes
             result.Append($"**********************************************************************************/\r\n");
             result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.ScriptSystem.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar function [cruda].[HUNDREDS_IN_WORDS]\r\n");
+            result.Append($"Criar function [crudax].[HUNDREDS_IN_WORDS]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.HUNDREDS_IN_WORDS.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudax.HUNDREDS_IN_WORDS.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar function [cruda].[NUMBER_IN_WORDS]\r\n");
+            result.Append($"Criar function [crudax].[NUMBER_IN_WORDS]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.NUMBER_IN_WORDS.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudax.NUMBER_IN_WORDS.sql")));
 
             return result;
         }
@@ -316,33 +316,33 @@ namespace CRUDA.Classes
             var result = new StringBuilder();
 
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar stored procedure [cruda].[IS_EQUAL]\r\n");
+            result.Append($"Criar stored procedure [crudax].[IS_EQUAL]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.IS_EQUAL.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudax.IS_EQUAL.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar stored procedure [cruda].[JSON_EXTRACT]\r\n");
+            result.Append($"Criar stored procedure [crudax].[JSON_EXTRACT]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.JSON_EXTRACT.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudax.JSON_EXTRACT.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar tabela [cruda].[Transactions]\r\n");
+            result.Append($"Criar tabela [crudax].[Transactions]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.TransactionsCreateTable.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudax.TransactionsCreateTable.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar tabela [cruda].[Operations]\r\n");
+            result.Append($"Criar tabela [crudax].[Operations]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.OperationsCreateTable.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudax.OperationsCreateTable.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar stored procedure [cruda].TransactionBegin]\r\n");
+            result.Append($"Criar stored procedure [crudax].TransactionBegin]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.TransactionBegin.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudax.TransactionBegin.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar stored procedure [cruda].[TransactionCommit]\r\n");
+            result.Append($"Criar stored procedure [crudax].[TransactionCommit]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.TransactionCommit.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudax.TransactionCommit.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar stored procedure [cruda].[TransactionRollback]\r\n");
+            result.Append($"Criar stored procedure [crudax].[TransactionRollback]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "cruda.TransactionRollback.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudax.TransactionRollback.sql")));
 
             return result;
         }
@@ -576,7 +576,7 @@ namespace CRUDA.Classes
                 var pkColumnRows = columnRows.FindAll(row => ToBoolean(row["IsPrimarykey"]));
 
                 foreach (var column in pkColumnRows)
-                    result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                    result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudax].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
                 result.Append($"        SAVE TRANSACTION [SavePoint]\r\n");
@@ -590,16 +590,16 @@ namespace CRUDA.Classes
                         result.Append($"              ,@CreatedBy = [CreatedBy]\r\n");
                         result.Append($"              ,@ActionAux = [Action]\r\n");
                         result.Append($"              ,@IsConfirmed = [IsConfirmed]\r\n");
-                        result.Append($"            FROM [cruda].[Operations]\r\n");
+                        result.Append($"            FROM [crudax].[Operations]\r\n");
                         result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
                         result.Append($"                  AND [TableName] = 'Columns'\r\n");
                         result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
                                         firstTime = false;
                     }
-                    result.Append($"                  AND CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = @W_{column["Name"]}\r\n");
+                    result.Append($"                  AND CAST([crudax].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = @W_{column["Name"]}\r\n");
                 }
                 result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
-                result.Append($"            INSERT INTO [cruda].[Operations] ([TransactionId]\r\n");
+                result.Append($"            INSERT INTO [crudax].[Operations] ([TransactionId]\r\n");
                 result.Append($"                                             ,[TableName]\r\n");
                 result.Append($"                                             ,[Action]\r\n");
                 result.Append($"                                             ,[LastRecord]\r\n");
@@ -628,19 +628,19 @@ namespace CRUDA.Classes
                 result.Append($"        ELSE IF @Action = 'update' BEGIN\r\n");
                 result.Append($"            IF @ActionAux = 'create'\r\n");
                 result.Append($"                EXEC [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, 'create', NULL, @ActualRecord\r\n");
-                result.Append($"            UPDATE [cruda].[Operations]\r\n");
+                result.Append($"            UPDATE [crudax].[Operations]\r\n");
                 result.Append($"                SET [ActualRecord] = @ActualRecord\r\n");
                 result.Append($"                   ,[UpdatedAt] = GETDATE()\r\n");
                 result.Append($"                   ,[UpdatedBy] = @UserName\r\n");
                 result.Append($"                WHERE [Id] = @OperationId\r\n");
                 result.Append($"        END ELSE IF @ActionAux = 'create' BEGIN\r\n");
-                result.Append($"            UPDATE [cruda].[Operations] \r\n");
+                result.Append($"            UPDATE [crudax].[Operations] \r\n");
                 result.Append($"                SET [IsConfirmed] = 0\r\n");
                 result.Append($"                   ,[UpdatedAt] = GETDATE()\r\n");
                 result.Append($"                   ,[UpdatedBy] = @UserName\r\n");
                 result.Append($"                WHERE [Id] = @OperationId\r\n");
                 result.Append($"        END ELSE BEGIN\r\n");
-                result.Append($"            UPDATE [cruda].[Operations]\r\n");
+                result.Append($"            UPDATE [crudax].[Operations]\r\n");
                 result.Append($"                SET [Action] = 'delete'\r\n");
                 result.Append($"                   ,[LastRecord] = @LastRecord\r\n");
                 result.Append($"                   ,[ActualRecord] = @ActualRecord\r\n");
@@ -713,7 +713,7 @@ namespace CRUDA.Classes
                 result.Append($"               ,@LastRecord = [LastRecord]\r\n");
                 result.Append($"               ,@ActualRecord = [ActualRecord]\r\n");
                 result.Append($"               ,@IsConfirmed = [IsConfirmed]\r\n");
-                result.Append($"            FROM [cruda].[Operations]\r\n");
+                result.Append($"            FROM [crudax].[Operations]\r\n");
                 result.Append($"            WHERE [Id] = @OperationId\r\n");
                 result.Append($"        IF @@ROWCOUNT = 0\r\n");
                 result.Append($"            THROW 51000, 'Operação inexistente', 1\r\n");
@@ -738,11 +738,11 @@ namespace CRUDA.Classes
                     {
                         if (firstTime)
                         {
-                            result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([crudax].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                             firstTime = false;
                         }
                         else
-                            result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudax].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                     }
                     result.Append($"\r\n");
                     firstTime = true;
@@ -770,11 +770,11 @@ namespace CRUDA.Classes
                         {
                             result.Append($"        ELSE BEGIN\r\n");
                             result.Append($"\r\n");
-                            result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([crudax].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                             firstTime = false;
                         }
                         else
-                            result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudax].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                     }
                     result.Append($"\r\n");
                 }
@@ -831,7 +831,7 @@ namespace CRUDA.Classes
                         result.Append($"                          AND [{column["Name"]}] = @W_{column["Name"]}\r\n");
                 }
                 result.Append($"        END\r\n");
-                result.Append($"        UPDATE [cruda].[Operations]\r\n");
+                result.Append($"        UPDATE [crudax].[Operations]\r\n");
                 result.Append($"            SET [IsConfirmed] = 1\r\n");
                 result.Append($"                ,[UpdatedAt] = GETDATE()\r\n");
                 result.Append($"                ,[UpdatedBy] = @UserName\r\n");
@@ -898,19 +898,19 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
+                        result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudax].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
                         result.Append($"               ,@IsConfirmed BIT\r\n");
                         result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
                         firstTime = false;
                     }
-                    result.Append($"               ,@W_{column["Name"]} AS {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                    result.Append($"               ,@W_{column["Name"]} AS {column["#DataType"]} = CAST([crudax].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
                 result.Append($"        IF @TransactionId IS NULL\r\n");
                 result.Append($"            THROW 51000, 'Não existe transação para este @LoginId', 1\r\n");
                 result.Append($"        SELECT @IsConfirmed = [IsConfirmed]\r\n");
                 result.Append($"              ,@CreatedBy = [CreatedBy]\r\n");
-                result.Append($"            FROM [cruda].[Transactions]\r\n");
+                result.Append($"            FROM [crudax].[Transactions]\r\n");
                 result.Append($"            WHERE [Id] = @TransactionId\r\n");
                 result.Append($"        IF @IsConfirmed IS NOT NULL BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;\r\n");
@@ -968,7 +968,7 @@ namespace CRUDA.Classes
                         result.Append($"            IF @Action = 'update'\r\n");
                         firstTime = false;
                     }
-                    result.Append($"                AND [cruda].[IS_EQUAL]([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}'), [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1\r\n");
+                    result.Append($"                AND [crudax].[IS_EQUAL]([crudax].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}'), [crudax].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1\r\n");
                 }
                 result.Append($"                THROW 51000, 'Nenhuma alteração feita no registro', 1\r\n");
                 firstTime = true;
@@ -987,9 +987,9 @@ namespace CRUDA.Classes
                         result.Append($"                                  AND ");
                     }
                     if (ToBoolean(column["IsRequired"]))
-                        result.Append($"[{column["Name"]}] = [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}')");
+                        result.Append($"[{column["Name"]}] = [crudax].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}')");
                     else
-                        result.Append($"[cruda].[IS_EQUAL]([{column["Name"]}], [cruda].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1");
+                        result.Append($"[crudax].[IS_EQUAL]([{column["Name"]}], [crudax].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1");
                 }
                 result.Append($")\r\n");
                 result.Append($"                THROW 51000, 'Registro de {table["Name"]} alterado por outro usuário', 1\r\n");
@@ -1019,11 +1019,11 @@ namespace CRUDA.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([crudax].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudax].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
                 foreach (var column in nopkColumnRows)
@@ -1183,11 +1183,11 @@ namespace CRUDA.Classes
                 var filterableColumns = columnRows.FindAll(column => ToBoolean(column["IsFilterable"]));
 
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [cruda].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
+                result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudax].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
                 result.Append($"               ,@Where VARCHAR(MAX) = ''\r\n");
                 result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
                 foreach (var column in filterableColumns)
-                    result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([cruda].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                    result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudax].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 firstTime = true;
                 foreach (var column in columnRows)
@@ -1197,10 +1197,10 @@ namespace CRUDA.Classes
                         result.Append($"        SELECT [Action] AS [_]\r\n");
                         firstTime = false;
                     }
-                    result.Append($"              ,CAST([cruda].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
+                    result.Append($"              ,CAST([crudax].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
                 result.Append($"            INTO [dbo].[#operations]\r\n");
-                result.Append($"            FROM [cruda].[Operations]\r\n");
+                result.Append($"            FROM [crudax].[Operations]\r\n");
                 result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                  AND [TableName] = '{table["Name"]}'\r\n");
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");

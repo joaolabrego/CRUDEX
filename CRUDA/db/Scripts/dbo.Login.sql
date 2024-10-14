@@ -14,12 +14,12 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		IF ISJSON(@Parameters) = 0
 			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
-		DECLARE @Action VARCHAR(15) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.Action') AS VARCHAR(15))
-				,@LoginId INT = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.LoginId') AS INT)
-				,@SystemName VARCHAR(25) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.SystemName') AS VARCHAR(25))
-				,@UserName VARCHAR(25) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.UserName') AS VARCHAR(25))
-				,@Password VARCHAR(256) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.Password') AS VARCHAR(256))
-				,@PublicKey VARCHAR(256) = CAST([cruda].[JSON_EXTRACT](@Parameters, '$.PublicKey') AS VARCHAR(256))
+		DECLARE @Action VARCHAR(15) = CAST([crudax].[JSON_EXTRACT](@Parameters, '$.Action') AS VARCHAR(15))
+				,@LoginId INT = CAST([crudax].[JSON_EXTRACT](@Parameters, '$.LoginId') AS INT)
+				,@SystemName VARCHAR(25) = CAST([crudax].[JSON_EXTRACT](@Parameters, '$.SystemName') AS VARCHAR(25))
+				,@UserName VARCHAR(25) = CAST([crudax].[JSON_EXTRACT](@Parameters, '$.UserName') AS VARCHAR(25))
+				,@Password VARCHAR(256) = CAST([crudax].[JSON_EXTRACT](@Parameters, '$.Password') AS VARCHAR(256))
+				,@PublicKey VARCHAR(256) = CAST([crudax].[JSON_EXTRACT](@Parameters, '$.PublicKey') AS VARCHAR(256))
 				,@PasswordAux VARCHAR(256)
 				,@SystemId INT
 				,@SystemIdAux INT
@@ -84,7 +84,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		IF @action = 'login' BEGIN
 			IF @PublicKey IS NULL
 				THROW 51000, 'Chave pública é requerida', 1
-			EXEC @LoginId = [dbo].[GenerateId] 'cruda', 'cruda', 'Logins'
+			EXEC @LoginId = [dbo].[GenerateId] 'crudax', 'crudax', 'Logins'
 			INSERT [dbo].[Logins]([Id],
 								  [SystemId],
 								  [UserId],

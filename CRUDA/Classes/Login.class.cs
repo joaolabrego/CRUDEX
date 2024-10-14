@@ -1,4 +1,4 @@
-﻿using CRUDA.Classes.Models;
+﻿using crudax.Classes.Models;
 using Newtonsoft.Json;
 using System;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
