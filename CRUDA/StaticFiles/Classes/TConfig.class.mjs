@@ -5,6 +5,7 @@ import TCrypto from "./TCrypto.class.mjs"
 import TLogin from "./TLogin.class.mjs"
 import TScreen from "./TScreen.class.mjs"
 import TSystem from "./TSystem.class.mjs"
+import TSpinner from "./TSpinner.class.mjs"
 
 export default class TConfig {
     static #Locale = ""
@@ -25,6 +26,7 @@ export default class TConfig {
         if (action === TActions.CONFIG)
             headers.PublicKey = cryptoKey = TCrypto.GenerateCryptokey()
         else if (action === TActions.LOGIN) {
+            TSpinner.Show()
             headers.PublicKey = cryptoKey = TCrypto.GenerateCryptokey()
             body.Login = {
                 Action: action,
@@ -35,6 +37,7 @@ export default class TConfig {
             }
         }
         else {
+            TSpinner.Show()
             cryptoKey = TLogin.PublicKey;
             headers.LoginId = TLogin.LoginId
             body.Login = {
@@ -54,6 +57,8 @@ export default class TConfig {
                 body: JSON.stringify({ Request: crypto.Encrypt(JSON.stringify(body)) }),
             }),
             result = JSON.parse(crypto.Encrypt((await response.json()).Response))
+        if (action !== TActions.CONFIG)
+            TSpinner.Hide()
         if (result.ClassName === "Error")
             throw result
 

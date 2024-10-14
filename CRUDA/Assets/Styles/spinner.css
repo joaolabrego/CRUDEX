@@ -1,0 +1,24 @@
+﻿.dialog {
+    width: min(15vmin, 15vmax);
+    height: min(15vmin, 15vmax);
+    border: min(2vmin, 2vmax) solid gainsboro;
+    border-top: min(2vmin, 2vmax) solid burlywood;
+    border-radius: 50%;
+    animation: spin 2s linear infinite;
+    padding: 0;
+    background-color: transparent;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}

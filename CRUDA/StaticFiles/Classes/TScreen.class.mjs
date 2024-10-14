@@ -3,6 +3,7 @@
 import TConfig from "./TConfig.class.mjs"
 import TDialog from "./TDialog.class.mjs"
 import TLogin from "./TLogin.class.mjs"
+import TSpinner from "./TSpinner.class.mjs"
 import TSystem from "./TSystem.class.mjs"
 
 export default class TScreen {
@@ -117,6 +118,7 @@ export default class TScreen {
     static set Main(container) {
         this.#HTML.Main.innerHTML = null
         this.#HTML.Main.appendChild(TDialog.Container)
+        this.#HTML.Main.appendChild(TSpinner.Container)
         this.#HTML.Main.appendChild(container)
     }
     static get Main() {

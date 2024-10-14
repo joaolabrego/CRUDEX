@@ -1,181 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Dropdown Classe Automática</title>
+        <title>Spinner dentro de Dialog</title>
         <style>
-        .dropdown-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        .dropdown-input {
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .dropdown-arrow {
-            position: absolute;
-            top: 50%;
-            right: 0;
-            transform: translateY(-50%);
-            cursor: pointer;
-        }
-
+        /* Spinner usando o próprio dialog com medidas proporcionais */
         dialog {
-            border: none;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: min(15vmin, 15vmax); /* Largura proporcional à menor dimensão da viewport */
+            height: min(15vmin, 15vmax); /* Altura proporcional à menor dimensão da viewport */
+            border: min(2vmin, 2vmax) solid gainsboro; /* Borda proporcional */
+            border-top: min(2vmin, 2vmax) solid burlywood; /* Cor da parte superior para o efeito */
+            border-radius: 50%; /* Arredonda as bordas para ser um círculo */
+            animation: spin 2s linear infinite; /* Animação de rotação */
+            padding: 0;
+            background-color: transparent; /* Mantém o fundo transparente */
         }
 
-        dialog table {
-            width: 100%;
-            border-collapse: collapse;
+        /* Animação de rotação */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        dialog input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            box-sizing: border-box;
+        /* Personaliza o backdrop */
+        dialog::backdrop {
+            background-color: rgba(0, 0, 0, 0.5); /* Escurece a tela quando o dialog está aberto */
         }
 
-        #options-grid tbody tr:hover {
-            background-color: #f0f0f0;
-            cursor: pointer;
-        }
     </style>
     </head>
     <body>
 
-        <!-- O container onde vamos inserir os dropdowns -->
-        <div id="app-container"></div>
+        <!-- Dialog HTML utilizado como spinner -->
+        <dialog id="spinnerDialog"></dialog>
+
+        <!-- Botão para simular tarefa longa -->
+        <button onclick="runLongTask()">Rodar tarefa longa</button>
 
         <script>
-        class Dropdown {
-            constructor(containerId, tableName, currentId) {
-                this.container = document.getElementById(containerId);
-                this.tableName = tableName; // Nome da tabela onde serão pesquisadas as descrições
-                this.currentId = currentId; // Valor atual do ID da coluna relacionada
-                this.data = this.fetchDataFromTable(); // Simulação da busca na tabela
-                this.isRequired = false; // Define se é requerido ou não
+        function runLongTask() {
+            const dialog = document.getElementById('spinnerDialog');
+            
+            // Abre o dialog
+            dialog.showModal();
 
-                // Construir o componente e inseri-lo diretamente no DOM
-                this.setupDropdown();
-            }
-
-            // Simula a busca de dados na tabela, usando o nome da tabela como base
-            fetchDataFromTable() {
-                // Simulação de dados recebidos da tabela
-                return [
-                    { "Id": 1, "Descricao": `Option 1 from ${this.tableName}` },
-                    { "Id": 2, "Descricao": `Option 2 from ${this.tableName}` },
-                    { "Id": 3, "Descricao": `Option 3 from ${this.tableName}` }
-                ];
-            }
-
-            // Método que configura e constrói o dropdown automaticamente
-            setupDropdown() {
-                const dropdownContainer = document.createElement('div');
-                dropdownContainer.classList.add('dropdown-container');
-
-                dropdownContainer.innerHTML = `
-                    <input type="text" class="dropdown-input" placeholder="Select an option" readonly>
-                    <span class="dropdown-arrow">&#9660;</span>
-                    <input type="hidden" class="selected-id">
-                    <dialog id="dropdown-dialog">
-                        <input type="text" id="filter-input" placeholder="Type to filter...">
-                        <table id="options-grid">
-                            <tbody>
-                                <!-- As linhas serão inseridas dinamicamente -->
-                            </tbody>
-                        </table>
-                        <button id="close-dialog">Close</button>
-                    </dialog>
-                `;
-
-                this.container.appendChild(dropdownContainer);
-
-                // Após inserir no DOM, configura o comportamento do dropdown
-                this.initializeEvents(dropdownContainer);
-            }
-
-            // Método que configura o comportamento do dropdown
-            initializeEvents(dropdownContainer) {
-                const dropdownInput = dropdownContainer.querySelector('.dropdown-input');
-                const dropdownArrow = dropdownContainer.querySelector('.dropdown-arrow');
-                const dialog = dropdownContainer.querySelector('#dropdown-dialog');
-                const optionsGrid = dropdownContainer.querySelector('#options-grid tbody');
-                const filterInput = dropdownContainer.querySelector('#filter-input');
-                const closeDialog = dropdownContainer.querySelector('#close-dialog');
-                const selectedId = dropdownContainer.querySelector('.selected-id');
-
-                // Renderiza os dados iniciais no grid
-                this.populateGrid(optionsGrid, this.data);
-
-                // Abre o dialog ao clicar no input ou na seta
-                dropdownArrow.addEventListener('click', () => {
-                    dialog.showModal();
-                });
-
-                // Fecha o dialog ao clicar no botão de fechar
-                closeDialog.addEventListener('click', () => {
-                    dialog.close();
-                });
-
-                // Atualiza o valor do input ao clicar em uma opção do grid
-                optionsGrid.addEventListener('click', (e) => {
-                    if (e.target.tagName === 'TD') {
-                        const selectedRow = e.target.parentElement;
-                        const selectedValue = selectedRow.textContent;
-
-                        if (selectedValue === '(Nenhum)') {
-                            dropdownInput.value = ''; // Mantém o input vazio
-                            dropdownInput.placeholder = '(Nenhum)';
-                        } else {
-                            dropdownInput.value = selectedValue; // Mostra a Descrição
-                            dropdownInput.placeholder = 'Select an option';
-                        }
-
-                        selectedId.value = selectedRow.dataset.id; // Armazena o ID correspondente
-                        dialog.close();
-                    }
-                });
-
-                // Filtra as opções enquanto o usuário digita no campo de filtro
-                filterInput.addEventListener('input', () => {
-                    const filterValue = filterInput.value.toLowerCase();
-                    const filteredData = this.data.filter(item =>
-                        item.Descricao.toLowerCase().includes(filterValue)
-                    );
-                    this.populateGrid(optionsGrid, filteredData);
-                });
-            }
-
-            // Método para popular o grid com os dados
-            populateGrid(optionsGrid, data) {
-                optionsGrid.innerHTML = ''; // Limpa as opções anteriores
-
-                // Adiciona uma opção em branco se o campo não for requerido
-                if (!this.isRequired) {
-                    const emptyRow = document.createElement('tr');
-                    emptyRow.innerHTML = `<td>(Nenhum)</td>`;
-                    emptyRow.dataset.id = ''; // ID vazio para a opção em branco
-                    optionsGrid.appendChild(emptyRow);
-                }
-
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `<td>${item.Descricao}</td>`;
-                    row.dataset.id = item.Id; // Armazena o ID no dataset
-                    optionsGrid.appendChild(row);
-                });
-            }
+            // Simula uma tarefa longa com um timeout de 3 segundos
+            setTimeout(() => {
+                // Fecha o dialog após a tarefa
+                dialog.close();
+            }, 3000); // Simula uma tarefa de 3 segundos
         }
-
-        // Exemplo de uso: Inicializar o dropdown passando o ID do container, nome da tabela e ID atual
-        const dropdown1 = new Dropdown('app-container', 'Table1', 1);
-        const dropdown2 = new Dropdown('app-container', 'Table2', 2);
     </script>
+
     </body>
 </html>

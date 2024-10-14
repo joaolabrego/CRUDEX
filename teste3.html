@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>MaskEdit Custom Element</title>
+        <script>
+        class MaskEdit extends HTMLInputElement {
+            constructor() {
+                super();
+
+                // Obter atributos personalizados
+                this.dataType = this.getAttribute('data-type') || 'text';
+                this.mask = this.getAttribute('mask') || null; // Caso a máscara seja omitida, será null
+                this.locale = this.getAttribute('locale') || 'pt-BR';
+
+                // Configurações de formato numérico e de datas
+                if (this.locale === 'en-US') {
+                    this.thousandSeparator = ',';
+                    this.decimalSeparator = '.';
+                    this.dateMask = 'MM/dd/yyyy'; // Formato americano
+                } else {
+                    this.thousandSeparator = '.';
+                    this.decimalSeparator = ',';
+                    this.dateMask = 'dd/MM/yyyy'; // Formato europeu
+                }
+
+                // Adicionar evento de entrada para aplicar a máscara
+                this.addEventListener('input', () => this.applyMask());
+            }
+
+            applyMask() {
+                // Se não há máscara e não é numérico ou data, se comporta como um input normal
+                if (!this.mask && this.dataType !== 'date' && this.dataType !== 'numeric') return;
+
+                let value = this.value;
+
+                if (this.dataType === 'date') {
+                    this.value = this.formatDate(value);
+                } else if (this.dataType === 'numeric') {
+                    this.value = this.formatNumeric(value);
+                } else if (this.mask) {
+                    this.value = this.formatGeneral(value);
+                }
+            }
+
+            formatDate(value) {
+                // Aplicar máscara de data (pt-BR ou en-US)
+                let formattedValue = TMask.formatValue(value.replace(/\D/g, ""), this.dateMask);
+                return formattedValue;
+            }
+
+            formatNumeric(value) {
+                // Aplicar formatação numérica com separadores de milhar e decimal
+                return TMask.formatDecimal(value, 10, 2, this.thousandSeparator, this.decimalSeparator);
+            }
+
+            formatGeneral(value) {
+                // Aplicar máscara geral
+                return TMask.formatValue(value, this.mask);
+            }
+        }
+
+        // Definir o novo elemento personalizado que estende o input
+        customElements.define('mask-edit', MaskEdit, { extends: 'input' });
+
+        // Classe TMask com funções de formatação
+        class TMask {
+            static formatValue(value, mask) {
+                // Aplicar a máscara fornecida, ignorando caracteres que não são parte do valor
+                let result = '';
+                let valueIndex = 0;
+
+                for (let i = 0; i < mask.length; i++) {
+                    if (mask[i] === '#' && value[valueIndex]) {
+                        result += value[valueIndex];
+                        valueIndex++;
+                    } else if (mask[i] !== '#') {
+                        result += mask[i];
+                    }
+                    if (valueIndex >= value.length) break;
+                }
+
+                return result;
+            }
+
+            static formatDecimal(value, precision, scale, thousandSeparator = ".", decimalSeparator = ",") {
+                // Remover qualquer caractere não numérico, exceto sinal de negativo
+                let signal = value.startsWith("-") ? "-" : "";
+                value = value.replace(/[^0-9]/g, ""); // Limpar não numéricos
+
+                // Separar parte inteira e decimal
+                let integerPart = value.slice(0, precision - scale);
+                let decimalPart = value.slice(precision - scale);
+
+                // Adicionar separador de milhar à parte inteira
+                if (integerPart) {
+                    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousandSeparator);
+                }
+
+                // Combinar parte inteira e decimal com separador decimal
+                if (decimalPart) {
+                    return signal + integerPart + decimalSeparator + decimalPart;
+                } else {
+                    return signal + integerPart;
+                }
+            }
+        }
+    </script>
+    </head>
+
+    <body>
+        <h2>Exemplo de MaskEdit Web Component</h2>
+
+        <!-- Exemplo com máscara de data -->
+        <label>Data (DD/MM/YYYY):</label>
+        <input is="mask-edit" data-type="date" locale="pt-BR" placeholder="dd/mm/yyyy">
+
+        <br><br>
+
+        <!-- Exemplo sem máscara, comportamento de input normal -->
+        <label>Input sem máscara (Comportamento normal):</label>
+        <input is="mask-edit" placeholder="Digite algo aqui">
+
+        <br><br>
+
+        <!-- Exemplo com máscara numérica -->
+        <label>Valor numérico (BR):</label>
+        <input is="mask-edit" data-type="numeric" locale="pt-BR" placeholder="0,00">
+
+    </body>
+
+</html>

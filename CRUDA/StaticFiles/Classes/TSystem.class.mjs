@@ -17,7 +17,7 @@ import TIndexkey from "./TIndexkey.class.mjs"
 import TActions from "./TActions.class.mjs"
 import TCategory from "./TCategory.mjs"
 import TMask from "./TMask.mjs"
-import TDropDown from "./TDropDown.mjs"
+import TSpinner from "./TSpinner.class.mjs"
 export default class TSystem {
     static #Name = ""
     static #Description = ""
@@ -55,7 +55,7 @@ export default class TSystem {
                 TMenu.Initialize(config.Styles, config.Data.Menus)
                 TGrid.Initialize(config.Styles, config.Images)
                 TForm.Initialize(config.Styles, config.Images)
-                TDropDown.Initialize(config.Styles)
+                TSpinner.Initialize(config.Styles)
                 config.Data.Categories.forEach(row => this.#Categories.push(new TCategory(row)))
                 config.Data.Types.forEach(row => this.#Types.push(new TType(row)))
                 config.Data.Domains.forEach(row => this.#Domains.push(new TDomain(row)))

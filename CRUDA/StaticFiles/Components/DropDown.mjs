@@ -2,7 +2,7 @@
 
 import TSystem from "./TSystem.class.mjs"
 
-export default class TDropDown {
+export default class DropDown {
     
     #Table = ""
     #Id = 0
@@ -33,7 +33,7 @@ export default class TDropDown {
 
         let style = document.createElement("style")
 
-        style.innerText = TDropDown.#Style
+        style.innerText = DropDown.#Style
         this.#HTML.Container.appendChild(style)
         this.#HTML.Container.className = "container"
 
