@@ -154,8 +154,8 @@ export default class TForm {
             if (event.key === "Enter") {
                 event.preventDefault();
 
-                let focusableElements = Array.from(document.querySelectorAll('input, textarea'))
-                let currentIndex = focusableElements.indexOf(document.activeElement)
+                let focusableElements = Array.from(document.querySelectorAll('input, textarea')),
+                    currentIndex = focusableElements.indexOf(document.activeElement)
 
                 if (currentIndex > -1 && currentIndex < focusableElements.length - 1)
                     focusableElements[currentIndex + 1].focus()
@@ -176,6 +176,8 @@ export default class TForm {
         if (!(this.#HTML.FirstInput || control.readOnly))
             this.#HTML.FirstInput = control
         fieldset.appendChild(control)
+        if (column.IsRequired)
+            fieldset.appendChild(document.createTextNode(" *"))
 
         return fieldset
     }
