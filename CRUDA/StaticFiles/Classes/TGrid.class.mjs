@@ -29,6 +29,7 @@ export default class TGrid {
         DeleteButton: null,
         QueryButton: null,
         FilterButton: null,
+        UnorderButton: null,
         UnfilterButton: null,
         ExitButton: null,
         SelectedRow: null,
@@ -39,7 +40,8 @@ export default class TGrid {
         Insert: "",
         Edit: "",
         Filter: "",
-        UnFilter: "",
+        Unfilter: "",
+        Unorder: "",
         Delete: "",
         Query: "",
         Exit: "",
@@ -93,6 +95,12 @@ export default class TGrid {
                         if (!this.#HTML.UnfilterButton.hidden) {
                             event.preventDefault()
                             this.#HTML.UnfilterButton.click()
+                        }
+                        break;
+                    case "o":
+                        if (!this.#HTML.UnorderButton.hidden) {
+                            event.preventDefault()
+                            this.#HTML.UnorderButton.click()
                         }
                         break;
                     case "r":
@@ -176,6 +184,7 @@ export default class TGrid {
         this.#Images.Exit = images.Exit
         this.#Images.Filter = images.Filter
         this.#Images.Unfilter = images.Unfilter
+        this.#Images.Unorder = images.Unorder
         this.#Images.Insert = images.Insert
     }
     SaveFilters(record) {
@@ -493,6 +502,19 @@ export default class TGrid {
             this.Renderize()
         }
         th.appendChild(this.#HTML.UnfilterButton)
+
+        this.#HTML.UnorderButton = document.createElement("button")
+        this.#HTML.UnorderButton.type = "button"
+        this.#HTML.UnorderButton.style.backgroundImage = TGrid.#Images.Unorder
+        this.#HTML.UnorderButton.title = `Limpar ordenação de registros (ctrl-o): ${this.OrderBy}`
+        this.#HTML.UnorderButton.hidden = TConfig.IsEmpty(this.#OrderBy)
+        this.#HTML.UnorderButton.onmouseenter = () => TScreen.Message = "Limpar ordenação de registros"
+        this.#HTML.UnorderButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
+        this.#HTML.UnorderButton.onclick = () => {
+            this.#OrderBy = ""
+            this.Renderize()
+        }
+        th.appendChild(this.#HTML.UnorderButton)
 
         this.#HTML.ExitButton = document.createElement("button")
         this.#HTML.ExitButton.type = "button"

@@ -9,6 +9,8 @@ export default class TRecordSet {
     #RowNumber = 0
     #Data = null
     #OrderBy = ""
+    static columnNameAsc = "[" + column.Name + "] ASC,"
+    static columnNameDesc = "[" + column.Name + "] DESC,"
 
     constructor(table) {
         if (grid.ClassName !== "TTable")
@@ -17,8 +19,29 @@ export default class TRecordSet {
         this.#Table.Columns.filter(column => column.IsFilterable)
             .forEach(column => this.#FilterValues[column.Name] = null)
     }
-    AddOrderBy(column, value) {
+    ClearOrderBy() {
+        this.#OrderBy = ""
+    }
+    IsOrdered() {
+        return this.#OrderBy.includes(columnNameAsc) ? false : this.#OrderBy.includes(columnNameDesc) ? true : null
+    }
+    ToggleOrdered() {
+        let isOrdered = this.IsOrdered()
 
+        if (TConfig.IsEmpty(isOrdered)) {
+            this.#OrderBy += columnNameAsc
+            isOrdered = false
+        }
+        else if (isOrdered === false) {
+            this.#OrderBy = this.#OrderBy.replace(columnNameAsc, columnNameDesc)
+            isOrdered = true
+        }
+        else {
+            this.#OrderBy = this.#OrderBy.replace(columnNameDesc, "")
+            isOrdered = null
+        }
+
+        return isOrdered
     }
     ClearFilters() {
         Object.keys(this.#FilterValues).forEach(key => this.#FilterValues[key] = null)
@@ -63,7 +86,27 @@ export default class TRecordSet {
         return result.DataSet.Table
     }
 
-    get Table(){
+    get Table() {
         return this.#Table
     }
+    get RowCount() {
+        return this.#RowCount
+    }
+    get PageNumber() {
+        return this.#PageNumber
+    }
+    get PageCount() {
+        return this.#PageCount
+    }
+    get RowNumber() {
+        return this.#RowNumber
+    }
+    get Data() {
+        return this.#Data
+    }
+    get OrderBy() {
+        return this.#OrderBy
+    }
+}
+
 }

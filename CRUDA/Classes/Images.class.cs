@@ -11,6 +11,7 @@
         public readonly string Edit;
         public readonly string Filter;
         public readonly string Unfilter;
+        public readonly string Unorder;
         public readonly string Delete;
         public readonly string Query;
         public readonly string Exit;
@@ -28,6 +29,7 @@
             Edit = ReadImageFile(Path.Combine(directory, $"{Settings.Get("EDIT_IMAGE")}"), true);
             Filter = ReadImageFile(Path.Combine(directory, $"{Settings.Get("FILTER_IMAGE")}"), true);
             Unfilter = ReadImageFile(Path.Combine(directory, $"{Settings.Get("UNFILTER_IMAGE")}"), true);
+            Unorder = ReadImageFile(Path.Combine(directory, $"{Settings.Get("UNORDER_IMAGE")}"), true);
             Delete = ReadImageFile(Path.Combine(directory, $"{Settings.Get("DELETE_IMAGE")}"), true);
             Query = ReadImageFile(Path.Combine(directory, $"{Settings.Get("ZOOM_IMAGE")}"), true);
             Exit = ReadImageFile(Path.Combine(directory, $"{Settings.Get("EXIT_IMAGE")}"), true);
