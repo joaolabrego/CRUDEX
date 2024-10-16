@@ -1,4 +1,4 @@
-﻿namespace crudax.Classes.Models
+﻿namespace crudex.Classes.Models
 {
     static public class Actions
     {

@@ -4,7 +4,7 @@ using System.Data;
 using System.Data.SqlClient;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
-namespace crudax.Classes.Models
+namespace crudex.Classes.Models
 {
     public class TResult
     {

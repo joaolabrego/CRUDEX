@@ -1,6 +1,6 @@
 ﻿using System.Data;
 using System.Data.SqlClient;
-using crudax.Classes.Models;
+using crudex.Classes.Models;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
 namespace CRUDA_LIB

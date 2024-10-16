@@ -1,7 +1,7 @@
 ﻿using CRUDA_LIB;
 using Newtonsoft.Json;
 
-namespace crudax.Classes.Models
+namespace crudex.Classes.Models
 {
     public class Error(string message, string? action = null)
     {

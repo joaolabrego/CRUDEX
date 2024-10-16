@@ -40,7 +40,7 @@ namespace CRUDA_LIB
                     Masks = result.DataSet.Tables[10].Rows[0].Table,
                 };
                 Styles = new Styles();
-                Images = new Images();
+                Images = new Images(Data.System.Rows[0]["ClientName"]);
             }
             else
                 Data = new
@@ -62,7 +62,7 @@ namespace CRUDA_LIB
                    $"        <meta http-equiv='pragma' content='no-cache, no-store' />\n" +
                    $"        <meta http-equiv='content-type' content='text/html; X-Content-Type-Options=nosniff;' />\n" +
                    $"        <meta name='viewport' content='width=device-width, initial-scale=1.0' />\n" +
-                   $"        <meta name='application-name' content='CRUDA - CRUD Automático' />\n" +
+                   $"        <meta name='application-name' content='CRUDEX - CRUD Express' />\n" +
                    $"        <meta name='author' content='João da Rocha Labrego' />\n" +
                    $"        <meta name='copyright' content='© 2024 Labrego' />\n" +
                    $"        <meta name='description' content='Sistema de operações CRUD em tabelas de bancos-de-dados MS-SQL Server' />\n" +

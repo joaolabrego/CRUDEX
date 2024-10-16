@@ -1,8 +1,8 @@
-﻿IF(SELECT object_id('[crudax].[TransactionRollback]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [crudax].[TransactionRollback] AS PRINT 1')
+﻿IF(SELECT object_id('[crudex].[TransactionCommit]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [crudex].[TransactionCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[crudax].[TransactionRollback](@TransactionId INT
-											,@UserName VARCHAR(25)) AS BEGIN
+ALTER PROCEDURE[crudex].[TransactionCommit](@TransactionId INT
+										  ,@UserName VARCHAR(25)) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 			,@ErrorMessage NVARCHAR(MAX)
 
@@ -10,17 +10,23 @@ ALTER PROCEDURE[crudax].[TransactionRollback](@TransactionId INT
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @OperationId INT
-				,@CreatedBy VARCHAR(25)
+		DECLARE @LoginId INT
+				,@OperationId INT
+				,@TableName VARCHAR(25)
 				,@IsConfirmed BIT
+				,@CreatedBy VARCHAR(25)
+				,@sql VARCHAR(MAX)
 
 		BEGIN TRANSACTION
 		SAVE TRANSACTION [SavePoint]
 		IF @TransactionId IS NULL
 			THROW 51000, 'Valor de @TransactionId é requerido', 1
-		SELECT @IsConfirmed = [IsConfirmed]
+		IF @UserName IS NULL
+			THROW 51000, 'Valor de @UserName é requerido', 1
+		SELECT @LoginId = [LoginId]
+			  ,@IsConfirmed = [IsConfirmed]
 			  ,@CreatedBy = [CreatedBy]
-			FROM [crudax].[Transactions]
+			FROM [crudex].[Transactions]
 			WHERE [Id] = @TransactionId
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Transação inexistente', 1
@@ -28,28 +34,17 @@ ALTER PROCEDURE[crudax].[TransactionRollback](@TransactionId INT
 			SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
 			THROW 51000, @ErrorMessage, 1
 		END
-
 		IF @UserName <> @CreatedBy
 			THROW 51000, 'Erro grave de segurança', 1
-		WHILE 1 = 1 BEGIN
-			SELECT TOP 1 @OperationId = [Id]
-						,@CreatedBy = [CreatedBy]
-				FROM [crudax].[Operations]
-				WHERE [TransactionId] = @TransactionId
-						AND [IsConfirmed] IS NULL
-				ORDER BY [Id]
-			IF @@ROWCOUNT = 0
-				BREAK
-			IF @UserName <> @CreatedBy
-				THROW 51000, 'Erro grave de segurança', 1
-			UPDATE [crudax].[Operations]
-				SET [IsConfirmed] = 0
-					,[UpdatedBy] = @UserName
-					,[UpdatedAt] = GETDATE()
-				WHERE [Id] = @OperationId
-		END
-		UPDATE [crudax].[Transactions]
-			SET [IsConfirmed] = 0
+		SET @sql = (SELECT STRING_AGG('[dbo].[' + [O].[TableName] + 'Commit] @LoginId = ' +
+									  CAST(@LoginId AS VARCHAR) + ', @OperationId = ' +
+									  CAST([O].[Id] AS VARCHAR), '; ')
+						FROM [crudex].[Operations] [O]
+						WHERE [O].[TransactionId] = @TransactionId
+							  AND [O].[IsConfirmed] IS NULL)
+		EXEC sp_executesql @sql
+		UPDATE [crudex].[Transactions]
+			SET [IsConfirmed] = 1
 				,[UpdatedBy] = @UserName
 				,[UpdatedAt] = GETDATE()
 			WHERE [Id] = @TransactionId

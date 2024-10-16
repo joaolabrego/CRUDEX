@@ -1,8 +1,8 @@
-IF (SELECT object_id('[crudax].[IS_EQUAL]', 'FN')) IS NULL
-    EXEC('CREATE FUNCTION [crudax].[IS_EQUAL]() RETURNS BIT AS BEGIN RETURN 1 END')
+IF (SELECT object_id('[crudex].[IS_EQUAL]', 'FN')) IS NULL
+    EXEC('CREATE FUNCTION [crudex].[IS_EQUAL]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
 
-ALTER FUNCTION [crudax].[IS_EQUAL](
+ALTER FUNCTION [crudex].[IS_EQUAL](
     @LeftValue NVARCHAR(MAX),
     @RightValue NVARCHAR(4000),
     @TypeValue VARCHAR(25)

@@ -16,11 +16,11 @@
         public readonly string Exit;
         public readonly string Confirm;
         public readonly string Cancel;
-        public Images()
+        public Images(string clientName)
         {
             var directory = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_IMAGES"));
 
-            Background = ReadImageFile(Path.Combine(directory, $"{Settings.Get("BACKGROUND_IMAGE")}"), true);
+            Background = ReadImageFile(Path.Combine(directory, $"{clientName}.{Settings.Get("BACKGROUND_IMAGE_EXTENSION")}"), true);
             Question = ReadImageFile(Path.Combine(directory, $"{Settings.Get("QUESTION_IMAGE")}"));
             Alert = ReadImageFile(Path.Combine(directory, $"{Settings.Get("ALERT_IMAGE")}"));
             Error = ReadImageFile(Path.Combine(directory, $"{Settings.Get("ERROR_IMAGE")}"));

@@ -9,9 +9,9 @@ GO
 CREATE DATABASE [crudex]
     CONTAINMENT = NONE
     ON PRIMARY
-    (NAME = N'$crudax', FILENAME = N'D:\CRUDA-C#\CRUDA-CORE\CRUDA\db\crudex.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)
+    (NAME = N'$crudex', FILENAME = N'D:\CRUDA-C#\CRUDA-CORE\CRUDA\db\crudex.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)
     LOG ON
-    (NAME = N'$crudax_log', FILENAME = N'D:\CRUDA-C#\CRUDA-CORE\CRUDA\db\crudex.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)
+    (NAME = N'$crudex_log', FILENAME = N'D:\CRUDA-C#\CRUDA-CORE\CRUDA\db\crudex.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)
     WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF
 GO
 ALTER DATABASE[crudex] SET COMPATIBILITY_LEVEL = 160
@@ -4547,8 +4547,8 @@ INSERT INTO [dbo].[Systems] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS int)
                                 ,CAST('crudex' AS nvarchar(25))
-                                ,CAST('CRUD Express Automático' AS nvarchar(50))
-                                ,CAST('DAYCOVAL' AS nvarchar(15))
+                                ,CAST('CRUD Express' AS nvarchar(50))
+                                ,CAST('labsoft' AS nvarchar(15))
                                 ,CAST('5' AS tinyint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
@@ -4936,7 +4936,7 @@ INSERT INTO [dbo].[Databases] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS int)
                                 ,CAST('crudex' AS nvarchar(25))
-                                ,CAST('CRUD Automático' AS nvarchar(50))
+                                ,CAST('CRUD Express' AS nvarchar(50))
                                 ,CAST('crudex' AS nvarchar(25))
                                 ,CAST('NOTEBOOK-DELL' AS nvarchar(50))
                                 ,CAST('localhost' AS nvarchar(25))

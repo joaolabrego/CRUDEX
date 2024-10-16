@@ -16,7 +16,6 @@ export default class TGrid {
     #RowNumber = 0
     #DataPage = null
     #OrderBy = ""
-    #RenderingInProgress = false
 
     #HTML = {
         Container: null,
@@ -225,9 +224,6 @@ export default class TGrid {
         return result.DataSet.Table
     }
     async Renderize(pageNumber = this.#PageNumber) {
-        if (this.#RenderingInProgress)
-            return
-        this.#RenderingInProgress = true
         this.#ReadDataPage(pageNumber)
             .then(dataPage => {
                 this.#DataPage = dataPage
@@ -246,7 +242,6 @@ export default class TGrid {
             .catch(error => {
                 TScreen.ShowError(error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
             })
-            .finally(() => this.#RenderingInProgress = false)
         /*
         globalThis.$ = new Proxy(this.#Table, {
             get: (target, key) => {
@@ -302,26 +297,22 @@ export default class TGrid {
                     columnNameDesc = "[" + column.Name + "] DESC,"
 
                 th.Name = column.Name
-                th.Value = this.#OrderBy.includes(columnNameAsc) ? false : this.#OrderBy.includes(columnNameDesc) ? true : null
-                th.innerHTML = column.Title + (th.Value === null ? "" : th.Value ? "&nbsp;\u25BC" : "&nbsp;\u25B2")
+                th.IsOrdered = this.#OrderBy.includes(columnNameAsc) ? false : this.#OrderBy.includes(columnNameDesc) ? true : null
+                th.innerHTML = column.Title + (th.IsOrdered === null ? "" : th.IsOrdered ? "&nbsp;\u25BC" : "&nbsp;\u25B2")
                 th.onclick = (event) => {
-                    let column = this.#Table.GetColumn(th.Name),
-                        columnNameAsc = "[" + event.target.Name + "] ASC,",
-                        columnNameDesc = "[" + event.target.Name + "] DESC,"
-
-                    if (TConfig.IsEmpty(event.target.Value)) {
+                    if (TConfig.IsEmpty(event.target.IsOrdered)) {
                         this.#OrderBy += columnNameAsc
-                        event.target.Value = false
+                        event.target.IsOrdered = false
                         event.target.innerHTML = `${column.Title}&nbsp;\u25B2` 
                     }
-                    else if (event.target.Value === false) {
+                    else if (event.target.IsOrdered === false) {
                         this.#OrderBy = this.#OrderBy.replace(columnNameAsc, columnNameDesc)
-                        event.target.Value = true
+                        event.target.IsOrdered = true
                         event.target.innerHTML = `${column.Title}&nbsp;\u25BC`
                     }
                     else {
                         this.#OrderBy = this.#OrderBy.replace(columnNameDesc, "")
-                        event.target.Value = null
+                        event.target.IsOrdered = null
                         event.target.innerHTML = column.Title
                     }
                     this.Renderize()

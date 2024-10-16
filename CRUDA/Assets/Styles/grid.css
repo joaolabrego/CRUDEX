@@ -72,7 +72,7 @@
     outline: 0;
     background-color: var(--background-color-focus);
     width: var(--control-height);
-    height: var(--control-height);
+    height: calc(0.5 * var(--control-height));
     border: 0;
     font-size: inherit;
     color: inherit;
@@ -80,7 +80,7 @@
     cursor: pointer;
     border-radius: var(--border-radius);
     background-size: 100% 100%;
-    margin: 0.5vmin 2.5vmin;
+    margin: 0.5vmin 1.5vmin;
 }
 .grid thead th:hover {
     background: var(--background-color);
