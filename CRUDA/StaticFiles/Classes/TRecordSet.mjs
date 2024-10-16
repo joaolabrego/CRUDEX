@@ -85,7 +85,29 @@ export default class TRecordSet {
 
         return result.DataSet.Table
     }
+    get Primarykeys() {
+        let primarykeys = {}
 
+        this.#Table.Columns.filter(column => column.IsPrimarykey)
+            .forEach(column => primarykeys[column.Name] = this.#DataPage[this.#RowNumber][column.Name])
+
+        return primarykeys
+    }
+    get OrderBy() {
+        return this.#OrderBy.slice(0, -1)
+    }
+    get Filter() {
+        var filter = ""
+
+        for (let key in this.#FilterValues) {
+            let value = this.#FilterValues[key]
+
+            if (value !== null)
+                filter += `${(filter === "" ? "" : " AND ")}${key} = '${value}'`
+        }
+
+        return filter;
+    }
     get Table() {
         return this.#Table
     }

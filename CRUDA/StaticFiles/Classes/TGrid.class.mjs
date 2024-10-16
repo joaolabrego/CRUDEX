@@ -8,13 +8,15 @@ import TSystem from "./TSystem.class.mjs"
 import TConfig from "./TConfig.class.mjs"
 
 export default class TGrid {
-    #Table = null
     #FilterValues = {}
     #RowCount = 0
     #PageNumber = 1
     #PageCount = 0
     #RowNumber = 0
     #DataPage = null
+    #Table = null
+    #Recordset = null
+
     #OrderBy = ""
 
     #HTML = {
@@ -62,52 +64,44 @@ export default class TGrid {
             if (event.ctrlKey) {
                 switch (event.key) {
                     case "i":
-                        if (!this.#HTML.CreateButton.hidden) {
-                            event.preventDefault()
+                        event.preventDefault()
+                        if (!this.#HTML.CreateButton.hidden)
                             this.#HTML.CreateButton.click()
-                        }
                         break;
                     case "a":
-                        if (!this.#HTML.UpdateButton.hidden) {
-                            event.preventDefault()
+                        event.preventDefault()
+                        if (!this.#HTML.UpdateButton.hidden)
                             this.#HTML.UpdateButton.click()
-                        }
                         break;
                     case "e":
-                        if (!this.#HTML.DeleteButton.hidden) {
-                            event.preventDefault()
+                        event.preventDefault()
+                        if (!this.#HTML.DeleteButton.hidden)
                             this.#HTML.DeleteButton.click()
-                        }
                         break;
                     case "v":
-                        if (!this.#HTML.QueryButton.hidden) {
-                            event.preventDefault()
+                        event.preventDefault()
+                        if (!this.#HTML.QueryButton.hidden)
                             this.#HTML.QueryButton.click()
-                        }
                         break;
                     case "f":
-                        if (!this.#HTML.FilterButton.hidden) {
-                            event.preventDefault()
+                        event.preventDefault()
+                        if (!this.#HTML.FilterButton.hidden)
                             this.#HTML.FilterButton.click()
-                        }
                         break;
                     case "l":
-                        if (!this.#HTML.UnfilterButton.hidden) {
-                            event.preventDefault()
+                        event.preventDefault()
+                        if (!this.#HTML.UnfilterButton.hidden)
                             this.#HTML.UnfilterButton.click()
-                        }
                         break;
                     case "o":
-                        if (!this.#HTML.UnorderButton.hidden) {
-                            event.preventDefault()
+                        event.preventDefault()
+                        if (!this.#HTML.UnorderButton.hidden)
                             this.#HTML.UnorderButton.click()
-                        }
                         break;
                     case "r":
-                        if (!this.#HTML.ExitButton.hidden) {
-                            event.preventDefault()
+                        event.preventDefault()
+                        if (!this.#HTML.ExitButton.hidden)
                             this.#HTML.ExitButton.click()
-                        }
                         break;
                 }
             }
