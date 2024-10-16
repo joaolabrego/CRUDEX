@@ -77,7 +77,7 @@ export default class TGrid {
                             this.#HTML.DeleteButton.click()
                         }
                         break;
-                    case "c":
+                    case "v":
                         if (!this.#HTML.QueryButton.hidden) {
                             event.preventDefault()
                             this.#HTML.QueryButton.click()
@@ -413,7 +413,7 @@ export default class TGrid {
         this.#HTML.CreateButton.style.backgroundImage = TGrid.#Images.Insert
         this.#HTML.CreateButton.title = "Incluir registro (ctrl-i)"
         this.#HTML.CreateButton.hidden = false
-        this.#HTML.CreateButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
+        this.#HTML.CreateButton.onmouseenter = () => TScreen.Message = "Incluir registro"
         this.#HTML.CreateButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.CreateButton.onclick = () => {
             new TForm(this, TActions.CREATE).Configure()
@@ -429,7 +429,7 @@ export default class TGrid {
         this.#HTML.UpdateButton.style.backgroundImage = TGrid.#Images.Edit
         this.#HTML.UpdateButton.title = "Alterar registro (ctrl-a)"
         this.#HTML.UpdateButton.hidden = this.#RowCount === 0
-        this.#HTML.UpdateButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
+        this.#HTML.UpdateButton.onmouseenter = () => TScreen.Message = "Alterar registro"
         this.#HTML.UpdateButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.UpdateButton.onclick = () =>
             new TForm(this, TActions.UPDATE).Configure()
@@ -444,7 +444,7 @@ export default class TGrid {
         this.#HTML.DeleteButton.style.backgroundImage = TGrid.#Images.Delete
         this.#HTML.DeleteButton.title = "Excluir registro (ctrl-e)"
         this.#HTML.DeleteButton.hidden = this.#RowCount === 0
-        this.#HTML.DeleteButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
+        this.#HTML.DeleteButton.onmouseenter = () => TScreen.Message = "Excluir registro"
         this.#HTML.DeleteButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.DeleteButton.onclick = () =>
             new TForm(this, TActions.DELETE).Configure()
@@ -457,9 +457,9 @@ export default class TGrid {
         this.#HTML.QueryButton = document.createElement("button")
         this.#HTML.QueryButton.type = "button"
         this.#HTML.QueryButton.style.backgroundImage = TGrid.#Images.Query
-        this.#HTML.QueryButton.title = "Consultar registro (ctrl-c)"
+        this.#HTML.QueryButton.title = "Ver registro (ctrl-v)"
         this.#HTML.QueryButton.hidden = this.#RowCount === 0
-        this.#HTML.QueryButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
+        this.#HTML.QueryButton.onmouseenter = () => TScreen.Message = "Ver registro"
         this.#HTML.QueryButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.QueryButton.onclick = () =>
             new TForm(this, TActions.QUERY).Configure()
@@ -472,9 +472,9 @@ export default class TGrid {
         this.#HTML.FilterButton = document.createElement("button")
         this.#HTML.FilterButton.type = "button"
         this.#HTML.FilterButton.style.backgroundImage = TGrid.#Images.Filter
-        this.#HTML.FilterButton.title = "Filtragem de registros (ctrl-f)"
+        this.#HTML.FilterButton.title = "Filtrar registros (ctrl-f)"
         this.#HTML.FilterButton.hidden = !filtered && this.#RowCount <= TSystem.RowsPerPage
-        this.#HTML.FilterButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
+        this.#HTML.FilterButton.onmouseenter = () => TScreen.Message = "Filtrar registros"
         this.#HTML.FilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.FilterButton.onclick = async () => {
             (await new TForm(this, TActions.FILTER).Configure()).Renderize()
@@ -484,9 +484,9 @@ export default class TGrid {
         this.#HTML.UnfilterButton = document.createElement("button")
         this.#HTML.UnfilterButton.type = "button"
         this.#HTML.UnfilterButton.style.backgroundImage = TGrid.#Images.Unfilter
-        this.#HTML.UnfilterButton.title = `Limpar filtros de registros (ctrl-l): ${this.Filter}`
+        this.#HTML.UnfilterButton.title = `Limpar filtragem de registros (ctrl-l): ${this.Filter}`
         this.#HTML.UnfilterButton.hidden = !filtered
-        this.#HTML.UnfilterButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
+        this.#HTML.UnfilterButton.onmouseenter = () => TScreen.Message = "Limpar filtragem de registros"
         this.#HTML.UnfilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.UnfilterButton.onclick = () => {
             this.ClearFilters()
@@ -497,9 +497,9 @@ export default class TGrid {
         this.#HTML.ExitButton = document.createElement("button")
         this.#HTML.ExitButton.type = "button"
         this.#HTML.ExitButton.style.backgroundImage = TGrid.#Images.Exit
-        this.#HTML.ExitButton.title = "Retornar para menu principal (ctrl-r)"
+        this.#HTML.ExitButton.title = "Retornar ao menu principal (ctrl-r)"
         this.#HTML.ExitButton.hidden = false
-        this.#HTML.ExitButton.onmouseenter = event => TScreen.Message = event.currentTarget.title
+        this.#HTML.ExitButton.onmouseenter = () => TScreen.Message = "Retornar ao menu principal"
         this.#HTML.ExitButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
         this.#HTML.ExitButton.onclick = () => TSystem.Action = `${TActions.EXIT}/${TActions.MENU}`
         th.appendChild(this.#HTML.ExitButton)
