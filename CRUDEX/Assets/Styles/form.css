@@ -1,0 +1,56 @@
+﻿.form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+}
+
+.form fieldset {
+    border: none;
+    color: black;
+    font-size: 1.5vmin;
+    margin: 2vmin;
+    text-align: center;
+}
+
+.form input[type="checkbox"] {
+    width: var(--font-size-grid);
+    height: var(--font-size-grid);
+}
+
+.form input {
+    height: calc(var(--background-color-control) + 0.5vmin);
+    font-size: inherit;
+}
+
+.form textarea {
+    font-size: var(--background-color-control);
+}
+
+.buttonsBar {
+    text-align: center;
+}
+
+.buttonsBar .button {
+    margin-top: 1vmin;
+    margin-bottom: 1vmin;
+    margin-right: 5vmin;
+    width: 20vmin;
+    height: 3.5vmin;
+    font-size: 1.5vmin;
+    background: var(--background-color-control);
+    background-position: left;
+    background-repeat: no-repeat;
+    background-size: 15%;
+}
+
+.buttonsBar .button:hover {
+    background: var(--background-color-focus);
+    background-repeat: no-repeat;
+    background-size: 15%;
+}
+
+.buttonsBar .button:active {
+    background: var(--background-color-active);
+    background-repeat: no-repeat;
+    background-size: 15%;
+}
