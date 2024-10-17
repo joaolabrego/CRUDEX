@@ -24,8 +24,8 @@ body {
     font-weight: bold;
     color: blue;
     background-color: grey;
-    padding: 0 1vmin;
-    overflow: auto;
+    padding: 0;
+    overflow: hidden;
 }
 
 .box {
