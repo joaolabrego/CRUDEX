@@ -1556,6 +1556,7 @@ CREATE TABLE [dbo].[Categories]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS
                                     ,[AskDefault] bit NOT NULL
                                     ,[AskMinimum] bit NOT NULL
                                     ,[AskMaximum] bit NOT NULL
+                                    ,[AskInWords] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
@@ -1805,6 +1806,7 @@ CREATE TABLE [dbo].[Columns]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
                                     ,[IsEditable] bit NULL
                                     ,[IsGridable] bit NULL
                                     ,[IsEncrypted] bit NULL
+                                    ,[IsInWords] bit NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
@@ -2108,6 +2110,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[AskDefault]
                                 ,[AskMinimum]
                                 ,[AskMaximum]
+                                ,[AskInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -2122,6 +2125,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -2137,6 +2141,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[AskDefault]
                                 ,[AskMinimum]
                                 ,[AskMaximum]
+                                ,[AskInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -2151,6 +2156,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -2166,6 +2172,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[AskDefault]
                                 ,[AskMinimum]
                                 ,[AskMaximum]
+                                ,[AskInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -2180,6 +2187,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -2195,6 +2203,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[AskDefault]
                                 ,[AskMinimum]
                                 ,[AskMaximum]
+                                ,[AskInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -2209,6 +2218,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -2224,6 +2234,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[AskDefault]
                                 ,[AskMinimum]
                                 ,[AskMaximum]
+                                ,[AskInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -2238,6 +2249,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -2253,6 +2265,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[AskDefault]
                                 ,[AskMinimum]
                                 ,[AskMaximum]
+                                ,[AskInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -2267,6 +2280,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -2282,6 +2296,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[AskDefault]
                                 ,[AskMinimum]
                                 ,[AskMaximum]
+                                ,[AskInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -2296,6 +2311,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -2311,6 +2327,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[AskDefault]
                                 ,[AskMinimum]
                                 ,[AskMaximum]
+                                ,[AskInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -2325,6 +2342,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -2340,6 +2358,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[AskDefault]
                                 ,[AskMinimum]
                                 ,[AskMaximum]
+                                ,[AskInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -2354,6 +2373,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -2369,6 +2389,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[AskDefault]
                                 ,[AskMinimum]
                                 ,[AskMaximum]
+                                ,[AskInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -2377,6 +2398,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('undefined' AS nvarchar(25))
                                 ,CAST('textarea' AS nvarchar(10))
                                 ,CAST('left' AS nvarchar(6))
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -5265,7 +5287,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Colunas' AS nvarchar(50))
                                 ,CAST('11' AS int)
                                 ,CAST('1' AS bit)
-                                ,CAST('124' AS int)
+                                ,CAST('126' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5639,6 +5661,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -5664,6 +5687,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5690,6 +5714,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -5715,6 +5740,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5741,6 +5767,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -5766,6 +5793,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5792,6 +5820,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -5817,6 +5846,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5843,6 +5873,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -5853,7 +5884,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskEncrypted' AS nvarchar(25))
-                                ,CAST('Tipo pede criptografia?' AS nvarchar(50))
+                                ,CAST('Categoria de tipo pede criptografia?' AS nvarchar(50))
                                 ,CAST('Pede criptografia?' AS nvarchar(25))
                                 ,CAST('Pede criptografia?' AS nvarchar(25))
                                 ,NULL
@@ -5867,6 +5898,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5894,6 +5926,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -5904,7 +5937,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskMask' AS nvarchar(25))
-                                ,CAST('Tipo pede máscara?' AS nvarchar(50))
+                                ,CAST('Categoria de tipo pede máscara?' AS nvarchar(50))
                                 ,CAST('Pede máscara?' AS nvarchar(25))
                                 ,CAST('Pede máscara?' AS nvarchar(25))
                                 ,NULL
@@ -5918,6 +5951,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5945,6 +5979,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -5955,7 +5990,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskListable' AS nvarchar(25))
-                                ,CAST('Tipo pede listável?' AS nvarchar(50))
+                                ,CAST('Categoria de tipo pede listável?' AS nvarchar(50))
                                 ,CAST('Pede listável?' AS nvarchar(25))
                                 ,CAST('Pede listável?' AS nvarchar(25))
                                 ,NULL
@@ -5969,6 +6004,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5996,6 +6032,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -6006,7 +6043,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskDefault' AS nvarchar(25))
-                                ,CAST('Tipo pede valor padrão?' AS nvarchar(50))
+                                ,CAST('Categoria de tipo pede valor padrão?' AS nvarchar(50))
                                 ,CAST('Pede valor padrão?' AS nvarchar(25))
                                 ,CAST('Pede valor padrão?' AS nvarchar(25))
                                 ,NULL
@@ -6020,6 +6057,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -6047,6 +6085,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -6057,7 +6096,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskMinimum' AS nvarchar(25))
-                                ,CAST('Tipo pede valor mínimo?' AS nvarchar(50))
+                                ,CAST('Categoria de tipo pede valor mínimo?' AS nvarchar(50))
                                 ,CAST('Pede valor mínimo?' AS nvarchar(25))
                                 ,CAST('Pede valor mínimo?' AS nvarchar(25))
                                 ,NULL
@@ -6071,6 +6110,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -6098,6 +6138,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -6108,7 +6149,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskMaximum' AS nvarchar(25))
-                                ,CAST('Tipo pede valor máximo?' AS nvarchar(50))
+                                ,CAST('Categoria de tipo pede valor máximo?' AS nvarchar(50))
                                 ,CAST('Pede valor máximo?' AS nvarchar(25))
                                 ,CAST('Pede valor máximo?' AS nvarchar(25))
                                 ,NULL
@@ -6122,6 +6163,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -6149,11 +6191,65 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('11' AS int)
+                                ,CAST('1' AS int)
+                                ,CAST('55' AS smallint)
+                                ,CAST('6' AS int)
+                                ,NULL
+                                ,CAST('AskInWords' AS nvarchar(25))
+                                ,CAST('Categoria de tipo pede extenso?' AS nvarchar(50))
+                                ,CAST('Pede extenso?' AS nvarchar(25))
+                                ,CAST('Pede extenso?' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('12' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('5' AS int)
@@ -6174,6 +6270,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6200,11 +6297,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('12' AS int)
+                         VALUES (CAST('13' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('5' AS int)
@@ -6225,6 +6323,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6251,11 +6350,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('13' AS int)
+                         VALUES (CAST('14' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS int)
@@ -6276,6 +6376,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6302,11 +6403,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('14' AS int)
+                         VALUES (CAST('15' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('2' AS int)
@@ -6327,6 +6429,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6353,11 +6456,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('15' AS int)
+                         VALUES (CAST('16' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('17' AS int)
@@ -6378,6 +6482,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6404,11 +6509,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('16' AS int)
+                         VALUES (CAST('17' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('17' AS int)
@@ -6429,6 +6535,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6455,11 +6562,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('17' AS int)
+                         VALUES (CAST('18' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('35' AS smallint)
                                 ,CAST('6' AS int)
@@ -6480,6 +6588,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6506,11 +6615,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('18' AS int)
+                         VALUES (CAST('19' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('40' AS smallint)
                                 ,CAST('6' AS int)
@@ -6531,6 +6641,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6557,11 +6668,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('19' AS int)
+                         VALUES (CAST('20' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('45' AS smallint)
                                 ,CAST('6' AS int)
@@ -6582,6 +6694,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6608,11 +6721,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('20' AS int)
+                         VALUES (CAST('21' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('50' AS smallint)
                                 ,CAST('6' AS int)
@@ -6633,6 +6747,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6659,11 +6774,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('21' AS int)
+                         VALUES (CAST('22' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('55' AS smallint)
                                 ,CAST('6' AS int)
@@ -6684,6 +6800,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6710,11 +6827,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('22' AS int)
+                         VALUES (CAST('23' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('60' AS smallint)
                                 ,CAST('6' AS int)
@@ -6735,6 +6853,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6761,11 +6880,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('23' AS int)
+                         VALUES (CAST('24' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('65' AS smallint)
                                 ,CAST('6' AS int)
@@ -6786,6 +6906,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6812,11 +6933,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('24' AS int)
+                         VALUES (CAST('25' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('70' AS smallint)
                                 ,CAST('6' AS int)
@@ -6837,6 +6959,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6863,11 +6986,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('25' AS int)
+                         VALUES (CAST('26' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('75' AS smallint)
                                 ,CAST('6' AS int)
@@ -6888,6 +7012,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6914,11 +7039,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('26' AS int)
+                         VALUES (CAST('27' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('80' AS smallint)
                                 ,CAST('6' AS int)
@@ -6939,6 +7065,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -6965,11 +7092,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('27' AS int)
+                         VALUES (CAST('28' AS int)
                                 ,CAST('3' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -6990,6 +7118,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7016,11 +7145,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('28' AS int)
+                         VALUES (CAST('29' AS int)
                                 ,CAST('3' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS int)
@@ -7041,6 +7171,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7067,11 +7198,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('29' AS int)
+                         VALUES (CAST('30' AS int)
                                 ,CAST('3' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('12' AS int)
@@ -7092,6 +7224,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7118,11 +7251,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('30' AS int)
+                         VALUES (CAST('31' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -7143,6 +7277,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7169,11 +7304,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('31' AS int)
+                         VALUES (CAST('32' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('5' AS int)
@@ -7194,6 +7330,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7220,11 +7357,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('32' AS int)
+                         VALUES (CAST('33' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('2' AS int)
@@ -7245,6 +7383,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7271,11 +7410,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('33' AS int)
+                         VALUES (CAST('34' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('9' AS int)
@@ -7296,6 +7436,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7322,11 +7463,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('34' AS int)
+                         VALUES (CAST('35' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('4' AS int)
@@ -7347,6 +7489,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7373,11 +7516,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('35' AS int)
+                         VALUES (CAST('36' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('5' AS int)
@@ -7398,6 +7542,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7424,11 +7569,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('36' AS int)
+                         VALUES (CAST('37' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('35' AS smallint)
                                 ,CAST('12' AS int)
@@ -7449,6 +7595,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7475,11 +7622,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('37' AS int)
+                         VALUES (CAST('38' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('40' AS smallint)
                                 ,CAST('17' AS int)
@@ -7500,6 +7648,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7526,11 +7675,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('38' AS int)
+                         VALUES (CAST('39' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('45' AS smallint)
                                 ,CAST('17' AS int)
@@ -7551,6 +7701,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7577,11 +7728,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('39' AS int)
+                         VALUES (CAST('40' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('50' AS smallint)
                                 ,CAST('17' AS int)
@@ -7602,6 +7754,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7628,11 +7781,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('40' AS int)
+                         VALUES (CAST('41' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('55' AS smallint)
                                 ,CAST('18' AS int)
@@ -7653,6 +7807,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7679,11 +7834,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('41' AS int)
+                         VALUES (CAST('42' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -7704,6 +7860,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7730,11 +7887,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('42' AS int)
+                         VALUES (CAST('43' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS int)
@@ -7755,6 +7913,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7781,11 +7940,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('43' AS int)
+                         VALUES (CAST('44' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('10' AS int)
@@ -7806,6 +7966,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7832,11 +7993,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('44' AS int)
+                         VALUES (CAST('45' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('7' AS int)
@@ -7857,6 +8019,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7883,11 +8046,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('45' AS int)
+                         VALUES (CAST('46' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('5' AS int)
@@ -7908,6 +8072,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7934,11 +8099,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('46' AS int)
+                         VALUES (CAST('47' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS int)
@@ -7959,6 +8125,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -7985,11 +8152,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('47' AS int)
+                         VALUES (CAST('48' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -8010,6 +8178,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8036,11 +8205,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('48' AS int)
+                         VALUES (CAST('49' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -8061,6 +8231,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8087,11 +8258,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('49' AS int)
+                         VALUES (CAST('50' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS int)
@@ -8112,6 +8284,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8138,11 +8311,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('50' AS int)
+                         VALUES (CAST('51' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('8' AS int)
@@ -8163,6 +8337,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8189,11 +8364,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('51' AS int)
+                         VALUES (CAST('52' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('10' AS int)
@@ -8214,6 +8390,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8240,11 +8417,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('52' AS int)
+                         VALUES (CAST('53' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('10' AS int)
@@ -8265,6 +8443,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8291,11 +8470,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('53' AS int)
+                         VALUES (CAST('54' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('35' AS smallint)
                                 ,CAST('2' AS int)
@@ -8316,6 +8496,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8342,11 +8523,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('54' AS int)
+                         VALUES (CAST('55' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -8367,6 +8549,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8393,11 +8576,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('55' AS int)
+                         VALUES (CAST('56' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS int)
@@ -8418,6 +8602,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8444,11 +8629,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('56' AS int)
+                         VALUES (CAST('57' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('11' AS int)
@@ -8469,6 +8655,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8495,11 +8682,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('57' AS int)
+                         VALUES (CAST('58' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
@@ -8520,6 +8708,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8546,11 +8735,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('58' AS int)
+                         VALUES (CAST('59' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('5' AS int)
@@ -8571,6 +8761,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8597,11 +8788,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('59' AS int)
+                         VALUES (CAST('60' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS int)
@@ -8622,6 +8814,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8648,11 +8841,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('60' AS int)
+                         VALUES (CAST('61' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -8673,6 +8867,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8699,11 +8894,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('61' AS int)
+                         VALUES (CAST('62' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -8724,6 +8920,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8750,11 +8947,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('62' AS int)
+                         VALUES (CAST('63' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('2' AS int)
@@ -8775,6 +8973,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8801,11 +9000,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('63' AS int)
+                         VALUES (CAST('64' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
@@ -8826,6 +9026,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8852,11 +9053,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('64' AS int)
+                         VALUES (CAST('65' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -8877,6 +9079,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8903,11 +9106,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('65' AS int)
+                         VALUES (CAST('66' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS int)
@@ -8928,6 +9132,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -8954,11 +9159,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('66' AS int)
+                         VALUES (CAST('67' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('10' AS int)
@@ -8979,6 +9185,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9005,11 +9212,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('67' AS int)
+                         VALUES (CAST('68' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('9' AS int)
@@ -9030,6 +9238,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9056,11 +9265,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('68' AS int)
+                         VALUES (CAST('69' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('10' AS int)
@@ -9081,6 +9291,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9107,11 +9318,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('69' AS int)
+                         VALUES (CAST('70' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('9' AS int)
@@ -9132,6 +9344,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9158,11 +9371,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('70' AS int)
+                         VALUES (CAST('71' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('35' AS smallint)
                                 ,CAST('3' AS int)
@@ -9183,6 +9397,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9209,11 +9424,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('71' AS int)
+                         VALUES (CAST('72' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('40' AS smallint)
                                 ,CAST('11' AS int)
@@ -9234,6 +9450,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9260,11 +9477,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('72' AS int)
+                         VALUES (CAST('73' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('45' AS smallint)
                                 ,CAST('11' AS int)
@@ -9285,6 +9503,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9311,11 +9530,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('73' AS int)
+                         VALUES (CAST('74' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('50' AS smallint)
                                 ,CAST('11' AS int)
@@ -9336,6 +9556,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9362,11 +9583,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('74' AS int)
+                         VALUES (CAST('75' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -9387,6 +9609,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9413,11 +9636,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('75' AS int)
+                         VALUES (CAST('76' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -9438,6 +9662,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9464,11 +9689,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('76' AS int)
+                         VALUES (CAST('77' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('2' AS int)
@@ -9489,6 +9715,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9515,11 +9742,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('77' AS int)
+                         VALUES (CAST('78' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
@@ -9540,6 +9768,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9566,11 +9795,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('78' AS int)
+                         VALUES (CAST('79' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -9591,6 +9821,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9617,11 +9848,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('79' AS int)
+                         VALUES (CAST('80' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS int)
@@ -9642,6 +9874,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9668,11 +9901,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('80' AS int)
+                         VALUES (CAST('81' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS int)
@@ -9693,6 +9927,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9719,11 +9954,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('81' AS int)
+                         VALUES (CAST('82' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
@@ -9744,6 +9980,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9770,11 +10007,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('82' AS int)
+                         VALUES (CAST('83' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('2' AS int)
@@ -9795,6 +10033,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9821,11 +10060,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('83' AS int)
+                         VALUES (CAST('84' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS int)
@@ -9846,6 +10086,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9872,11 +10113,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('84' AS int)
+                         VALUES (CAST('85' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('35' AS smallint)
                                 ,CAST('2' AS int)
@@ -9897,6 +10139,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9923,11 +10166,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('85' AS int)
+                         VALUES (CAST('86' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -9948,6 +10192,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9974,11 +10219,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('86' AS int)
+                         VALUES (CAST('87' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -9999,6 +10245,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10025,11 +10272,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('87' AS int)
+                         VALUES (CAST('88' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('2' AS int)
@@ -10050,6 +10298,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10076,11 +10325,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('88' AS int)
+                         VALUES (CAST('89' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
@@ -10101,6 +10351,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10127,11 +10378,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('89' AS int)
+                         VALUES (CAST('90' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -10152,6 +10404,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10178,11 +10431,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('90' AS int)
+                         VALUES (CAST('91' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -10203,6 +10457,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10229,11 +10484,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('91' AS int)
+                         VALUES (CAST('92' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS int)
@@ -10254,6 +10510,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10280,11 +10537,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('92' AS int)
+                         VALUES (CAST('93' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('2' AS int)
@@ -10305,6 +10563,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10331,11 +10590,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('93' AS int)
+                         VALUES (CAST('94' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('2' AS int)
@@ -10356,6 +10616,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10382,11 +10643,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('94' AS int)
+                         VALUES (CAST('95' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('30' AS smallint)
                                 ,CAST('9' AS int)
@@ -10407,6 +10669,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10433,11 +10696,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('95' AS int)
+                         VALUES (CAST('96' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('35' AS smallint)
                                 ,CAST('10' AS int)
@@ -10458,6 +10722,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10484,11 +10749,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('96' AS int)
+                         VALUES (CAST('97' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('40' AS smallint)
                                 ,CAST('9' AS int)
@@ -10509,6 +10775,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10535,11 +10802,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('97' AS int)
+                         VALUES (CAST('98' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('45' AS smallint)
                                 ,CAST('9' AS int)
@@ -10560,6 +10828,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10586,11 +10855,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('98' AS int)
+                         VALUES (CAST('99' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('50' AS smallint)
                                 ,CAST('12' AS int)
@@ -10611,6 +10881,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10637,11 +10908,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('99' AS int)
+                         VALUES (CAST('100' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('55' AS smallint)
                                 ,CAST('17' AS int)
@@ -10662,6 +10934,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10688,11 +10961,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('100' AS int)
+                         VALUES (CAST('101' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('60' AS smallint)
                                 ,CAST('17' AS int)
@@ -10713,6 +10987,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10739,11 +11014,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('101' AS int)
+                         VALUES (CAST('102' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('65' AS smallint)
                                 ,CAST('17' AS int)
@@ -10764,6 +11040,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10790,11 +11067,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('102' AS int)
+                         VALUES (CAST('103' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('70' AS smallint)
                                 ,CAST('6' AS int)
@@ -10815,6 +11093,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10841,11 +11120,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('103' AS int)
+                         VALUES (CAST('104' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('75' AS smallint)
                                 ,CAST('6' AS int)
@@ -10866,6 +11146,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10892,11 +11173,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('104' AS int)
+                         VALUES (CAST('105' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('80' AS smallint)
                                 ,CAST('6' AS int)
@@ -10917,6 +11199,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10943,11 +11226,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('105' AS int)
+                         VALUES (CAST('106' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('85' AS smallint)
                                 ,CAST('6' AS int)
@@ -10968,6 +11252,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10994,11 +11279,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('106' AS int)
+                         VALUES (CAST('107' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('90' AS smallint)
                                 ,CAST('6' AS int)
@@ -11019,6 +11305,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11045,11 +11332,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('107' AS int)
+                         VALUES (CAST('108' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('95' AS smallint)
                                 ,CAST('6' AS int)
@@ -11070,6 +11358,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11096,11 +11385,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('108' AS int)
+                         VALUES (CAST('109' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('100' AS smallint)
                                 ,CAST('6' AS int)
@@ -11121,6 +11411,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11147,11 +11438,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('109' AS int)
+                         VALUES (CAST('110' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('105' AS smallint)
                                 ,CAST('6' AS int)
@@ -11172,6 +11464,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11198,11 +11491,65 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('110' AS int)
+                         VALUES (CAST('111' AS int)
+                                ,CAST('13' AS int)
+                                ,CAST('110' AS smallint)
+                                ,CAST('6' AS int)
+                                ,NULL
+                                ,CAST('IsInWords' AS nvarchar(25))
+                                ,CAST('Valor da coluna por extenso?' AS nvarchar(50))
+                                ,CAST('Valor por exentso?' AS nvarchar(25))
+                                ,CAST('Valor por exentso?' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('112' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -11223,6 +11570,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11249,11 +11597,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('111' AS int)
+                         VALUES (CAST('113' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -11274,6 +11623,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11300,11 +11650,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('112' AS int)
+                         VALUES (CAST('114' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('2' AS int)
@@ -11325,6 +11676,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11351,11 +11703,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('113' AS int)
+                         VALUES (CAST('115' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
@@ -11376,6 +11729,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11402,11 +11756,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('114' AS int)
+                         VALUES (CAST('116' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS int)
@@ -11427,6 +11782,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11453,11 +11809,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('115' AS int)
+                         VALUES (CAST('117' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -11478,6 +11835,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11504,11 +11862,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('116' AS int)
+                         VALUES (CAST('118' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -11529,6 +11888,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11555,11 +11915,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('117' AS int)
+                         VALUES (CAST('119' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS int)
@@ -11580,6 +11941,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11606,11 +11968,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('118' AS int)
+                         VALUES (CAST('120' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('2' AS int)
@@ -11631,6 +11994,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11657,11 +12021,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('119' AS int)
+                         VALUES (CAST('121' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS int)
@@ -11682,6 +12047,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11708,11 +12074,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('120' AS int)
+                         VALUES (CAST('122' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('5' AS smallint)
                                 ,CAST('2' AS int)
@@ -11733,6 +12100,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11759,11 +12127,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('121' AS int)
+                         VALUES (CAST('123' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('10' AS smallint)
                                 ,CAST('2' AS int)
@@ -11784,6 +12153,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11810,11 +12180,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('122' AS int)
+                         VALUES (CAST('124' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('15' AS smallint)
                                 ,CAST('2' AS int)
@@ -11835,6 +12206,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11861,11 +12233,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('123' AS int)
+                         VALUES (CAST('125' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('11' AS int)
@@ -11886,6 +12259,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11912,11 +12286,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsEditable]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
+                                ,[IsInWords]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('124' AS int)
+                         VALUES (CAST('126' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS int)
@@ -11936,6 +12311,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12435,7 +12811,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('2' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('13' AS int)
+                                ,CAST('14' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12454,7 +12830,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('3' AS int)
                                 ,CAST('3' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('28' AS int)
+                                ,CAST('29' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12473,7 +12849,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('4' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('33' AS int)
+                                ,CAST('34' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12492,7 +12868,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('5' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('42' AS int)
+                                ,CAST('43' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12511,7 +12887,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('6' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('48' AS int)
+                                ,CAST('49' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12530,7 +12906,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('7' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('49' AS int)
+                                ,CAST('50' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12549,7 +12925,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('8' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('48' AS int)
+                                ,CAST('49' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12568,7 +12944,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('9' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('50' AS int)
+                                ,CAST('51' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12587,7 +12963,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('10' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('55' AS int)
+                                ,CAST('56' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12606,7 +12982,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('11' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('61' AS int)
+                                ,CAST('62' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12625,7 +13001,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('12' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('62' AS int)
+                                ,CAST('63' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12644,7 +13020,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('13' AS int)
                                 ,CAST('10' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('63' AS int)
+                                ,CAST('64' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12663,7 +13039,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('14' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('65' AS int)
+                                ,CAST('66' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12682,7 +13058,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('15' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('67' AS int)
+                                ,CAST('68' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12701,7 +13077,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('16' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('75' AS int)
+                                ,CAST('76' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12720,7 +13096,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('17' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('76' AS int)
+                                ,CAST('77' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12739,7 +13115,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('18' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('77' AS int)
+                                ,CAST('78' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12758,7 +13134,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('19' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('79' AS int)
+                                ,CAST('80' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12777,7 +13153,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('20' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('80' AS int)
+                                ,CAST('81' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12796,7 +13172,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('21' AS int)
                                 ,CAST('17' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('85' AS int)
+                                ,CAST('86' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12815,7 +13191,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('22' AS int)
                                 ,CAST('17' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('87' AS int)
+                                ,CAST('88' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12834,7 +13210,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('23' AS int)
                                 ,CAST('18' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('88' AS int)
+                                ,CAST('89' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12853,7 +13229,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('24' AS int)
                                 ,CAST('19' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('90' AS int)
+                                ,CAST('91' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12872,7 +13248,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('25' AS int)
                                 ,CAST('19' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('94' AS int)
+                                ,CAST('95' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12891,7 +13267,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('26' AS int)
                                 ,CAST('20' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('90' AS int)
+                                ,CAST('91' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12910,7 +13286,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('27' AS int)
                                 ,CAST('20' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('91' AS int)
+                                ,CAST('92' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12929,7 +13305,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('28' AS int)
                                 ,CAST('21' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('111' AS int)
+                                ,CAST('113' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12948,7 +13324,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('29' AS int)
                                 ,CAST('21' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('113' AS int)
+                                ,CAST('115' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12967,7 +13343,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('30' AS int)
                                 ,CAST('22' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('116' AS int)
+                                ,CAST('118' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12986,7 +13362,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('31' AS int)
                                 ,CAST('22' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('117' AS int)
+                                ,CAST('119' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13005,7 +13381,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('32' AS int)
                                 ,CAST('23' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('116' AS int)
+                                ,CAST('118' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13024,7 +13400,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('33' AS int)
                                 ,CAST('23' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('118' AS int)
+                                ,CAST('120' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13043,7 +13419,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('34' AS int)
                                 ,CAST('24' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('121' AS int)
+                                ,CAST('123' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13062,7 +13438,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('35' AS int)
                                 ,CAST('24' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('122' AS int)
+                                ,CAST('124' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13081,7 +13457,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('36' AS int)
                                 ,CAST('24' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('124' AS int)
+                                ,CAST('126' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13161,6 +13537,7 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId INT
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDefault'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDefault'), 'bit') = 1
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMinimum'), 'bit') = 1
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMaximum'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskInWords'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskInWords'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Categories]
@@ -13173,7 +13550,8 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId INT
                                   AND [AskListable] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskListable')
                                   AND [AskDefault] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDefault')
                                   AND [AskMinimum] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMinimum')
-                                  AND [AskMaximum] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMaximum'))
+                                  AND [AskMaximum] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMaximum')
+                                  AND [AskInWords] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskInWords'))
                 THROW 51000, 'Registro de Categories alterado por outro usuário', 1
         END
 
@@ -13191,6 +13569,7 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId INT
                    ,@W_AskDefault bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDefault') AS bit)
                    ,@W_AskMinimum bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum') AS bit)
                    ,@W_AskMaximum bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum') AS bit)
+                   ,@W_AskInWords bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskInWords') AS bit)
 
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -13206,6 +13585,8 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId INT
                 THROW 51000, 'Valor de AskMinimum em @ActualRecord é requerido.', 1
             IF @W_AskMaximum IS NULL
                 THROW 51000, 'Valor de AskMaximum em @ActualRecord é requerido.', 1
+            IF @W_AskInWords IS NULL
+                THROW 51000, 'Valor de AskInWords em @ActualRecord é requerido.', 1
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_Categories_Name já existe', 1
@@ -13393,6 +13774,7 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@LoginId INT
                    ,@W_AskDefault bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDefault') AS bit)
                    ,@W_AskMinimum bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum') AS bit)
                    ,@W_AskMaximum bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum') AS bit)
+                   ,@W_AskInWords bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskInWords') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Categories] ([Id]
@@ -13405,6 +13787,7 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@LoginId INT
                                                 ,[AskDefault]
                                                 ,[AskMinimum]
                                                 ,[AskMaximum]
+                                                ,[AskInWords]
                                                 ,[CreatedAt]
                                                 ,[CreatedBy])
                                           VALUES (@W_Id
@@ -13417,6 +13800,7 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@LoginId INT
                                                  ,@W_AskDefault
                                                  ,@W_AskMinimum
                                                  ,@W_AskMaximum
+                                                 ,@W_AskInWords
                                                  ,GETDATE()
                                                  ,@UserName)
             ELSE
@@ -13430,6 +13814,7 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@LoginId INT
                                               ,[AskDefault] = @W_AskDefault
                                               ,[AskMinimum] = @W_AskMinimum
                                               ,[AskMaximum] = @W_AskMaximum
+                                              ,[AskInWords] = @W_AskInWords
                                               ,[UpdatedAt] = GETDATE()
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
@@ -13516,6 +13901,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                ,@W_AskDefault bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskDefault') AS bit)
                ,@W_AskMinimum bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskMinimum') AS bit)
                ,@W_AskMaximum bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskMaximum') AS bit)
+               ,@W_AskInWords bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskInWords') AS bit)
 
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
@@ -13528,6 +13914,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskDefault') AS bit) AS [AskDefault]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskMinimum') AS bit) AS [AskMinimum]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskInWords') AS bit) AS [AskInWords]
             INTO [dbo].[#operations]
             FROM [crudex].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -13560,6 +13947,9 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
         IF @W_AskMaximum IS NOT NULL BEGIN
             SET @Where = @Where + ' AND [T].[AskMaximum] = @AskMaximum'
         END
+        IF @W_AskInWords IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskInWords] = @AskInWords'
+        END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -13580,7 +13970,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                            ,@AskListable bit
                            ,@AskDefault bit
                            ,@AskMinimum bit
-                           ,@AskMaximum bit'
+                           ,@AskMaximum bit
+                           ,@AskInWords bit'
                            ,@Id = @W_Id
                            ,@Name = @W_Name
                            ,@AskEncrypted = @W_AskEncrypted
@@ -13589,6 +13980,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                            ,@AskDefault = @W_AskDefault
                            ,@AskMinimum = @W_AskMinimum
                            ,@AskMaximum = @W_AskMaximum
+                           ,@AskInWords = @W_AskInWords
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -13621,6 +14013,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                           ,[T].[AskDefault]
                           ,[T].[AskMinimum]
                           ,[T].[AskMaximum]
+                          ,[T].[AskInWords]
                         FROM [dbo].[#table] [#]
                             INNER JOIN [dbo].[Categories] [T] ON [T].[Id] = [#].[Id]
                         WHERE [#].[_] = ''T''
@@ -13636,6 +14029,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                               ,[O].[AskDefault]
                               ,[O].[AskMinimum]
                               ,[O].[AskMaximum]
+                              ,[O].[AskInWords]
                             FROM [dbo].[#table] [#]
                                 INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
                             WHERE [#].[_] = ''O''
@@ -19453,6 +19847,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId INT
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEditable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEditable'), 'bit') = 1
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsGridable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsGridable'), 'bit') = 1
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEncrypted'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsInWords'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsInWords'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Columns]
@@ -19476,7 +19871,8 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId INT
                                   AND [crudex].[IS_EQUAL]([IsFilterable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsFilterable'), 'bit') = 1
                                   AND [crudex].[IS_EQUAL]([IsEditable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEditable'), 'bit') = 1
                                   AND [crudex].[IS_EQUAL]([IsGridable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsGridable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsEncrypted], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEncrypted'), 'bit') = 1)
+                                  AND [crudex].[IS_EQUAL]([IsEncrypted], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEncrypted'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsInWords], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsInWords'), 'bit') = 1)
                 THROW 51000, 'Registro de Columns alterado por outro usuário', 1
         END
 
@@ -19505,6 +19901,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId INT
                    ,@W_IsEditable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEditable') AS bit)
                    ,@W_IsGridable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsGridable') AS bit)
                    ,@W_IsEncrypted bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted') AS bit)
+                   ,@W_IsInWords bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsInWords') AS bit)
 
             IF @W_TableId IS NULL
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
@@ -19738,6 +20135,7 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId INT
                    ,@W_IsEditable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEditable') AS bit)
                    ,@W_IsGridable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsGridable') AS bit)
                    ,@W_IsEncrypted bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted') AS bit)
+                   ,@W_IsInWords bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsInWords') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Columns] ([Id]
@@ -19761,6 +20159,7 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId INT
                                                 ,[IsEditable]
                                                 ,[IsGridable]
                                                 ,[IsEncrypted]
+                                                ,[IsInWords]
                                                 ,[CreatedAt]
                                                 ,[CreatedBy])
                                           VALUES (@W_Id
@@ -19784,6 +20183,7 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId INT
                                                  ,@W_IsEditable
                                                  ,@W_IsGridable
                                                  ,@W_IsEncrypted
+                                                 ,@W_IsInWords
                                                  ,GETDATE()
                                                  ,@UserName)
             ELSE
@@ -19808,6 +20208,7 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId INT
                                               ,[IsEditable] = @W_IsEditable
                                               ,[IsGridable] = @W_IsGridable
                                               ,[IsEncrypted] = @W_IsEncrypted
+                                              ,[IsInWords] = @W_IsInWords
                                               ,[UpdatedAt] = GETDATE()
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
@@ -19898,6 +20299,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                ,@W_IsEditable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsEditable') AS bit)
                ,@W_IsGridable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsGridable') AS bit)
                ,@W_IsEncrypted bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsEncrypted') AS bit)
+               ,@W_IsInWords bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsInWords') AS bit)
 
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -19921,6 +20323,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsInWords') AS bit) AS [IsInWords]
             INTO [dbo].[#operations]
             FROM [crudex].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -19971,6 +20374,9 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
         IF @W_IsEncrypted IS NOT NULL BEGIN
             SET @Where = @Where + ' AND [T].[IsEncrypted] = @IsEncrypted'
         END
+        IF @W_IsInWords IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsInWords] = @IsInWords'
+        END
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -19995,7 +20401,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                            ,@IsFilterable bit
                            ,@IsEditable bit
                            ,@IsGridable bit
-                           ,@IsEncrypted bit'
+                           ,@IsEncrypted bit
+                           ,@IsInWords bit'
                            ,@Id = @W_Id
                            ,@TableId = @W_TableId
                            ,@DomainId = @W_DomainId
@@ -20008,6 +20415,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                            ,@IsEditable = @W_IsEditable
                            ,@IsGridable = @W_IsGridable
                            ,@IsEncrypted = @W_IsEncrypted
+                           ,@IsInWords = @W_IsInWords
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -20051,6 +20459,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                           ,[T].[IsEditable]
                           ,[T].[IsGridable]
                           ,[T].[IsEncrypted]
+                          ,[T].[IsInWords]
                         FROM [dbo].[#table] [#]
                             INNER JOIN [dbo].[Columns] [T] ON [T].[Id] = [#].[Id]
                         WHERE [#].[_] = ''T''
@@ -20077,6 +20486,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                               ,[O].[IsEditable]
                               ,[O].[IsGridable]
                               ,[O].[IsEncrypted]
+                              ,[O].[IsInWords]
                             FROM [dbo].[#table] [#]
                                 INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
                             WHERE [#].[_] = ''O''
