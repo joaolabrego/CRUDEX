@@ -233,25 +233,26 @@ export default class TGrid {
         if (this.#IsRendering)
             return
         this.#IsRendering = true
-        this.#ReadDataPage(pageNumber)
-            .then(dataPage => {
-                this.#Data = dataPage
-                if (this.#RowCount > 1)
-                    TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar."
-                else
-                    TScreen.LastMessage = TScreen.Message = "Clique em um dos botões."
-                TScreen.Title = `Manutenção de ${this.#Table.Description}`
-                this.#BuildHtmlHead()
-                this.#BuildHtmlBody(dataPage)
-                this.#BuildHtmlFoot()
-                TScreen.WithBackgroundImage = true
-                TScreen.Main = this.#HTML.Container
-                this.#HTML.Container.focus()
-            })
-            .catch(error => {
-                TScreen.ShowError(error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
-            })
-            .finally(() => this.#IsRendering = false)
+        try {
+            this.#Data = await this.#ReadDataPage(pageNumber)
+            if (this.#RowCount > 1)
+                TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar."
+            else
+                TScreen.LastMessage = TScreen.Message = "Clique em um dos botões."
+            TScreen.Title = `Manutenção de ${this.#Table.Description}`
+            this.#BuildHtmlHead()
+            this.#BuildHtmlBody(this.#Data)
+            this.#BuildHtmlFoot()
+            TScreen.WithBackgroundImage = true
+            TScreen.Main = this.#HTML.Container
+            this.#HTML.Container.focus()
+        }
+        catch (error) {
+            TScreen.ShowError(error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
+        }
+        finally{
+            this.#IsRendering = false
+        }
         /*
         globalThis.$ = new Proxy(this.#Table, {
             get: (target, key) => {
