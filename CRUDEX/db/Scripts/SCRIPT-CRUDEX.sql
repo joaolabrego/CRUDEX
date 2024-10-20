@@ -13856,7 +13856,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -14045,6 +14046,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -14487,7 +14489,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -14709,6 +14712,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -15034,7 +15038,8 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -15155,6 +15160,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -15548,7 +15554,8 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -15721,6 +15728,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -16083,7 +16091,8 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -16221,6 +16230,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -16594,7 +16604,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -16737,6 +16748,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -17095,7 +17107,8 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -17239,6 +17252,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -17584,7 +17598,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -17726,6 +17741,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -18114,7 +18130,8 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -18264,6 +18281,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -18609,7 +18627,8 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -18751,6 +18770,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -19126,7 +19146,8 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -19273,6 +19294,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -19618,7 +19640,8 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -19760,6 +19783,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -20250,7 +20274,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -20502,6 +20527,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -20855,7 +20881,8 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -20998,6 +21025,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -21354,7 +21382,8 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -21499,6 +21528,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY
@@ -21843,7 +21873,8 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
                                           ,@PaddingGridLastPage BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT) AS BEGIN
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
     BEGIN TRY
@@ -21988,6 +22019,7 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
         EXEC sp_executesql @sql,
                            N'@ClassName NVARCHAR(50)',
                            @ClassName = @ClassName
+        SET @ReturnValue = @RowCount
 
         RETURN @RowCount
     END TRY

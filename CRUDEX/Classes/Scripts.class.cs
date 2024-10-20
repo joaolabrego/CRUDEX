@@ -1146,7 +1146,8 @@ namespace crudex.Classes
                 result.Append($"                                          ,@PaddingGridLastPage BIT\r\n");
                 result.Append($"                                          ,@PageNumber INT OUT\r\n");
                 result.Append($"                                          ,@LimitRows INT OUT\r\n");
-                result.Append($"                                          ,@MaxPage INT OUT) AS BEGIN\r\n");
+                result.Append($"                                          ,@MaxPage INT OUT\r\n");
+                result.Append($"                                          ,@ReturnValue INT OUT) AS BEGIN\r\n");
                 result.Append($"    DECLARE @ErrorMessage NVARCHAR(MAX)\r\n");
                 result.Append($"\r\n");
                 result.Append($"    BEGIN TRY\r\n");
@@ -1378,6 +1379,7 @@ namespace crudex.Classes
                 result.Append($"        EXEC sp_executesql @sql,\r\n");
                 result.Append($"                           N'@ClassName NVARCHAR(50)',\r\n");
                 result.Append($"                           @ClassName = @ClassName\r\n");
+                result.Append($"        SET @ReturnValue = @RowCount\r\n");
                 result.Append($"\r\n");
                 result.Append($"        RETURN @RowCount\r\n");
                 result.Append($"    END TRY\r\n");

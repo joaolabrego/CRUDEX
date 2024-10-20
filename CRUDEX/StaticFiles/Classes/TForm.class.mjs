@@ -269,12 +269,16 @@ export default class TForm {
             this.#HTML.ConfirmButton.style.backgroundImage = TForm.#Images.Confirm
         }
         this.#HTML.ConfirmButton.type = "button"
-        this.#HTML.ConfirmButton.onclick = () => {
-            if (this.#Action === TActions.FILTER)
-                this.#Grid.SaveFilters(this.#Record)
-            this.#Grid.Renderize().catch(error => TScreen.ShowError(error.Message, error.Action || this.#ReturnAction))
+        this.#HTML.ConfirmButton.onclick = async () => {
+            if (this.#Action === TActions.FILTER) {
+                this.#Grid.SaveFilters(this.#Record);
+            }
+            try {
+                await this.#Grid.Renderize();
+            } catch (error) {
+                TScreen.ShowError(error.Message, error.Action || this.#ReturnAction);
+            }
         }
-
         this.#HTML.ButtonsBar.appendChild(this.#HTML.ConfirmButton)
 
         if (this.#Action !== TActions.QUERY) {
