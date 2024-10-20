@@ -1,6 +1,7 @@
 ﻿.container {
     position: relative;
     display: inline-block;
+    user-select: none;
 }
 
 .input {

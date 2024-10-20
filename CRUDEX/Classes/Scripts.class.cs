@@ -4,15 +4,16 @@ using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
+using crudex.Classes.Models;
 
 namespace crudex.Classes
 {
     public class Scripts
     {
         static readonly string DirectoryScripts = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_SCRIPTS"));
-        public static void GenerateScript(string systemName, string databaseName, bool? isExcel = null)
+        public static async Task GenerateScript(string systemName, string databaseName, bool? isExcel = null)
         {
-            var dataSet = (isExcel ?? systemName == "crudex") ? ExcelToDataSet() : GetDataSet(systemName);
+            var dataSet = (isExcel ?? systemName == "crudex") ? await ExcelToDataSet() : await GetDataSet(systemName);
             var columns = (dataSet.Tables["Columns"] ?? throw new Exception("Tabela Columns não existe.")).AsEnumerable().ToList();
             var indexes = (dataSet.Tables["Indexes"] ?? throw new Exception("Tabela Indexes não existe.")).AsEnumerable().ToList();
             var indexkeys = (dataSet.Tables["Indexkeys"] ?? throw new Exception("Tabela Indexkeys não existe.")).AsEnumerable().ToList();
@@ -42,48 +43,53 @@ namespace crudex.Classes
                     stream.Write(GetScriptTransactions());
                     firstTime = false;
                 }
-                stream.Write(GetScriptCreateTable(table, columns, indexes, indexkeys, domains, types));
+                await stream.WriteAsync(GetScriptCreateTable(table, columns, indexes, indexkeys, domains, types));
             }
             stream.Write(GetScriptReferences(tables, columns));
             foreach (var table in tables)
             {
                 var datatable = (dataSet.Tables[ToString(table["Name"])] ?? throw new Exception($"Tabela {table["Name"]} não encontrada")).AsEnumerable().ToList();
 
-                stream.Write(GetScriptInsertTable(table, columns, domains, types, categories, datatable));
+                await stream.WriteAsync(GetScriptInsertTable(table, columns, domains, types, categories, datatable));
             }
             foreach (DataRow databaseTable in databasesTables)
             {
                 var table = tables.First(table => ToLong(table["Id"]) == ToLong(databaseTable["TableId"]));
 
-                stream.Write(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys));
-                stream.Write(GetScriptPersistTable(table, columns));
-                stream.Write(GetScriptCommitTable(table, columns));
-                stream.Write(GetScriptReadTable(table, columns, domains, types));
+                await stream.WriteAsync(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys));
+                await stream.WriteAsync(GetScriptPersistTable(table, columns));
+                await stream.WriteAsync(GetScriptCommitTable(table, columns));
+                await stream.WriteAsync(GetScriptReadTable(table, columns, domains, types));
             }
         }
-        public static DataSet ExcelToDataSet()
+        public static async Task<DataSet> ExcelToDataSet()
         {
-            using var stream = File.Open(Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL")), FileMode.Open, FileAccess.Read);
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL"));
+
+            await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
             using var reader = ExcelReaderFactory.CreateReader(stream);
 
-            return reader.AsDataSet(new ExcelDataSetConfiguration()
+            return await Task.Run(() =>
             {
-                ConfigureDataTable = _ => new ExcelDataTableConfiguration()
+                return reader.AsDataSet(new ExcelDataSetConfiguration()
                 {
-                    UseHeaderRow = true
-                }
+                    ConfigureDataTable = _ => new ExcelDataTableConfiguration()
+                    {
+                        UseHeaderRow = true
+                    }
+                });
             });
         }
-        public static DataSet GetDataSet(string systemName)
+        public static async Task<DataSet> GetDataSet(string systemName)
         {
-            var dataset = SQLProcedure.Execute(Settings.ConnecionString(),
+            var dataset = (await SQLProcedure.Execute(Settings.ConnecionString(),
                                                Settings.Get("SCRIPT_SYSTEM_PROCEDURE"),
                                                Config.ToDictionary(Config.ToDictionary(new
                                                {
                                                    InputParams = new
                                                    {
                                                        SystemName = systemName,
-                                                   },}))).DataSet;
+                                                   },})))).DataSet;
 
             dataset.Tables[0].TableName = "Categories";
             dataset.Tables[1].TableName = "Types";

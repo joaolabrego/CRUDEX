@@ -25,7 +25,7 @@ namespace CRUDA_LIB
         }
         public static string ConnecionString()
         {
-            return $"Password={Get("DB_PASSWORD")};Persist Security Info=True;User ID={Get("DB_LOGON")};Initial Catalog={Get("DB_ALIAS")};Data Source={Get("DB_SERVER")}";
+            return $"Provider=SQLOLEDB;Data Source={Get("DB_SERVER")};Initial Catalog={Get("DB_ALIAS")};User ID={Get("DB_LOGON")};Password={Get("DB_PASSWORD")};";
         }
         public static string Get(string key)
         {

@@ -6,6 +6,7 @@
     height: var(--control-height * 3);
     padding: 5vmin;
     text-align: center;
+    user-select: none;
 }
 
 .login input {

@@ -8,6 +8,7 @@
     padding: 0;
     margin: auto;
     background-color: transparent;
+    user-select: none;
 }
 
 @keyframes spin {

@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System.Data;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
+using crudex.Classes.Models;
 
 namespace CRUDA_LIB
 {
@@ -11,21 +12,22 @@ namespace CRUDA_LIB
         public readonly int RowsPerPage = Convert.ToInt32(Settings.Get("ROWS_PER_PAGE"));
         public readonly int IdleTimeInMinutesLimit = Convert.ToInt32(Settings.Get("IDLE_TIME_IN_MINUTES_LIMIT"));
         public readonly bool PaddingGridLastPage = Convert.ToBoolean(Settings.Get("PADDING_GRID_LAST_PAGE"));
-        public readonly dynamic Data;
-        public readonly TDictionary? Parameters;
-        public readonly Styles? Styles;
-        public readonly Images? Images;
+        public dynamic? Data;
+        public TDictionary? Parameters;
+        public Styles? Styles;
+        public Images? Images;
 
-        public Config(string systemName, string? databaseName = null, string? tableName = null)
+        public static async Task<Config> Create(string systemName, string? databaseName = null, string? tableName = null)
         {
-            var result = SQLProcedure.GetConfig(systemName, databaseName, tableName);
+            var config = new Config();
+            var result = await SQLProcedure.GetConfig(systemName, databaseName, tableName);
 
-            Parameters = result.Parameters;
+            config.Parameters = result.Parameters;
             if (databaseName == null)
-                Data = new { };
+                config.Data = new { };
             else if (databaseName == "all")
             {
-                Data = new
+                config.Data = new
                 {
                     System = result.DataSet.Tables[0].Rows[0].Table,
                     Databases = result.DataSet.Tables[1].Rows[0].Table,
@@ -39,16 +41,18 @@ namespace CRUDA_LIB
                     Indexkeys = result.DataSet.Tables[9].Rows[0].Table,
                     Masks = result.DataSet.Tables[10].Rows[0].Table,
                 };
-                Styles = new Styles();
-                Images = new Images(Data.System.Rows[0]["ClientName"]);
+                config.Styles = new Styles();
+                config.Images = new Images(config.Data.System.Rows[0]["ClientName"]);
             }
             else
-                Data = new
+                config.Data = new
                 {
                     System = result.DataSet.Tables[0].Rows[0].Table,
                     Databases = result.DataSet.Tables[1].Rows[0].Table,
                     Tables = result.DataSet.Tables[2].Rows[0].Table,
                 };
+
+            return config;
         }
         public static string GetHTML(string systemName, string? message = null)
         {

@@ -102,7 +102,8 @@ IF(SELECT object_id('[dbo].[Config]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
 							  ,@DatabaseName VARCHAR(25) = NULL
-							  ,@TableName VARCHAR(25) = NULL) AS
+							  ,@TableName VARCHAR(25) = NULL
+							  ,@ReturnValue INT OUT) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(250)
 
@@ -134,7 +135,7 @@ BEGIN
 		END
 		ALTER TABLE [dbo].[#Systems] DROP COLUMN [IsOffAir]
 		IF @DatabaseName IS NULL
-			RETURN
+			RETURN 1
 		ALTER TABLE [dbo].[#Systems] ADD PRIMARY KEY CLUSTERED([Id])
 		IF @DatabaseName = 'all' BEGIN
 			SET @DatabaseName = NULL
@@ -360,8 +361,9 @@ BEGIN
 			SELECT * FROM [dbo].[#Databases] ORDER BY [Name] -- 1 [#Databases]
 			SELECT * FROM [dbo].[#Tables] ORDER BY [DatabaseId], [Name] -- 2 [#Tables]
 		END
-
-		RETURN CAST(1 AS BIT)
+		SET @ReturnValue = 1
+		
+		RETURN @ReturnValue
 	END TRY
 	BEGIN CATCH
 		THROW
@@ -441,7 +443,8 @@ Criar stored procedure [dbo].[Login]
 IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[Login] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
+							 ,@ReturnValue INT OUT) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 			,@ErrorMessage NVARCHAR(MAX)
 
@@ -565,9 +568,10 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		UPDATE [dbo].[Users]
 			SET [RetryLogins] = 0
 			WHERE [Id] = @UserId
-		COMMIT TRANSACTION 
+		COMMIT TRANSACTION
+		SET @ReturnValue = @LoginId
 
-		RETURN @LoginId
+		RETURN @ReturnValue
 	END TRY
 	BEGIN CATCH
         IF @@TRANCOUNT > @TRANCOUNT BEGIN
@@ -585,7 +589,8 @@ Criar stored procedure [dbo].[GetPublicKey]
 IF(SELECT object_id('[dbo].[GetPublicKey]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[GetPublicKey] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId INT) AS BEGIN
+ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId INT
+								   ,@ReturnValue INT OUT) AS BEGIN
 	DECLARE @ErrorMessage NVARCHAR(MAX)
 
 	BEGIN TRY
@@ -599,8 +604,9 @@ ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId INT) AS BEGIN
 			WHERE [Id] = @LoginId
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Valor @LoginId é inexistente', 1
+		SET @ReturnValue = @LoginId
 
-		RETURN @LoginId
+		RETURN @ReturnValue
 	END TRY
 	BEGIN CATCH
         SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));

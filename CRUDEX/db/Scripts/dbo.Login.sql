@@ -1,7 +1,8 @@
 ﻿IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[Login] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
+ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
+							 ,@ReturnValue INT OUT) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 			,@ErrorMessage NVARCHAR(MAX)
 
@@ -125,9 +126,10 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)) AS BEGIN
 		UPDATE [dbo].[Users]
 			SET [RetryLogins] = 0
 			WHERE [Id] = @UserId
-		COMMIT TRANSACTION 
+		COMMIT TRANSACTION
+		SET @ReturnValue = @LoginId
 
-		RETURN @LoginId
+		RETURN @ReturnValue
 	END TRY
 	BEGIN CATCH
         IF @@TRANCOUNT > @TRANCOUNT BEGIN

@@ -151,8 +151,8 @@ export default class TForm {
             this.#Record[column.Name] = TConfig.IsEmpty(value) ? null : value
         }
         control.onkeydown = event => {
-            if (event.key === "Enter") {
-                event.preventDefault();
+            if (event.key === "Enter" || event.key === "Tab") {
+                event.preventDefault()
 
                 let focusableElements = Array.from(document.querySelectorAll('input, textarea')),
                     currentIndex = focusableElements.indexOf(document.activeElement)

@@ -3,7 +3,8 @@
 GO
 ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
 							  ,@DatabaseName VARCHAR(25) = NULL
-							  ,@TableName VARCHAR(25) = NULL) AS
+							  ,@TableName VARCHAR(25) = NULL
+							  ,@ReturnValue INT OUT) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(250)
 
@@ -35,7 +36,7 @@ BEGIN
 		END
 		ALTER TABLE [dbo].[#Systems] DROP COLUMN [IsOffAir]
 		IF @DatabaseName IS NULL
-			RETURN
+			RETURN 1
 		ALTER TABLE [dbo].[#Systems] ADD PRIMARY KEY CLUSTERED([Id])
 		IF @DatabaseName = 'all' BEGIN
 			SET @DatabaseName = NULL
@@ -261,8 +262,9 @@ BEGIN
 			SELECT * FROM [dbo].[#Databases] ORDER BY [Name] -- 1 [#Databases]
 			SELECT * FROM [dbo].[#Tables] ORDER BY [DatabaseId], [Name] -- 2 [#Tables]
 		END
-
-		RETURN CAST(1 AS BIT)
+		SET @ReturnValue = 1
+		
+		RETURN @ReturnValue
 	END TRY
 	BEGIN CATCH
 		THROW

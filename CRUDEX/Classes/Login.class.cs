@@ -8,7 +8,7 @@ namespace CRUDA_LIB
     public static class Login
     {
         public readonly static string ClassName = "Login";
-        public static TResult Execute(TDictionary? parameters, bool forceAuthenticate = false)
+        public static async Task<TResult> Execute(TDictionary? parameters, bool forceAuthenticate = false)
         {
             if (parameters != null && parameters.TryGetValue("Login", out dynamic? login))
             {
@@ -16,7 +16,7 @@ namespace CRUDA_LIB
                     throw new Exception("Login requerido em Parameters.");
                 else if (login.ContainsKey("SystemName") && login.ContainsKey("UserName") && login.ContainsKey("Password") && login.ContainsKey("Action"))
                 {
-                    return SQLProcedure.Execute(
+                    return await SQLProcedure.Execute(
                         Settings.ConnecionString(),
                         Settings.Get("LOGIN_PROCEDURE"),
                         Config.ToDictionary(new
@@ -40,9 +40,9 @@ namespace CRUDA_LIB
             }
             throw new Exception("Parameters requerido.");
         }
-        public static string GetPublicKey(long loginId)
+        public static async Task<string> GetPublicKey(long loginId)
         {
-            return SQLProcedure.Execute(
+            return (await SQLProcedure.Execute(
                 Settings.ConnecionString(),
                 Settings.Get("PUBLICKEY_PROCEDURE"),
                 Config.ToDictionary(new
@@ -51,7 +51,7 @@ namespace CRUDA_LIB
                     {
                         LoginId = loginId,
                     }
-                })).DataSet.Tables[0].Rows[0]["PublicKey"].ToString() ?? string.Empty;
+                }))).DataSet.Tables[0].Rows[0]["PublicKey"].ToString() ?? string.Empty;
         }
     }
 }

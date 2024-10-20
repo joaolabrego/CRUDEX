@@ -9,6 +9,7 @@
     font-weight: normal;
     white-space: nowrap;
     max-width: 100%;
+    user-select: none;
 }
 
 .grid input[type="checkbox"] {

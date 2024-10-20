@@ -1,0 +1,77 @@
+{
+  "Domains": [
+    { "DomainId": 1, "DomainName": "BigInteger" },
+    { "DomainId": 2, "DomainName": "Integer" },
+    { "DomainId": 3, "DomainName": "ShortInteger" },
+    { "DomainId": 4, "DomainName": "SmallInteger" },
+    { "DomainId": 5, "DomainName": "TinyInteger" },
+    { "DomainId": 6, "DomainName": "Boolean" },
+    { "DomainId": 7, "DomainName": "Varchar(15)" },
+    { "DomainId": 8, "DomainName": "Varchar(20)" },
+    { "DomainId": 9, "DomainName": "Varchar(25)" },
+    { "DomainId": 10, "DomainName": "Varchar(50)" },
+    { "DomainId": 11, "DomainName": "Varchar(256)" },
+    { "DomainId": 12, "DomainName": "Varchar(MAX)" },
+    { "DomainId": 13, "DomainName": "JavaScript", "Codification": "JS" },
+    { "DomainId": 14, "DomainName": "SQL", "Codification": "SQL" },
+    { "DomainId": 15, "DomainName": "JSON", "Codification": "JSON" },
+    { "DomainId": 16, "DomainName": "DateTime" },
+    { "DomainId": 17, "DomainName": "Variant" },
+    {
+      "DomainId": 18,
+      "DomainName": "Codification",
+      "ValidValues": "JSON;JS;SQL"
+    },
+    {
+      "DomainId": 19,
+      "DomainName": "HtmlInputType",
+      "ValidValues": "text;checkbox;textarea;image;file"
+    },
+    {
+      "DomainId": 20,
+      "DomainName": "HtmlInputAlign",
+      "ValidValues": "left;center;right"
+    },
+    {
+      "DomainId": 21,
+      "DomainName": "Action",
+      "ValidValues": "create;read;update;delete;commit;rollback"
+    }
+  ],
+  "Types": [
+    { "TypeId": 1, "TypeName": "bigint" },
+    { "TypeId": 2, "TypeName": "binary" },
+    { "TypeId": 3, "TypeName": "bit" },
+    { "TypeId": 4, "TypeName": "char" },
+    { "TypeId": 5, "TypeName": "date" },
+    { "TypeId": 6, "TypeName": "datetime" },
+    { "TypeId": 7, "TypeName": "datetime2" },
+    { "TypeId": 8, "TypeName": "datetimeoffset" },
+    { "TypeId": 9, "TypeName": "decimal" },
+    { "TypeId": 10, "TypeName": "float" },
+    { "TypeId": 11, "TypeName": "geography" },
+    { "TypeId": 12, "TypeName": "geometry" },
+    { "TypeId": 13, "TypeName": "hierarchyid" },
+    { "TypeId": 14, "TypeName": "image" },
+    { "TypeId": 15, "TypeName": "int" },
+    { "TypeId": 16, "TypeName": "money" },
+    { "TypeId": 17, "TypeName": "nchar" },
+    { "TypeId": 18, "TypeName": "ntext" },
+    { "TypeId": 19, "TypeName": "numeric" },
+    { "TypeId": 20, "TypeName": "nvarchar" },
+    { "TypeId": 21, "TypeName": "real" },
+    { "TypeId": 22, "TypeName": "smalldatetime" },
+    { "TypeId": 23, "TypeName": "smallint" },
+    { "TypeId": 24, "TypeName": "smallmoney" },
+    { "TypeId": 25, "TypeName": "sql_variant" },
+    { "TypeId": 26, "TypeName": "sysname" },
+    { "TypeId": 27, "TypeName": "text" },
+    { "TypeId": 28, "TypeName": "time" },
+    { "TypeId": 29, "TypeName": "timestamp" },
+    { "TypeId": 30, "TypeName": "tinyint" },
+    { "TypeId": 31, "TypeName": "uniqueidentifier" },
+    { "TypeId": 32, "TypeName": "varbinary" },
+    { "TypeId": 33, "TypeName": "varchar" },
+    { "TypeId": 34, "TypeName": "xml" }
+  ]
+}

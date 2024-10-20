@@ -1,7 +1,8 @@
 ﻿IF(SELECT object_id('[dbo].[GetPublicKey]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[GetPublicKey] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId INT) AS BEGIN
+ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId INT
+								   ,@ReturnValue INT OUT) AS BEGIN
 	DECLARE @ErrorMessage NVARCHAR(MAX)
 
 	BEGIN TRY
@@ -15,8 +16,9 @@ ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId INT) AS BEGIN
 			WHERE [Id] = @LoginId
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Valor @LoginId é inexistente', 1
+		SET @ReturnValue = @LoginId
 
-		RETURN @LoginId
+		RETURN @ReturnValue
 	END TRY
 	BEGIN CATCH
         SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));

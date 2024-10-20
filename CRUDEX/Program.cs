@@ -7,7 +7,7 @@ namespace CRUDA_LIB
 {
     public class Program
     {
-        public static void Main()
+        private static async Task Main()
         {
             var app = Settings.Initialize();
 
@@ -16,48 +16,48 @@ namespace CRUDA_LIB
                 await next.Invoke();
             });
 
-            app.MapGet("/", (HttpContext context) =>
+            app.MapGet("/", async (HttpContext context) =>
             {
-                ExecuteRoute(context);
+                await ExecuteRoute(context);
             });
-            app.MapGet("/{systemName}", (HttpContext context, string systemName) =>
+            app.MapGet("/{systemName}", async (HttpContext context, string systemName) =>
             {
-                ExecuteRoute(context, systemName, Actions.CHECK);
+                await ExecuteRoute(context, systemName, Actions.CHECK);
             });
-            app.MapPost("/{systemName}/{action}", (HttpContext context, string systemName, string action, dynamic body) =>
+            app.MapPost("/{systemName}/{action}", async (HttpContext context, string systemName, string action, dynamic body) =>
             {
-                ExecuteRoute(context, systemName, action, body);
+                await ExecuteRoute(context, systemName, action, body);
             });
-            app.Run();
+            await app.RunAsync();
         }
-        private static void ExecuteRoute(HttpContext context, string systemName = "", string? action = null, dynamic? body = null)
+        private static async Task ExecuteRoute(HttpContext context, string systemName = "", string? action = null, dynamic? body = null)
         {
             try
             {
                 switch (action)
                 {
                     case null:
-                        Scripts.GenerateScript("crudex", "crudex", true);
-                        context.Request.Headers.ContentType = "text/html;";
-                        context.Response.WriteAsync(Config.GetHTML("cruda", "Nome do sistema é requerido na URL."), Encoding.UTF8);
+                        await Scripts.GenerateScript("crudex", "crudex", true);
+                        context.Response.Headers.ContentType = "text/html;";
+                        await context.Response.WriteAsync(Config.GetHTML("cruda", "Nome do sistema é requerido na URL."), Encoding.UTF8);
                         break;
                     case Actions.CHECK:
                         context.Response.Headers.ContentType = "text/html";
-                        SQLProcedure.GetConfig(systemName);
-                        context.Response.WriteAsync(Config.GetHTML(systemName), Encoding.UTF8);
+                        await SQLProcedure.GetConfig(systemName);
+                        await context.Response.WriteAsync(Config.GetHTML(systemName), Encoding.UTF8);
                         break;
                     case Actions.CONFIG:
-                        var response = JsonConvert.SerializeObject(new Config(systemName, "all"));
+                        var response = JsonConvert.SerializeObject(await Config.Create(systemName, "all"));
 
                         context.Response.Headers.ContentType = "application/json";
-                        context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(context.Request.Headers["PublicKey"]).Encrypt(response), }), Encoding.UTF8);
+                        await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(context.Request.Headers["PublicKey"]).Encrypt(response), }), Encoding.UTF8);
                         break;
                     case Actions.LOGIN:
                     case Actions.LOGOUT:
                     case Actions.EXECUTE:
                         var publicKey = action == Actions.LOGIN 
                             ? context.Request.Headers["PublicKey"].ToString() 
-                            : Login.GetPublicKey(Convert.ToInt64(context.Request.Headers["LoginId"]));
+                            : await Login.GetPublicKey(Convert.ToInt64(context.Request.Headers["LoginId"]));
                         var request = Config.ToDictionary(JsonConvert.DeserializeObject(new Crypto(publicKey)
                             .Encrypt(Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body)))["Request"])));
                         var parameters = Config.ToDictionary(new
@@ -67,13 +67,13 @@ namespace CRUDA_LIB
                         });
                         if (action == Actions.EXECUTE)
                         {
-                            Login.Execute(parameters, true);
-                            response = JsonConvert.SerializeObject(SQLProcedure.Execute(systemName, parameters));
+                            await Login.Execute(parameters, true);
+                            response = JsonConvert.SerializeObject(await SQLProcedure.Execute(systemName, parameters));
                         }
                         else
-                            response = JsonConvert.SerializeObject(Login.Execute(parameters));
+                            response = JsonConvert.SerializeObject(await Login.Execute(parameters));
                         context.Response.Headers.ContentType = "application/json";
-                        context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(publicKey).Encrypt(response), }), Encoding.UTF8);
+                        await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(publicKey).Encrypt(response), }), Encoding.UTF8);
                         break;
                     default:
                         throw new Exception($"Ação '{action}' desconhecida em rota.");
@@ -84,14 +84,14 @@ namespace CRUDA_LIB
                 if (action == null || action == Actions.CHECK)
                 {
                     context.Response.Headers.ContentType = "text/html";
-                    context.Response.WriteAsync(Config.GetHTML(systemName, ex.Message), Encoding.UTF8);
+                    await context.Response.WriteAsync(Config.GetHTML(systemName, ex.Message), Encoding.UTF8);
                 }
                 else
                 {
                     var response = new Crypto(context.Request.Headers["PublicKey"]).Encrypt(JsonConvert.SerializeObject(new Error(ex.Message, Actions.LOGIN)));
 
                     context.Response.Headers.ContentType = "application/json";
-                    context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response }), Encoding.UTF8);
+                    await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response }), Encoding.UTF8);
                 }
             }
         }
