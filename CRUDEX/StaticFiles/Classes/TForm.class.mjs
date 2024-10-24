@@ -210,8 +210,8 @@ export default class TForm {
         return this
     }
     Renderize() {
-        let title = ""
-        let message = ""
+        let title = "",
+            message = ""
 
         switch (this.#Action) {
             case TActions.CREATE:
@@ -269,12 +269,12 @@ export default class TForm {
             this.#HTML.ConfirmButton.style.backgroundImage = TForm.#Images.Confirm
         }
         this.#HTML.ConfirmButton.type = "button"
-        this.#HTML.ConfirmButton.onclick = async () => {
+        this.#HTML.ConfirmButton.onclick = () => {
             if (this.#Action === TActions.FILTER) {
                 this.#Grid.SaveFilters(this.#Record);
             }
             try {
-                await this.#Grid.Renderize();
+                this.#Grid.Renderize();
             } catch (error) {
                 TScreen.ShowError(error.Message, error.Action || this.#ReturnAction);
             }

@@ -1,8 +1,12 @@
 ﻿"use strict"
 
+import TSystem from "./TSystem.class.mjs"
+
 export default class TRecordSet {
     #Table = null
+    #FixedFilter = {}
     #FilterValues = {}
+    #Primarykeys = {}
     #RowCount = 0
     #PageNumber = 1
     #PageCount = 0
@@ -18,48 +22,96 @@ export default class TRecordSet {
         this.#Table = table
         this.#Table.Columns.filter(column => column.IsFilterable)
             .forEach(column => this.#FilterValues[column.Name] = null)
+        this.#Primarykeys = Object.assign({}, #Table.Columns.filter(column => column.IsPrimarykey))
     }
+    #SetPrimaryKeys() {
+        this.#Primarykeys.forEach(column => primarykeys[column.Name] = this.#Data[this.#RowNumber][column.Name])
+    }
+    GoNextRow() {
+        if (this.#RowNumber === TSystem.RowsPerPage - 1) {
+            this.ReadPage(this.#PageNumber < this.#PageCount ? this.#PageNumber + 1 : 1)
+            this.#RowNumber = 0
+        }
+        else
+            ++this.#RowNumber
+        this.#SetPrimaryKeys()
+
+        return this.#RowNumber
+    }
+    GoPriorRow() {
+        if (this.#RowNumber === 0) {
+            this.ReadPage(this.#PageNumber > 1 ? this.#PageNumber - 1 : this.#PageCount)
+            this.#RowNumber = TSystem.RowsPerPage - 1
+        }
+        else
+            --this.#RowNumber
+        this.#SetPrimaryKeys()
+
+        return this.#RowNumber
+    }
+    GoLastRow() {
+        --this.#RowNumber
+    }
+
     ClearOrderBy() {
         this.#OrderBy = ""
     }
-    IsOrdered() {
-        return this.#OrderBy.includes(columnNameAsc) ? false : this.#OrderBy.includes(columnNameDesc) ? true : null
-    }
-    ToggleOrdered() {
-        let isOrdered = this.IsOrdered()
+    ToggleStatusOrder() {
+        let status = this.#OrderBy.includes(columnNameAsc) ? false : this.#OrderBy.includes(columnNameDesc) ? true : null
 
-        if (TConfig.IsEmpty(isOrdered)) {
+        if (TConfig.IsEmpty(status)) {
             this.#OrderBy += columnNameAsc
-            isOrdered = false
+            status = false
         }
-        else if (isOrdered === false) {
+        else if (status === false) {
             this.#OrderBy = this.#OrderBy.replace(columnNameAsc, columnNameDesc)
-            isOrdered = true
+            status = true
         }
         else {
             this.#OrderBy = this.#OrderBy.replace(columnNameDesc, "")
-            isOrdered = null
+            status = null
         }
 
-        return isOrdered
+        return status
     }
     ClearFilters() {
-        Object.keys(this.#FilterValues).forEach(key => this.#FilterValues[key] = null)
+        Object.keys(this.#FilterValues).forEach(key => { this.#FilterValues[key] = this.#FixedFilter.hasOwnProperty(key) ? this.#FixedFilter[key] : null })
     }
     SaveFilters(record) {
-        Object.keys(this.#FilterValues).forEach(key => this.#FilterValues[key] = record.hasOwnProperty(key) ? (TConfig.IsEmpty(record[key]) ? null : record[key]) : null)
+        Object.keys(this.#FilterValues).forEach(key => { this.#FilterValues[key] = record.hasOwnProperty(key) ? record[key] : null })
     }
     IsFiltered() {
         for (let key in Object.keys(this.#FilterValues))
-            if (this.#FilterValues[key] != null)
+            if (!(this.#FixedFilter.hasOwnProperty(key) || this.#FilterValues[key] === null))
                 return true
 
         return false;
     }
-    async ReadPage(pageNumber) {
+    async ReadRow(databaseName, tableName) {
         let parameters = {
-            DatabaseName: this.#Table.Database.Name,
-            TableName: this.#Table.Name,
+            DatabaseName: databaseName,
+            TableName: tableName,
+            Action: TActions.READ,
+            InputParams: {
+                LoginId: TLogin.LoginId,
+                RecordFilter: JSON.stringify(this.Primarykeys),
+                OrderBy: null,
+                PaddingGridLastPage: false,
+            },
+            OutputParams: {},
+            IOParams: {
+                PageNumber: 0,
+                LimitRows: 0,
+                MaxPage: 0,
+            },
+        }
+
+        return (await TConfig.GetAPI(TActions.EXECUTE, parameters)).DataSet.Table[0]
+    }
+    async ReadPage(databaseName, tableName, pageNumber) {
+        let parameters = {
+            DatabaseName: databaseName,
+            TableName: tableName,
             Action: TActions.READ,
             InputParams: {
                 LoginId: TLogin.LoginId,
@@ -86,10 +138,7 @@ export default class TRecordSet {
         return result.DataSet.Table
     }
     get Primarykeys() {
-        let primarykeys = {}
-
-        this.#Table.Columns.filter(column => column.IsPrimarykey)
-            .forEach(column => primarykeys[column.Name] = this.#DataPage[this.#RowNumber][column.Name])
+        this.#Primarykeys.forEach(column => primarykeys[column.Name] = this.#Data[this.#RowNumber][column.Name])
 
         return primarykeys
     }
@@ -127,8 +176,6 @@ export default class TRecordSet {
         return this.#Data
     }
     get OrderBy() {
-        return this.#OrderBy
+        return this.#OrderBy.slice(0, -1)
     }
-}
-
 }
