@@ -37,6 +37,11 @@ export default class TGrid {
         UnfilterButton: null,
         ExitButton: null,
         SelectedRow: null,
+        Scroll: {
+            Container: null,
+            Track: null,
+            Thumb: null,
+        }
     }
 
     static #Style = ""
