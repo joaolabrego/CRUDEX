@@ -14,6 +14,7 @@ export default class TGrid {
     #PageCount = 0
     #RowNumber = 0
     #IsRendering = false
+    #IsDragging = false
     #Rows = []
     #Data = null
     #Table = null
@@ -22,6 +23,7 @@ export default class TGrid {
     #OrderBy = ""
 
     #HTML = {
+        Container: null,
         Table: null,
         Head: null,
         Body: null,
@@ -41,7 +43,7 @@ export default class TGrid {
             Container: null,
             Track: null,
             Thumb: null,
-        }
+        },
     }
 
     static #Style = ""
@@ -63,6 +65,14 @@ export default class TGrid {
         this.#Table = database.GetTable(tableName)
         if (!this.#Table)
             throw new Error("Tabela de banco-de-dados não encontrada.")
+        this.#HTML.Container = document.createElement("div");
+        this.#HTML.Container.className = "grid-container";
+        this.#CreateGrid()
+        this.#CreateScrollBar()
+        this.#Table.Columns.filter(column => column.IsFilterable)
+            .forEach(column => this.#FilterValues[column.Name] = null)
+    }
+    #CreateGrid() {
         this.#HTML.Table = document.createElement("table")
         this.#HTML.Table.setAttribute('tabindex', '0');
         this.#HTML.Table.onkeydown = event => {
@@ -171,8 +181,63 @@ export default class TGrid {
         this.#HTML.Foot = document.createElement("tfoot")
         this.#HTML.Table.appendChild(this.#HTML.Foot)
 
-        this.#Table.Columns.filter(column => column.IsFilterable)
-            .forEach(column => this.#FilterValues[column.Name] = null)
+        this.#HTML.Container.appendChild(this.#HTML.Table);
+    }
+    #CreateScrollBar() {
+        // Contêiner do ScrollBar fixo
+        this.#HTML.Scroll.Container = document.createElement("div");
+        this.#HTML.Scroll.Container.className = "scroll-container";
+
+        // Track e Thumb do ScrollBar
+        this.#HTML.Scroll.Track = document.createElement("div");
+        this.#HTML.Scroll.Track.className = "scroll-track";
+        this.#HTML.Scroll.Thumb = document.createElement("div");
+        this.#HTML.Scroll.Thumb.className = "scroll-thumb";
+
+        // Estrutura do ScrollBar
+        this.#HTML.Scroll.Track.appendChild(this.#HTML.Scroll.Thumb);
+        this.#HTML.Scroll.Container.appendChild(this.#HTML.Scroll.Track)
+
+        this.#HTML.Scroll.Thumb.onmousedown = () => {
+            this.#IsDragging = true
+        }
+        this.#HTML.Scroll.Container.onmousemove = (event) => {
+            if (this.#IsDragging) {
+                let trackRect = this.#HTML.Scroll.Track.getBoundingClientRect(),
+                    newTop = event.clientY - trackRect.top;
+
+                this.#UpdateScrollbarPosition(newTop);
+            }
+        }
+        this.#HTML.Scroll.Container.onmouseup = () => {
+            this.#IsDragging = false;
+        }
+        this.#HTML.Scroll.Track.onclick = (event) => {
+            const trackRect = this.#HTML.Scroll.Track.getBoundingClientRect();
+            const clickPosition = event.clientY - trackRect.top;
+            this.#UpdateScrollbarPosition(clickPosition - this.#HTML.Scroll.Thumb.offsetHeight / 2);
+        }
+        this.#HTML.Container.appendChild(this.#HTML.Scroll.Container);
+    }
+    #SyncHeightWithContainer() {
+        let containerHeight = this.#HTML.Container.clientHeight,
+            thumbHeight = Math.max((this.#Rows.length / this.#RowCount) * containerHeight, 5) // Mínimo de 5vmin
+
+        this.#HTML.Scroll.Thumb.style.height = `${thumbHeight}vmin`
+    }
+    #UpdateScrollbarPosition(newTop) {
+        let trackHeight = this.#HTML.Scroll.Track.clientHeight,
+            thumbHeight = this.#HTML.Scroll.Thumb.clientHeight,
+            maxTop = trackHeight - thumbHeight;
+
+        // Garantir que o `newTop` está dentro dos limites do track
+        newTop = Math.max(0, Math.min(newTop, maxTop));
+        this.#HTML.Scroll.Thumb.style.top = `${newTop}px`;
+
+        // Calcula a página baseada na posição do scroll-thumb
+        const scrollPercentage = newTop / maxTop;
+        this.#PageNumber = Math.round(scrollPercentage * this.#PageCount) + 1;
+        this.Renderize(this.#PageNumber);
     }
     static Initialize(styles, images) {
         if (styles.ClassName !== "Styles")
@@ -248,8 +313,9 @@ export default class TGrid {
             this.#BuildHtmlHead()
             this.#BuildHtmlBody(this.#Data)
             this.#BuildHtmlFoot()
+            this.#SyncHeightWithContainer()
             TScreen.WithBackgroundImage = true
-            TScreen.Main = this.#HTML.Table
+            TScreen.Main = this.#HTML.Container
             this.#HTML.Table.focus()
         }
         catch (error) {

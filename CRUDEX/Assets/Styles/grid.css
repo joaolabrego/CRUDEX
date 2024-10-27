@@ -124,3 +124,44 @@
     font-size: inherit;
     float: left;
 }
+
+.grid-container {
+    display: flex;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow-y: hidden;
+    margin-right: 4vmin; /* Adiciona espaço para o scrollbar */
+}
+
+.scroll-container {
+    width: 3vmin;
+    background-color: #eee;
+    display: flex;
+    align-items: center;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+    pointer-events: auto;
+}
+
+.scroll-track {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: #bbb;
+    border-radius: 1.5vmin;
+}
+
+.scroll-thumb {
+    position: absolute;
+    width: 100%;
+    background-color: blue;
+    cursor: grab;
+    border-radius: 1.5vmin;
+    min-height: 3vmin;
+    max-height: 3vmin;
+    top: 0;
+}
