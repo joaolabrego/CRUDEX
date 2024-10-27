@@ -29,7 +29,6 @@ export default class TGrid {
         Body: null,
         Foot: null,
         NumberInput: null,
-        RangeInput: null,
         CreateButton: null,
         UpdateButton: null,
         DeleteButton: null,
@@ -59,22 +58,58 @@ export default class TGrid {
     }
     constructor(databaseName, tableName) {
         let database = TSystem.GetDatabase(databaseName)
-
-        if (!database)
-            throw new Error("Banco-de-dados não encontrado.")
+        if (!database) throw new Error("Banco-de-dados não encontrado.")
         this.#Table = database.GetTable(tableName)
-        if (!this.#Table)
-            throw new Error("Tabela de banco-de-dados não encontrada.")
-        this.#HTML.Container = document.createElement("div");
-        this.#HTML.Container.className = "grid-container";
-        this.#CreateGrid()
-        this.#CreateScrollBar()
-        this.#Table.Columns.filter(column => column.IsFilterable)
-            .forEach(column => this.#FilterValues[column.Name] = null)
+        if (!this.#Table) throw new Error("Tabela de banco-de-dados não encontrada.")
+
+        // Cria o container principal
+        this.#HTML.Container = document.createElement("div")
+        this.#HTML.Container.className = "container" // Alteração aqui para "container"
+
+        // Criação das colunas
+        let gridWrapper = document.createElement("div") // Div para o grid
+
+        gridWrapper.className = "grid-container"
+
+        // Adiciona o grid e o scrollbar ao container
+        this.#CreateGrid(gridWrapper) // Passando gridWrapper
+        this.#CreateScrollBar() // Mantém o método existente
+
+        // Adiciona as colunas ao container principal
+        this.#HTML.Container.appendChild(gridWrapper)
+        this.#HTML.Container.appendChild(this.#HTML.Scroll.Container)
     }
-    #CreateGrid() {
+    static Initialize(styles, images) {
+        if (styles.ClassName !== "Styles")
+            throw new Error("Argumento styles não são do tipo Styles.")
+        if (images.ClassName !== "Images")
+            throw new Error("Argumento images não são do tipo Images.")
+        this.#Style = styles.Grid
+        this.#Images.Delete = images.Delete
+        this.#Images.Query = images.Query
+        this.#Images.Edit = images.Edit
+        this.#Images.Exit = images.Exit
+        this.#Images.Filter = images.Filter
+        this.#Images.Unfilter = images.Unfilter
+        this.#Images.Unorder = images.Unorder
+        this.#Images.Insert = images.Insert
+    }
+    #UpdateScrollThumbFromInputs() {
+        if (this.#PageCount <= 1) {
+            this.#HTML.Scroll.Thumb.style.top = "0px"
+            return
+        }
+        let trackHeight = this.#HTML.Scroll.Track.clientHeight,
+            maxTop = trackHeight - this.#HTML.Scroll.Thumb.clientHeight,
+            scrollPosition = ((this.#PageNumber - 1) / (this.#PageCount - 1)) * maxTop
+
+        this.#HTML.Scroll.Thumb.style.top = `${scrollPosition}px`
+    }
+
+    #CreateGrid(wrapper) {
         this.#HTML.Table = document.createElement("table")
-        this.#HTML.Table.setAttribute('tabindex', '0');
+        this.#HTML.Table.setAttribute('tabindex', '0')
+        this.#HTML.Table.className = "grid box"
         this.#HTML.Table.onkeydown = event => {
             if (event.ctrlKey) {
                 switch (event.key) {
@@ -145,7 +180,6 @@ export default class TGrid {
                             this.Renderize(this.#PageNumber + 1)
                             this.#Rows[0].click()
                         }
-
                         break;
                     case "PageUp":
                         if (this.#PageNumber > 1)
@@ -167,10 +201,8 @@ export default class TGrid {
         }
 
         let style = document.createElement("style")
-
         style.innerText = TGrid.#Style
         this.#HTML.Table.appendChild(style)
-        this.#HTML.Table.className = "grid box"
 
         this.#HTML.Head = document.createElement("thead")
         this.#HTML.Table.appendChild(this.#HTML.Head)
@@ -181,43 +213,39 @@ export default class TGrid {
         this.#HTML.Foot = document.createElement("tfoot")
         this.#HTML.Table.appendChild(this.#HTML.Foot)
 
-        this.#HTML.Container.appendChild(this.#HTML.Table);
+        wrapper.appendChild(this.#HTML.Table) // Adiciona o grid à div wrapper
     }
     #CreateScrollBar() {
-        // Contêiner do ScrollBar fixo
-        this.#HTML.Scroll.Container = document.createElement("div");
-        this.#HTML.Scroll.Container.className = "scroll-container";
+        this.#HTML.Scroll.Container = document.createElement("div")
+        this.#HTML.Scroll.Container.className = "scroll-container"
 
-        // Track e Thumb do ScrollBar
-        this.#HTML.Scroll.Track = document.createElement("div");
-        this.#HTML.Scroll.Track.className = "scroll-track";
-        this.#HTML.Scroll.Thumb = document.createElement("div");
-        this.#HTML.Scroll.Thumb.className = "scroll-thumb";
-
-        // Estrutura do ScrollBar
-        this.#HTML.Scroll.Track.appendChild(this.#HTML.Scroll.Thumb);
+        this.#HTML.Scroll.Track = document.createElement("div")
+        this.#HTML.Scroll.Track.className = "scroll-track"
         this.#HTML.Scroll.Container.appendChild(this.#HTML.Scroll.Track)
 
+        this.#HTML.Scroll.Thumb = document.createElement("div")
+        this.#HTML.Scroll.Thumb.className = "scroll-thumb"
+        this.#HTML.Scroll.Track.appendChild(this.#HTML.Scroll.Thumb)
+
+        // Eventos para o scrollbar
         this.#HTML.Scroll.Thumb.onmousedown = () => {
             this.#IsDragging = true
         }
         this.#HTML.Scroll.Container.onmousemove = (event) => {
             if (this.#IsDragging) {
-                let trackRect = this.#HTML.Scroll.Track.getBoundingClientRect(),
-                    newTop = event.clientY - trackRect.top;
-
-                this.#UpdateScrollbarPosition(newTop);
+                let trackRect = this.#HTML.Scroll.Track.getBoundingClientRect()
+                let newTop = event.clientY - trackRect.top
+                this.#UpdateScrollbarPosition(newTop)
             }
         }
         this.#HTML.Scroll.Container.onmouseup = () => {
-            this.#IsDragging = false;
+            this.#IsDragging = false
         }
         this.#HTML.Scroll.Track.onclick = (event) => {
-            const trackRect = this.#HTML.Scroll.Track.getBoundingClientRect();
-            const clickPosition = event.clientY - trackRect.top;
-            this.#UpdateScrollbarPosition(clickPosition - this.#HTML.Scroll.Thumb.offsetHeight / 2);
+            const trackRect = this.#HTML.Scroll.Track.getBoundingClientRect()
+            const clickPosition = event.clientY - trackRect.top
+            this.#UpdateScrollbarPosition(clickPosition - this.#HTML.Scroll.Thumb.offsetHeight / 2)
         }
-        this.#HTML.Container.appendChild(this.#HTML.Scroll.Container);
     }
     #SyncHeightWithContainer() {
         let containerHeight = this.#HTML.Container.clientHeight,
@@ -236,23 +264,9 @@ export default class TGrid {
 
         // Calcula a página baseada na posição do scroll-thumb
         const scrollPercentage = newTop / maxTop;
-        this.#PageNumber = Math.round(scrollPercentage * this.#PageCount) + 1;
-        this.Renderize(this.#PageNumber);
-    }
-    static Initialize(styles, images) {
-        if (styles.ClassName !== "Styles")
-            throw new Error("Argumento styles não são do tipo Styles.")
-        if (images.ClassName !== "Images")
-            throw new Error("Argumento images não são do tipo Images.")
-        this.#Style = styles.Grid
-        this.#Images.Delete = images.Delete
-        this.#Images.Query = images.Query
-        this.#Images.Edit = images.Edit
-        this.#Images.Exit = images.Exit
-        this.#Images.Filter = images.Filter
-        this.#Images.Unfilter = images.Unfilter
-        this.#Images.Unorder = images.Unorder
-        this.#Images.Insert = images.Insert
+        this.#PageNumber = Math.round(scrollPercentage * (this.#PageCount - 1)) + 1;
+        this.#HTML.NumberInput.value = this.#PageNumber
+        this.#HTML.NumberInput.dispatchEvent(new Event("change"))
     }
     SaveFilters(record) {
         for (let key in this.#FilterValues)
@@ -305,6 +319,8 @@ export default class TGrid {
         this.#IsRendering = true
         try {
             this.#Data = await this.#ReadDataPage(pageNumber)
+            this.#PageNumber = pageNumber
+            this.#HTML.Scroll.Thumb.title = `Página ${pageNumber}`;
             if (this.#RowCount > 1)
                 TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar."
             else
@@ -317,6 +333,7 @@ export default class TGrid {
             TScreen.WithBackgroundImage = true
             TScreen.Main = this.#HTML.Container
             this.#HTML.Table.focus()
+            this.#UpdateScrollThumbFromInputs()
         }
         catch (error) {
             TScreen.ShowError(error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
@@ -436,16 +453,6 @@ export default class TGrid {
                 tr.click()
         })
     }
-    #OnChangeInput = (event) => {
-        let value = Number(event.target.value)
-
-        if (value > this.#PageCount)
-            event.target.value = this.#PageCount.toString()
-        else if (value < 1)
-            event.target.value = "1"
-        (event.target.className === "numberInput" ? this.#HTML.RangeInput : this.#HTML.NumberInput).value = event.target.value
-        this.Renderize(value)
-    }
     #BuildHtmlFoot() {
         let tr = document.createElement("tr"),
             th = document.createElement("th"),
@@ -468,28 +475,19 @@ export default class TGrid {
             this.#HTML.NumberInput.title = "Ir para página..."
             this.#HTML.NumberInput.min = "1"
             this.#HTML.NumberInput.max = this.#PageCount.toString()
-            this.#HTML.NumberInput.onchange = this.#OnChangeInput
+            this.#HTML.NumberInput.onchange = (event) => {
+                let value = Number(event.target.value)
 
+                if (value > this.#PageCount)
+                    event.target.value = this.#PageCount.toString()
+                else if (value < 1)
+                    event.target.value = "1"
+                this.#HTML.NumberInput.value = event.target.value
+                this.#PageNumber = value
+                this.Renderize(value)
+
+            }
             th.appendChild(this.#HTML.NumberInput)
-
-            label = document.createElement("label")
-            label.style.float = "left"
-            label.innerHTML = "&nbsp;&nbsp;"
-
-            th.appendChild(label)
-
-            this.#HTML.RangeInput = document.createElement("input")
-            this.#HTML.RangeInput.style.float = "left"
-            this.#HTML.RangeInput.className = "rangeInput"
-            this.#HTML.RangeInput.type = "range"
-            this.#HTML.RangeInput.tabindex = "-1"
-            this.#HTML.RangeInput.value = this.#PageNumber.toString()
-            this.#HTML.RangeInput.title = "Ir para página..."
-            this.#HTML.RangeInput.min = "1"
-            this.#HTML.RangeInput.max = this.#PageCount.toString()
-            this.#HTML.RangeInput.onchange = this.#OnChangeInput
-
-            th.appendChild(this.#HTML.RangeInput)
         }
 
         this.#HTML.CreateButton = document.createElement("button")
