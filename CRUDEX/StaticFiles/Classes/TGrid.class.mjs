@@ -22,7 +22,7 @@ export default class TGrid {
     #OrderBy = ""
 
     #HTML = {
-        Container: null,
+        Table: null,
         Head: null,
         Body: null,
         Foot: null,
@@ -58,9 +58,9 @@ export default class TGrid {
         this.#Table = database.GetTable(tableName)
         if (!this.#Table)
             throw new Error("Tabela de banco-de-dados não encontrada.")
-        this.#HTML.Container = document.createElement("table")
-        this.#HTML.Container.setAttribute('tabindex', '0');
-        this.#HTML.Container.onkeydown = event => {
+        this.#HTML.Table = document.createElement("table")
+        this.#HTML.Table.setAttribute('tabindex', '0');
+        this.#HTML.Table.onkeydown = event => {
             if (event.ctrlKey) {
                 switch (event.key) {
                     case "i":
@@ -154,17 +154,17 @@ export default class TGrid {
         let style = document.createElement("style")
 
         style.innerText = TGrid.#Style
-        this.#HTML.Container.appendChild(style)
-        this.#HTML.Container.className = "grid box"
+        this.#HTML.Table.appendChild(style)
+        this.#HTML.Table.className = "grid box"
 
         this.#HTML.Head = document.createElement("thead")
-        this.#HTML.Container.appendChild(this.#HTML.Head)
+        this.#HTML.Table.appendChild(this.#HTML.Head)
 
         this.#HTML.Body = document.createElement("tbody")
-        this.#HTML.Container.appendChild(this.#HTML.Body)
+        this.#HTML.Table.appendChild(this.#HTML.Body)
 
         this.#HTML.Foot = document.createElement("tfoot")
-        this.#HTML.Container.appendChild(this.#HTML.Foot)
+        this.#HTML.Table.appendChild(this.#HTML.Foot)
 
         this.#Table.Columns.filter(column => column.IsFilterable)
             .forEach(column => this.#FilterValues[column.Name] = null)
@@ -244,8 +244,8 @@ export default class TGrid {
             this.#BuildHtmlBody(this.#Data)
             this.#BuildHtmlFoot()
             TScreen.WithBackgroundImage = true
-            TScreen.Main = this.#HTML.Container
-            this.#HTML.Container.focus()
+            TScreen.Main = this.#HTML.Table
+            this.#HTML.Table.focus()
         }
         catch (error) {
             TScreen.ShowError(error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
@@ -571,6 +571,6 @@ export default class TGrid {
         return filter;
     }
     get Container() {
-        return this.#HTML.Container
+        return this.#HTML.Table
     }
 }

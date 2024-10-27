@@ -12,6 +12,7 @@
         public readonly string Form = string.Empty;
         public readonly string DropDown = string.Empty;
         public readonly string Spinner = string.Empty;
+        public readonly string Scrollbar = string.Empty;
         public Styles()
         {
             var directory = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_STYLES"));
@@ -26,6 +27,7 @@
             Form = File.ReadAllText(Path.Combine(directory, Settings.Get("FORM_STYLE")));
             DropDown = File.ReadAllText(Path.Combine(directory, Settings.Get("DROPDOWN_STYLE")));
             Spinner = File.ReadAllText(Path.Combine(directory, Settings.Get("SPINNER_STYLE")));
+            Scrollbar = File.ReadAllText(Path.Combine(directory, Settings.Get("SCROLLBAR_STYLE")));
         }
     }
 }

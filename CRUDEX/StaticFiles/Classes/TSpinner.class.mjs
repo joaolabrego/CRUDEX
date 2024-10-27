@@ -5,7 +5,7 @@ export default class TSpinner {
 
     static Initialize(styles) {
         if (styles.ClassName !== "Styles")
-            throw new Error("Argumento styles n„o È do tipo Styles.")
+            throw new Error("Argumento styles n√£o √© do tipo Styles.")
 
         let style = document.createElement("style")
 

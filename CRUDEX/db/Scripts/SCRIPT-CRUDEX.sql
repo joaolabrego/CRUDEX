@@ -4966,7 +4966,7 @@ INSERT INTO [dbo].[Databases] ([Id]
                                 ,CAST('crudex' AS nvarchar(25))
                                 ,CAST('CRUD Express' AS nvarchar(50))
                                 ,CAST('crudex' AS nvarchar(25))
-                                ,CAST('ACER-NOTEBOOK' AS nvarchar(50))
+                                ,CAST('NOTEBOOK-DELL' AS nvarchar(50))
                                 ,CAST('localhost' AS nvarchar(25))
                                 ,CAST('1433' AS int)
                                 ,CAST('sa' AS nvarchar(256))

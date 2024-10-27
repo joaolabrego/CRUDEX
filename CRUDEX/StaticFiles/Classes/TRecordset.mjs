@@ -13,8 +13,6 @@ export default class TRecordSet {
     #RowNumber = 0
     #Data = null
     #OrderBy = ""
-    static columnNameAsc = "[" + column.Name + "] ASC,"
-    static columnNameDesc = "[" + column.Name + "] DESC,"
 
     constructor(table) {
         if (grid.ClassName !== "TTable")
@@ -28,7 +26,7 @@ export default class TRecordSet {
         this.#Primarykeys.forEach(column => primarykeys[column.Name] = this.#Data[this.#RowNumber][column.Name])
     }
     GoNextRow() {
-        if (this.#RowNumber === TSystem.RowsPerPage - 1) {
+        if (this.#RowNumber === this.#Data.length - 1) {
             this.ReadPage(this.#PageNumber < this.#PageCount ? this.#PageNumber + 1 : 1)
             this.#RowNumber = 0
         }
@@ -52,27 +50,28 @@ export default class TRecordSet {
     GoLastRow() {
         --this.#RowNumber
     }
-
     ClearOrderBy() {
         this.#OrderBy = ""
     }
-    ToggleStatusOrder() {
-        let status = this.#OrderBy.includes(columnNameAsc) ? false : this.#OrderBy.includes(columnNameDesc) ? true : null
+    ToggleOrderDirection(column) {
+        let columnNameAsc = "[" + column.Name + "] ASC,",
+            columnNameDesc = "[" + column.Name + "] DESC,",
+            orderDirection = this.#OrderBy.includes(columnNameAsc) ? false : this.#OrderBy.includes(columnNameDesc) ? true : null
 
-        if (TConfig.IsEmpty(status)) {
+        if (TConfig.IsEmpty(orderDirection)) {
             this.#OrderBy += columnNameAsc
-            status = false
+            orderDirection = false
         }
-        else if (status === false) {
+        else if (orderDirection === false) {
             this.#OrderBy = this.#OrderBy.replace(columnNameAsc, columnNameDesc)
-            status = true
+            orderDirection = true
         }
         else {
             this.#OrderBy = this.#OrderBy.replace(columnNameDesc, "")
-            status = null
+            orderDirection = null
         }
 
-        return status
+        return orderDirection
     }
     ClearFilters() {
         Object.keys(this.#FilterValues).forEach(key => { this.#FilterValues[key] = this.#FixedFilter.hasOwnProperty(key) ? this.#FixedFilter[key] : null })
@@ -138,9 +137,7 @@ export default class TRecordSet {
         return result.DataSet.Table
     }
     get Primarykeys() {
-        this.#Primarykeys.forEach(column => primarykeys[column.Name] = this.#Data[this.#RowNumber][column.Name])
-
-        return primarykeys
+        return this.#Primarykeys
     }
     get OrderBy() {
         return this.#OrderBy.slice(0, -1)
