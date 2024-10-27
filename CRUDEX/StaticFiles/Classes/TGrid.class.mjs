@@ -73,6 +73,7 @@ export default class TGrid {
         this.#CreateScrollBar()
         this.#HTML.Container.appendChild(this.#HTML.GridWrapper)
         this.#HTML.Container.appendChild(this.#HTML.Scroll.Container)
+        this.#Table.Columns.filter(column => column.IsFilterable).forEach(column => this.#FilterValues[column.Name] = null)
     }
     static Initialize(styles, images) {
         if (styles.ClassName !== "Styles")
