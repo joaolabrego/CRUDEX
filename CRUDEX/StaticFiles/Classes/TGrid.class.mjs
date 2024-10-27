@@ -10,10 +10,12 @@ import TConfig from "./TConfig.class.mjs"
 export default class TGrid {
     #FilterValues = {}
     #RowCount = 0
+    #LastPageNumber = 1
     #PageNumber = 1
     #PageCount = 0
     #RowNumber = 0
     #IsRendering = false
+    #IsNavigateByScroll = false
     #Rows = []
     #Data = null
     #Table = null
@@ -57,6 +59,7 @@ export default class TGrid {
     }
     constructor(databaseName, tableName) {
         let database = TSystem.GetDatabase(databaseName)
+
         if (!database)
             throw new Error("Banco-de-dados não encontrado.")
         this.#Table = database.GetTable(tableName)
@@ -66,7 +69,7 @@ export default class TGrid {
         this.#HTML.Container.className = "container"
         this.#HTML.GridWrapper = document.createElement("div")
         this.#HTML.GridWrapper.className = "grid-wrapper"
-        this.#CreateGrid(this.#HTML.GridWrapper)
+        this.#CreateGrid()
         this.#CreateScrollBar()
         this.#HTML.Container.appendChild(this.#HTML.GridWrapper)
         this.#HTML.Container.appendChild(this.#HTML.Scroll.Container)
@@ -98,7 +101,7 @@ export default class TGrid {
         this.#HTML.Scroll.Thumb.style.top = `${scrollPosition}px`
     }
 
-    #CreateGrid(wrapper) {
+    #CreateGrid() {
         this.#HTML.Table = document.createElement("table")
         this.#HTML.Table.setAttribute('tabindex', '0')
         this.#HTML.Table.className = "grid box"
@@ -193,7 +196,8 @@ export default class TGrid {
         }
 
         let style = document.createElement("style")
-        style.innerText = TGrid.#Style
+
+        style.textContent = TGrid.#Style
         this.#HTML.Table.appendChild(style)
 
         this.#HTML.Head = document.createElement("thead")
@@ -205,7 +209,7 @@ export default class TGrid {
         this.#HTML.Foot = document.createElement("tfoot")
         this.#HTML.Table.appendChild(this.#HTML.Foot)
 
-        wrapper.appendChild(this.#HTML.Table) // Adiciona o grid à div wrapper
+        this.#HTML.GridWrapper.appendChild(this.#HTML.Table)
     }
     #CreateScrollBar() {
         this.#HTML.Scroll.Container = document.createElement("div")
@@ -242,14 +246,15 @@ export default class TGrid {
             thumbHeight = this.#HTML.Scroll.Thumb.clientHeight,
             maxTop = trackHeight - thumbHeight
 
-        // Garantir que o `newTop` está dentro dos limites do track
         newTop = Math.max(0, Math.min(newTop, maxTop))
         this.#HTML.Scroll.Thumb.style.top = `${newTop}px`
 
-        // Calcula a página baseada na posição do scroll-thumb
-        const scrollPercentage = newTop / maxTop
-        this.#PageNumber = Math.round(scrollPercentage * (this.#PageCount - 1)) + 1
-        this.#HTML.NumberInput.value = this.#PageNumber
+        let scrollPercentage = newTop / maxTop
+
+        this.#IsNavigateByScroll = true
+        this.#LastPageNumber = this.#PageNumber
+        this.#PageNumber = scrollPercentage * (this.#PageCount - 1) + 1
+        this.#HTML.NumberInput.value = Math.floor(this.#PageNumber).toString()
         this.#HTML.NumberInput.dispatchEvent(new Event("change"))
     }
     SaveFilters(record) {
@@ -304,7 +309,7 @@ export default class TGrid {
         try {
             this.#Data = await this.#ReadDataPage(pageNumber)
             this.#PageNumber = pageNumber
-            this.#HTML.Scroll.Thumb.title = `Página ${pageNumber}`
+            this.#HTML.Scroll.Thumb.title = `Página ${Math.floor(pageNumber)}`
             if (this.#RowCount > 1)
                 TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar."
             else
@@ -455,21 +460,20 @@ export default class TGrid {
             this.#HTML.NumberInput.style.float = "left"
             this.#HTML.NumberInput.className = "numberInput"
             this.#HTML.NumberInput.type = "number"
-            this.#HTML.NumberInput.value = this.#PageNumber.toString()
+            this.#HTML.NumberInput.value = Math.floor(this.#PageNumber).toString()
             this.#HTML.NumberInput.title = "Ir para página..."
             this.#HTML.NumberInput.min = "1"
             this.#HTML.NumberInput.max = this.#PageCount.toString()
             this.#HTML.NumberInput.onchange = (event) => {
                 let value = Number(event.target.value)
 
-                if (value > this.#PageCount)
-                    event.target.value = this.#PageCount.toString()
-                else if (value < 1)
-                    event.target.value = "1"
-                this.#HTML.NumberInput.value = event.target.value
-                this.#PageNumber = value
-                this.Renderize(value)
-
+                if (this.#IsNavigateByScroll) {
+                    if (Math.floor(this.#PageNumber) !== Math.floor(this.#LastPageNumber))
+                        this.Renderize(this.#PageNumber)
+                    this.#IsNavigateByScroll = false
+                }
+                else
+                    this.Renderize(value)
             }
             th.appendChild(this.#HTML.NumberInput)
         }
