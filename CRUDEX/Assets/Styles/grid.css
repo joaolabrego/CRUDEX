@@ -111,19 +111,17 @@
 }
 
 .container {
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: 1fr auto; /* Grid com scroll ao lado */
     width: 100vmax;
     height: calc(100vmin - 13vmin); /* Ajuste conforme a altura do cabeçalho e rodapé */
     position: relative;
-    top: 0; /* Altura do cabeçalho */
     overflow: hidden;
 }
 
-.grid-container {
-    flex: 1;
-    overflow-y: auto; /* Permite que o grid role verticalmente */
-    position: relative;
+.grid-wrapper {
+    overflow-y: auto;
+    display: block;
 }
 
 .scroll-container {
@@ -132,7 +130,6 @@
     display: flex;
     align-items: center;
     position: relative;
-    z-index: 1;
     pointer-events: auto;
 }
 
@@ -153,4 +150,10 @@
     min-height: 3vmin;
     max-height: 3vmin;
     top: 0;
+}
+
+.grid-container {
+    flex: 1;
+    overflow-y: auto; /* Permite que o grid role verticalmente */
+    position: relative;
 }

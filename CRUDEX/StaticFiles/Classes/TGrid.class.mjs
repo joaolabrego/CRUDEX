@@ -14,7 +14,6 @@ export default class TGrid {
     #PageCount = 0
     #RowNumber = 0
     #IsRendering = false
-    #IsDragging = false
     #Rows = []
     #Data = null
     #Table = null
@@ -58,25 +57,18 @@ export default class TGrid {
     }
     constructor(databaseName, tableName) {
         let database = TSystem.GetDatabase(databaseName)
-        if (!database) throw new Error("Banco-de-dados não encontrado.")
+        if (!database)
+            throw new Error("Banco-de-dados não encontrado.")
         this.#Table = database.GetTable(tableName)
-        if (!this.#Table) throw new Error("Tabela de banco-de-dados não encontrada.")
-
-        // Cria o container principal
+        if (!this.#Table)
+            throw new Error("Tabela de banco-de-dados não encontrada.")
         this.#HTML.Container = document.createElement("div")
-        this.#HTML.Container.className = "container" // Alteração aqui para "container"
-
-        // Criação das colunas
-        let gridWrapper = document.createElement("div") // Div para o grid
-
-        gridWrapper.className = "grid-container"
-
-        // Adiciona o grid e o scrollbar ao container
-        this.#CreateGrid(gridWrapper) // Passando gridWrapper
-        this.#CreateScrollBar() // Mantém o método existente
-
-        // Adiciona as colunas ao container principal
-        this.#HTML.Container.appendChild(gridWrapper)
+        this.#HTML.Container.className = "container"
+        this.#HTML.GridWrapper = document.createElement("div")
+        this.#HTML.GridWrapper.className = "grid-wrapper"
+        this.#CreateGrid(this.#HTML.GridWrapper)
+        this.#CreateScrollBar()
+        this.#HTML.Container.appendChild(this.#HTML.GridWrapper)
         this.#HTML.Container.appendChild(this.#HTML.Scroll.Container)
     }
     static Initialize(styles, images) {
@@ -117,42 +109,42 @@ export default class TGrid {
                         event.preventDefault()
                         if (!this.#HTML.CreateButton.hidden)
                             this.#HTML.CreateButton.click()
-                        break;
+                        break
                     case "a":
                         event.preventDefault()
                         if (!this.#HTML.UpdateButton.hidden)
                             this.#HTML.UpdateButton.click()
-                        break;
+                        break
                     case "e":
                         event.preventDefault()
                         if (!this.#HTML.DeleteButton.hidden)
                             this.#HTML.DeleteButton.click()
-                        break;
+                        break
                     case "v":
                         event.preventDefault()
                         if (!this.#HTML.QueryButton.hidden)
                             this.#HTML.QueryButton.click()
-                        break;
+                        break
                     case "f":
                         event.preventDefault()
                         if (!this.#HTML.FilterButton.hidden)
                             this.#HTML.FilterButton.click()
-                        break;
+                        break
                     case "l":
                         event.preventDefault()
                         if (!this.#HTML.UnfilterButton.hidden)
                             this.#HTML.UnfilterButton.click()
-                        break;
+                        break
                     case "o":
                         event.preventDefault()
                         if (!this.#HTML.UnorderButton.hidden)
                             this.#HTML.UnorderButton.click()
-                        break;
+                        break
                     case "r":
                         event.preventDefault()
                         if (!this.#HTML.ExitButton.hidden)
                             this.#HTML.ExitButton.click()
-                        break;
+                        break
                 }
             }
             else {
@@ -168,7 +160,7 @@ export default class TGrid {
                             this.Renderize(this.#PageNumber - 1)
                             this.#Rows[this.#Rows.length - 1].click()
                         }
-                        break;
+                        break
                     case "ArrowDown":
                         if (this.#HTML.SelectedRow.rowIndex < this.#Rows.length)
                             this.#Rows[this.#HTML.SelectedRow.rowIndex].click()
@@ -180,22 +172,22 @@ export default class TGrid {
                             this.Renderize(this.#PageNumber + 1)
                             this.#Rows[0].click()
                         }
-                        break;
+                        break
                     case "PageUp":
                         if (this.#PageNumber > 1)
                             this.Renderize(this.#PageNumber - 1)
                         else
                             this.Renderize(this.#PageCount)
-                        break;
+                        break
                     case "PageDown":
                         if (this.#PageNumber < this.#PageCount)
                             this.Renderize(this.#PageNumber + 1)
                         else
                             this.Renderize(1)
-                        break;
+                        break
                     case "Enter":
                         this.#HTML.UpdateButton.click()
-                        break;
+                        break
                 }
             }
         }
@@ -226,20 +218,12 @@ export default class TGrid {
         this.#HTML.Scroll.Thumb = document.createElement("div")
         this.#HTML.Scroll.Thumb.className = "scroll-thumb"
         this.#HTML.Scroll.Track.appendChild(this.#HTML.Scroll.Thumb)
-
-        // Eventos para o scrollbar
-        this.#HTML.Scroll.Thumb.onmousedown = () => {
-            this.#IsDragging = true
-        }
-        this.#HTML.Scroll.Container.onmousemove = (event) => {
-            if (this.#IsDragging) {
-                let trackRect = this.#HTML.Scroll.Track.getBoundingClientRect()
-                let newTop = event.clientY - trackRect.top
-                this.#UpdateScrollbarPosition(newTop)
+        this.#HTML.Scroll.Track.onmousemove = (event) => {
+            if (event.buttons === 1) {
+                let trackRect = this.#HTML.Scroll.Track.getBoundingClientRect();
+                let newTop = event.clientY - trackRect.top;
+                this.#UpdateScrollbarPosition(newTop);
             }
-        }
-        this.#HTML.Scroll.Container.onmouseup = () => {
-            this.#IsDragging = false
         }
         this.#HTML.Scroll.Track.onclick = (event) => {
             const trackRect = this.#HTML.Scroll.Track.getBoundingClientRect()
@@ -256,15 +240,15 @@ export default class TGrid {
     #UpdateScrollbarPosition(newTop) {
         let trackHeight = this.#HTML.Scroll.Track.clientHeight,
             thumbHeight = this.#HTML.Scroll.Thumb.clientHeight,
-            maxTop = trackHeight - thumbHeight;
+            maxTop = trackHeight - thumbHeight
 
         // Garantir que o `newTop` está dentro dos limites do track
-        newTop = Math.max(0, Math.min(newTop, maxTop));
-        this.#HTML.Scroll.Thumb.style.top = `${newTop}px`;
+        newTop = Math.max(0, Math.min(newTop, maxTop))
+        this.#HTML.Scroll.Thumb.style.top = `${newTop}px`
 
         // Calcula a página baseada na posição do scroll-thumb
-        const scrollPercentage = newTop / maxTop;
-        this.#PageNumber = Math.round(scrollPercentage * (this.#PageCount - 1)) + 1;
+        const scrollPercentage = newTop / maxTop
+        this.#PageNumber = Math.round(scrollPercentage * (this.#PageCount - 1)) + 1
         this.#HTML.NumberInput.value = this.#PageNumber
         this.#HTML.NumberInput.dispatchEvent(new Event("change"))
     }
@@ -282,7 +266,7 @@ export default class TGrid {
             if (this.#FilterValues[key] != null)
                 return true
 
-        return false;
+        return false
     }
     async #ReadDataPage(pageNumber) {
         let parameters = {
@@ -320,7 +304,7 @@ export default class TGrid {
         try {
             this.#Data = await this.#ReadDataPage(pageNumber)
             this.#PageNumber = pageNumber
-            this.#HTML.Scroll.Thumb.title = `Página ${pageNumber}`;
+            this.#HTML.Scroll.Thumb.title = `Página ${pageNumber}`
             if (this.#RowCount > 1)
                 TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar."
             else
@@ -637,7 +621,7 @@ export default class TGrid {
             if (value !== null)
                 filter += `${(filter === "" ? "" : " AND ")}${key} = '${value}'`
         }
-        return filter;
+        return filter
     }
     get Container() {
         return this.#HTML.Table
