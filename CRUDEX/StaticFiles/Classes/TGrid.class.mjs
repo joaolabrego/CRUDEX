@@ -324,6 +324,10 @@ export default class TGrid {
             TScreen.Main = this.#HTML.Container
             this.#HTML.Table.focus()
             this.#UpdateScrollThumbFromInputs()
+            if (this.#RowCount <= TSystem.RowsPerPage)
+                this.#HTML.Scroll.Container.classList.add('invisible');
+            else
+                this.#HTML.Scroll.Container.classList.remove('invisible');
         }
         catch (error) {
             TScreen.ShowError(error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
@@ -450,34 +454,34 @@ export default class TGrid {
             label
 
         th.colSpan = this.#Table.Columns.length.toString()
-        if (this.#RowCount > TSystem.RowsPerPage) {
-            label = document.createElement("p")
-            label.style.float = "left"
-            label.innerHTML = "Página:&nbsp;&nbsp;"
+        label = document.createElement("p")
+        label.style.float = "left"
+        label.innerHTML = "Página:&nbsp;&nbsp;"
+        label.hidden = this.#RowCount <= TSystem.RowsPerPage
 
-            th.appendChild(label)
+        th.appendChild(label)
 
-            this.#HTML.NumberInput = document.createElement("input")
-            this.#HTML.NumberInput.style.float = "left"
-            this.#HTML.NumberInput.className = "numberInput"
-            this.#HTML.NumberInput.type = "number"
-            this.#HTML.NumberInput.value = Math.floor(this.#PageNumber).toString()
-            this.#HTML.NumberInput.title = "Ir para página..."
-            this.#HTML.NumberInput.min = "1"
-            this.#HTML.NumberInput.max = this.#PageCount.toString()
-            this.#HTML.NumberInput.onchange = (event) => {
-                let value = Number(event.target.value)
+        this.#HTML.NumberInput = document.createElement("input")
+        this.#HTML.NumberInput.style.float = "left"
+        this.#HTML.NumberInput.className = "numberInput"
+        this.#HTML.NumberInput.type = "number"
+        this.#HTML.NumberInput.value = Math.floor(this.#PageNumber).toString()
+        this.#HTML.NumberInput.title = "Ir para página..."
+        this.#HTML.NumberInput.hidden = this.#RowCount <= TSystem.RowsPerPage
+        this.#HTML.NumberInput.min = "1"
+        this.#HTML.NumberInput.max = this.#PageCount.toString()
+        this.#HTML.NumberInput.onchange = (event) => {
+            let value = Number(event.target.value)
 
-                if (this.#IsNavigateByScroll) {
-                    if (Math.floor(this.#PageNumber) !== Math.floor(this.#LastPageNumber))
-                        this.Renderize(this.#PageNumber)
-                    this.#IsNavigateByScroll = false
-                }
-                else
-                    this.Renderize(value)
+            if (this.#IsNavigateByScroll) {
+                if (Math.floor(this.#PageNumber) !== Math.floor(this.#LastPageNumber))
+                    this.Renderize(this.#PageNumber)
+                this.#IsNavigateByScroll = false
             }
-            th.appendChild(this.#HTML.NumberInput)
+            else
+                this.Renderize(value)
         }
+        th.appendChild(this.#HTML.NumberInput)
 
         this.#HTML.CreateButton = document.createElement("button")
         this.#HTML.CreateButton.type = "button"

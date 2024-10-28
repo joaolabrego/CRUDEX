@@ -12,14 +12,14 @@
     user-select: none;
 }
 
-    .grid input[type="checkbox"] {
-        width: var(--font-size-grid);
-        height: var(--font-size-grid);
-    }
+.grid input[type="checkbox"] {
+    width: var(--font-size-grid);
+    height: var(--font-size-grid);
+}
 
-    .grid tbody tr:nth-of-type(odd) {
-        background-color: var(--background-color-active);
-    }
+.grid tbody tr:nth-of-type(odd) {
+    background-color: var(--background-color-active);
+}
 
 .currentRow {
     background-color: var(--background-color-control);
@@ -137,8 +137,8 @@
     position: relative;
     width: 100%;
     height: 100%;
-    background-color: #bbb;
-    border-radius: 1.5vmin;
+    background-color: var(--background-color-control);
+    border-radius: var(--border-radius);
 }
 
 .scroll-thumb {
@@ -146,7 +146,7 @@
     width: 100%;
     background-color: blue;
     cursor: grab;
-    border-radius: 1.5vmin;
+    border-radius: var(--border-radius);
     min-height: 3vmin;
     max-height: 3vmin;
     top: 0;
@@ -156,4 +156,7 @@
     flex: 1;
     overflow-y: auto; /* Permite que o grid role verticalmente */
     position: relative;
+}
+.invisible {
+    display: none;
 }
