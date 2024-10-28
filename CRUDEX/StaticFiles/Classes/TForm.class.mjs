@@ -162,6 +162,12 @@ export default class TForm {
                 else
                     focusableElements[0].focus()
             }
+            else if (event.key === "Escape") {
+                if (this.#Action == TActions.QUERY)
+                    this.#HTML.ConfirmButton.click()
+                else
+                    this.#HTML.CancelButton.click()
+            }
             else if (this.#Action == TActions.FILTER && !event.target.Column.IsRequired && (event.key == "Backspace" || event.key == "Delete")) {
                 if (event.target.value === "") 
                     event.target.placeholder = event.target.placeholder ? "" : "null"
@@ -173,7 +179,7 @@ export default class TForm {
         control.value = this.#Record[column.Name]
         control.readOnly = action === TActions.DELETE || action === TActions.QUERY
         control.style.textAlign = column.Domain.Type.Category.HtmlInputAlign
-        if (!(this.#HTML.FirstInput || control.readOnly))
+        if (!this.#HTML.FirstInput)
             this.#HTML.FirstInput = control
         fieldset.appendChild(control)
         if (column.IsRequired)

@@ -11509,8 +11509,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('IsInWords' AS nvarchar(25))
                                 ,CAST('Valor da coluna por extenso?' AS nvarchar(50))
-                                ,CAST('Valor por exentso?' AS nvarchar(25))
-                                ,CAST('Valor por exentso?' AS nvarchar(25))
+                                ,CAST('Valor por extenso?' AS nvarchar(25))
+                                ,CAST('Valor por extenso?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
