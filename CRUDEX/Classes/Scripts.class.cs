@@ -1186,17 +1186,11 @@ namespace crudex.Classes
                 result.Append($"                                                    END, ', ')\r\n");
                 result.Append($"                FROM STRING_SPLIT(@OrderBy, ',')\r\n");
                 result.Append($"        END\r\n");
-
-                var filterableColumns = columnRows.FindAll(column => ToBoolean(column["IsFilterable"]));
-
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
-                result.Append($"               ,@Where VARCHAR(MAX) = ''\r\n");
-                result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
-                foreach (var column in filterableColumns)
-                    result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 result.Append($"\r\n");
-                firstTime = true;
+                result.Append($"        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)\r\n");
+                result.Append($"            SET @TransactionId = NULL\r\n");
                 foreach (var column in columnRows)
                 {
                     if (firstTime)
@@ -1226,24 +1220,48 @@ namespace crudex.Classes
                         result.Append($", [{column["Name"]}]");
                 }
                 result.Append($")\r\n");
+                result.Append($"\r\n");
+                result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))\r\n");
+                result.Append($"               ,@Where VARCHAR(MAX) = ''\r\n");
+                result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
+                result.Append($"\r\n");
+                result.Append($"        IF @_ IS NULL BEGIN\r\n");
+
+                var filterableColumns = columnRows.FindAll(column => ToBoolean(column["IsFilterable"]));
+
+                firstTime = true;
+                foreach (var column in filterableColumns)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                }
+                result.Append($"\r\n");
+                firstTime = true;
                 foreach (var column in filterableColumns)
                 {
                     var validations = GetConstraints(column, domains, types);
 
-                    result.Append($"        IF @W_{column["Name"]} IS NOT NULL BEGIN\r\n");
+                    result.Append($"            IF @W_{column["Name"]} IS NOT NULL BEGIN\r\n");
                     if (validations.TryGetValue("Minimum", out dynamic? value))
                     {
-                        result.Append($"            IF @W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]})\r\n");
-                        result.Append($"                THROW 51000, 'Valor de {column["Name"]} deve ser maior que ou igual a ''{value}''', 1\r\n");
+                        result.Append($"                IF @W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]})\r\n");
+                        result.Append($"                    THROW 51000, 'Valor de {column["Name"]} deve ser maior que ou igual a ''{value}''', 1\r\n");
                     }
                     if (validations.TryGetValue("Maximum", out value))
                     {
-                        result.Append($"            IF @W_{column["Name"]} > CAST('{value}' AS {column["#DataType"]})\r\n");
-                        result.Append($"                THROW 51000, 'Valor de {column["Name"]} deve ser menor que ou igual a ''{value}''', 1\r\n");
+                        result.Append($"                IF @W_{column["Name"]} > CAST('{value}' AS {column["#DataType"]})\r\n");
+                        result.Append($"                    THROW 51000, 'Valor de {column["Name"]} deve ser menor que ou igual a ''{value}''', 1\r\n");
                     }
-                    result.Append($"            SET @Where = @Where + ' AND [T].[{column["Name"]}] = @{column["Name"]}'\r\n");
-                    result.Append($"        END\r\n");
+                    result.Append($"                SET @Where = @Where + ' AND [T].[{column["Name"]}] = @{column["Name"]}'\r\n");
+                    result.Append($"            END\r\n");
                 }
+                result.Append($"        END ELSE\r\n");
+                result.Append($"            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'\r\n");
                 firstTime = true;
                 foreach (var column in pkColumnRows)
                 {
@@ -1289,25 +1307,27 @@ namespace crudex.Classes
                 foreach (var column in pkColumnRows)
                     result.Append($", [{column["Name"]}] {column["#DataType"]}");
                 result.Append($")\r\n");
+                result.Append($"        IF @_ IS NULL\r\n");
                 firstTime = true;
                 foreach (var column in filterableColumns)
                 {
                     if (firstTime)
                     {
-                        result.Append($"        EXEC sp_executesql @sql\r\n");
-                        result.Append($"                           ,N'@{column["Name"]} {column["#DataType"]}");
+                        result.Append($"            EXEC sp_executesql @sql\r\n");
+                        result.Append($"                               ,N'@{column["Name"]} {column["#DataType"]}");
                         firstTime = false;
                     }
                     else
                     {
                         result.Append($"\r\n");
-                        result.Append($"                           ,@{column["Name"]} {column["#DataType"]}");
+                        result.Append($"                               ,@{column["Name"]} {column["#DataType"]}");
                     }
                 }
                 result.Append($"'\r\n");
                 foreach (var column in filterableColumns)
                     result.Append($"                           ,@{column["Name"]} = @W_{column["Name"]}\r\n");
-
+                result.Append($"        ELSE\r\n");
+                result.Append($"            EXEC sp_executesql @sql\r\n");
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
                 result.Append($"               ,@OffSet INT\r\n");

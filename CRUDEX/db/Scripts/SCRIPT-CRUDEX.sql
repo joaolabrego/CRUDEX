@@ -13898,18 +13898,9 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS tinyint)
-               ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-               ,@W_AskEncrypted bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskEncrypted') AS bit)
-               ,@W_AskMask bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskMask') AS bit)
-               ,@W_AskListable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskListable') AS bit)
-               ,@W_AskDefault bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskDefault') AS bit)
-               ,@W_AskMinimum bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskMinimum') AS bit)
-               ,@W_AskMaximum bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskMaximum') AS bit)
-               ,@W_AskInWords bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskInWords') AS bit)
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
@@ -13928,35 +13919,53 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                   AND [TableName] = 'Categories'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS tinyint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = @Name'
-        END
-        IF @W_AskEncrypted IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskEncrypted] = @AskEncrypted'
-        END
-        IF @W_AskMask IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskMask] = @AskMask'
-        END
-        IF @W_AskListable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskListable] = @AskListable'
-        END
-        IF @W_AskDefault IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskDefault] = @AskDefault'
-        END
-        IF @W_AskMinimum IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskMinimum] = @AskMinimum'
-        END
-        IF @W_AskMaximum IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskMaximum] = @AskMaximum'
-        END
-        IF @W_AskInWords IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskInWords] = @AskInWords'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS tinyint)
+                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_AskEncrypted bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskEncrypted') AS bit)
+                   ,@W_AskMask bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskMask') AS bit)
+                   ,@W_AskListable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskListable') AS bit)
+                   ,@W_AskDefault bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskDefault') AS bit)
+                   ,@W_AskMinimum bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskMinimum') AS bit)
+                   ,@W_AskMaximum bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskMaximum') AS bit)
+                   ,@W_AskInWords bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskInWords') AS bit)
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS tinyint)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
+            END
+            IF @W_AskEncrypted IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskEncrypted] = @AskEncrypted'
+            END
+            IF @W_AskMask IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskMask] = @AskMask'
+            END
+            IF @W_AskListable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskListable] = @AskListable'
+            END
+            IF @W_AskDefault IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskDefault] = @AskDefault'
+            END
+            IF @W_AskMinimum IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskMinimum] = @AskMinimum'
+            END
+            IF @W_AskMaximum IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskMaximum] = @AskMaximum'
+            END
+            IF @W_AskInWords IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskInWords] = @AskInWords'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -13969,16 +13978,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] tinyint)
-        EXEC sp_executesql @sql
-                           ,N'@Id tinyint
-                           ,@Name nvarchar(25)
-                           ,@AskEncrypted bit
-                           ,@AskMask bit
-                           ,@AskListable bit
-                           ,@AskDefault bit
-                           ,@AskMinimum bit
-                           ,@AskMaximum bit
-                           ,@AskInWords bit'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id tinyint
+                               ,@Name nvarchar(25)
+                               ,@AskEncrypted bit
+                               ,@AskMask bit
+                               ,@AskListable bit
+                               ,@AskDefault bit
+                               ,@AskMinimum bit
+                               ,@AskMaximum bit
+                               ,@AskInWords bit'
                            ,@Id = @W_Id
                            ,@Name = @W_Name
                            ,@AskEncrypted = @W_AskEncrypted
@@ -13988,6 +13998,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                            ,@AskMinimum = @W_AskMinimum
                            ,@AskMaximum = @W_AskMaximum
                            ,@AskInWords = @W_AskInWords
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -14531,21 +14543,9 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS tinyint)
-               ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-               ,@W_AskLength bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskLength') AS bit)
-               ,@W_AskDecimals bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskDecimals') AS bit)
-               ,@W_AskPrimarykey bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskPrimarykey') AS bit)
-               ,@W_AskAutoincrement bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskAutoincrement') AS bit)
-               ,@W_AskFilterable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskFilterable') AS bit)
-               ,@W_AskGridable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskGridable') AS bit)
-               ,@W_AskCodification bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskCodification') AS bit)
-               ,@W_AskFormula bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskFormula') AS bit)
-               ,@W_AllowMaxLength bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AllowMaxLength') AS bit)
-               ,@W_IsActive bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsActive') AS bit)
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
@@ -14569,44 +14569,65 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
                   AND [TableName] = 'Types'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS tinyint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = @Name'
-        END
-        IF @W_AskLength IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskLength] = @AskLength'
-        END
-        IF @W_AskDecimals IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskDecimals] = @AskDecimals'
-        END
-        IF @W_AskPrimarykey IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskPrimarykey] = @AskPrimarykey'
-        END
-        IF @W_AskAutoincrement IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskAutoincrement] = @AskAutoincrement'
-        END
-        IF @W_AskFilterable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskFilterable] = @AskFilterable'
-        END
-        IF @W_AskGridable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskGridable] = @AskGridable'
-        END
-        IF @W_AskCodification IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskCodification] = @AskCodification'
-        END
-        IF @W_AskFormula IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AskFormula] = @AskFormula'
-        END
-        IF @W_AllowMaxLength IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[AllowMaxLength] = @AllowMaxLength'
-        END
-        IF @W_IsActive IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsActive] = @IsActive'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS tinyint)
+                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_AskLength bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskLength') AS bit)
+                   ,@W_AskDecimals bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskDecimals') AS bit)
+                   ,@W_AskPrimarykey bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskPrimarykey') AS bit)
+                   ,@W_AskAutoincrement bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskAutoincrement') AS bit)
+                   ,@W_AskFilterable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskFilterable') AS bit)
+                   ,@W_AskGridable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskGridable') AS bit)
+                   ,@W_AskCodification bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskCodification') AS bit)
+                   ,@W_AskFormula bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskFormula') AS bit)
+                   ,@W_AllowMaxLength bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AllowMaxLength') AS bit)
+                   ,@W_IsActive bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsActive') AS bit)
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS tinyint)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
+            END
+            IF @W_AskLength IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskLength] = @AskLength'
+            END
+            IF @W_AskDecimals IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskDecimals] = @AskDecimals'
+            END
+            IF @W_AskPrimarykey IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskPrimarykey] = @AskPrimarykey'
+            END
+            IF @W_AskAutoincrement IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskAutoincrement] = @AskAutoincrement'
+            END
+            IF @W_AskFilterable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskFilterable] = @AskFilterable'
+            END
+            IF @W_AskGridable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskGridable] = @AskGridable'
+            END
+            IF @W_AskCodification IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskCodification] = @AskCodification'
+            END
+            IF @W_AskFormula IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskFormula] = @AskFormula'
+            END
+            IF @W_AllowMaxLength IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AllowMaxLength] = @AllowMaxLength'
+            END
+            IF @W_IsActive IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsActive] = @IsActive'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -14619,19 +14640,20 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] tinyint)
-        EXEC sp_executesql @sql
-                           ,N'@Id tinyint
-                           ,@Name nvarchar(25)
-                           ,@AskLength bit
-                           ,@AskDecimals bit
-                           ,@AskPrimarykey bit
-                           ,@AskAutoincrement bit
-                           ,@AskFilterable bit
-                           ,@AskGridable bit
-                           ,@AskCodification bit
-                           ,@AskFormula bit
-                           ,@AllowMaxLength bit
-                           ,@IsActive bit'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id tinyint
+                               ,@Name nvarchar(25)
+                               ,@AskLength bit
+                               ,@AskDecimals bit
+                               ,@AskPrimarykey bit
+                               ,@AskAutoincrement bit
+                               ,@AskFilterable bit
+                               ,@AskGridable bit
+                               ,@AskCodification bit
+                               ,@AskFormula bit
+                               ,@AllowMaxLength bit
+                               ,@IsActive bit'
                            ,@Id = @W_Id
                            ,@Name = @W_Name
                            ,@AskLength = @W_AskLength
@@ -14644,6 +14666,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
                            ,@AskFormula = @W_AskFormula
                            ,@AllowMaxLength = @W_AllowMaxLength
                            ,@IsActive = @W_IsActive
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -15080,11 +15104,9 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
@@ -15095,12 +15117,23 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
                   AND [TableName] = 'Masks'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = @Name'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+
+            IF @W_Id IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -15113,11 +15146,14 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@Name nvarchar(25)'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@Name nvarchar(25)'
                            ,@Id = @W_Id
                            ,@Name = @W_Name
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -15596,15 +15632,9 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_TypeId tinyint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TypeId') AS tinyint)
-               ,@W_MaskId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.MaskId') AS int)
-               ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-               ,@W_ValidValues nvarchar(MAX) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ValidValues') AS nvarchar(MAX))
-               ,@W_Codification nvarchar(5) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Codification') AS nvarchar(5))
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TypeId') AS tinyint) AS [TypeId]
@@ -15623,28 +15653,43 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
                   AND [TableName] = 'Domains'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_TypeId IS NOT NULL BEGIN
-            IF @W_TypeId < CAST('1' AS tinyint)
-                THROW 51000, 'Valor de TypeId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[TypeId] = @TypeId'
-        END
-        IF @W_MaskId IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[MaskId] = @MaskId'
-        END
-        IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = @Name'
-        END
-        IF @W_ValidValues IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[ValidValues] = @ValidValues'
-        END
-        IF @W_Codification IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Codification] = @Codification'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_TypeId tinyint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TypeId') AS tinyint)
+                   ,@W_MaskId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.MaskId') AS int)
+                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_ValidValues nvarchar(MAX) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ValidValues') AS nvarchar(MAX))
+                   ,@W_Codification nvarchar(5) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Codification') AS nvarchar(5))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_TypeId IS NOT NULL BEGIN
+                IF @W_TypeId < CAST('1' AS tinyint)
+                    THROW 51000, 'Valor de TypeId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[TypeId] = @TypeId'
+            END
+            IF @W_MaskId IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[MaskId] = @MaskId'
+            END
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
+            END
+            IF @W_ValidValues IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[ValidValues] = @ValidValues'
+            END
+            IF @W_Codification IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Codification] = @Codification'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -15657,19 +15702,22 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@TypeId tinyint
-                           ,@MaskId int
-                           ,@Name nvarchar(25)
-                           ,@ValidValues nvarchar(MAX)
-                           ,@Codification nvarchar(5)'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@TypeId tinyint
+                               ,@MaskId int
+                               ,@Name nvarchar(25)
+                               ,@ValidValues nvarchar(MAX)
+                               ,@Codification nvarchar(5)'
                            ,@Id = @W_Id
                            ,@TypeId = @W_TypeId
                            ,@MaskId = @W_MaskId
                            ,@Name = @W_Name
                            ,@ValidValues = @W_ValidValues
                            ,@Codification = @W_Codification
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -16133,12 +16181,9 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-               ,@W_ClientName nvarchar(15) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ClientName') AS nvarchar(15))
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
@@ -16152,17 +16197,29 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
                   AND [TableName] = 'Systems'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = @Name'
-        END
-        IF @W_ClientName IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[ClientName] = @ClientName'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_ClientName nvarchar(15) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ClientName') AS nvarchar(15))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
+            END
+            IF @W_ClientName IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[ClientName] = @ClientName'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -16175,13 +16232,16 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@Name nvarchar(25)
-                           ,@ClientName nvarchar(15)'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@Name nvarchar(25)
+                               ,@ClientName nvarchar(15)'
                            ,@Id = @W_Id
                            ,@Name = @W_Name
                            ,@ClientName = @W_ClientName
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -16646,12 +16706,9 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_SystemId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
-               ,@W_Caption nvarchar(20) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Caption') AS nvarchar(20))
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
@@ -16666,19 +16723,31 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
                   AND [TableName] = 'Menus'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_SystemId IS NOT NULL BEGIN
-            IF @W_SystemId < CAST('1' AS int)
-                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
-        END
-        IF @W_Caption IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Caption] = @Caption'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_SystemId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
+                   ,@W_Caption nvarchar(20) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Caption') AS nvarchar(20))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_SystemId IS NOT NULL BEGIN
+                IF @W_SystemId < CAST('1' AS int)
+                    THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
+            END
+            IF @W_Caption IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Caption] = @Caption'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -16691,13 +16760,16 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@SystemId int
-                           ,@Caption nvarchar(20)'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@SystemId int
+                               ,@Caption nvarchar(20)'
                            ,@Id = @W_Id
                            ,@SystemId = @W_SystemId
                            ,@Caption = @W_Caption
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -17149,13 +17221,9 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-               ,@W_FullName nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.FullName') AS nvarchar(50))
-               ,@W_IsActive bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsActive') AS bit)
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
@@ -17169,20 +17237,33 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
                   AND [TableName] = 'Users'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = @Name'
-        END
-        IF @W_FullName IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[FullName] = @FullName'
-        END
-        IF @W_IsActive IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsActive] = @IsActive'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_FullName nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.FullName') AS nvarchar(50))
+                   ,@W_IsActive bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsActive') AS bit)
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
+            END
+            IF @W_FullName IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[FullName] = @FullName'
+            END
+            IF @W_IsActive IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsActive] = @IsActive'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -17195,15 +17276,18 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@Name nvarchar(25)
-                           ,@FullName nvarchar(50)
-                           ,@IsActive bit'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@Name nvarchar(25)
+                               ,@FullName nvarchar(50)
+                               ,@IsActive bit'
                            ,@Id = @W_Id
                            ,@Name = @W_Name
                            ,@FullName = @W_FullName
                            ,@IsActive = @W_IsActive
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -17640,13 +17724,9 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_SystemId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
-               ,@W_UserId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.UserId') AS int)
-               ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
@@ -17658,24 +17738,37 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
                   AND [TableName] = 'SystemsUsers'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_SystemId IS NOT NULL BEGIN
-            IF @W_SystemId < CAST('1' AS int)
-                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
-        END
-        IF @W_UserId IS NOT NULL BEGIN
-            IF @W_UserId < CAST('1' AS int)
-                THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[UserId] = @UserId'
-        END
-        IF @W_Description IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Description] = @Description'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_SystemId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
+                   ,@W_UserId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.UserId') AS int)
+                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_SystemId IS NOT NULL BEGIN
+                IF @W_SystemId < CAST('1' AS int)
+                    THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
+            END
+            IF @W_UserId IS NOT NULL BEGIN
+                IF @W_UserId < CAST('1' AS int)
+                    THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[UserId] = @UserId'
+            END
+            IF @W_Description IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Description] = @Description'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -17688,15 +17781,18 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@SystemId int
-                           ,@UserId int
-                           ,@Description nvarchar(50)'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@SystemId int
+                               ,@UserId int
+                               ,@Description nvarchar(50)'
                            ,@Id = @W_Id
                            ,@SystemId = @W_SystemId
                            ,@UserId = @W_UserId
                            ,@Description = @W_Description
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -18172,12 +18268,9 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-               ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
@@ -18195,17 +18288,29 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
                   AND [TableName] = 'Databases'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = @Name'
-        END
-        IF @W_Alias IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Alias] = @Alias'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
+            END
+            IF @W_Alias IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Alias] = @Alias'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -18218,13 +18323,16 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@Name nvarchar(25)
-                           ,@Alias nvarchar(25)'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@Name nvarchar(25)
+                               ,@Alias nvarchar(25)'
                            ,@Id = @W_Id
                            ,@Name = @W_Name
                            ,@Alias = @W_Alias
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -18669,13 +18777,9 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_SystemId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
-               ,@W_DatabaseId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.DatabaseId') AS int)
-               ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
@@ -18687,24 +18791,37 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
                   AND [TableName] = 'SystemsDatabases'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_SystemId IS NOT NULL BEGIN
-            IF @W_SystemId < CAST('1' AS int)
-                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
-        END
-        IF @W_DatabaseId IS NOT NULL BEGIN
-            IF @W_DatabaseId < CAST('1' AS int)
-                THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[DatabaseId] = @DatabaseId'
-        END
-        IF @W_Description IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Description] = @Description'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_SystemId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
+                   ,@W_DatabaseId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.DatabaseId') AS int)
+                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_SystemId IS NOT NULL BEGIN
+                IF @W_SystemId < CAST('1' AS int)
+                    THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
+            END
+            IF @W_DatabaseId IS NOT NULL BEGIN
+                IF @W_DatabaseId < CAST('1' AS int)
+                    THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[DatabaseId] = @DatabaseId'
+            END
+            IF @W_Description IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Description] = @Description'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -18717,15 +18834,18 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@SystemId int
-                           ,@DatabaseId int
-                           ,@Description nvarchar(50)'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@SystemId int
+                               ,@DatabaseId int
+                               ,@Description nvarchar(50)'
                            ,@Id = @W_Id
                            ,@SystemId = @W_SystemId
                            ,@DatabaseId = @W_DatabaseId
                            ,@Description = @W_Description
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -19188,13 +19308,9 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-               ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
-               ,@W_IsPaged bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsPaged') AS bit)
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
@@ -19209,20 +19325,33 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
                   AND [TableName] = 'Tables'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = @Name'
-        END
-        IF @W_Alias IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Alias] = @Alias'
-        END
-        IF @W_IsPaged IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsPaged] = @IsPaged'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
+                   ,@W_IsPaged bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsPaged') AS bit)
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
+            END
+            IF @W_Alias IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Alias] = @Alias'
+            END
+            IF @W_IsPaged IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsPaged] = @IsPaged'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -19235,15 +19364,18 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@Name nvarchar(25)
-                           ,@Alias nvarchar(25)
-                           ,@IsPaged bit'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@Name nvarchar(25)
+                               ,@Alias nvarchar(25)
+                               ,@IsPaged bit'
                            ,@Id = @W_Id
                            ,@Name = @W_Name
                            ,@Alias = @W_Alias
                            ,@IsPaged = @W_IsPaged
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -19682,13 +19814,9 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_DatabaseId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.DatabaseId') AS int)
-               ,@W_TableId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
-               ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
@@ -19700,24 +19828,37 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
                   AND [TableName] = 'DatabasesTables'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_DatabaseId IS NOT NULL BEGIN
-            IF @W_DatabaseId < CAST('1' AS int)
-                THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[DatabaseId] = @DatabaseId'
-        END
-        IF @W_TableId IS NOT NULL BEGIN
-            IF @W_TableId < CAST('1' AS int)
-                THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[TableId] = @TableId'
-        END
-        IF @W_Description IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Description] = @Description'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_DatabaseId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.DatabaseId') AS int)
+                   ,@W_TableId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
+                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Description') AS nvarchar(50))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_DatabaseId IS NOT NULL BEGIN
+                IF @W_DatabaseId < CAST('1' AS int)
+                    THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[DatabaseId] = @DatabaseId'
+            END
+            IF @W_TableId IS NOT NULL BEGIN
+                IF @W_TableId < CAST('1' AS int)
+                    THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[TableId] = @TableId'
+            END
+            IF @W_Description IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Description] = @Description'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -19730,15 +19871,18 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@DatabaseId int
-                           ,@TableId int
-                           ,@Description nvarchar(50)'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@DatabaseId int
+                               ,@TableId int
+                               ,@Description nvarchar(50)'
                            ,@Id = @W_Id
                            ,@DatabaseId = @W_DatabaseId
                            ,@TableId = @W_TableId
                            ,@Description = @W_Description
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -20316,22 +20460,9 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_TableId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
-               ,@W_DomainId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.DomainId') AS int)
-               ,@W_ReferenceTableId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ReferenceTableId') AS int)
-               ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-               ,@W_IsAutoIncrement bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsAutoIncrement') AS bit)
-               ,@W_IsRequired bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsRequired') AS bit)
-               ,@W_IsListable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsListable') AS bit)
-               ,@W_IsFilterable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsFilterable') AS bit)
-               ,@W_IsEditable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsEditable') AS bit)
-               ,@W_IsGridable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsGridable') AS bit)
-               ,@W_IsEncrypted bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsEncrypted') AS bit)
-               ,@W_IsInWords bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsInWords') AS bit)
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
@@ -20361,53 +20492,75 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_TableId IS NOT NULL BEGIN
-            IF @W_TableId < CAST('1' AS int)
-                THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[TableId] = @TableId'
-        END
-        IF @W_DomainId IS NOT NULL BEGIN
-            IF @W_DomainId < CAST('1' AS int)
-                THROW 51000, 'Valor de DomainId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[DomainId] = @DomainId'
-        END
-        IF @W_ReferenceTableId IS NOT NULL BEGIN
-            IF @W_ReferenceTableId < CAST('1' AS int)
-                THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[ReferenceTableId] = @ReferenceTableId'
-        END
-        IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = @Name'
-        END
-        IF @W_IsAutoIncrement IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsAutoIncrement] = @IsAutoIncrement'
-        END
-        IF @W_IsRequired IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsRequired] = @IsRequired'
-        END
-        IF @W_IsListable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsListable] = @IsListable'
-        END
-        IF @W_IsFilterable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsFilterable] = @IsFilterable'
-        END
-        IF @W_IsEditable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsEditable] = @IsEditable'
-        END
-        IF @W_IsGridable IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsGridable] = @IsGridable'
-        END
-        IF @W_IsEncrypted IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsEncrypted] = @IsEncrypted'
-        END
-        IF @W_IsInWords IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsInWords] = @IsInWords'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_TableId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
+                   ,@W_DomainId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.DomainId') AS int)
+                   ,@W_ReferenceTableId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ReferenceTableId') AS int)
+                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_IsAutoIncrement bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsAutoIncrement') AS bit)
+                   ,@W_IsRequired bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsRequired') AS bit)
+                   ,@W_IsListable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsListable') AS bit)
+                   ,@W_IsFilterable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsFilterable') AS bit)
+                   ,@W_IsEditable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsEditable') AS bit)
+                   ,@W_IsGridable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsGridable') AS bit)
+                   ,@W_IsEncrypted bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsEncrypted') AS bit)
+                   ,@W_IsInWords bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsInWords') AS bit)
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_TableId IS NOT NULL BEGIN
+                IF @W_TableId < CAST('1' AS int)
+                    THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[TableId] = @TableId'
+            END
+            IF @W_DomainId IS NOT NULL BEGIN
+                IF @W_DomainId < CAST('1' AS int)
+                    THROW 51000, 'Valor de DomainId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[DomainId] = @DomainId'
+            END
+            IF @W_ReferenceTableId IS NOT NULL BEGIN
+                IF @W_ReferenceTableId < CAST('1' AS int)
+                    THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[ReferenceTableId] = @ReferenceTableId'
+            END
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
+            END
+            IF @W_IsAutoIncrement IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsAutoIncrement] = @IsAutoIncrement'
+            END
+            IF @W_IsRequired IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsRequired] = @IsRequired'
+            END
+            IF @W_IsListable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsListable] = @IsListable'
+            END
+            IF @W_IsFilterable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsFilterable] = @IsFilterable'
+            END
+            IF @W_IsEditable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsEditable] = @IsEditable'
+            END
+            IF @W_IsGridable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsGridable] = @IsGridable'
+            END
+            IF @W_IsEncrypted IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsEncrypted] = @IsEncrypted'
+            END
+            IF @W_IsInWords IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsInWords] = @IsInWords'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -20420,20 +20573,21 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@TableId int
-                           ,@DomainId int
-                           ,@ReferenceTableId int
-                           ,@Name nvarchar(25)
-                           ,@IsAutoIncrement bit
-                           ,@IsRequired bit
-                           ,@IsListable bit
-                           ,@IsFilterable bit
-                           ,@IsEditable bit
-                           ,@IsGridable bit
-                           ,@IsEncrypted bit
-                           ,@IsInWords bit'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@TableId int
+                               ,@DomainId int
+                               ,@ReferenceTableId int
+                               ,@Name nvarchar(25)
+                               ,@IsAutoIncrement bit
+                               ,@IsRequired bit
+                               ,@IsListable bit
+                               ,@IsFilterable bit
+                               ,@IsEditable bit
+                               ,@IsGridable bit
+                               ,@IsEncrypted bit
+                               ,@IsInWords bit'
                            ,@Id = @W_Id
                            ,@TableId = @W_TableId
                            ,@DomainId = @W_DomainId
@@ -20447,6 +20601,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                            ,@IsGridable = @W_IsGridable
                            ,@IsEncrypted = @W_IsEncrypted
                            ,@IsInWords = @W_IsInWords
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -20923,13 +21079,9 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_TableId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
-               ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(50))
-               ,@W_IsUnique bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsUnique') AS bit)
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
@@ -20942,22 +21094,35 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
                   AND [TableName] = 'Indexes'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_TableId IS NOT NULL BEGIN
-            IF @W_TableId < CAST('1' AS int)
-                THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[TableId] = @TableId'
-        END
-        IF @W_Name IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[Name] = @Name'
-        END
-        IF @W_IsUnique IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsUnique] = @IsUnique'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_TableId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS int)
+                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(50))
+                   ,@W_IsUnique bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsUnique') AS bit)
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_TableId IS NOT NULL BEGIN
+                IF @W_TableId < CAST('1' AS int)
+                    THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[TableId] = @TableId'
+            END
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
+            END
+            IF @W_IsUnique IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsUnique] = @IsUnique'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -20970,15 +21135,18 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@TableId int
-                           ,@Name nvarchar(50)
-                           ,@IsUnique bit'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@TableId int
+                               ,@Name nvarchar(50)
+                               ,@IsUnique bit'
                            ,@Id = @W_Id
                            ,@TableId = @W_TableId
                            ,@Name = @W_Name
                            ,@IsUnique = @W_IsUnique
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -21424,13 +21592,9 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_IndexId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IndexId') AS int)
-               ,@W_ColumnId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ColumnId') AS int)
-               ,@W_IsDescending bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsDescending') AS bit)
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IndexId') AS int) AS [IndexId]
@@ -21443,24 +21607,37 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
                   AND [TableName] = 'Indexkeys'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_IndexId IS NOT NULL BEGIN
-            IF @W_IndexId < CAST('1' AS int)
-                THROW 51000, 'Valor de IndexId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[IndexId] = @IndexId'
-        END
-        IF @W_ColumnId IS NOT NULL BEGIN
-            IF @W_ColumnId < CAST('1' AS int)
-                THROW 51000, 'Valor de ColumnId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[ColumnId] = @ColumnId'
-        END
-        IF @W_IsDescending IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsDescending] = @IsDescending'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_IndexId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IndexId') AS int)
+                   ,@W_ColumnId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ColumnId') AS int)
+                   ,@W_IsDescending bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsDescending') AS bit)
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_IndexId IS NOT NULL BEGIN
+                IF @W_IndexId < CAST('1' AS int)
+                    THROW 51000, 'Valor de IndexId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[IndexId] = @IndexId'
+            END
+            IF @W_ColumnId IS NOT NULL BEGIN
+                IF @W_ColumnId < CAST('1' AS int)
+                    THROW 51000, 'Valor de ColumnId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[ColumnId] = @ColumnId'
+            END
+            IF @W_IsDescending IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsDescending] = @IsDescending'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -21473,15 +21650,18 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@IndexId int
-                           ,@ColumnId int
-                           ,@IsDescending bit'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@IndexId int
+                               ,@ColumnId int
+                               ,@IsDescending bit'
                            ,@Id = @W_Id
                            ,@IndexId = @W_IndexId
                            ,@ColumnId = @W_ColumnId
                            ,@IsDescending = @W_IsDescending
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -21915,13 +22095,9 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
         END
 
         DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
-               ,@Where VARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
-               ,@W_SystemId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
-               ,@W_UserId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.UserId') AS int)
-               ,@W_IsLogged bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsLogged') AS bit)
 
+        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS int) AS [SystemId]
@@ -21934,24 +22110,37 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
                   AND [TableName] = 'Logins'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
-        IF @W_Id IS NOT NULL BEGIN
-            IF @W_Id < CAST('1' AS int)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[Id] = @Id'
-        END
-        IF @W_SystemId IS NOT NULL BEGIN
-            IF @W_SystemId < CAST('1' AS int)
-                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
-        END
-        IF @W_UserId IS NOT NULL BEGIN
-            IF @W_UserId < CAST('1' AS int)
-                THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
-            SET @Where = @Where + ' AND [T].[UserId] = @UserId'
-        END
-        IF @W_IsLogged IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[IsLogged] = @IsLogged'
-        END
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_SystemId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS int)
+                   ,@W_UserId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.UserId') AS int)
+                   ,@W_IsLogged bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsLogged') AS bit)
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_SystemId IS NOT NULL BEGIN
+                IF @W_SystemId < CAST('1' AS int)
+                    THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
+            END
+            IF @W_UserId IS NOT NULL BEGIN
+                IF @W_UserId < CAST('1' AS int)
+                    THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[UserId] = @UserId'
+            END
+            IF @W_IsLogged IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsLogged] = @IsLogged'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
         SET @sql = 'INSERT [dbo].[#table]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
@@ -21964,15 +22153,18 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
                                 FROM [dbo].[#operations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
         CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
-        EXEC sp_executesql @sql
-                           ,N'@Id int
-                           ,@SystemId int
-                           ,@UserId int
-                           ,@IsLogged bit'
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@SystemId int
+                               ,@UserId int
+                               ,@IsLogged bit'
                            ,@Id = @W_Id
                            ,@SystemId = @W_SystemId
                            ,@UserId = @W_UserId
                            ,@IsLogged = @W_IsLogged
+        ELSE
+            EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
