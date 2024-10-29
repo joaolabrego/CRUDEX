@@ -144,7 +144,7 @@
 .scroll-thumb {
     position: absolute;
     width: 100%;
-    background-color: blue;
+    background-color: darkblue;
     cursor: grab;
     border-radius: var(--border-radius);
     min-height: 3vmin;
