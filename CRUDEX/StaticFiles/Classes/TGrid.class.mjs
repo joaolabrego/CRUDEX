@@ -156,7 +156,7 @@ export default class TGrid {
                     case "ArrowUp":
                         if (this.#HTML.SelectedRow.rowIndex > 1)
                             this.#Rows[this.#HTML.SelectedRow.rowIndex - 2].click()
-                        else if (this.#PageNumber === 1) {
+                        else if (Math.trunc(this.#PageNumber) === 1) {
                             this.Renderize(this.#PageCount)
                             this.#Rows[this.#Rows.length - 1].click()
                         }
@@ -168,7 +168,7 @@ export default class TGrid {
                     case "ArrowDown":
                         if (this.#HTML.SelectedRow.rowIndex < this.#Rows.length)
                             this.#Rows[this.#HTML.SelectedRow.rowIndex].click()
-                        else if (this.#PageNumber === this.#PageCount) {
+                        else if (Math.trunc(this.#PageNumber) === this.#PageCount) {
                             this.Renderize(1)
                             this.#Rows[0].click()
                         }

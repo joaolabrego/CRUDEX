@@ -221,6 +221,7 @@ BEGIN
 			  ,[C].[Id]
 			  ,[C].[TableId]
 			  ,[T].[Name] AS [#TableName]
+			  ,[T].[Alias] AS [#TableAlias]
 			  ,[C].[Sequence]
 			  ,[C].[DomainId]
 			  ,[D].[Name] AS [#DomainName]
