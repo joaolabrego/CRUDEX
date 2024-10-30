@@ -22,7 +22,7 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     background-color: var(--background-color-control);
     margin: auto;
-    padding: 1vmin;
+    padding: 1dvmin;
 }
 
 .dialog table {
@@ -39,17 +39,17 @@
     text-transform: uppercase;
     outline: 0;
     background: var(--background-color-control);
-    width: 15vmin;
+    width: 15dvmin;
     height: var(--control-height);
     border: 0;
     font-size: inherit;
-    padding: 1vmin;
+    padding: 1dvmin;
     background-color: var(--background-color);
     font-weight: inherit;
     cursor: pointer;
     border-radius: var(--border-radius);
-    margin-top: 3vmin;
-    margin-right: 2vmin;
+    margin-top: 3dvmin;
+    margin-right: 2dvmin;
 }
 
 .grid {
@@ -59,7 +59,7 @@
     text-align: center;
     font-size: var(--font-size-grid);
     color: black;
-    border: solid 0.1vmin black;
+    border: solid 0.1dvmin black;
     font-weight: normal;
     white-space: nowrap;
     max-width: 100%;
@@ -70,6 +70,6 @@
 }
 
 .grid td {
-    padding: 1vmin;
-    border-right: solid 0.1vmin black;
+    padding: 1dvmin;
+    border-right: solid 0.1dvmin black;
 }

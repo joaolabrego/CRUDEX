@@ -5,7 +5,7 @@
     text-align: center;
     font-size: var(--font-size-grid);
     color: black;
-    border: solid 0.1vmin black;
+    border: solid 0.1dvmin black;
     font-weight: normal;
     white-space: nowrap;
     max-width: 100%;
@@ -27,8 +27,8 @@
 
 .grid td,
 .grid th {
-    padding: 1vmin;
-    border-right: solid 0.1vmin black;
+    padding: 1dvmin;
+    border-right: solid 0.1dvmin black;
 }
 
 .grid th {
@@ -48,7 +48,7 @@
 .grid tfoot tr {
     background-color: var(--background-color-focus);
     position: sticky;
-    height: 1.5vmin;
+    height: 1.5dvmin;
 }
 
 .grid thead tr {
@@ -81,7 +81,7 @@
     cursor: pointer;
     border-radius: var(--border-radius);
     background-size: 100% 100%;
-    margin: 0.5vmin 1.5vmin;
+    margin: 0.5dvmin 1.5dvmin;
 }
 
 .grid thead th:hover {
@@ -104,8 +104,8 @@
 
 .numberInput {
     text-align: right;
-    width: 10vmin;
-    height: 3vmin;
+    width: 10dvmin;
+    height: 3dvmin;
     font-size: inherit;
     float: left;
 }
@@ -113,8 +113,8 @@
 .container {
     display: grid;
     grid-template-columns: 1fr auto; /* Grid com scroll ao lado */
-    width: 100vmax;
-    height: calc(100vmin - 13vmin); /* Ajuste conforme a altura do cabeçalho e rodapé */
+    width: 100dvmax;
+    height: calc(100dvmin - 13dvmin); /* Ajuste conforme a altura do cabeçalho e rodapé */
     position: relative;
     overflow: hidden;
 }
@@ -125,7 +125,7 @@
 }
 
 .scroll-container {
-    width: 3vmin;
+    width: 3dvmin;
     background-color: #eee;
     display: flex;
     align-items: center;
@@ -147,8 +147,8 @@
     background-color: darkblue;
     cursor: grab;
     border-radius: var(--border-radius);
-    min-height: 3vmin;
-    max-height: 3vmin;
+    min-height: 3dvmin;
+    max-height: 3dvmin;
     top: 0;
 }
 

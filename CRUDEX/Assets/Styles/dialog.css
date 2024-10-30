@@ -1,13 +1,13 @@
 ﻿.dialog {
     text-align: center;
     margin: auto;
-    padding: 1vmin;
+    padding: 1dvmin;
     background-color: var(--background-color-control);
     user-select: none;
 }
 
 .dialog>img {
-    width: 10vmin;
+    width: 10dvmin;
 }
 
 .dialog>p {
@@ -19,15 +19,15 @@
     text-transform: uppercase;
     outline: 0;
     background: var(--background-color-control);
-    width: 15vmin;
+    width: 15dvmin;
     height: var(--control-height);
     border: 0;
     font-size: inherit;
-    padding: 1vmin;
+    padding: 1dvmin;
     background-color: var(--background-color);
     font-weight: inherit;
     cursor: pointer;
     border-radius: var(--border-radius);
-    margin-top: 3vmin;
-    margin-right: 2vmin;
+    margin-top: 3dvmin;
+    margin-right: 2dvmin;
 }

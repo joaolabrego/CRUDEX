@@ -14004,7 +14004,6 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'Category'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -14022,43 +14021,68 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[Name]
-                          ,[T].[HtmlInputType]
-                          ,[T].[HtmlInputAlign]
-                          ,[T].[AskEncrypted]
-                          ,[T].[AskMask]
-                          ,[T].[AskListable]
-                          ,[T].[AskDefault]
-                          ,[T].[AskMinimum]
-                          ,[T].[AskMaximum]
-                          ,[T].[AskInWords]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Categories] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[Name]
-                              ,[O].[HtmlInputType]
-                              ,[O].[HtmlInputAlign]
-                              ,[O].[AskEncrypted]
-                              ,[O].[AskMask]
-                              ,[O].[AskListable]
-                              ,[O].[AskDefault]
-                              ,[O].[AskMinimum]
-                              ,[O].[AskMaximum]
-                              ,[O].[AskInWords]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS tinyint) AS [Id]
+                    ,CAST(NULL AS nvarchar(25)) AS [Name]
+                    ,CAST(NULL AS nvarchar(10)) AS [HtmlInputType]
+                    ,CAST(NULL AS nvarchar(6)) AS [HtmlInputAlign]
+                    ,CAST(NULL AS bit) AS [AskEncrypted]
+                    ,CAST(NULL AS bit) AS [AskMask]
+                    ,CAST(NULL AS bit) AS [AskListable]
+                    ,CAST(NULL AS bit) AS [AskDefault]
+                    ,CAST(NULL AS bit) AS [AskMinimum]
+                    ,CAST(NULL AS bit) AS [AskMaximum]
+                    ,CAST(NULL AS bit) AS [AskInWords]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Category'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[Name]
+                              ,[T].[HtmlInputType]
+                              ,[T].[HtmlInputAlign]
+                              ,[T].[AskEncrypted]
+                              ,[T].[AskMask]
+                              ,[T].[AskListable]
+                              ,[T].[AskDefault]
+                              ,[T].[AskMinimum]
+                              ,[T].[AskMaximum]
+                              ,[T].[AskInWords]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Categories] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Category'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[Name]
+                                  ,[O].[HtmlInputType]
+                                  ,[O].[HtmlInputAlign]
+                                  ,[O].[AskEncrypted]
+                                  ,[O].[AskMask]
+                                  ,[O].[AskListable]
+                                  ,[O].[AskDefault]
+                                  ,[O].[AskMinimum]
+                                  ,[O].[AskMaximum]
+                                  ,[O].[AskInWords]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[Name]
+              ,[HtmlInputType]
+              ,[HtmlInputAlign]
+              ,[AskEncrypted]
+              ,[AskMask]
+              ,[AskListable]
+              ,[AskDefault]
+              ,[AskMinimum]
+              ,[AskMaximum]
+              ,[AskInWords]
+            FROM [dbo].[#result]
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -14672,7 +14696,6 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'Type'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -14690,53 +14713,102 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[CategoryId]
-                          ,[T].[Name]
-                          ,[T].[MaxLength]
-                          ,[T].[Minimum]
-                          ,[T].[Maximum]
-                          ,[T].[AskLength]
-                          ,[T].[AskDecimals]
-                          ,[T].[AskPrimarykey]
-                          ,[T].[AskAutoincrement]
-                          ,[T].[AskFilterable]
-                          ,[T].[AskGridable]
-                          ,[T].[AskCodification]
-                          ,[T].[AskFormula]
-                          ,[T].[AllowMaxLength]
-                          ,[T].[IsActive]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Types] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[CategoryId]
-                              ,[O].[Name]
-                              ,[O].[MaxLength]
-                              ,[O].[Minimum]
-                              ,[O].[Maximum]
-                              ,[O].[AskLength]
-                              ,[O].[AskDecimals]
-                              ,[O].[AskPrimarykey]
-                              ,[O].[AskAutoincrement]
-                              ,[O].[AskFilterable]
-                              ,[O].[AskGridable]
-                              ,[O].[AskCodification]
-                              ,[O].[AskFormula]
-                              ,[O].[AllowMaxLength]
-                              ,[O].[IsActive]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS tinyint) AS [Id]
+                    ,CAST(NULL AS tinyint) AS [CategoryId]
+                    ,CAST(NULL AS nvarchar(25)) AS [Name]
+                    ,CAST(NULL AS int) AS [MaxLength]
+                    ,CAST(NULL AS nvarchar(MAX)) AS [Minimum]
+                    ,CAST(NULL AS nvarchar(MAX)) AS [Maximum]
+                    ,CAST(NULL AS bit) AS [AskLength]
+                    ,CAST(NULL AS bit) AS [AskDecimals]
+                    ,CAST(NULL AS bit) AS [AskPrimarykey]
+                    ,CAST(NULL AS bit) AS [AskAutoincrement]
+                    ,CAST(NULL AS bit) AS [AskFilterable]
+                    ,CAST(NULL AS bit) AS [AskGridable]
+                    ,CAST(NULL AS bit) AS [AskCodification]
+                    ,CAST(NULL AS bit) AS [AskFormula]
+                    ,CAST(NULL AS bit) AS [AllowMaxLength]
+                    ,CAST(NULL AS bit) AS [IsActive]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Type'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[CategoryId]
+                              ,[T].[Name]
+                              ,[T].[MaxLength]
+                              ,[T].[Minimum]
+                              ,[T].[Maximum]
+                              ,[T].[AskLength]
+                              ,[T].[AskDecimals]
+                              ,[T].[AskPrimarykey]
+                              ,[T].[AskAutoincrement]
+                              ,[T].[AskFilterable]
+                              ,[T].[AskGridable]
+                              ,[T].[AskCodification]
+                              ,[T].[AskFormula]
+                              ,[T].[AllowMaxLength]
+                              ,[T].[IsActive]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Types] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Type'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[CategoryId]
+                                  ,[O].[Name]
+                                  ,[O].[MaxLength]
+                                  ,[O].[Minimum]
+                                  ,[O].[Maximum]
+                                  ,[O].[AskLength]
+                                  ,[O].[AskDecimals]
+                                  ,[O].[AskPrimarykey]
+                                  ,[O].[AskAutoincrement]
+                                  ,[O].[AskFilterable]
+                                  ,[O].[AskGridable]
+                                  ,[O].[AskCodification]
+                                  ,[O].[AskFormula]
+                                  ,[O].[AllowMaxLength]
+                                  ,[O].[IsActive]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[CategoryId]
+              ,[Name]
+              ,[MaxLength]
+              ,[Minimum]
+              ,[Maximum]
+              ,[AskLength]
+              ,[AskDecimals]
+              ,[AskPrimarykey]
+              ,[AskAutoincrement]
+              ,[AskFilterable]
+              ,[AskGridable]
+              ,[AskCodification]
+              ,[AskFormula]
+              ,[AllowMaxLength]
+              ,[IsActive]
+            FROM [dbo].[#result]
+        SELECT 'Category' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[HtmlInputType]
+              ,[HtmlInputAlign]
+              ,[AskEncrypted]
+              ,[AskMask]
+              ,[AskListable]
+              ,[AskDefault]
+              ,[AskMinimum]
+              ,[AskMaximum]
+              ,[AskInWords]
+            FROM [dbo].Categories
+            WHERE [Id] IN (SELECT [CategoryId] FROM [dbo].[#result])
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -15158,7 +15230,6 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'Mask'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -15176,27 +15247,36 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[Name]
-                          ,[T].[Mask]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Masks] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[Name]
-                              ,[O].[Mask]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS nvarchar(25)) AS [Name]
+                    ,CAST(NULL AS nvarchar(MAX)) AS [Mask]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Mask'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[Name]
+                              ,[T].[Mask]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Masks] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Mask'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[Name]
+                                  ,[O].[Mask]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[Name]
+              ,[Mask]
+            FROM [dbo].[#result]
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -15722,7 +15802,6 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'Domain'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -15740,43 +15819,93 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[TypeId]
-                          ,[T].[MaskId]
-                          ,[T].[Name]
-                          ,[T].[Length]
-                          ,[T].[Decimals]
-                          ,[T].[ValidValues]
-                          ,[T].[Default]
-                          ,[T].[Minimum]
-                          ,[T].[Maximum]
-                          ,[T].[Codification]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Domains] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[TypeId]
-                              ,[O].[MaskId]
-                              ,[O].[Name]
-                              ,[O].[Length]
-                              ,[O].[Decimals]
-                              ,[O].[ValidValues]
-                              ,[O].[Default]
-                              ,[O].[Minimum]
-                              ,[O].[Maximum]
-                              ,[O].[Codification]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS tinyint) AS [TypeId]
+                    ,CAST(NULL AS int) AS [MaskId]
+                    ,CAST(NULL AS nvarchar(25)) AS [Name]
+                    ,CAST(NULL AS smallint) AS [Length]
+                    ,CAST(NULL AS tinyint) AS [Decimals]
+                    ,CAST(NULL AS nvarchar(MAX)) AS [ValidValues]
+                    ,CAST(NULL AS nvarchar(MAX)) AS [Default]
+                    ,CAST(NULL AS nvarchar(MAX)) AS [Minimum]
+                    ,CAST(NULL AS nvarchar(MAX)) AS [Maximum]
+                    ,CAST(NULL AS nvarchar(5)) AS [Codification]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Domain'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[TypeId]
+                              ,[T].[MaskId]
+                              ,[T].[Name]
+                              ,[T].[Length]
+                              ,[T].[Decimals]
+                              ,[T].[ValidValues]
+                              ,[T].[Default]
+                              ,[T].[Minimum]
+                              ,[T].[Maximum]
+                              ,[T].[Codification]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Domains] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Domain'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[TypeId]
+                                  ,[O].[MaskId]
+                                  ,[O].[Name]
+                                  ,[O].[Length]
+                                  ,[O].[Decimals]
+                                  ,[O].[ValidValues]
+                                  ,[O].[Default]
+                                  ,[O].[Minimum]
+                                  ,[O].[Maximum]
+                                  ,[O].[Codification]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[TypeId]
+              ,[MaskId]
+              ,[Name]
+              ,[Length]
+              ,[Decimals]
+              ,[ValidValues]
+              ,[Default]
+              ,[Minimum]
+              ,[Maximum]
+              ,[Codification]
+            FROM [dbo].[#result]
+        SELECT 'Type' AS ClassName
+              ,[Id]
+              ,[CategoryId]
+              ,[Name]
+              ,[MaxLength]
+              ,[Minimum]
+              ,[Maximum]
+              ,[AskLength]
+              ,[AskDecimals]
+              ,[AskPrimarykey]
+              ,[AskAutoincrement]
+              ,[AskFilterable]
+              ,[AskGridable]
+              ,[AskCodification]
+              ,[AskFormula]
+              ,[AllowMaxLength]
+              ,[IsActive]
+            FROM [dbo].Types
+            WHERE [Id] IN (SELECT [TypeId] FROM [dbo].[#result])
+        SELECT 'Mask' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Mask]
+            FROM [dbo].Masks
+            WHERE [Id] IN (SELECT [MaskId] FROM [dbo].[#result])
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -16246,7 +16375,6 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'System'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -16264,33 +16392,48 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[Name]
-                          ,[T].[Description]
-                          ,[T].[ClientName]
-                          ,[T].[MaxRetryLogins]
-                          ,[T].[IsOffAir]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Systems] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[Name]
-                              ,[O].[Description]
-                              ,[O].[ClientName]
-                              ,[O].[MaxRetryLogins]
-                              ,[O].[IsOffAir]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS nvarchar(25)) AS [Name]
+                    ,CAST(NULL AS nvarchar(50)) AS [Description]
+                    ,CAST(NULL AS nvarchar(15)) AS [ClientName]
+                    ,CAST(NULL AS tinyint) AS [MaxRetryLogins]
+                    ,CAST(NULL AS bit) AS [IsOffAir]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''System'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[Name]
+                              ,[T].[Description]
+                              ,[T].[ClientName]
+                              ,[T].[MaxRetryLogins]
+                              ,[T].[IsOffAir]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Systems] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''System'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[Name]
+                                  ,[O].[Description]
+                                  ,[O].[ClientName]
+                                  ,[O].[MaxRetryLogins]
+                                  ,[O].[IsOffAir]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[Name]
+              ,[Description]
+              ,[ClientName]
+              ,[MaxRetryLogins]
+              ,[IsOffAir]
+            FROM [dbo].[#result]
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -16774,7 +16917,6 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'Menu'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -16792,35 +16934,71 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[SystemId]
-                          ,[T].[Sequence]
-                          ,[T].[Caption]
-                          ,[T].[Message]
-                          ,[T].[Action]
-                          ,[T].[ParentMenuId]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Menus] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[SystemId]
-                              ,[O].[Sequence]
-                              ,[O].[Caption]
-                              ,[O].[Message]
-                              ,[O].[Action]
-                              ,[O].[ParentMenuId]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS int) AS [SystemId]
+                    ,CAST(NULL AS smallint) AS [Sequence]
+                    ,CAST(NULL AS nvarchar(20)) AS [Caption]
+                    ,CAST(NULL AS nvarchar(50)) AS [Message]
+                    ,CAST(NULL AS nvarchar(50)) AS [Action]
+                    ,CAST(NULL AS int) AS [ParentMenuId]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Menu'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[SystemId]
+                              ,[T].[Sequence]
+                              ,[T].[Caption]
+                              ,[T].[Message]
+                              ,[T].[Action]
+                              ,[T].[ParentMenuId]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Menus] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Menu'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[SystemId]
+                                  ,[O].[Sequence]
+                                  ,[O].[Caption]
+                                  ,[O].[Message]
+                                  ,[O].[Action]
+                                  ,[O].[ParentMenuId]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[SystemId]
+              ,[Sequence]
+              ,[Caption]
+              ,[Message]
+              ,[Action]
+              ,[ParentMenuId]
+            FROM [dbo].[#result]
+        SELECT 'System' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Description]
+              ,[ClientName]
+              ,[MaxRetryLogins]
+              ,[IsOffAir]
+            FROM [dbo].Systems
+            WHERE [Id] IN (SELECT [SystemId] FROM [dbo].[#result])
+        SELECT 'Menu' AS ClassName
+              ,[Id]
+              ,[SystemId]
+              ,[Sequence]
+              ,[Caption]
+              ,[Message]
+              ,[Action]
+              ,[ParentMenuId]
+            FROM [dbo].Menus
+            WHERE [Id] IN (SELECT [ParentMenuId] FROM [dbo].[#result])
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -17292,7 +17470,6 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'User'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -17310,33 +17487,48 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[Name]
-                          ,[T].[Password]
-                          ,[T].[FullName]
-                          ,[T].[RetryLogins]
-                          ,[T].[IsActive]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Users] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[Name]
-                              ,[O].[Password]
-                              ,[O].[FullName]
-                              ,[O].[RetryLogins]
-                              ,[O].[IsActive]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS nvarchar(25)) AS [Name]
+                    ,CAST(NULL AS nvarchar(256)) AS [Password]
+                    ,CAST(NULL AS nvarchar(50)) AS [FullName]
+                    ,CAST(NULL AS tinyint) AS [RetryLogins]
+                    ,CAST(NULL AS bit) AS [IsActive]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''User'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[Name]
+                              ,[T].[Password]
+                              ,[T].[FullName]
+                              ,[T].[RetryLogins]
+                              ,[T].[IsActive]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Users] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''User'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[Name]
+                                  ,[O].[Password]
+                                  ,[O].[FullName]
+                                  ,[O].[RetryLogins]
+                                  ,[O].[IsActive]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[Name]
+              ,[Password]
+              ,[FullName]
+              ,[RetryLogins]
+              ,[IsActive]
+            FROM [dbo].[#result]
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -17797,7 +17989,6 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'SystemUser'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -17815,29 +18006,58 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[SystemId]
-                          ,[T].[UserId]
-                          ,[T].[Description]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[SystemsUsers] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[SystemId]
-                              ,[O].[UserId]
-                              ,[O].[Description]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS int) AS [SystemId]
+                    ,CAST(NULL AS int) AS [UserId]
+                    ,CAST(NULL AS nvarchar(50)) AS [Description]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''SystemUser'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[SystemId]
+                              ,[T].[UserId]
+                              ,[T].[Description]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[SystemsUsers] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''SystemUser'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[SystemId]
+                                  ,[O].[UserId]
+                                  ,[O].[Description]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[SystemId]
+              ,[UserId]
+              ,[Description]
+            FROM [dbo].[#result]
+        SELECT 'System' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Description]
+              ,[ClientName]
+              ,[MaxRetryLogins]
+              ,[IsOffAir]
+            FROM [dbo].Systems
+            WHERE [Id] IN (SELECT [SystemId] FROM [dbo].[#result])
+        SELECT 'User' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Password]
+              ,[FullName]
+              ,[RetryLogins]
+              ,[IsActive]
+            FROM [dbo].Users
+            WHERE [Id] IN (SELECT [UserId] FROM [dbo].[#result])
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -18337,7 +18557,6 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'Database'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -18355,41 +18574,64 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[Name]
-                          ,[T].[Description]
-                          ,[T].[Alias]
-                          ,[T].[ServerName]
-                          ,[T].[HostName]
-                          ,[T].[Port]
-                          ,[T].[Logon]
-                          ,[T].[Password]
-                          ,[T].[Folder]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Databases] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[Name]
-                              ,[O].[Description]
-                              ,[O].[Alias]
-                              ,[O].[ServerName]
-                              ,[O].[HostName]
-                              ,[O].[Port]
-                              ,[O].[Logon]
-                              ,[O].[Password]
-                              ,[O].[Folder]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS nvarchar(25)) AS [Name]
+                    ,CAST(NULL AS nvarchar(50)) AS [Description]
+                    ,CAST(NULL AS nvarchar(25)) AS [Alias]
+                    ,CAST(NULL AS nvarchar(50)) AS [ServerName]
+                    ,CAST(NULL AS nvarchar(25)) AS [HostName]
+                    ,CAST(NULL AS int) AS [Port]
+                    ,CAST(NULL AS nvarchar(256)) AS [Logon]
+                    ,CAST(NULL AS nvarchar(256)) AS [Password]
+                    ,CAST(NULL AS nvarchar(256)) AS [Folder]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Database'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[Name]
+                              ,[T].[Description]
+                              ,[T].[Alias]
+                              ,[T].[ServerName]
+                              ,[T].[HostName]
+                              ,[T].[Port]
+                              ,[T].[Logon]
+                              ,[T].[Password]
+                              ,[T].[Folder]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Databases] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Database'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[Name]
+                                  ,[O].[Description]
+                                  ,[O].[Alias]
+                                  ,[O].[ServerName]
+                                  ,[O].[HostName]
+                                  ,[O].[Port]
+                                  ,[O].[Logon]
+                                  ,[O].[Password]
+                                  ,[O].[Folder]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[Name]
+              ,[Description]
+              ,[Alias]
+              ,[ServerName]
+              ,[HostName]
+              ,[Port]
+              ,[Logon]
+              ,[Password]
+              ,[Folder]
+            FROM [dbo].[#result]
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -18850,7 +19092,6 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'SystemDatabase'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -18868,29 +19109,62 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[SystemId]
-                          ,[T].[DatabaseId]
-                          ,[T].[Description]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[SystemsDatabases] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[SystemId]
-                              ,[O].[DatabaseId]
-                              ,[O].[Description]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS int) AS [SystemId]
+                    ,CAST(NULL AS int) AS [DatabaseId]
+                    ,CAST(NULL AS nvarchar(50)) AS [Description]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''SystemDatabase'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[SystemId]
+                              ,[T].[DatabaseId]
+                              ,[T].[Description]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[SystemsDatabases] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''SystemDatabase'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[SystemId]
+                                  ,[O].[DatabaseId]
+                                  ,[O].[Description]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[SystemId]
+              ,[DatabaseId]
+              ,[Description]
+            FROM [dbo].[#result]
+        SELECT 'System' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Description]
+              ,[ClientName]
+              ,[MaxRetryLogins]
+              ,[IsOffAir]
+            FROM [dbo].Systems
+            WHERE [Id] IN (SELECT [SystemId] FROM [dbo].[#result])
+        SELECT 'Database' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Description]
+              ,[Alias]
+              ,[ServerName]
+              ,[HostName]
+              ,[Port]
+              ,[Logon]
+              ,[Password]
+              ,[Folder]
+            FROM [dbo].Databases
+            WHERE [Id] IN (SELECT [DatabaseId] FROM [dbo].[#result])
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -19380,7 +19654,6 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'Table'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -19398,35 +19671,52 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[Name]
-                          ,[T].[Alias]
-                          ,[T].[Description]
-                          ,[T].[ParentTableId]
-                          ,[T].[IsPaged]
-                          ,[T].[CurrentId]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[Name]
-                              ,[O].[Alias]
-                              ,[O].[Description]
-                              ,[O].[ParentTableId]
-                              ,[O].[IsPaged]
-                              ,[O].[CurrentId]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS nvarchar(25)) AS [Name]
+                    ,CAST(NULL AS nvarchar(25)) AS [Alias]
+                    ,CAST(NULL AS nvarchar(50)) AS [Description]
+                    ,CAST(NULL AS int) AS [ParentTableId]
+                    ,CAST(NULL AS bit) AS [IsPaged]
+                    ,CAST(NULL AS int) AS [CurrentId]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Table'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[Name]
+                              ,[T].[Alias]
+                              ,[T].[Description]
+                              ,[T].[ParentTableId]
+                              ,[T].[IsPaged]
+                              ,[T].[CurrentId]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Table'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[Name]
+                                  ,[O].[Alias]
+                                  ,[O].[Description]
+                                  ,[O].[ParentTableId]
+                                  ,[O].[IsPaged]
+                                  ,[O].[CurrentId]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[Name]
+              ,[Alias]
+              ,[Description]
+              ,[ParentTableId]
+              ,[IsPaged]
+              ,[CurrentId]
+            FROM [dbo].[#result]
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -19887,7 +20177,6 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'DatabaseTable'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -19905,29 +20194,63 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[DatabaseId]
-                          ,[T].[TableId]
-                          ,[T].[Description]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[DatabasesTables] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[DatabaseId]
-                              ,[O].[TableId]
-                              ,[O].[Description]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS int) AS [DatabaseId]
+                    ,CAST(NULL AS int) AS [TableId]
+                    ,CAST(NULL AS nvarchar(50)) AS [Description]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''DatabaseTable'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[DatabaseId]
+                              ,[T].[TableId]
+                              ,[T].[Description]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[DatabasesTables] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''DatabaseTable'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[DatabaseId]
+                                  ,[O].[TableId]
+                                  ,[O].[Description]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[DatabaseId]
+              ,[TableId]
+              ,[Description]
+            FROM [dbo].[#result]
+        SELECT 'Database' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Description]
+              ,[Alias]
+              ,[ServerName]
+              ,[HostName]
+              ,[Port]
+              ,[Logon]
+              ,[Password]
+              ,[Folder]
+            FROM [dbo].Databases
+            WHERE [Id] IN (SELECT [DatabaseId] FROM [dbo].[#result])
+        SELECT 'Table' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Alias]
+              ,[Description]
+              ,[ParentTableId]
+              ,[IsPaged]
+              ,[CurrentId]
+            FROM [dbo].Tables
+            WHERE [Id] IN (SELECT [TableId] FROM [dbo].[#result])
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -20607,7 +20930,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'Column'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -20625,65 +20947,146 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[TableId]
-                          ,[T].[Sequence]
-                          ,[T].[DomainId]
-                          ,[T].[ReferenceTableId]
-                          ,[T].[Name]
-                          ,[T].[Description]
-                          ,[T].[Title]
-                          ,[T].[Caption]
-                          ,[T].[ValidValues]
-                          ,[T].[Default]
-                          ,[T].[Minimum]
-                          ,[T].[Maximum]
-                          ,[T].[IsPrimarykey]
-                          ,[T].[IsAutoIncrement]
-                          ,[T].[IsRequired]
-                          ,[T].[IsListable]
-                          ,[T].[IsFilterable]
-                          ,[T].[IsEditable]
-                          ,[T].[IsGridable]
-                          ,[T].[IsEncrypted]
-                          ,[T].[IsInWords]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Columns] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[TableId]
-                              ,[O].[Sequence]
-                              ,[O].[DomainId]
-                              ,[O].[ReferenceTableId]
-                              ,[O].[Name]
-                              ,[O].[Description]
-                              ,[O].[Title]
-                              ,[O].[Caption]
-                              ,[O].[ValidValues]
-                              ,[O].[Default]
-                              ,[O].[Minimum]
-                              ,[O].[Maximum]
-                              ,[O].[IsPrimarykey]
-                              ,[O].[IsAutoIncrement]
-                              ,[O].[IsRequired]
-                              ,[O].[IsListable]
-                              ,[O].[IsFilterable]
-                              ,[O].[IsEditable]
-                              ,[O].[IsGridable]
-                              ,[O].[IsEncrypted]
-                              ,[O].[IsInWords]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS int) AS [TableId]
+                    ,CAST(NULL AS smallint) AS [Sequence]
+                    ,CAST(NULL AS int) AS [DomainId]
+                    ,CAST(NULL AS int) AS [ReferenceTableId]
+                    ,CAST(NULL AS nvarchar(25)) AS [Name]
+                    ,CAST(NULL AS nvarchar(50)) AS [Description]
+                    ,CAST(NULL AS nvarchar(25)) AS [Title]
+                    ,CAST(NULL AS nvarchar(25)) AS [Caption]
+                    ,CAST(NULL AS nvarchar(MAX)) AS [ValidValues]
+                    ,CAST(NULL AS nvarchar(MAX)) AS [Default]
+                    ,CAST(NULL AS nvarchar(MAX)) AS [Minimum]
+                    ,CAST(NULL AS nvarchar(MAX)) AS [Maximum]
+                    ,CAST(NULL AS bit) AS [IsPrimarykey]
+                    ,CAST(NULL AS bit) AS [IsAutoIncrement]
+                    ,CAST(NULL AS bit) AS [IsRequired]
+                    ,CAST(NULL AS bit) AS [IsListable]
+                    ,CAST(NULL AS bit) AS [IsFilterable]
+                    ,CAST(NULL AS bit) AS [IsEditable]
+                    ,CAST(NULL AS bit) AS [IsGridable]
+                    ,CAST(NULL AS bit) AS [IsEncrypted]
+                    ,CAST(NULL AS bit) AS [IsInWords]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Column'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[TableId]
+                              ,[T].[Sequence]
+                              ,[T].[DomainId]
+                              ,[T].[ReferenceTableId]
+                              ,[T].[Name]
+                              ,[T].[Description]
+                              ,[T].[Title]
+                              ,[T].[Caption]
+                              ,[T].[ValidValues]
+                              ,[T].[Default]
+                              ,[T].[Minimum]
+                              ,[T].[Maximum]
+                              ,[T].[IsPrimarykey]
+                              ,[T].[IsAutoIncrement]
+                              ,[T].[IsRequired]
+                              ,[T].[IsListable]
+                              ,[T].[IsFilterable]
+                              ,[T].[IsEditable]
+                              ,[T].[IsGridable]
+                              ,[T].[IsEncrypted]
+                              ,[T].[IsInWords]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Columns] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Column'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[TableId]
+                                  ,[O].[Sequence]
+                                  ,[O].[DomainId]
+                                  ,[O].[ReferenceTableId]
+                                  ,[O].[Name]
+                                  ,[O].[Description]
+                                  ,[O].[Title]
+                                  ,[O].[Caption]
+                                  ,[O].[ValidValues]
+                                  ,[O].[Default]
+                                  ,[O].[Minimum]
+                                  ,[O].[Maximum]
+                                  ,[O].[IsPrimarykey]
+                                  ,[O].[IsAutoIncrement]
+                                  ,[O].[IsRequired]
+                                  ,[O].[IsListable]
+                                  ,[O].[IsFilterable]
+                                  ,[O].[IsEditable]
+                                  ,[O].[IsGridable]
+                                  ,[O].[IsEncrypted]
+                                  ,[O].[IsInWords]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[TableId]
+              ,[Sequence]
+              ,[DomainId]
+              ,[ReferenceTableId]
+              ,[Name]
+              ,[Description]
+              ,[Title]
+              ,[Caption]
+              ,[ValidValues]
+              ,[Default]
+              ,[Minimum]
+              ,[Maximum]
+              ,[IsPrimarykey]
+              ,[IsAutoIncrement]
+              ,[IsRequired]
+              ,[IsListable]
+              ,[IsFilterable]
+              ,[IsEditable]
+              ,[IsGridable]
+              ,[IsEncrypted]
+              ,[IsInWords]
+            FROM [dbo].[#result]
+        SELECT 'Table' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Alias]
+              ,[Description]
+              ,[ParentTableId]
+              ,[IsPaged]
+              ,[CurrentId]
+            FROM [dbo].Tables
+            WHERE [Id] IN (SELECT [TableId] FROM [dbo].[#result])
+        SELECT 'Domain' AS ClassName
+              ,[Id]
+              ,[TypeId]
+              ,[MaskId]
+              ,[Name]
+              ,[Length]
+              ,[Decimals]
+              ,[ValidValues]
+              ,[Default]
+              ,[Minimum]
+              ,[Maximum]
+              ,[Codification]
+            FROM [dbo].Domains
+            WHERE [Id] IN (SELECT [DomainId] FROM [dbo].[#result])
+        SELECT 'Table' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Alias]
+              ,[Description]
+              ,[ParentTableId]
+              ,[IsPaged]
+              ,[CurrentId]
+            FROM [dbo].Tables
+            WHERE [Id] IN (SELECT [ReferenceTableId] FROM [dbo].[#result])
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -21151,7 +21554,6 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'Index'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -21169,31 +21571,67 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[DatabaseId]
-                          ,[T].[TableId]
-                          ,[T].[Name]
-                          ,[T].[IsUnique]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Indexes] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[DatabaseId]
-                              ,[O].[TableId]
-                              ,[O].[Name]
-                              ,[O].[IsUnique]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS int) AS [DatabaseId]
+                    ,CAST(NULL AS int) AS [TableId]
+                    ,CAST(NULL AS nvarchar(50)) AS [Name]
+                    ,CAST(NULL AS bit) AS [IsUnique]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Index'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[DatabaseId]
+                              ,[T].[TableId]
+                              ,[T].[Name]
+                              ,[T].[IsUnique]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Indexes] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Index'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[DatabaseId]
+                                  ,[O].[TableId]
+                                  ,[O].[Name]
+                                  ,[O].[IsUnique]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[DatabaseId]
+              ,[TableId]
+              ,[Name]
+              ,[IsUnique]
+            FROM [dbo].[#result]
+        SELECT 'Database' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Description]
+              ,[Alias]
+              ,[ServerName]
+              ,[HostName]
+              ,[Port]
+              ,[Logon]
+              ,[Password]
+              ,[Folder]
+            FROM [dbo].Databases
+            WHERE [Id] IN (SELECT [DatabaseId] FROM [dbo].[#result])
+        SELECT 'Table' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Alias]
+              ,[Description]
+              ,[ParentTableId]
+              ,[IsPaged]
+              ,[CurrentId]
+            FROM [dbo].Tables
+            WHERE [Id] IN (SELECT [TableId] FROM [dbo].[#result])
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -21666,7 +22104,6 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'Indexkey'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -21684,31 +22121,77 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[IndexId]
-                          ,[T].[Sequence]
-                          ,[T].[ColumnId]
-                          ,[T].[IsDescending]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Indexkeys] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[IndexId]
-                              ,[O].[Sequence]
-                              ,[O].[ColumnId]
-                              ,[O].[IsDescending]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS int) AS [IndexId]
+                    ,CAST(NULL AS smallint) AS [Sequence]
+                    ,CAST(NULL AS int) AS [ColumnId]
+                    ,CAST(NULL AS bit) AS [IsDescending]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Indexkey'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[IndexId]
+                              ,[T].[Sequence]
+                              ,[T].[ColumnId]
+                              ,[T].[IsDescending]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Indexkeys] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Indexkey'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[IndexId]
+                                  ,[O].[Sequence]
+                                  ,[O].[ColumnId]
+                                  ,[O].[IsDescending]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[IndexId]
+              ,[Sequence]
+              ,[ColumnId]
+              ,[IsDescending]
+            FROM [dbo].[#result]
+        SELECT 'Index' AS ClassName
+              ,[Id]
+              ,[DatabaseId]
+              ,[TableId]
+              ,[Name]
+              ,[IsUnique]
+            FROM [dbo].Indexes
+            WHERE [Id] IN (SELECT [IndexId] FROM [dbo].[#result])
+        SELECT 'Column' AS ClassName
+              ,[Id]
+              ,[TableId]
+              ,[Sequence]
+              ,[DomainId]
+              ,[ReferenceTableId]
+              ,[Name]
+              ,[Description]
+              ,[Title]
+              ,[Caption]
+              ,[ValidValues]
+              ,[Default]
+              ,[Minimum]
+              ,[Maximum]
+              ,[IsPrimarykey]
+              ,[IsAutoIncrement]
+              ,[IsRequired]
+              ,[IsListable]
+              ,[IsFilterable]
+              ,[IsEditable]
+              ,[IsGridable]
+              ,[IsEncrypted]
+              ,[IsInWords]
+            FROM [dbo].Columns
+            WHERE [Id] IN (SELECT [ColumnId] FROM [dbo].[#result])
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -22169,7 +22652,6 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-               ,@ClassName NVARCHAR(50) = 'Login'
 
         CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
@@ -22187,31 +22669,62 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT @ClassName AS [ClassName]
-                          ,[T].[Id]
-                          ,[T].[SystemId]
-                          ,[T].[UserId]
-                          ,[T].[PublicKey]
-                          ,[T].[IsLogged]
-                        FROM [dbo].[#table] [#]
-                            INNER JOIN [dbo].[Logins] [T] ON [T].[Id] = [#].[Id]
-                        WHERE [#].[_] = ''T''
-                    UNION ALL
-                        SELECT @ClassName AS [ClassName]
-                              ,[O].[Id]
-                              ,[O].[SystemId]
-                              ,[O].[UserId]
-                              ,[O].[PublicKey]
-                              ,[O].[IsLogged]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS int) AS [SystemId]
+                    ,CAST(NULL AS int) AS [UserId]
+                    ,CAST(NULL AS nvarchar(256)) AS [PublicKey]
+                    ,CAST(NULL AS bit) AS [IsLogged]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Login'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[SystemId]
+                              ,[T].[UserId]
+                              ,[T].[PublicKey]
+                              ,[T].[IsLogged]
                             FROM [dbo].[#table] [#]
-                                INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''O''
-                    ORDER BY ' + @OrderBy + '
-                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql,
-                           N'@ClassName NVARCHAR(50)',
-                           @ClassName = @ClassName
+                                INNER JOIN [dbo].[Logins] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Login'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[SystemId]
+                                  ,[O].[UserId]
+                                  ,[O].[PublicKey]
+                                  ,[O].[IsLogged]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[SystemId]
+              ,[UserId]
+              ,[PublicKey]
+              ,[IsLogged]
+            FROM [dbo].[#result]
+        SELECT 'System' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Description]
+              ,[ClientName]
+              ,[MaxRetryLogins]
+              ,[IsOffAir]
+            FROM [dbo].Systems
+            WHERE [Id] IN (SELECT [SystemId] FROM [dbo].[#result])
+        SELECT 'User' AS ClassName
+              ,[Id]
+              ,[Name]
+              ,[Password]
+              ,[FullName]
+              ,[RetryLogins]
+              ,[IsActive]
+            FROM [dbo].Users
+            WHERE [Id] IN (SELECT [UserId] FROM [dbo].[#result])
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount

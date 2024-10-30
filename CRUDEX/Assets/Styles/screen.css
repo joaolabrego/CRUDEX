@@ -1,6 +1,6 @@
 ﻿.header {
     display: grid;
-    grid-template-columns: 20vmin auto 20vmin;
+    grid-template-columns: 20dvmin auto 20dvmin;
     grid-template-rows: var(--text-height);
     line-height: var(--text-height);
     text-align: center;

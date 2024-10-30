@@ -1,10 +1,10 @@
 ﻿.login {
-    max-width: 30vmin;
-    margin: 10vmin auto 0 auto;
+    max-width: 30dvmin;
+    margin: 10dvmin auto 0 auto;
     background-color: var(--background-color);
-    width: 50vmin;
+    width: 50dvmin;
     height: var(--control-height * 3);
-    padding: 5vmin;
+    padding: 5dvmin;
     text-align: center;
     user-select: none;
 }
@@ -12,32 +12,32 @@
 .login input {
     outline: 0;
     background: white;
-    width: 30vmin;
+    width: 30dvmin;
     height: var(--control-height);
     border: 0;
-    margin: 0 0 1vmin 0;
+    margin: 0 0 1dvmin 0;
     color: black;
     font-size: inherit;
-    padding: 1vmin;
+    padding: 1dvmin;
     box-sizing: border-box;
-    border-radius: 2vmin;
-    border: 0.2vmin solid black;
+    border-radius: 2dvmin;
+    border: 0.2dvmin solid black;
 }
 
 .login button {
     text-transform: uppercase;
     outline: 0;
     background: var(--background-color-control);
-    width: 15vmin;
+    width: 15dvmin;
     height: var(--control-height);
     border: 0;
     font-size: inherit;
-    padding: 1vmin;
+    padding: 1dvmin;
     color: inherit;
     font-weight: inherit;
     cursor: pointer;
-    border-radius: 2vmin;
-    margin-top: 3vmin;
+    border-radius: 2dvmin;
+    margin-top: 3dvmin;
 }
 
 .login button:hover,

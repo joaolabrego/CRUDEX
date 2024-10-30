@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Exemplo com Select2 e JavaScript Puro</title>
+
+        <!-- Link para o CSS do Select2 -->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .select2-container .select2-selection--single {
+            height: 38px;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+    </head>
+    <body>
+        <h2>Selecione uma fruta:</h2>
+
+        <!-- Campo de seleção que será transformado em Select2 -->
+        <select id="fruitSelect" style="width: 200px;" placeholder="Digite ou selecione...">
+            <option value>Selecione...</option>
+            <option value="apple">Apple</option>
+            <option value="banana">Banana</option>
+            <option value="cherry">Cherry</option>
+            <option value="date">Date</option>
+            <option value="elderberry">Elderberry</option>
+            <option value="banana" disabled>Banana (Indisponível)</option>
+            <option value="fig">Fig</option>
+            <option value="grapes">Grapes</option>
+        </select>
+
+        <!-- Link para o JS do Select2 -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializa o Select2 no elemento <select> sem jQuery
+            var fruitSelect = document.getElementById('fruitSelect');
+            Select2.defaults.set("theme", "default"); // Define tema padrão
+
+            if (typeof Select2 !== 'undefined') {
+                new Select2(fruitSelect, {
+                    placeholder: 'Digite ou selecione...', // Placeholder customizado
+                    allowClear: true // Permite limpar a seleção
+                });
+            } else {
+                console.error("Select2 não está disponível.");
+            }
+        });
+    </script>
+    </body>
+</html>

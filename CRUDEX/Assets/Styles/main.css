@@ -1,16 +1,16 @@
 ﻿:root {
-    --text-height: 4vmin;
+    --text-height: 4dvmin;
     --background-color: bisque;
     --background-color-control: thistle;
     --background-color-focus: burlywood;
     --background-color-active: beige;
     --menu-width: 20ch;
-    --main-height: 87vmin;
-    --control-height: 5vmin;
+    --main-height: 87dvmin;
+    --control-height: 5dvmin;
     --opacity-screen: 0.5;
-    --font-size-grid: 1.5vmin;
-    --font-size-body: 2.5vmin;
-    --border-radius: 2vmin;
+    --font-size-grid: 1.5dvmin;
+    --font-size-body: 2.5dvmin;
+    --border-radius: 2dvmin;
 }
 
 * {
@@ -30,9 +30,9 @@ body {
 
 .box {
     z-index: 1;
-    border: 0.2vmin solid black;
+    border: 0.2dvmin solid black;
     background-color: var(--background-color);
     border-radius: var(--border-radius);
     margin-top: 0;
-    box-shadow: 0 0 1vmin 0 rgba(0, 0, 0, 0.2), 0 1vmin 1vmin 0 rgba(0, 0, 0, 0.24);
+    box-shadow: 0 0 1dvmin 0 rgba(0, 0, 0, 0.2), 0 1dvmin 1dvmin 0 rgba(0, 0, 0, 0.24);
 }

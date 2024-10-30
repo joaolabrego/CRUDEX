@@ -2,9 +2,9 @@
     border-radius: var(--border-radius);
     background-color: var(--background-color);
     height: var(--control-height);
-    padding: 1vmin 0;
-    border: 0.2vmin solid black;
-    box-shadow: 0 0 1vmin 0 rgba(0, 0, 0, 0.2), 0 1vmin 1vmin 0 rgba(0, 0, 0, 0.24);
+    padding: 1dvmin 0;
+    border: 0.2dvmin solid black;
+    box-shadow: 0 0 1dvmin 0 rgba(0, 0, 0, 0.2), 0 1dvmin 1dvmin 0 rgba(0, 0, 0, 0.24);
     user-select: none;
 }
 
@@ -59,7 +59,7 @@
 
 .parentMenu {
     float: right;
-    font-size: 2vmin;
+    font-size: 2dvmin;
 }
 
 .firstItem {

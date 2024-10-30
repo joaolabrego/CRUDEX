@@ -1125,6 +1125,28 @@ namespace crudex.Classes
 
             return result;
         }
+        private static StringBuilder GetReferenceQueries(DataRow reference, TDataRows columns)
+        {
+            var result = new StringBuilder();
+            var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(reference["ReferenceTableId"]));
+            var pkColumnRows = columnRows.FindAll(column => ToBoolean(column["IsPrimarykey"]));
+            var firstTime = true;
+
+            foreach( var column in columnRows)
+            {
+                if (firstTime)
+                {
+                    result.Append($"        SELECT '{column["#TableAlias"]}' AS ClassName\r\n");
+                    firstTime = false;
+                }
+                result.Append($"              ,[{column["Name"]}]\r\n");
+            }
+            result.Append($"            FROM [dbo].{reference["#ReferenceTableName"]}\r\n");
+            
+            result.Append($"            WHERE [{pkColumnRows[0]["Name"]}] IN (SELECT [{reference["Name"]}] FROM [dbo].[#result])\r\n");
+
+            return result;
+        }
 
         private static StringBuilder GetScriptReadTable(DataRow table, TDataRows columns, TDataRows domains, TDataRows types)
         {
@@ -1331,7 +1353,6 @@ namespace crudex.Classes
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
                 result.Append($"               ,@OffSet INT\r\n");
-                result.Append($"               ,@ClassName NVARCHAR(50) = '{table["Alias"]}'\r\n");
                 result.Append($"\r\n");
                 firstTime = true;
                 foreach (var column in pkColumnRows)
@@ -1360,45 +1381,72 @@ namespace crudex.Classes
                 result.Append($"            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount\r\n");
                 result.Append($"                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END\r\n");
                 result.Append($"        END\r\n");
-                result.Append($"        SET @sql = 'SELECT @ClassName AS [ClassName]\r\n");
-                foreach (var column in columnRows)
-                    result.Append($"                          ,[T].[{column["Name"]}]\r\n");
-                result.Append($"                        FROM [dbo].[#table] [#]\r\n");
                 firstTime = true;
-                foreach (var column in pkColumnRows)
+                foreach (var column in columnRows)
                 {
                     if (firstTime)
                     {
-                        result.Append($"                            INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
+                        result.Append($"        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]\r\n");
                         firstTime = false;
                     }
-                    else
-                        result.Append($"                                                                  AND [T].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
+                    result.Append($"                    ,CAST(NULL AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
-                result.Append($"                        WHERE [#].[_] = ''T''\r\n");
-                result.Append($"                    UNION ALL\r\n");
-                result.Append($"                        SELECT @ClassName AS [ClassName]\r\n");
+                result.Append($"            INTO [dbo].[#result]\r\n");
+
+                result.Append($"        SET @sql = 'INSERT #result\r\n");
+                result.Append($"                        SELECT ''{table["Alias"]}'' AS [ClassName]\r\n");
                 foreach (var column in columnRows)
-                    result.Append($"                              ,[O].[{column["Name"]}]\r\n");
+                    result.Append($"                              ,[T].[{column["Name"]}]\r\n");
                 result.Append($"                            FROM [dbo].[#table] [#]\r\n");
                 firstTime = true;
                 foreach (var column in pkColumnRows)
                 {
                     if (firstTime)
                     {
-                        result.Append($"                                INNER JOIN [dbo].[#operations] [O] ON [O].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
+                        result.Append($"                                INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                                                                  AND [O].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
+                        result.Append($"                                                                      AND [T].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
                 }
-                result.Append($"                            WHERE [#].[_] = ''O''\r\n");
-                result.Append($"                    ORDER BY ' + @OrderBy + '\r\n");
-                result.Append($"                    OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
-                result.Append($"                    FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'\r\n");
-                result.Append($"        EXEC sp_executesql @sql,\r\n");
-                result.Append($"                           N'@ClassName NVARCHAR(50)',\r\n");
-                result.Append($"                           @ClassName = @ClassName\r\n");
+                result.Append($"                            WHERE [#].[_] = ''T''\r\n");
+                result.Append($"                        UNION ALL\r\n");
+                result.Append($"                            SELECT ''{table["Alias"]}'' AS [ClassName]\r\n");
+                foreach (var column in columnRows)
+                    result.Append($"                                  ,[O].[{column["Name"]}]\r\n");
+                result.Append($"                                FROM [dbo].[#table] [#]\r\n");
+                firstTime = true;
+                foreach (var column in pkColumnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"                                    INNER JOIN [dbo].[#operations] [O] ON [O].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                                                                      AND [O].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
+                }
+                result.Append($"                                WHERE [#].[_] = ''O''\r\n");
+                result.Append($"                        ORDER BY ' + @OrderBy + '\r\n");
+                result.Append($"                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
+                result.Append($"                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'\r\n");
+                result.Append($"        EXEC sp_executesql @sql\r\n");
+                firstTime = true;
+                foreach (var column in columnRows)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"        SELECT [ClassName]\r\n");
+                        firstTime = false;
+                    }
+                    result.Append($"              ,[{column["Name"]}]\r\n");
+                }
+                result.Append($"            FROM [dbo].[#result]\r\n");
+
+                var references = columnRows.FindAll(column => !IsNull(column["ReferenceTableId"]));
+                foreach (var reference in references)
+                    result.Append(GetReferenceQueries(reference, columns));
+
                 result.Append($"        SET @ReturnValue = @RowCount\r\n");
                 result.Append($"\r\n");
                 result.Append($"        RETURN @RowCount\r\n");

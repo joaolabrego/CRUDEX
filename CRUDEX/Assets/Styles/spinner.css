@@ -1,8 +1,8 @@
 ﻿.spinner {
-    width: min(15vmin, 15vmax);
-    height: min(15vmin, 15vmax);
-    border: min(2vmin, 2vmax) solid var(--background-color-control);
-    border-top: min(2vmin, 2vmax) solid var(--background-color-focus);
+    width: min(15dvmin, 15dvmax);
+    height: min(15dvmin, 15dvmax);
+    border: min(2dvmin, 2dvmax) solid var(--background-color-control);
+    border-top: min(2dvmin, 2dvmax) solid var(--background-color-focus);
     border-radius: 50%;
     animation: spin 2s linear infinite;
     padding: 0;

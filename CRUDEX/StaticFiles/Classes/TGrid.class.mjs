@@ -238,25 +238,27 @@ export default class TGrid {
     }
     #SyncHeightWithContainer() {
         let containerHeight = this.#HTML.Container.clientHeight,
-            thumbHeight = Math.max((this.#Rows.length / this.#RowCount) * containerHeight, 5) // Mínimo de 5vmin
+            thumbHeight = Math.max((this.#Rows.length / this.#RowCount) * containerHeight, 5) // Mínimo de 5dvmin
 
-        this.#HTML.Scroll.Thumb.style.height = `${thumbHeight}vmin`
+        this.#HTML.Scroll.Thumb.style.height = `${thumbHeight}dvmin`
     }
     #UpdateScrollbarPosition(newTop) {
         let trackHeight = this.#HTML.Scroll.Track.clientHeight,
             thumbHeight = this.#HTML.Scroll.Thumb.clientHeight,
-            maxTop = trackHeight - thumbHeight
+            maxTop = trackHeight - thumbHeight;
 
-        newTop = Math.max(0, Math.min(newTop, maxTop))
-        this.#HTML.Scroll.Thumb.style.top = `${newTop}px`
+        newTop = Math.max(0, Math.min(newTop, maxTop));
+        this.#HTML.Scroll.Thumb.style.top = `${newTop}px`;
 
-        let scrollPercentage = newTop / maxTop
+        let pageSize = maxTop / (this.#PageCount - 1); // Faixa para cada página
+        this.#IsNavigateByScroll = true;
+        this.#LastPageNumber = this.#PageNumber;
 
-        this.#IsNavigateByScroll = true
-        this.#LastPageNumber = this.#PageNumber
-        this.#PageNumber = scrollPercentage * (this.#PageCount - 1) + 1
-        this.#HTML.NumberInput.value = Math.floor(this.#PageNumber).toString()
-        this.#HTML.NumberInput.dispatchEvent(new Event("change"))
+        // Calcule a página atual com base na posição do scrollbar
+        this.#PageNumber = newTop / pageSize + 1;
+
+        this.#HTML.NumberInput.value = Math.trunc(this.#PageNumber);
+        this.#HTML.NumberInput.dispatchEvent(new Event("change"));
     }
     SaveFilters(record) {
         for (let key in this.#FilterValues)
