@@ -3,7 +3,6 @@
     margin: auto;
     padding: 1dvmin;
     background-color: var(--background-color-control);
-    user-select: none;
 }
 
 .dialog>img {

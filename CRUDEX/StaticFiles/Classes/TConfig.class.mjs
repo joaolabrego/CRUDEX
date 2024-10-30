@@ -54,9 +54,9 @@ export default class TConfig {
             response = await fetch(`${location}/${action}`, {
                 method: "POST",
                 headers,
-                body: JSON.stringify({ Request: crypto.Encrypt(JSON.stringify(body)) }),
+                body: JSON.stringify({ Request: crypto.EncryptDecrypt(JSON.stringify(body)) }),
             }),
-            result = JSON.parse(crypto.Encrypt((await response.json()).Response))
+            result = JSON.parse(crypto.EncryptDecrypt((await response.json()).Response))
         if (action !== TActions.CONFIG)
             TSpinner.Hide()
         if (result.ClassName === "Error")

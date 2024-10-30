@@ -165,8 +165,6 @@ BEGIN
 					,[T].[AskFilterable]
 					,[T].[AskGridable]
 					,[T].[AskCodification]
-					,[T].[AskFormula]
-					,[T].[AllowMaxLength]
 					,[T].[IsActive]
 				INTO [dbo].[#Types]
 				FROM [dbo].[Types] [T]
@@ -189,6 +187,7 @@ BEGIN
 					,[C].[AskDefault]
 					,[C].[AskMinimum]
 					,[C].[AskMaximum]
+					,[C].[AskInWords]
 				INTO [dbo].[#Categories]
 				FROM [dbo].[Categories] [C]
 				WHERE EXISTS(SELECT TOP 1 1 FROM [dbo].[#Types] WHERE [CategoryId] = [C].[Id])

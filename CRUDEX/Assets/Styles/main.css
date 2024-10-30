@@ -26,6 +26,7 @@ body {
     background-color: grey;
     padding: 0;
     overflow: hidden;
+    user-select: none;
 }
 
 .box {

@@ -24,7 +24,7 @@
     IsEncrypted(value) {
         return value.length >= TCrypto.#CRYPTOPREFIX.length && value.slice(0, TCrypto.#CRYPTOPREFIX.length) === TCrypto.#CRYPTOPREFIX
     }
-    Encrypt(value, keys = this.#CryptoKey) {
+    EncryptDecrypt(value, keys = this.#CryptoKey) {
         const SPACE = " ".charCodeAt(0)
         let factor = -1,
             prefix = TCrypto.#CRYPTOPREFIX,

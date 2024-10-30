@@ -5,7 +5,6 @@
     padding: 1dvmin 0;
     border: 0.2dvmin solid black;
     box-shadow: 0 0 1dvmin 0 rgba(0, 0, 0, 0.2), 0 1dvmin 1dvmin 0 rgba(0, 0, 0, 0.24);
-    user-select: none;
 }
 
 .menu ul li {

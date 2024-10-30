@@ -1,7 +1,8 @@
 ﻿IF (SELECT object_id('[dbo].[ScriptSystem]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[ScriptSystem] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ScriptSystem](@SystemName VARCHAR(25)) AS
+ALTER PROCEDURE [dbo].[ScriptSystem](@SystemName VARCHAR(25),
+									 @ReturnValue INT OUT) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(250)
 
@@ -31,7 +32,7 @@ BEGIN
 				,[S].[Name] AS [#SystemName]
 				,[SD].[DatabaseId]
 				,[D].[Name] AS [#DatabaseName]
-				,[SD].[Description]
+				,[SD].[Name]
 			INTO [dbo].[#SystemsDatabases]
 			FROM [dbo].[SystemsDatabases] [SD]
 				INNER JOIN [dbo].[#Systems] [S] ON [S].[Id] = [SD].[SystemId]
@@ -64,7 +65,7 @@ BEGIN
 			  ,[D].[Name] AS [#DatabaseName]
 			  ,[DT].[TableId]
 			  ,[T].[Name] AS [#TableName]
-			  ,[DT].[Description]
+			  ,[DT].[Name]
 			INTO [dbo].[#DatabasesTables]
 			FROM [dbo].[DatabasesTables] [DT]
 				INNER JOIN [dbo].[#Databases] [D] ON [D].[Id] = [DT].[DatabaseId]
@@ -99,6 +100,7 @@ BEGIN
 				,[C].[AskDefault]
 				,[C].[AskMinimum]
 				,[C].[AskMaximum]
+				,[C].[AskInWords]
 			INTO [dbo].[#Categories]
 			FROM [dbo].[Categories] [C]
 		IF @@ROWCOUNT = 0
@@ -111,6 +113,7 @@ BEGIN
 				,[C].[Name] AS [#CategoryName]
 				,[T].[Name]
 				,[T].[Name] AS [#DataType]
+				,[T].[MaxLength]
 				,[T].[Minimum]
 				,[T].[Maximum]
 				,[T].[AskLength]
@@ -120,8 +123,6 @@ BEGIN
 				,[T].[AskFilterable]
 				,[T].[AskGridable]
 				,[T].[AskCodification]
-				,[T].[AskFormula]
-				,[T].[AllowMaxLength]
 				,[T].[IsActive]
 			INTO [dbo].[#Types]
 			FROM [dbo].[Types] [T]
@@ -148,10 +149,7 @@ BEGIN
 											 THEN CAST([D].[Decimals] AS VARCHAR(10)) 
 											 ELSE '' 
 										END + ')'
-								   ELSE CASE WHEN [T].[AllowMaxLength] = 1 
-											 THEN '(MAX)' 
-											 ELSE '' 
-										END
+								   ELSE ''
 							  END AS [#DataType]
 				,[D].[MaskId]
 				,[M].[Name] AS [#MaskName]
@@ -196,7 +194,7 @@ BEGIN
 			  ,[S].[Name] AS [#SystemName]
 			  ,[SU].[UserId]
 			  ,[U].[Name] AS [#UserName]
-			  ,[SU].[Description]
+			  ,[SU].[Name]
 			INTO [dbo].[#SystemsUsers] 
 			FROM [dbo].[SystemsUsers] [SU]
 				INNER JOIN [dbo].[#Systems] [S] ON [S].[Id] = [SU].[SystemId]
@@ -246,6 +244,7 @@ BEGIN
 			  ,[C].[IsEditable]
 			  ,[C].[IsGridable]
 			  ,[C].[IsEncrypted]
+			  ,[C].[IsInWords]
 			INTO [dbo].[#Columns]
 			FROM [dbo].[Columns] [C]
 				INNER JOIN [dbo].[#Tables] [T] ON [T].[Id] = [C].[TableId]

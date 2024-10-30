@@ -50,7 +50,7 @@ namespace CRUDA_LIB
                         var response = JsonConvert.SerializeObject(await Config.Create(systemName, "all"));
 
                         context.Response.Headers.ContentType = "application/json";
-                        await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(context.Request.Headers["PublicKey"]).Encrypt(response), }), Encoding.UTF8);
+                        await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(context.Request.Headers["PublicKey"]).EncryptDecrypt(response), }), Encoding.UTF8);
                         break;
                     case Actions.LOGIN:
                     case Actions.LOGOUT:
@@ -59,7 +59,7 @@ namespace CRUDA_LIB
                             ? context.Request.Headers["PublicKey"].ToString() 
                             : await Login.GetPublicKey(Convert.ToInt64(context.Request.Headers["LoginId"]));
                         var request = Config.ToDictionary(JsonConvert.DeserializeObject(new Crypto(publicKey)
-                            .Encrypt(Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body)))["Request"])));
+                            .EncryptDecrypt(Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body)))["Request"])));
                         var parameters = Config.ToDictionary(new
                         {
                             Login = request["Login"],
@@ -73,7 +73,7 @@ namespace CRUDA_LIB
                         else
                             response = JsonConvert.SerializeObject(await Login.Execute(parameters));
                         context.Response.Headers.ContentType = "application/json";
-                        await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(publicKey).Encrypt(response), }), Encoding.UTF8);
+                        await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(publicKey).EncryptDecrypt(response), }), Encoding.UTF8);
                         break;
                     default:
                         throw new Exception($"Ação '{action}' desconhecida em rota.");
@@ -88,7 +88,7 @@ namespace CRUDA_LIB
                 }
                 else
                 {
-                    var response = new Crypto(context.Request.Headers["PublicKey"]).Encrypt(JsonConvert.SerializeObject(new Error(ex.Message, Actions.LOGIN)));
+                    var response = new Crypto(context.Request.Headers["PublicKey"]).EncryptDecrypt(JsonConvert.SerializeObject(new Error(ex.Message, Actions.LOGIN)));
 
                     context.Response.Headers.ContentType = "application/json";
                     await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response }), Encoding.UTF8);

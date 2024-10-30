@@ -34,7 +34,7 @@ namespace CRUDA_LIB
         {
             return value.Length >= CryptoPrefix.Length && value[..CryptoPrefix.Length] == CryptoPrefix;
         }
-        public string Encrypt(string value, string? keys = null)
+        public string EncryptDecrypt(string value, string? keys = null)
         {
             var SPACE = (int)' ';
             var factor = -1;

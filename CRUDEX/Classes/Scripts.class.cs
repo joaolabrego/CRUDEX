@@ -60,6 +60,7 @@ namespace crudex.Classes
                 await stream.WriteAsync(GetScriptPersistTable(table, columns));
                 await stream.WriteAsync(GetScriptCommitTable(table, columns));
                 await stream.WriteAsync(GetScriptReadTable(table, columns, domains, types));
+                await stream.WriteAsync(GetScriptListTable(table, columns));
             }
         }
         public static async Task<DataSet> ExcelToDataSet()
@@ -1139,11 +1140,11 @@ namespace crudex.Classes
                     result.Append($"        SELECT '{column["#TableAlias"]}' AS ClassName\r\n");
                     firstTime = false;
                 }
-                result.Append($"              ,[{column["Name"]}]\r\n");
+                result.Append($"              ,[REF].[{column["Name"]}]\r\n");
             }
-            result.Append($"            FROM [dbo].{reference["#ReferenceTableName"]}\r\n");
+            result.Append($"            FROM [dbo].[#result] [RES]\r\n");
             
-            result.Append($"            WHERE [{pkColumnRows[0]["Name"]}] IN (SELECT [{reference["Name"]}] FROM [dbo].[#result])\r\n");
+            result.Append($"                INNER JOIN [dbo].[{reference["#ReferenceTableName"]}] [REF] ON [REF].[{pkColumnRows[0]["Name"]}] = [RES].[{reference["Name"]}]\r\n");
 
             return result;
         }
@@ -1457,6 +1458,132 @@ namespace crudex.Classes
                 result.Append($"    END CATCH\r\n");
                 result.Append($"END\r\n");
                 result.Append($"GO\r\n");
+            }
+
+            return result;
+        }
+        private static StringBuilder GetScriptListTable(DataRow table, TDataRows columns)
+        {
+            var result = new StringBuilder();
+            var firstTime = true;
+            var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
+
+            if (columnRows.Count > 0)
+            {
+                var listableColumns = columnRows.FindAll(row => ToBoolean(row["IsListable"]));
+
+                if (listableColumns.Count > 0)
+                {
+                    var listableColumn = listableColumns[0];
+
+                    result.Append($"/**********************************************************************************\r\n");
+                    result.Append($"Criar stored procedure [dbo].[{table["Name"]}List]\r\n");
+                    result.Append($"**********************************************************************************/\r\n");
+                    result.Append($"IF(SELECT object_id('[dbo].[{table["Name"]}List]', 'P')) IS NULL\r\n");
+                    result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}List] AS PRINT 1')\r\n");
+                    result.Append($"GO\r\n");
+                    result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}List](@Value NVARCHAR(MAX)\r\n");
+                    result.Append($"                                          ,@PaddingGridLastPage BIT\r\n");
+                    result.Append($"                                          ,@PageNumber INT OUT\r\n");
+                    result.Append($"                                          ,@LimitRows INT OUT\r\n");
+                    result.Append($"                                          ,@MaxPage INT OUT\r\n");
+                    result.Append($"                                          ,@ReturnValue INT OUT) AS BEGIN\r\n");
+                    result.Append($"    DECLARE @ErrorMessage NVARCHAR(MAX)\r\n");
+                    result.Append($"\r\n");
+                    result.Append($"    BEGIN TRY\r\n");
+                    result.Append($"        SET NOCOUNT ON\r\n");
+                    result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
+                    result.Append($"        IF @Value IS NULL\r\n");
+                    result.Append($"            SET @Value = ''\r\n");
+
+                    var pkColumnRows = columnRows.FindAll(column => ToBoolean(column["IsPrimarykey"]));
+
+                    foreach (var column in pkColumnRows)
+                    {
+                        if (firstTime)
+                        {
+                            result.Append($"        SELECT [{column["Name"]}]\r\n");
+                            firstTime = false;
+                        }
+                        else
+                            result.Append($"              ,[{column["Name"]}]\r\n");
+                    }
+                    result.Append($"            INTO [dbo].[#query]\r\n");
+                    result.Append($"            FROM [dbo].[{table["Name"]}]\r\n");
+                    result.Append($"            WHERE [{listableColumn["Name"]}] LIKE '%' + @Value + '%'\r\n");
+                    result.Append($"            ORDER BY [{listableColumn["Name"]}]\r\n");
+                    result.Append($"\r\n");
+                    result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
+                    result.Append($"               ,@OffSet INT\r\n");
+                    result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
+                    result.Append($"\r\n");
+                    firstTime = true;
+                    foreach (var column in pkColumnRows)
+                    {
+                        if (firstTime)
+                        {
+                            result.Append($"        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([{column["Name"]}]");
+                            firstTime = false;
+                        }
+                        else
+                            result.Append($", [{column["Name"]}]");
+                    }
+                    result.Append($")\r\n");
+                    result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
+                    result.Append($"            SET @OffSet = 0\r\n");
+                    result.Append($"            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END\r\n");
+                    result.Append($"            SET @PageNumber = 1\r\n");
+                    result.Append($"            SET @MaxPage = 1\r\n");
+                    result.Append($"        END ELSE BEGIN\r\n");
+                    result.Append($"            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END\r\n");
+                    result.Append($"            IF ABS(@PageNumber) > @MaxPage\r\n");
+                    result.Append($"                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END\r\n");
+                    result.Append($"            IF @PageNumber < 0\r\n");
+                    result.Append($"                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1\r\n");
+                    result.Append($"            SET @OffSet = (@PageNumber - 1) * @LimitRows\r\n");
+                    result.Append($"            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount\r\n");
+                    result.Append($"                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END\r\n");
+                    result.Append($"        END\r\n");
+                    firstTime = true;
+                    foreach (var column in pkColumnRows)
+                    {
+                        if (firstTime)
+                        {
+                            result.Append($"        SET @sql = 'SELECT [T].[{column["Name"]}]\r\n");
+                            firstTime = false;
+                        }
+                        else
+                            result.Append($"                          ,[T].[{column["Name"]}]\r\n");
+                    }
+                    result.Append($"                          ,[T].[{listableColumn["Name"]}]\r\n");
+                    result.Append($"                       FROM [dbo].[#query] [Q]\r\n");
+                    firstTime = true;
+                    foreach (var column in pkColumnRows)
+                    {
+                        if (firstTime)
+                        {
+                            result.Append($"                           INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[{column["Name"]}] = [Q].[{column["Name"]}]\r\n");
+                            firstTime = false;
+                        }
+                        else
+                            result.Append($"                                                                     AND [T].[{column["Name"]}] = [Q].[{column["Name"]}]\r\n");
+                    }
+                    result.Append($"                       ORDER BY [T].[{listableColumn["Name"]}]\r\n");
+                    result.Append($"                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
+                    result.Append($"                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'\r\n");
+                    result.Append($"        EXEC sp_executesql @sql\r\n");
+                    result.Append($"        SET @ReturnValue = @RowCount\r\n");
+                    result.Append($"\r\n");
+                    result.Append($"        RETURN @RowCount\r\n");
+                    result.Append($"    END TRY\r\n");
+                    result.Append($"    BEGIN CATCH\r\n");
+                    result.Append($"        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));\r\n");
+                    result.Append($"        THROW 51000, @ErrorMessage, 1\r\n");
+                    result.Append($"    END CATCH\r\n");
+                    result.Append($"END\r\n");
+                    result.Append($"GO\r\n");
+                }
+
             }
 
             return result;

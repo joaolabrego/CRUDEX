@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Dropdown com Paginação e Filtro como Web Component</title>
+        <title>Dropdown com Paginação e Filtro</title>
         <style>
         paginated-dropdown {
             font-family: Arial, sans-serif;
@@ -13,6 +13,7 @@
     <body>
 
         <h2>Escolha uma opção ou digite:</h2>
+        <div style="height: 600px"></div>
         <paginated-dropdown></paginated-dropdown>
 
         <script>
@@ -24,9 +25,26 @@
                 this.page = 1;
                 this.optionsPerPage = parseInt(this.getAttribute('options-per-page')) || 5;
                 this.options = [
-                    'Apple', 'Banana', 'Cherry', 'Date', 'Elderberry', 'Fig', 'Grape',
-                    'Honeydew', 'Kiwi', 'Lemon', 'Mango', 'Nectarine', 'Orange', 'Papaya',
-                    'Quince', 'Raspberry', 'Strawberry', 'Tomato', 'Ugli Fruit', 'Watermelon'
+                    { id: 1, name: 'Apple' },
+                    { id: 2, name: 'Banana' },
+                    { id: 3, name: 'Cherry' },
+                    { id: 4, name: 'Date' },
+                    { id: 5, name: 'Elderberry' },
+                    { id: 6, name: 'Fig' },
+                    { id: 7, name: 'Grape' },
+                    { id: 8, name: 'Honeydew' },
+                    { id: 9, name: 'Kiwi' },
+                    { id: 10, name: 'Lemon' },
+                    { id: 11, name: 'Mango' },
+                    { id: 12, name: 'Nectarine' },
+                    { id: 13, name: 'Orange' },
+                    { id: 14, name: 'Papaya' },
+                    { id: 15, name: 'Quince' },
+                    { id: 16, name: 'Raspberry' },
+                    { id: 17, name: 'Strawberry' },
+                    { id: 18, name: 'Tomato' },
+                    { id: 19, name: 'Ugli Fruit' },
+                    { id: 20, name: 'Watermelon' }
                 ];
                 this.filterQuery = '';
 
@@ -53,9 +71,9 @@
                             border-radius: 4px;
                             background-color: #fff;
                             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-                            max-height: 250px;
+                            max-height: 200px; /* Altura máxima para rolagem */
                             overflow-y: auto;
-                            z-index: 1;
+                            z-index: 1000;
                             margin-top: 2px;
                         }
                         .dropdown-option {
@@ -96,7 +114,7 @@
                 this.input = this.shadowRoot.querySelector('.dropdown-input');
                 this.optionsDiv = this.shadowRoot.querySelector('.dropdown-options');
 
-                this.input.addEventListener('focus', () => this.loadOptions());
+                this.input.addEventListener('focus', () => this.showOptions());
                 this.input.addEventListener('input', () => this.applyFilter());
                 document.addEventListener('click', (event) => {
                     if (!this.contains(event.target)) {
@@ -104,7 +122,6 @@
                     }
                 });
 
-                // Configuração dos botões de paginação
                 this.prevPageButton = document.createElement('button');
                 this.prevPageButton.textContent = '◀';
                 this.prevPageButton.classList.add('pagination-button');
@@ -122,10 +139,15 @@
                 this.paginationDiv.appendChild(this.nextPageButton);
             }
 
+            showOptions() {
+                this.loadOptions();
+                this.positionOptions();
+            }
+
             loadOptions() {
                 this.optionsDiv.innerHTML = '';
                 const filteredOptions = this.options.filter(option =>
-                    option.toLowerCase().includes(this.filterQuery.toLowerCase())
+                    option.name.toLowerCase().includes(this.filterQuery.toLowerCase())
                 );
 
                 const start = (this.page - 1) * this.optionsPerPage;
@@ -134,10 +156,12 @@
 
                 pageOptions.forEach(option => {
                     const optionDiv = document.createElement('div');
-                    optionDiv.textContent = option;
+                    optionDiv.textContent = option.name;
                     optionDiv.classList.add('dropdown-option');
+                    optionDiv.dataset.id = option.id;
                     optionDiv.addEventListener('click', () => {
-                        this.input.value = option;
+                        this.input.value = option.name;
+                        this.input.dataset.id = option.id;
                         this.optionsDiv.style.display = 'none';
                     });
                     this.optionsDiv.appendChild(optionDiv);
@@ -148,6 +172,25 @@
 
                 this.prevPageButton.disabled = this.page === 1;
                 this.nextPageButton.disabled = end >= filteredOptions.length;
+            }
+
+            positionOptions() {
+                const rect = this.input.getBoundingClientRect();
+                const dropdownHeight = 200; // Altura máxima do dropdown
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const spaceAbove = rect.top;
+
+                if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+                    // Exibir para cima se houver mais espaço acima
+                    this.optionsDiv.style.top = 'auto';
+                    this.optionsDiv.style.bottom = '100%';
+                    this.optionsDiv.style.maxHeight = `${spaceAbove}px`;
+                } else {
+                    // Exibir para baixo
+                    this.optionsDiv.style.top = '100%';
+                    this.optionsDiv.style.bottom = 'auto';
+                    this.optionsDiv.style.maxHeight = `${spaceBelow}px`;
+                }
             }
 
             applyFilter() {
@@ -163,7 +206,7 @@
         }
 
         customElements.define('paginated-dropdown', PaginatedDropdown);
-    </script>
+        </script>
 
     </body>
 </html>

@@ -5,7 +5,6 @@
     line-height: var(--text-height);
     text-align: center;
     text-transform: uppercase;
-    user-select: none;
 }
 
 .main {
