@@ -250,13 +250,11 @@ export default class TGrid {
         newTop = Math.max(0, Math.min(newTop, maxTop));
         this.#HTML.Scroll.Thumb.style.top = `${newTop}px`;
 
-        let pageSize = maxTop / (this.#PageCount - 1); // Faixa para cada página
+        let pageSize = maxTop / (this.#PageCount - 1);
+
         this.#IsNavigateByScroll = true;
         this.#LastPageNumber = this.#PageNumber;
-
-        // Calcule a página atual com base na posição do scrollbar
         this.#PageNumber = newTop / pageSize + 1;
-
         this.#HTML.NumberInput.value = Math.trunc(this.#PageNumber);
         this.#HTML.NumberInput.dispatchEvent(new Event("change"));
     }
@@ -596,7 +594,7 @@ export default class TGrid {
 
         label = document.createElement("label")
         label.style.float = "right"
-        label.innerHTML = `Total de Registros: ${this.#RowCount}`
+        label.innerHTML = `Total de Registros: ${this.#Rows.length}/${this.#RowCount}`
         th.appendChild(label)
         tr.appendChild(th)
 
