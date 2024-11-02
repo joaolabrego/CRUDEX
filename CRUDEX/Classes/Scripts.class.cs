@@ -83,7 +83,7 @@ namespace crudex.Classes
         }
         public static async Task<DataSet> GetDataSet(string systemName)
         {
-            var dataset = (await SQLProcedure.Execute(Settings.ConnecionString(),
+            var dataset = (await SQLProcedure.Execute(Settings.ConnectionString(),
                                                Settings.Get("SCRIPT_SYSTEM_PROCEDURE"),
                                                Config.ToDictionary(Config.ToDictionary(new
                                                {

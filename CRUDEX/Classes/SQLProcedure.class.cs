@@ -60,7 +60,7 @@ namespace CRUDA_LIB
                 },
             });
 
-            return Execute(Settings.ConnecionString(), Settings.Get("CONFIG_PROCEDURE"), parameters);
+            return Execute(Settings.ConnectionString(), Settings.Get("CONFIG_PROCEDURE"), parameters);
         }
         public static Task<TResult> Execute(string systemName, TDictionary? parameters)
         {

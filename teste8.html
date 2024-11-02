@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Controle com JS</title>
+        <style>
+        .dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .dropdown-arrow {
+            position: absolute;
+            right: 0;
+            cursor: pointer;
+        }
+
+        .dropdown-options {
+            display: none;
+            position: absolute;
+            width: 100%;
+            border: 1px solid #ddd;
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: white;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            z-index: 1;
+        }
+
+        .dropdown-options div {
+            cursor: pointer;
+        }
+
+        .dropdown-options div:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+    </head>
+    <body>
+
+        <script>
+    class DropdownControl {
+        constructor(options) {
+            this.options = options;
+        }
+
+        createDropdown() {
+            // Cria o container do dropdown
+            const container = document.createElement('div');
+            container.classList.add('dropdown-container');
+
+            // Cria o input de texto
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.classList.add('dropdown-input');
+            input.placeholder = 'Digite ou selecione...';
+
+            // Cria a seta para baixo
+            const arrow = document.createElement('span');
+            arrow.innerHTML = '&#9660;';
+            arrow.classList.add('dropdown-arrow');
+
+            // Cria o menu suspenso com as opções
+            const optionsDiv = document.createElement('div');
+            optionsDiv.classList.add('dropdown-options');
+
+            // Adiciona as opções ao menu suspenso
+            this.options.forEach(option => {
+                const optionDiv = document.createElement('div');
+                optionDiv.textContent = option;
+                optionsDiv.appendChild(optionDiv);
+            });
+
+            // Eventos
+            arrow.addEventListener('click', () => {
+                optionsDiv.style.display = optionsDiv.style.display === 'block' ? 'none' : 'block';
+            });
+
+            input.addEventListener('input', () => {
+                const query = input.value.toLowerCase();
+                const items = optionsDiv.querySelectorAll('div');
+
+                let hasResults = false;
+                items.forEach(item => {
+                    if (item.textContent.toLowerCase().includes(query)) {
+                        item.style.display = 'block';
+                        hasResults = true;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                optionsDiv.style.display = hasResults ? 'block' : 'none';
+            });
+
+            optionsDiv.addEventListener('click', (event) => {
+                if (event.target.tagName === 'DIV') {
+                    input.value = event.target.textContent;
+                    optionsDiv.style.display = 'none';
+                }
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!container.contains(event.target)) {
+                    optionsDiv.style.display = 'none';
+                }
+            });
+
+            // Adiciona o input, a seta e o menu suspenso ao container
+            container.appendChild(input);
+            container.appendChild(arrow);
+            container.appendChild(optionsDiv);
+
+            // Adiciona o controle ao body (ou qualquer outro lugar)
+            document.body.appendChild(container);
+        }
+    }
+
+    // Exemplo de uso
+    const dropdown = new DropdownControl(['Apple', 'Banana', 'Cherry', 'Date', 'Elderberry', 'Fig', 'Grapes']);
+    dropdown.createDropdown();
+
+</script>
+    </html>

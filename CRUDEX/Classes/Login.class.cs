@@ -17,7 +17,7 @@ namespace CRUDA_LIB
                 else if (login.ContainsKey("SystemName") && login.ContainsKey("UserName") && login.ContainsKey("Password") && login.ContainsKey("Action"))
                 {
                     return await SQLProcedure.Execute(
-                        Settings.ConnecionString(),
+                        Settings.ConnectionString(),
                         Settings.Get("LOGIN_PROCEDURE"),
                         Config.ToDictionary(new
                         {
@@ -43,7 +43,7 @@ namespace CRUDA_LIB
         public static async Task<string> GetPublicKey(long loginId)
         {
             return (await SQLProcedure.Execute(
-                Settings.ConnecionString(),
+                Settings.ConnectionString(),
                 Settings.Get("PUBLICKEY_PROCEDURE"),
                 Config.ToDictionary(new
                 {
