@@ -85,7 +85,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 		IF @action = 'login' BEGIN
 			IF @PublicKey IS NULL
 				THROW 51000, 'Chave pública é requerida', 1
-			EXEC @LoginId = [dbo].[GenerateId] 'crudex', 'crudex', 'Logins'
+			EXEC @LoginId = [dbo].[NewId] 'crudex', 'crudex', 'Logins'
 			INSERT [dbo].[Logins]([Id],
 								  [SystemId],
 								  [UserId],

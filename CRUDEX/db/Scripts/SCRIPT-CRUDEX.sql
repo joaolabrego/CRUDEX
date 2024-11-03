@@ -388,14 +388,14 @@ BEGIN
 END
 GO
 /**********************************************************************************
-Criar stored procedure [dbo].[GenerateId]
+Criar stored procedure [dbo].[NewId]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[GenerateId]','P')) IS NULL
-	EXEC('CREATE PROCEDURE [dbo].[GenerateId] AS PRINT 1')
+IF(SELECT object_id('[dbo].[NewId]','P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[NewId] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[GenerateId](@SystemName VARCHAR(25)
-								  ,@DatabaseName VARCHAR(25)
-								  ,@TableName VARCHAR(25)) AS
+ALTER PROCEDURE [dbo].[NewId](@SystemName VARCHAR(25)
+							 ,@DatabaseName VARCHAR(25)
+							 ,@TableName VARCHAR(25)) AS
 BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 			,@ErrorMessage NVARCHAR(MAX)
@@ -427,7 +427,7 @@ BEGIN
 							  AND [DatabaseId] = @DatabaseId)
 			THROW 51000, 'Banco-de-dados não pertence ao sistema especificado', 1
 		SELECT @TableId = [Id]
-			   ,@NextId = [CurrentId] + 1
+			   ,@NextId = ISNULL([CurrentId], 0) + 1
 			FROM [dbo].[Tables]
 			WHERE [Name] = @TableName
 		IF @TableId IS NULL
@@ -443,6 +443,56 @@ BEGIN
 		COMMIT TRANSACTION
 
 		RETURN @NextId
+	END TRY
+	BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+	END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[NewOperationId]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[NewOperationId]','P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[NewOperationId] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[NewOperationId](@SystemName VARCHAR(25)
+									  ,@DatabaseName VARCHAR(25)) AS
+BEGIN
+	DECLARE @TRANCOUNT INT = @@TRANCOUNT
+			,@ErrorMessage NVARCHAR(MAX)
+
+	BEGIN TRY
+		SET NOCOUNT ON
+		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+		DECLARE @SystemId INT
+				,@DatabaseId INT
+				,@NexOperationtId INT
+
+		BEGIN TRANSACTION
+		SAVE TRANSACTION [SavePoint]
+		SELECT @SystemId = [Id]
+			FROM [dbo].[Systems]
+			WHERE [Name] = @SystemName
+		IF @SystemId IS NULL
+			THROW 51000, 'Sistema n�o encontrado', 1
+		SELECT @DatabaseId = [Id]
+				,@NexOperationtId = ISNULL([CurrentOperationId], 0) + 1
+			FROM [dbo].[Databases]
+			WHERE [Name] = @DatabaseName
+		IF @DatabaseId IS NULL
+			THROW 51000, 'Banco-de-dados n�o encontrado', 1
+		UPDATE [dbo].[Databases] 
+			SET [CurrentOperationId] = @NexOperationtId
+			WHERE [Id] = @DatabaseId
+		COMMIT TRANSACTION
+
+		RETURN @NexOperationtId
 	END TRY
 	BEGIN CATCH
         IF @@TRANCOUNT > @TRANCOUNT BEGIN
@@ -544,7 +594,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 		IF @action = 'login' BEGIN
 			IF @PublicKey IS NULL
 				THROW 51000, 'Chave pública é requerida', 1
-			EXEC @LoginId = [dbo].[GenerateId] 'crudex', 'crudex', 'Logins'
+			EXEC @LoginId = [dbo].[NewId] 'crudex', 'crudex', 'Logins'
 			INSERT [dbo].[Logins]([Id],
 								  [SystemId],
 								  [UserId],

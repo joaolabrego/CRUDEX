@@ -292,9 +292,13 @@ namespace crudex.Classes
             result.Append($"**********************************************************************************/\r\n");
             result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.Config.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar stored procedure [dbo].[GenerateId]\r\n");
+            result.Append($"Criar stored procedure [dbo].[NewId]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.GenerateId.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.NewId.sql")));
+            result.Append($"/**********************************************************************************\r\n");
+            result.Append($"Criar stored procedure [dbo].[NewOperationId]\r\n");
+            result.Append($"**********************************************************************************/\r\n");
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.NewOperationId.sql")));
             result.Append($"/**********************************************************************************\r\n");
             result.Append($"Criar stored procedure [dbo].[Login]\r\n");
             result.Append($"**********************************************************************************/\r\n");
@@ -370,6 +374,16 @@ namespace crudex.Classes
 
                     if (firstTime)
                     {
+                        var message = $"Primeira coluna definida na tabela '{table["Name"]}' deve ";
+
+                        if (Settings.ToString(column["Name"]) != "Id")
+                            throw new Exception(message + "ter nome 'Id'.");
+                        if (Settings.ToString(column["#CategoryName"]) != "numeric")
+                            throw new Exception(message + "ser de categoria 'numeric'.");
+                        if (!Settings.ToBoolean(column["IsPrimarykey"]))
+                            throw new Exception(message + "ser 'primary key'.");
+                        if (!Settings.ToBoolean(column["IsAutoIncrement"]))
+                            throw new Exception(message + "ser 'auto increment'.");
                         result.Append($"CREATE TABLE [dbo].[{table["Name"]}]({definition}\r\n");
                         firstTime = false;
                     }
@@ -410,8 +424,7 @@ namespace crudex.Classes
                         if (indexkeyRows.Count > 0)
                         {
                             firstTime = true;
-                            foreach (var indexkey in indexkeyRows)
-                            {
+                            foreach (var indexkey in indexkeyRows)                            {
                                 var column = columns.First(column => ToLong(column["Id"]) == ToLong(indexkey["ColumnId"]));
                                 var definition = $"[{column["Name"]}] {(ToBoolean(indexkey["IsDescending"]) ? "DESC" : "ASC")}";
 
