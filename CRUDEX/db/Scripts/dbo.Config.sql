@@ -4,7 +4,7 @@ GO
 ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
 							  ,@DatabaseName VARCHAR(25) = NULL
 							  ,@TableName VARCHAR(25) = NULL
-							  ,@ReturnValue INT OUT) AS
+							  ,@ReturnValue BIGINT OUT) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(250)
 
@@ -279,9 +279,8 @@ BEGIN
 			SELECT * FROM [dbo].[#Databases] ORDER BY [Name] -- 2 [#Databases]
 			SELECT * FROM [dbo].[#Tables] ORDER BY [DatabaseId], [Name] -- 3 [#Tables]
 		END
-		SET @ReturnValue = 1
 		
-		RETURN @ReturnValue
+		RETURN 0
 	END TRY
 	BEGIN CATCH
 		THROW

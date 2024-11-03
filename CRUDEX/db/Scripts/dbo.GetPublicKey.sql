@@ -1,8 +1,8 @@
 ﻿IF(SELECT object_id('[dbo].[GetPublicKey]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[GetPublicKey] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId INT
-								   ,@ReturnValue INT OUT) AS BEGIN
+ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT
+								   ,@ReturnValue BIGINT OUT) AS BEGIN
 	DECLARE @ErrorMessage NVARCHAR(MAX)
 
 	BEGIN TRY

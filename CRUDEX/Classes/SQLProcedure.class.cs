@@ -36,7 +36,7 @@ namespace CRUDA_LIB
                         }
                     }
                 }
-                command.Parameters.Add(new OleDbParameter("ReturnValue", OleDbType.Integer) { Direction = ParameterDirection.Output });
+                command.Parameters.Add(new OleDbParameter("ReturnValue", OleDbType.BigInt) { Direction = ParameterDirection.Output });
                 using var adapter = new OleDbDataAdapter(command);
                 await Task.Run(() => adapter.Fill(dataset));
 

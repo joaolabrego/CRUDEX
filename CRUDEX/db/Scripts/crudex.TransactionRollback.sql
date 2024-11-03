@@ -20,7 +20,7 @@ ALTER PROCEDURE[crudex].[TransactionRollback](@TransactionId INT
 			THROW 51000, 'Valor de @TransactionId é requerido', 1
 		SELECT @IsConfirmed = [IsConfirmed]
 			  ,@CreatedBy = [CreatedBy]
-			FROM [crudex].[Transactions]
+			FROM [dbo].[Transactions]
 			WHERE [Id] = @TransactionId
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Transação inexistente', 1
@@ -34,7 +34,7 @@ ALTER PROCEDURE[crudex].[TransactionRollback](@TransactionId INT
 		WHILE 1 = 1 BEGIN
 			SELECT TOP 1 @OperationId = [Id]
 						,@CreatedBy = [CreatedBy]
-				FROM [crudex].[Operations]
+				FROM [dbo].[Operations]
 				WHERE [TransactionId] = @TransactionId
 						AND [IsConfirmed] IS NULL
 				ORDER BY [Id]
@@ -42,13 +42,13 @@ ALTER PROCEDURE[crudex].[TransactionRollback](@TransactionId INT
 				BREAK
 			IF @UserName <> @CreatedBy
 				THROW 51000, 'Erro grave de segurança', 1
-			UPDATE [crudex].[Operations]
+			UPDATE [dbo].[Operations]
 				SET [IsConfirmed] = 0
 					,[UpdatedBy] = @UserName
 					,[UpdatedAt] = GETDATE()
 				WHERE [Id] = @OperationId
 		END
-		UPDATE [crudex].[Transactions]
+		UPDATE [dbo].[Transactions]
 			SET [IsConfirmed] = 0
 				,[UpdatedBy] = @UserName
 				,[UpdatedAt] = GETDATE()

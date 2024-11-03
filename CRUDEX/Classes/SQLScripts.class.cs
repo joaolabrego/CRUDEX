@@ -4,14 +4,13 @@ using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
-using crudex.Classes.Models;
 
 namespace crudex.Classes
 {
-    public class Scripts
+    public class SQLScripts
     {
         static readonly string DirectoryScripts = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_SCRIPTS"));
-        public static async Task GenerateScript(string systemName, string databaseName, bool? isExcel = null)
+        public static async Task Generate(string systemName, string databaseName, bool? isExcel = null)
         {
             var dataSet = (isExcel ?? systemName == "crudex") ? await ExcelToDataSet() : await GetDataSet(systemName);
             var columns = (dataSet.Tables["Columns"] ?? throw new Exception("Tabela Columns não existe.")).AsEnumerable().ToList();
@@ -21,11 +20,11 @@ namespace crudex.Classes
             var categories = (dataSet.Tables["Categories"] ?? throw new Exception("Tabela Categories não existe.")).AsEnumerable().ToList();
             var types = (dataSet.Tables["Types"] ?? throw new Exception("Tabela Types não existe.")).AsEnumerable().ToList();
             var system = (dataSet.Tables["Systems"] ?? throw new Exception("Tabela Systems não existe.")).AsEnumerable().ToList()
-                .First(row => ToString(row["Name"]) == systemName);
+                .First(row => Settings.ToString(row["Name"]) == systemName);
             var database = (dataSet.Tables["Databases"] ?? throw new Exception("Tabela Databases não existe.")).AsEnumerable().ToList()
-                .First(row => ToString(row["Name"]) == databaseName);
+                .First(row => Settings.ToString(row["Name"]) == databaseName);
             var databasesTables = (dataSet.Tables["DatabasesTables"] ?? throw new Exception("Tabela DatabasesTables não existe.")).AsEnumerable().ToList()
-                .FindAll(row => ToLong(row["DatabaseId"]) == ToLong(database?["Id"]));
+                .FindAll(row => Settings.ToLong(row["DatabaseId"]) == Settings.ToLong(database?["Id"]));
             var tables = (dataSet.Tables["Tables"] ?? throw new Exception("Tabela Tables não existe.")).AsEnumerable().ToList();
             var filename = Path.Combine(DirectoryScripts, $"SCRIPT-{databaseName.ToUpper()}.sql");
             var firstTime = true;
@@ -33,28 +32,31 @@ namespace crudex.Classes
             using var stream = new StreamWriter(path: filename, append: false, encoding: Encoding.UTF8);
             foreach (DataRow databaseTable in databasesTables)
             {
-                var table = tables.First(table => ToLong(table["Id"]) == ToLong(databaseTable["TableId"]));
+                var table = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(databaseTable["TableId"]));
 
                 if (firstTime)
                 {
-                    stream.Write(GetScriptCreateDatabase(database));
-                    if (systemName == "crudex")
-                        stream.Write(GetScriptOthers());
-                    stream.Write(GetScriptTransactions());
+                    await stream.WriteAsync(GetScriptCreateDatabase(database));
                     firstTime = false;
                 }
                 await stream.WriteAsync(GetScriptCreateTable(table, columns, indexes, indexkeys, domains, types));
             }
-            stream.Write(GetScriptReferences(tables, columns));
+            if (!firstTime)
+            {
+                if (systemName == "crudex")
+                    await stream.WriteAsync(GetScriptOthers());
+                await stream.WriteAsync(GetScriptTransactions());
+            }
+            await stream.WriteAsync(GetScriptReferences(tables, columns));
             foreach (var table in tables)
             {
-                var datatable = (dataSet.Tables[ToString(table["Name"])] ?? throw new Exception($"Tabela {table["Name"]} não encontrada")).AsEnumerable().ToList();
+                var datatable = (dataSet.Tables[Settings.ToString(table["Name"])] ?? throw new Exception($"Tabela {table["Name"]} não encontrada")).AsEnumerable().ToList();
 
                 await stream.WriteAsync(GetScriptInsertTable(table, columns, datatable));
             }
             foreach (DataRow databaseTable in databasesTables)
             {
-                var table = tables.First(table => ToLong(table["Id"]) == ToLong(databaseTable["TableId"]));
+                var table = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(databaseTable["TableId"]));
 
                 await stream.WriteAsync(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys));
                 await stream.WriteAsync(GetScriptPersistTable(table, columns));
@@ -63,7 +65,7 @@ namespace crudex.Classes
                 await stream.WriteAsync(GetScriptListTable(table, columns));
             }
         }
-        public static async Task<DataSet> ExcelToDataSet()
+        private static async Task<DataSet> ExcelToDataSet()
         {
             var filePath = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL"));
 
@@ -81,7 +83,7 @@ namespace crudex.Classes
                 });
             });
         }
-        public static async Task<DataSet> GetDataSet(string systemName)
+        private static async Task<DataSet> GetDataSet(string systemName)
         {
             var dataset = (await SQLProcedure.Execute(Settings.ConnectionString(),
                                                Settings.Get("SCRIPT_SYSTEM_PROCEDURE"),
@@ -100,70 +102,41 @@ namespace crudex.Classes
             dataset.Tables[5].TableName = "Menus";
             dataset.Tables[6].TableName = "Users";
             dataset.Tables[7].TableName = "SystemsUsers";
-            dataset.Tables[8].TableName = "Databases";
-            dataset.Tables[9].TableName = "SystemsDatabases";
-            dataset.Tables[10].TableName = "Tables";
-            dataset.Tables[11].TableName = "DatabasesTables";
-            dataset.Tables[12].TableName = "Columns";
-            dataset.Tables[13].TableName = "Indexes";
-            dataset.Tables[14].TableName = "Indexkeys";
-            dataset.Tables[15].TableName = "Logins";
+            dataset.Tables[8].TableName = "Connections";
+            dataset.Tables[9].TableName = "Databases";
+            dataset.Tables[10].TableName = "SystemsDatabases";
+            dataset.Tables[11].TableName = "Tables";
+            dataset.Tables[12].TableName = "DatabasesTables";
+            dataset.Tables[13].TableName = "Columns";
+            dataset.Tables[14].TableName = "Indexes";
+            dataset.Tables[15].TableName = "Indexkeys";
+            dataset.Tables[16].TableName = "Logins";
+            dataset.Tables[17].TableName = "Transactions";
+            dataset.Tables[18].TableName = "Operations";
 
             return dataset;
-        }
-        private static bool IsNull(object? value)
-        {
-            return value == DBNull.Value || value == null;
-        }
-        private static bool ToBoolean(object? value)
-        {
-            if (IsNull(value))
-                return false;
-
-            return Convert.ToBoolean(Convert.ToUInt16(value));
-        }
-        private static long ToLong(object? value)
-        {
-            if (IsNull(value))
-                return 0;
-
-            return Convert.ToInt64((value ?? 0).ToString());
-        }
-        private static double ToDouble(object? value)
-        {
-            if (IsNull(value))
-                return 0.0;
-
-            return Convert.ToDouble(value ?? 0.0);
-        }
-        private static string ToString(object? value)
-        {
-            if (IsNull(value))
-                return string.Empty;
-
-            return Convert.ToString(value) ?? string.Empty;
         }
         private static TDictionary GetConstraints(DataRow column, TDataRows domains, TDataRows types)
         {
             var result = new TDictionary();
-            var domain = domains.First(domain => ToLong(domain["Id"]) == ToLong(column["DomainId"]));
-            var type = types.First(type => ToLong(type["Id"]) == ToLong(domain["TypeId"]));
+            var domain = domains.First(domain => Settings.ToLong(domain["Id"]) == Settings.ToLong(column["DomainId"]));
+            var type = types.First(type => Settings.ToLong(type["Id"]) == Settings.ToLong(domain["TypeId"]));
             string value;
 
-            if (ToBoolean(column["IsPrimarykey"]) || ToBoolean(column["IsRequired"]))
+            if (Settings.ToBoolean(column["IsPrimarykey"]) || Settings.ToBoolean(column["IsRequired"]))
                 result.Add("Required", " NOT NULL");
             else
                 result.Add("Required", " NULL");
-            if (ToBoolean(column["IsAutoIncrement"]))
+            if (Settings.ToBoolean(column["IsAutoIncrement"]))
                 result.Add("AutoIncrement", " IDENTITY(1,1)");
-            if ((value = ToString(column["Default"])) != string.Empty)
+            if ((value = Settings.ToString(column["Default"])) != string.Empty)
                 result.Add("Default", $" DEFAULT CAST('{value}' AS {column["#DataType"]})");
-            if ((value = ToString(column["Minimum"] ?? domain["Minimum"] ?? type["Minimum"])) != string.Empty)
+            if ((value = Settings.ToString(column["Minimum"] ?? domain["Minimum"] ?? type["Minimum"])) != string.Empty)
             {
                 result.Add("Range", $" CHECK ([{column["Name"]}] >= CAST('{value}' AS {column["#DataType"]}))");
                 result.Add("Minimum", value);
             }
-            if ((value = ToString(column["Maximum"] ?? domain["Maximum"] ?? type["Maximum"])) != string.Empty)
+            if ((value = Settings.ToString(column["Maximum"] ?? domain["Maximum"] ?? type["Maximum"])) != string.Empty)
             {
                 if (result.ContainsKey("Range"))
                     result["Range"] += $" AND [{column["Name"]}] <= CAST('{value}' AS {column["#DataType"]}))";
@@ -180,7 +153,7 @@ namespace crudex.Classes
             var folder = database["Folder"].ToString() ?? string.Empty;
             var databaseName = database["Name"];
             var databaseAlias = database["Alias"];
-            var filename = Path.Combine(folder, ToString(databaseName));
+            var filename = Path.Combine(folder, Settings.ToString(databaseName));
 
             result.Append($"/**********************************************************************************\r\n");
             result.Append($"Criar banco-de-dados {databaseName}\r\n");
@@ -352,11 +325,12 @@ namespace crudex.Classes
         private static StringBuilder GetScriptCreateTable(DataRow table, TDataRows columns, TDataRows indexes, TDataRows indexkeys, TDataRows domains, TDataRows types)
         {
             var result = new StringBuilder();
-            var firstTime = true;
-            var columnRows = columns.FindAll(column => ToLong(column["TableId"]) == ToLong(table["Id"]));
-
+            var columnRows = columns.FindAll(column => Settings.ToLong(column["TableId"]) == Settings.ToLong(table["Id"]));
+            
             if (columnRows.Count > 0)
             {
+                var firstTime = true;
+
                 result.Append($"/**********************************************************************************\r\n");
                 result.Append($"Criar tabela [dbo].[{table["Name"]}]\r\n");
                 result.Append($"**********************************************************************************/\r\n");
@@ -388,49 +362,42 @@ namespace crudex.Classes
                         firstTime = false;
                     }
                     else
+                    {
+                        var message = $"Demais colunas definidas na tabela '{table["Name"]}' não devem ";
+
+                        if (Settings.ToString(column["Name"]).ToLower() == "id")
+                            throw new Exception(message + "ter nome 'Id'.");
+                        if (Settings.ToBoolean(column["IsPrimarykey"]))
+                            throw new Exception(message + "ser 'primary key'.");
+                        if (Settings.ToBoolean(column["IsAutoIncrement"]))
+                            throw new Exception(message + "ser 'auto increment'.");
                         result.Append($"                                    ,{definition}\r\n");
+                    }
                 }
                 result.Append($"                                    ,[CreatedAt] datetime NOT NULL\r\n");
                 result.Append($"                                    ,[CreatedBy] varchar(25) NOT NULL\r\n");
                 result.Append($"                                    ,[UpdatedAt] datetime NULL\r\n");
                 result.Append($"                                    ,[UpdatedBy] varchar(25) NULL)\r\n");
-                firstTime = true;
+                result.Append($"ALTER TABLE [dbo].[{table["Name"]}] ADD CONSTRAINT PK_{table["Name"]} PRIMARY KEY CLUSTERED ([{columns[0]["Name"]}])\r\n");
 
-                var pkColumnRows = columns.FindAll(column => ToLong(column["TableId"]) == ToLong(table["Id"]) && ToBoolean(column["IsPrimarykey"]));
-
-                if (pkColumnRows.Count > 0)
-                {
-                    foreach (DataRow pkColumnRow in pkColumnRows)
-                    {
-                        if (firstTime)
-                        {
-                            result.Append($"ALTER TABLE [dbo].[{table["Name"]}] ADD CONSTRAINT PK_{table["Name"]} PRIMARY KEY CLUSTERED ([{pkColumnRow["Name"]}]");
-                            firstTime = false;
-                        }
-                        else
-                            result.Append($", [{pkColumnRow["Name"]}]");
-                    }
-                    result.Append($")\r\n");
-                }
-
-                var indexRows = indexes.FindAll(index => ToLong(index["TableId"]) == ToLong(table["Id"]));
+                var indexRows = indexes.FindAll(index => Settings.ToLong(index["TableId"]) == Settings.ToLong(table["Id"]));
 
                 if (indexRows.Count > 0)
                 {
                     foreach (var index in indexRows)
                     {
-                        var indexkeyRows = indexkeys.FindAll(indexkey => ToLong(indexkey["IndexId"]) == ToLong(index["Id"]));
+                        var indexkeyRows = indexkeys.FindAll(indexkey => Settings.ToLong(indexkey["IndexId"]) == Settings.ToLong(index["Id"]));
 
                         if (indexkeyRows.Count > 0)
                         {
                             firstTime = true;
                             foreach (var indexkey in indexkeyRows)                            {
-                                var column = columns.First(column => ToLong(column["Id"]) == ToLong(indexkey["ColumnId"]));
-                                var definition = $"[{column["Name"]}] {(ToBoolean(indexkey["IsDescending"]) ? "DESC" : "ASC")}";
+                                var column = columns.First(column => Settings.ToLong(column["Id"]) == Settings.ToLong(indexkey["ColumnId"]));
+                                var definition = $"[{column["Name"]}] {(Settings.ToBoolean(indexkey["IsDescending"]) ? "DESC" : "ASC")}";
 
                                 if (firstTime)
                                 {
-                                    result.Append($"CREATE {(ToBoolean(index["IsUnique"]) ? "UNIQUE" : "")} INDEX [{index["Name"]}] ON [dbo].[{table["Name"]}]({definition}");
+                                    result.Append($"CREATE {(Settings.ToBoolean(index["IsUnique"]) ? "UNIQUE" : "")} INDEX [{index["Name"]}] ON [dbo].[{table["Name"]}]({definition}");
                                     firstTime = false;
                                 }
                                 else
@@ -449,15 +416,15 @@ namespace crudex.Classes
         {
             var result = new StringBuilder();
             var lastTableName = string.Empty;
-            var foreignRows = columns.FindAll(column => ToString(column["ReferenceTableId"]) != string.Empty);
+            var foreignRows = columns.FindAll(column => Settings.ToString(column["ReferenceTableId"]) != string.Empty);
 
             if (foreignRows.Count > 0)
             {
                 foreach (var foreign in foreignRows)
                 {
-                    var primaryTable = tables.First(table => ToLong(table["Id"]) == ToLong(foreign["TableId"]));
-                    var foreignTable = tables.First(table => ToLong(table["Id"]) == ToLong(foreign["ReferenceTableId"]));
-                    var foreignKey = columns.First(column => ToLong(column["TableId"]) == ToLong(foreignTable["Id"]) && ToBoolean(column["IsPrimarykey"]));
+                    var primaryTable = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(foreign["TableId"]));
+                    var foreignTable = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(foreign["ReferenceTableId"]));
+                    var foreignKey = columns.First(column => Settings.ToLong(column["TableId"]) == Settings.ToLong(foreignTable["Id"]) && Settings.ToBoolean(column["IsPrimarykey"]));
                     var foreignName = $"FK_{primaryTable["Name"]}_{foreignTable["Name"]}";
 
                     if (primaryTable["Name"].ToString() != lastTableName)
@@ -488,7 +455,7 @@ namespace crudex.Classes
 
             if (dataRows.Count > 0)
             {
-                var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
+                var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
 
                 result.Append($"/**********************************************************************************\r\n");
                 result.Append($"Inserir dados na tabela [dbo].[{table["Name"]}]\r\n");
@@ -516,15 +483,15 @@ namespace crudex.Classes
                         firstTime = true;
                         foreach (var column in columnRows)
                         {
-                            var categoryName = ToString(column["#CategoryName"]);
-                            var columnName = ToString(column["Name"]);
+                            var categoryName = Settings.ToString(column["#CategoryName"]);
+                            var columnName = Settings.ToString(column["Name"]);
                             dynamic? value = data[columnName];
 
                             if (categoryName == "numeric")
                                 value ??= null;
                             else if (categoryName == "boolean")
-                                value = IsNull(value) ? null : value ? 1 : 0;
-                            if ((value = ToString(value)) == string.Empty)
+                                value = Settings.IsNull(value) ? null : value ? 1 : 0;
+                            if ((value = Settings.ToString(value)) == string.Empty)
                                 value = "NULL";
                             else if (categoryName == "undefined")
                                 value = $"CAST('{value}' AS {data["#DataType"]})";
@@ -556,8 +523,7 @@ namespace crudex.Classes
         private static StringBuilder GetScriptPersistTable(DataRow table, TDataRows columns)
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
-            var firstTime = true;
+            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
 
             if (columnRows.Count > 0)
             {
@@ -567,7 +533,7 @@ namespace crudex.Classes
                 result.Append($"IF(SELECT object_id('[dbo].[{table["Alias"]}Persist]', 'P')) IS NULL\r\n");
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Alias"]}Persist] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Persist](@LoginId INT\r\n");
+                result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Persist](@LoginId BIGINT\r\n");
                 result.Append($"                                              ,@UserName NVARCHAR(25)\r\n");
                 result.Append($"                                              ,@Action NVARCHAR(15)\r\n");
                 result.Append($"                                              ,@OriginalRecord NVARCHAR(max)\r\n");
@@ -579,37 +545,25 @@ namespace crudex.Classes
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @TransactionId INT\r\n");
-                result.Append($"               ,@OperationId INT\r\n");
+                result.Append($"        DECLARE @TransactionId BIGINT\r\n");
+                result.Append($"               ,@OperationId BIGINT\r\n");
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
                 result.Append($"               ,@ActionAux NVARCHAR(15)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
-
-                var pkColumnRows = columnRows.FindAll(row => ToBoolean(row["IsPrimarykey"]));
-
-                foreach (var column in pkColumnRows)
-                    result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                result.Append($"               ,@W_{columnRows[0]["Name"]} {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{columnRows[0]["Name"]}') AS {columnRows[0]["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
                 result.Append($"        SAVE TRANSACTION [SavePoint]\r\n");
                 result.Append($"        EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord\r\n");
-                firstTime = true;
-                foreach (var column in pkColumnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"        SELECT @OperationId = [Id]\r\n");
-                        result.Append($"              ,@CreatedBy = [CreatedBy]\r\n");
-                        result.Append($"              ,@ActionAux = [Action]\r\n");
-                        result.Append($"              ,@IsConfirmed = [IsConfirmed]\r\n");
-                        result.Append($"            FROM [dbo].[Operations]\r\n");
-                        result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
-                        result.Append($"                  AND [TableName] = 'Columns'\r\n");
-                        result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
-                                        firstTime = false;
-                    }
-                    result.Append($"                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) = @W_{column["Name"]}\r\n");
-                }
+                result.Append($"        SELECT @OperationId = [Id]\r\n");
+                result.Append($"              ,@CreatedBy = [CreatedBy]\r\n");
+                result.Append($"              ,@ActionAux = [Action]\r\n");
+                result.Append($"              ,@IsConfirmed = [IsConfirmed]\r\n");
+                result.Append($"            FROM [dbo].[Operations]\r\n");
+                result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
+                result.Append($"                  AND [TableName] = 'Columns'\r\n");
+                result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
+                result.Append($"                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.{columnRows[0]["Name"]}') AS {columnRows[0]["#DataType"]}) = @W_{columnRows[0]["Name"]}\r\n");
                 result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
                 result.Append($"            INSERT INTO [dbo].[Operations] ([TransactionId]\r\n");
                 result.Append($"                                             ,[TableName]\r\n");
@@ -662,7 +616,7 @@ namespace crudex.Classes
                 result.Append($"        END\r\n");
                 result.Append($"        COMMIT TRANSACTION\r\n");
                 result.Append($"\r\n");
-                result.Append($"        RETURN CAST(@OperationId AS INT)\r\n");
+                result.Append($"        RETURN CAST(@OperationId AS BIGINT)\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
                 result.Append($"        IF @@TRANCOUNT > @TRANCOUNT BEGIN\r\n");
@@ -681,7 +635,7 @@ namespace crudex.Classes
         private static StringBuilder GetScriptCommitTable(DataRow table, TDataRows columns)
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
+            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
 
             if (columnRows.Count > 0)
             {
@@ -691,9 +645,9 @@ namespace crudex.Classes
                 result.Append($"IF(SELECT object_id('[dbo].[{table["Alias"]}Commit]', 'P')) IS NULL\r\n");
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Alias"]}Commit] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Commit](@LoginId INT\r\n");
+                result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Commit](@LoginId BIGINT\r\n");
                 result.Append($"                                             ,@UserName NVARCHAR(25)\r\n");
-                result.Append($"                                             ,@OperationId INT) AS BEGIN\r\n");
+                result.Append($"                                             ,@OperationId BIGINT) AS BEGIN\r\n");
                 result.Append($"    DECLARE @TRANCOUNT INT = @@TRANCOUNT\r\n");
                 result.Append($"            ,@ErrorMessage NVARCHAR(MAX)\r\n");
                 result.Append($"\r\n");
@@ -701,8 +655,8 @@ namespace crudex.Classes
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @TransactionId INT\r\n");
-                result.Append($"               ,@TransactionIdAux INT\r\n");
+                result.Append($"        DECLARE @TransactionId BIGINT\r\n");
+                result.Append($"               ,@TransactionIdAux BIGINT\r\n");
                 result.Append($"               ,@TableName NVARCHAR(25)\r\n");
                 result.Append($"               ,@Action NVARCHAR(15)\r\n");
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
@@ -740,40 +694,14 @@ namespace crudex.Classes
                 result.Append($"        EXEC @TransactionIdAux = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord\r\n");
                 result.Append($"        IF @TransactionId <> @TransactionIdAux\r\n");
                 result.Append($"            THROW 51000, 'Transação da operação é inválida', 1\r\n");
+                result.Append($"        DECLARE @W_{columnRows[0]["Name"]} {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{columnRows[0]["Name"]}') AS {columnRows[0]["#DataType"]})\r\n");
+                result.Append($"\r\n");
+                result.Append($"        IF @Action = 'delete'\r\n");
+                result.Append($"            DELETE FROM [dbo].[{table["Name"]}] WHERE [{columnRows[0]["Name"]}] = @W_{columnRows[0]["Name"]}\r\n");
 
-                var pkColumnRows = columnRows.FindAll(row => ToBoolean(row["IsPrimarykey"]));
+                var nonpkColumnRows = columnRows.FindAll(row => !Settings.ToBoolean(row["IsPrimarykey"]));
                 var firstTime = true;
 
-                if (pkColumnRows.Count > 0)
-                {
-                    foreach (var column in pkColumnRows)
-                    {
-                        if (firstTime)
-                        {
-                            result.Append($"        DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
-                            firstTime = false;
-                        }
-                        else
-                            result.Append($"               ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
-                    }
-                    result.Append($"\r\n");
-                    firstTime = true;
-                    foreach (var column in pkColumnRows)
-                    {
-                        if (firstTime)
-                        {
-                            result.Append($"        IF @Action = 'delete'\r\n");
-                            result.Append($"            DELETE FROM [dbo].[{table["Name"]}] WHERE [{column["Name"]}] = @W_{column["Name"]}\r\n");
-                            firstTime = false;
-                        }
-                        else
-                            result.Append($"                                                      AND [{column["Name"]}] = @W_{column["Name"]}\r\n");
-                    }
-                }
-
-                var nonpkColumnRows = columnRows.FindAll(row => !ToBoolean(row["IsPrimarykey"]));
-
-                firstTime = true;
                 if (nonpkColumnRows.Count > 0)
                 {
                     foreach (var column in nonpkColumnRows)
@@ -831,17 +759,7 @@ namespace crudex.Classes
                 }
                 result.Append($"                                              ,[UpdatedAt] = GETDATE()\r\n");
                 result.Append($"                                              ,[UpdatedBy] = @UserName\r\n");
-                firstTime = true;
-                foreach (var column in pkColumnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"                    WHERE [{column["Name"]}] = @W_{column["Name"]}\r\n");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($"                          AND [{column["Name"]}] = @W_{column["Name"]}\r\n");
-                }
+                result.Append($"                    WHERE [{columnRows[0]["Name"]}] = @W_{columnRows[0]["Name"]}\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"        UPDATE [dbo].[Operations]\r\n");
                 result.Append($"            SET [IsConfirmed] = 1\r\n");
@@ -869,8 +787,7 @@ namespace crudex.Classes
         private static StringBuilder GetScriptValidateTable(DataRow table, TDataRows tables, TDataRows columns, TDataRows domains, TDataRows types, TDataRows indexes, TDataRows indexkeys)
         {
             var result = new StringBuilder();
-            var firstTime = true;
-            var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
+            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
 
             if (columnRows.Count > 0)
             {
@@ -880,7 +797,7 @@ namespace crudex.Classes
                 result.Append($"IF(SELECT object_id('[dbo].[{table["Alias"]}Validate]', 'P')) IS NULL\r\n");
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Alias"]}Validate] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Validate](@LoginId INT\r\n");
+                result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Validate](@LoginId BIGINT\r\n");
                 result.Append($"                                               ,@UserName NVARCHAR(25)\r\n");
                 result.Append($"                                               ,@Action NVARCHAR(15)\r\n");
                 result.Append($"                                               ,@OriginalRecord NVARCHAR(max)\r\n");
@@ -902,21 +819,10 @@ namespace crudex.Classes
                 result.Append($"            THROW 51000, 'Valor de @ActualRecord é requerido', 1\r\n");
                 result.Append($"        IF ISJSON(@ActualRecord) = 0\r\n");
                 result.Append($"            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1\r\n");
-                
-                var pkColumnRows = columnRows.FindAll(column => ToBoolean(column["IsPrimarykey"]));
-
-                result.Append($"\r\n");
-                foreach (var column in pkColumnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
-                        result.Append($"               ,@IsConfirmed BIT\r\n");
-                        result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
-                        firstTime = false;
-                    }
-                    result.Append($"               ,@W_{column["Name"]} AS {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
-                }
+                result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
+                result.Append($"               ,@IsConfirmed BIT\r\n");
+                result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
+                result.Append($"               ,@W_{columnRows[0]["Name"]} AS {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{columnRows[0]["Name"]}') AS {columnRows[0]["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF @TransactionId IS NULL\r\n");
                 result.Append($"            THROW 51000, 'Não existe transação para este @LoginId', 1\r\n");
@@ -930,38 +836,24 @@ namespace crudex.Classes
                 result.Append($"        END\r\n");
                 result.Append($"        IF @UserName <> @CreatedBy\r\n");
                 result.Append($"            THROW 51000, 'Erro grave de segurança', 1\r\n");
-                firstTime = true;
-                foreach (var column in pkColumnRows)
-                {
-                    var constraints = GetConstraints(column, domains, types);
 
-                    result.Append($"        IF @W_{column["Name"]} IS NULL BEGIN\r\n");
-                    result.Append($"            SET @ErrorMessage = 'Valor de {column["Name"]} em @ActualRecord é requerido.';\r\n");
-                    result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                    result.Append($"        END\r\n");
+                var constraints = GetConstraints(columnRows[0], domains, types);
 
-                    if (constraints.TryGetValue("Minimum", out dynamic? value))
-                    {
-                        result.Append($"        IF @W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]})\r\n");
-                        result.Append($"            THROW 51000, 'Valor de {column["Name"]} em @ActualRecord deve ser maior que ou igual a {value}', 1\r\n");
-                    }
-                    if (constraints.TryGetValue("Maximum", out value))
-                    {
-                        result.Append($"        IF @W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]})\r\n");
-                        result.Append($"            THROW 51000, 'Valor de {column["Name"]} em @ActualRecord deve ser menor que ou igual a {value}', 1\r\n");
-                    }
-                }
-                firstTime = true;
-                foreach (var column in pkColumnRows)
+                result.Append($"        IF @W_{columnRows[0]["Name"]} IS NULL BEGIN\r\n");
+                result.Append($"            SET @ErrorMessage = 'Valor de {columnRows[0]["Name"]} em @ActualRecord é requerido.';\r\n");
+                result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
+                result.Append($"        END\r\n");
+                if (constraints.TryGetValue("Minimum", out dynamic? value))
                 {
-                    if (firstTime)
-                    {
-                        result.Append($"        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE {column["Name"]} = @W_{column["Name"]}");
-                        firstTime= false;
-                    }
-                    else
-                        result.Append($" AND {column["Name"]} = @W_{column["Name"]}");
+                    result.Append($"        IF @W_{columnRows[0]["Name"]} < CAST('{value}' AS {columnRows[0]["#DataType"]})\r\n");
+                    result.Append($"            THROW 51000, 'Valor de {columnRows[0]["Name"]} em @ActualRecord deve ser maior que ou igual a {value}', 1\r\n");
                 }
+                if (constraints.TryGetValue("Maximum", out value))
+                {
+                    result.Append($"        IF @W_{columnRows[0]["Name"]} < CAST('{value}' AS {columnRows[0]["#DataType"]})\r\n");
+                    result.Append($"            THROW 51000, 'Valor de {columnRows[0]["Name"]} em @ActualRecord deve ser menor que ou igual a {value}', 1\r\n");
+                }
+                result.Append($"        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE {columnRows[0]["Name"]} = @W_{columnRows[0]["Name"]}");
                 result.Append(") BEGIN\r\n");
                 result.Append($"            IF @Action = 'create'\r\n");
                 result.Append($"                THROW 51000, 'Chave-primária já existe em {table["Name"]}', 1\r\n");
@@ -972,7 +864,9 @@ namespace crudex.Classes
                 result.Append($"                THROW 51000, 'Valor de @OriginalRecord é requerido', 1\r\n");
                 result.Append($"            IF ISJSON(@OriginalRecord) = 0\r\n");
                 result.Append($"                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1\r\n");
-                firstTime = true;
+
+                var firstTime = true;
+
                 foreach (var column in columnRows)
                 {
                     if (firstTime)
@@ -998,7 +892,7 @@ namespace crudex.Classes
                         result.Append($"\r\n");
                         result.Append($"                                  AND ");
                     }
-                    if (ToBoolean(column["IsRequired"]))
+                    if (Settings.ToBoolean(column["IsRequired"]))
                         result.Append($"[{column["Name"]}] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.{column["Name"]}')");
                     else
                         result.Append($"[crudex].[IS_EQUAL]([{column["Name"]}], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1");
@@ -1008,14 +902,14 @@ namespace crudex.Classes
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
 
-                var referenceRows = columns.FindAll(column => ToLong(column["ReferenceTableId"]) == ToLong(table["Id"]));
+                var referenceRows = columns.FindAll(column => Settings.ToLong(column["ReferenceTableId"]) == Settings.ToLong(table["Id"]));
 
                 if (referenceRows.Count > 0)
                 {
                     result.Append($"        IF @Action = 'delete' BEGIN\r\n");
                     foreach (var reference in referenceRows)
                     {
-                        result.Append($"            IF EXISTS(SELECT 1 FROM [dbo].[{reference["#TableName"]}] WHERE [{reference["Name"]}] = @W_{pkColumnRows[0]["Name"]})\r\n");
+                        result.Append($"            IF EXISTS(SELECT 1 FROM [dbo].[{reference["#TableName"]}] WHERE [{reference["Name"]}] = @W_{columnRows[0]["Name"]})\r\n");
                         result.Append($"                THROW 51000, 'Chave-primária referenciada em {reference["#TableName"]}', 1\r\n");
                     }
                     result.Append($"        END ELSE BEGIN\r\n");
@@ -1024,7 +918,7 @@ namespace crudex.Classes
                     result.Append($"        IF @Action <> 'delete' BEGIN\r\n");
                 result.Append($"\r\n");
 
-                var nopkColumnRows = columnRows.FindAll(column => !ToBoolean(column["IsPrimarykey"]));
+                var nopkColumnRows = columnRows.FindAll(column => !Settings.ToBoolean(column["IsPrimarykey"]));
 
                 firstTime = true;
                 foreach (var column in nopkColumnRows)
@@ -1041,14 +935,14 @@ namespace crudex.Classes
                 foreach (var column in nopkColumnRows)
                 {
                     var validations = GetConstraints(column, domains, types);
-                    var isRequired = ToBoolean(column["IsRequired"]);
+                    var isRequired = Settings.ToBoolean(column["IsRequired"]);
 
                     if (isRequired)
                     {
                         result.Append($"            IF @W_{column["Name"]} IS NULL\r\n");
                         result.Append($"                THROW 51000, 'Valor de {column["Name"]} em @ActualRecord é requerido.', 1\r\n");
                     }
-                    if (validations.TryGetValue("Minimum", out dynamic? value))
+                    if (validations.TryGetValue("Minimum", out value))
                     {
                         result.Append($"            IF {(isRequired ? string.Empty : $"@W_{column["Name"]} IS NOT NULL AND ")}@W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]})\r\n");
                         result.Append($"                THROW 51000, 'Valor de {column["Name"]} em @ActualRecord deve ser maior que ou igual a {value}', 1\r\n");
@@ -1058,29 +952,29 @@ namespace crudex.Classes
                         result.Append($"            IF {(isRequired ? string.Empty : $"@W_{column["Name"]} IS NOT NULL AND ")}@W_{column["Name"]} > CAST('{value}' AS {column["#DataType"]})\r\n");
                         result.Append($"                THROW 51000, 'Valor de {column["Name"]} em @ActualRecord deve ser menor que ou igual a {value}', 1\r\n");
                     }
-                    if (!IsNull(column["ReferenceTableId"]))
+                    if (!Settings.IsNull(column["ReferenceTableId"]))
                     {
-                        var referenceTable = tables.First(table => ToLong(table["Id"]) == ToLong(column["ReferenceTableId"]));
-                        var pkColumn = columns.First(col => ToLong(col["TableId"]) == ToLong(referenceTable["Id"]) && ToBoolean(col["IsPrimarykey"]));
+                        var referenceTable = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(column["ReferenceTableId"]));
+                        var pkColumn = columns.First(col => Settings.ToLong(col["TableId"]) == Settings.ToLong(referenceTable["Id"]) && Settings.ToBoolean(col["IsPrimarykey"]));
 
                         result.Append($"            IF NOT EXISTS(SELECT 1 FROM [dbo].[{referenceTable["Name"]}] WHERE [{pkColumn["Name"]}] = @W_{column["Name"]})\r\n");
                         result.Append($"                THROW 51000, 'Valor de {column["Name"]} em @ActualRecord inexiste em {referenceTable["Name"]}', 1\r\n");
                     }
                 }
 
-                var uniqueIndexRows = indexes.FindAll(index => ToLong(index["TableId"]) == ToLong(table["Id"]) && ToBoolean(index["IsUnique"]));
+                var uniqueIndexRows = indexes.FindAll(index => Settings.ToLong(index["TableId"]) == Settings.ToLong(table["Id"]) && Settings.ToBoolean(index["IsUnique"]));
 
                 if (uniqueIndexRows.Count > 0)
                 {
                     result.Append($"            IF @Action = 'create' BEGIN\r\n");
                     foreach (var index in uniqueIndexRows)
                     {
-                        var indexkeyRows = indexkeys.FindAll(indexkey => ToLong(indexkey["IndexId"]) == ToLong(index["Id"]));
+                        var indexkeyRows = indexkeys.FindAll(indexkey => Settings.ToLong(indexkey["IndexId"]) == Settings.ToLong(index["Id"]));
 
                         firstTime = true;
                         foreach (var indexkey in indexkeyRows)
                         {
-                            var column = columns.First(column => ToLong(column["Id"]) == ToLong(indexkey["ColumnId"]));
+                            var column = columns.First(column => Settings.ToLong(column["Id"]) == Settings.ToLong(indexkey["ColumnId"]));
 
                             if (firstTime)
                             {
@@ -1095,12 +989,12 @@ namespace crudex.Classes
                     }
                     foreach (var index in uniqueIndexRows)
                     {
-                        var indexkeyRows = indexkeys.FindAll(indexkey => ToLong(indexkey["IndexId"]) == ToLong(index["Id"]));
+                        var indexkeyRows = indexkeys.FindAll(indexkey => Settings.ToLong(indexkey["IndexId"]) == Settings.ToLong(index["Id"]));
                         
                         firstTime = true;
                         foreach (var indexkey in indexkeyRows)
                         {
-                            var column = columns.First(column => ToLong(column["Id"]) == ToLong(indexkey["ColumnId"]));
+                            var column = columns.First(column => Settings.ToLong(column["Id"]) == Settings.ToLong(indexkey["ColumnId"]));
 
                             if (firstTime)
                             {
@@ -1110,8 +1004,7 @@ namespace crudex.Classes
                             else
                                 result.Append($" AND [{column["Name"]}] = @W_{column["Name"]}");
                         }
-                        foreach (var column in pkColumnRows)
-                            result.Append($" AND [{column["Name"]}] <> @W_{column["Name"]}");
+                        result.Append($" AND [{columnRows[0]["Name"]}] <> @W_{columnRows[0]["Name"]}");
                         result.Append($")\r\n");
                         result.Append($"                THROW 51000, 'Chave única de {index["Name"]} já existe', 1\r\n");
                     }
@@ -1134,8 +1027,8 @@ namespace crudex.Classes
         private static StringBuilder GetReferenceQueries(DataRow reference, TDataRows columns)
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(reference["ReferenceTableId"]));
-            var pkColumnRows = columnRows.FindAll(column => ToBoolean(column["IsPrimarykey"]));
+            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(reference["ReferenceTableId"]));
+            var pkColumnRows = columnRows.FindAll(column => Settings.ToBoolean(column["IsPrimarykey"]));
             var firstTime = true;
 
             foreach( var column in columnRows)
@@ -1148,7 +1041,6 @@ namespace crudex.Classes
                 result.Append($"              ,[REF].[{column["Name"]}]\r\n");
             }
             result.Append($"            FROM [dbo].[#result] [RES]\r\n");
-            
             result.Append($"                INNER JOIN [dbo].[{reference["#ReferenceTableName"]}] [REF] ON [REF].[{pkColumnRows[0]["Name"]}] = [RES].[{reference["Name"]}]\r\n");
 
             return result;
@@ -1157,8 +1049,7 @@ namespace crudex.Classes
         private static StringBuilder GetScriptReadTable(DataRow table, TDataRows columns, TDataRows domains, TDataRows types)
         {
             var result = new StringBuilder();
-            var firstTime = true;
-            var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
+            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
 
             if (columnRows.Count > 0)
             {
@@ -1168,14 +1059,14 @@ namespace crudex.Classes
                 result.Append($"IF(SELECT object_id('[dbo].[{table["Name"]}Read]', 'P')) IS NULL\r\n");
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}Read] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}Read](@LoginId INT\r\n");
+                result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}Read](@LoginId BIGINT\r\n");
                 result.Append($"                                          ,@RecordFilter NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@OrderBy NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@PaddingGridLastPage BIT\r\n");
                 result.Append($"                                          ,@PageNumber INT OUT\r\n");
                 result.Append($"                                          ,@LimitRows INT OUT\r\n");
                 result.Append($"                                          ,@MaxPage INT OUT\r\n");
-                result.Append($"                                          ,@ReturnValue INT OUT) AS BEGIN\r\n");
+                result.Append($"                                          ,@ReturnValue BIGINT OUT) AS BEGIN\r\n");
                 result.Append($"    DECLARE @ErrorMessage NVARCHAR(MAX)\r\n");
                 result.Append($"\r\n");
                 result.Append($"    BEGIN TRY\r\n");
@@ -1215,10 +1106,13 @@ namespace crudex.Classes
                 result.Append($"                FROM STRING_SPLIT(@OrderBy, ',')\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
+                result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)\r\n");
                 result.Append($"            SET @TransactionId = NULL\r\n");
+
+                var firstTime = true;
+
                 foreach (var column in columnRows)
                 {
                     if (firstTime)
@@ -1233,20 +1127,7 @@ namespace crudex.Classes
                 result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                  AND [TableName] = '{table["Name"]}'\r\n");
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
-
-                var pkColumnRows = columnRows.FindAll(column => ToBoolean(column["IsPrimarykey"]));
-
-                firstTime = true;
-                foreach (var column in pkColumnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([{column["Name"]}]");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($", [{column["Name"]}]");
-                }
+                result.Append($"        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([{columnRows[0]["Name"]}]");
                 result.Append($")\r\n");
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))\r\n");
@@ -1255,7 +1136,7 @@ namespace crudex.Classes
                 result.Append($"\r\n");
                 result.Append($"        IF @_ IS NULL BEGIN\r\n");
 
-                var filterableColumns = columnRows.FindAll(column => ToBoolean(column["IsFilterable"]));
+                var filterableColumns = columnRows.FindAll(column => Settings.ToBoolean(column["IsFilterable"]));
 
                 firstTime = true;
                 foreach (var column in filterableColumns)
@@ -1269,7 +1150,6 @@ namespace crudex.Classes
                         result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
-                firstTime = true;
                 foreach (var column in filterableColumns)
                 {
                     var validations = GetConstraints(column, domains, types);
@@ -1290,50 +1170,20 @@ namespace crudex.Classes
                 }
                 result.Append($"        END ELSE\r\n");
                 result.Append($"            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'\r\n");
-                firstTime = true;
-                foreach (var column in pkColumnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"        SET @sql = 'INSERT [dbo].[#table]\r\n");
-                        result.Append($"                        SELECT ''T'' AS [_]\r\n");
-                        firstTime = false;
-                    }
-                    result.Append($"                              ,[T].[{column["Name"]}]\r\n");
-                }
+                result.Append($"        SET @sql = 'INSERT [dbo].[#table]\r\n");
+                result.Append($"                        SELECT ''T'' AS [_]\r\n");
+                result.Append($"                              ,[T].[{columnRows[0]["Name"]}]\r\n");
                 result.Append($"                            FROM [dbo].[{table["Name"]}] [T]\r\n");
-                firstTime = true;
-                foreach (var column in pkColumnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"                                LEFT JOIN [dbo].[#operations] [#] ON [#].[{column["Name"]}] = [T].[{column["Name"]}]");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($" AND [#].[{column["Name"]}] = [T].[{column["Name"]}]");
-                }
+                result.Append($"                                LEFT JOIN [dbo].[#operations] [#] ON [#].[{columnRows[0]["Name"]}] = [T].[{columnRows[0]["Name"]}]");
                 result.Append($"\r\n");
-                firstTime = true;
-                result.Append($"                            WHERE [#].[{pkColumnRows[0]["Name"]}] IS NULL' + @Where + '\r\n");
-
-                firstTime = true;
-                foreach (var column in pkColumnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"                        UNION ALL\r\n");
-                        result.Append($"                            SELECT ''O'' AS [_]\r\n");
-                        firstTime = false;
-                    }
-                    result.Append($"                                  ,[T].[{column["Name"]}]\r\n");
-                }
+                result.Append($"                            WHERE [#].[{columnRows[0]["Name"]}] IS NULL' + @Where + '\r\n");
+                result.Append($"                        UNION ALL\r\n");
+                result.Append($"                            SELECT ''O'' AS [_]\r\n");
+                result.Append($"                                  ,[T].[{columnRows[0]["Name"]}]\r\n");
                 result.Append($"                                FROM [dbo].[#operations] [T]\r\n");
-                firstTime = true;
                 result.Append($"                                WHERE [T].[_] <> ''delete''' + @Where\r\n");
                 result.Append($"        CREATE TABLE [dbo].[#table]([_] CHAR(1)");
-                foreach (var column in pkColumnRows)
-                    result.Append($", [{column["Name"]}] {column["#DataType"]}");
+                result.Append($", [{columnRows[0]["Name"]}] {columnRows[0]["#DataType"]}");
                 result.Append($")\r\n");
                 result.Append($"        IF @_ IS NULL\r\n");
                 firstTime = true;
@@ -1360,17 +1210,7 @@ namespace crudex.Classes
                 result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
                 result.Append($"               ,@OffSet INT\r\n");
                 result.Append($"\r\n");
-                firstTime = true;
-                foreach (var column in pkColumnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([{column["Name"]}]");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($", [{column["Name"]}]");
-                }
+                result.Append($"        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([{columnRows[0]["Name"]}]");
                 result.Append($")\r\n");
                 result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
                 result.Append($"            SET @OffSet = 0\r\n");
@@ -1404,34 +1244,14 @@ namespace crudex.Classes
                 foreach (var column in columnRows)
                     result.Append($"                              ,[T].[{column["Name"]}]\r\n");
                 result.Append($"                            FROM [dbo].[#table] [#]\r\n");
-                firstTime = true;
-                foreach (var column in pkColumnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"                                INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($"                                                                      AND [T].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
-                }
+                result.Append($"                                INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[{columnRows[0]["Name"]}] = [#].[{columnRows[0]["Name"]}]\r\n");
                 result.Append($"                            WHERE [#].[_] = ''T''\r\n");
                 result.Append($"                        UNION ALL\r\n");
                 result.Append($"                            SELECT ''{table["Alias"]}'' AS [ClassName]\r\n");
                 foreach (var column in columnRows)
                     result.Append($"                                  ,[O].[{column["Name"]}]\r\n");
                 result.Append($"                                FROM [dbo].[#table] [#]\r\n");
-                firstTime = true;
-                foreach (var column in pkColumnRows)
-                {
-                    if (firstTime)
-                    {
-                        result.Append($"                                    INNER JOIN [dbo].[#operations] [O] ON [O].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($"                                                                      AND [O].[{column["Name"]}] = [#].[{column["Name"]}]\r\n");
-                }
+                result.Append($"                                    INNER JOIN [dbo].[#operations] [O] ON [O].[{columnRows[0]["Name"]}] = [#].[{columnRows[0]["Name"]}]\r\n");
                 result.Append($"                                WHERE [#].[_] = ''O''\r\n");
                 result.Append($"                        ORDER BY ' + @OrderBy + '\r\n");
                 result.Append($"                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
@@ -1449,13 +1269,13 @@ namespace crudex.Classes
                 }
                 result.Append($"            FROM [dbo].[#result]\r\n");
 
-                var references = columnRows.FindAll(column => !IsNull(column["ReferenceTableId"]));
+                var references = columnRows.FindAll(column => !Settings.IsNull(column["ReferenceTableId"]));
                 foreach (var reference in references)
                     result.Append(GetReferenceQueries(reference, columns));
 
                 result.Append($"        SET @ReturnValue = @RowCount\r\n");
                 result.Append($"\r\n");
-                result.Append($"        RETURN @RowCount\r\n");
+                result.Append($"        RETURN 0\r\n");
                 result.Append($"    END TRY\r\n");
                 result.Append($"    BEGIN CATCH\r\n");
                 result.Append($"        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));\r\n");
@@ -1470,12 +1290,11 @@ namespace crudex.Classes
         private static StringBuilder GetScriptListTable(DataRow table, TDataRows columns)
         {
             var result = new StringBuilder();
-            var firstTime = true;
-            var columnRows = columns.FindAll(row => ToLong(row["TableId"]) == ToLong(table["Id"]));
+            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
 
             if (columnRows.Count > 0)
             {
-                var listableColumns = columnRows.FindAll(row => ToBoolean(row["IsListable"]));
+                var listableColumns = columnRows.FindAll(row => Settings.ToBoolean(row["IsListable"]));
 
                 if (listableColumns.Count > 0)
                 {
@@ -1492,7 +1311,7 @@ namespace crudex.Classes
                     result.Append($"                                          ,@PageNumber INT OUT\r\n");
                     result.Append($"                                          ,@LimitRows INT OUT\r\n");
                     result.Append($"                                          ,@MaxPage INT OUT\r\n");
-                    result.Append($"                                          ,@ReturnValue INT OUT) AS BEGIN\r\n");
+                    result.Append($"                                          ,@ReturnValue BIGINT OUT) AS BEGIN\r\n");
                     result.Append($"    DECLARE @ErrorMessage NVARCHAR(MAX)\r\n");
                     result.Append($"\r\n");
                     result.Append($"    BEGIN TRY\r\n");
@@ -1501,7 +1320,8 @@ namespace crudex.Classes
                     result.Append($"        IF @Value IS NULL\r\n");
                     result.Append($"            SET @Value = ''\r\n");
 
-                    var pkColumnRows = columnRows.FindAll(column => ToBoolean(column["IsPrimarykey"]));
+                    var pkColumnRows = columnRows.FindAll(column => Settings.ToBoolean(column["IsPrimarykey"]));
+                    var firstTime = true;
 
                     foreach (var column in pkColumnRows)
                     {
@@ -1579,7 +1399,7 @@ namespace crudex.Classes
                     result.Append($"        EXEC sp_executesql @sql\r\n");
                     result.Append($"        SET @ReturnValue = @RowCount\r\n");
                     result.Append($"\r\n");
-                    result.Append($"        RETURN @RowCount\r\n");
+                    result.Append($"        RETURN 0\r\n");
                     result.Append($"    END TRY\r\n");
                     result.Append($"    BEGIN CATCH\r\n");
                     result.Append($"        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));\r\n");
@@ -1588,7 +1408,6 @@ namespace crudex.Classes
                     result.Append($"END\r\n");
                     result.Append($"GO\r\n");
                 }
-
             }
 
             return result;

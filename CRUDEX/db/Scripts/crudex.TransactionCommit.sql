@@ -1,8 +1,9 @@
 ﻿IF(SELECT object_id('[crudex].[TransactionCommit]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [crudex].[TransactionCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE[crudex].[TransactionCommit](@TransactionId INT
-										  ,@UserName VARCHAR(25)) AS BEGIN
+ALTER PROCEDURE[crudex].[TransactionCommit](@TransactionId BIGINT
+										   ,@UserName VARCHAR(25)
+										   ,@ReturnValue BIGINT OUT) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 			,@ErrorMessage NVARCHAR(MAX)
 
@@ -10,8 +11,8 @@ ALTER PROCEDURE[crudex].[TransactionCommit](@TransactionId INT
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @LoginId INT
-				,@OperationId INT
+		DECLARE @LoginId BIGINT
+				,@OperationId BIGINT
 				,@TableName VARCHAR(25)
 				,@IsConfirmed BIT
 				,@CreatedBy VARCHAR(25)
@@ -26,7 +27,7 @@ ALTER PROCEDURE[crudex].[TransactionCommit](@TransactionId INT
 		SELECT @LoginId = [LoginId]
 			  ,@IsConfirmed = [IsConfirmed]
 			  ,@CreatedBy = [CreatedBy]
-			FROM [crudex].[Transactions]
+			FROM [dbo].[Transactions]
 			WHERE [Id] = @TransactionId
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Transação inexistente', 1
@@ -39,22 +40,22 @@ ALTER PROCEDURE[crudex].[TransactionCommit](@TransactionId INT
 		SET @sql = (SELECT STRING_AGG('[dbo].[' + [O].[TableName] + 'Commit] @LoginId = ' +
 									  CAST(@LoginId AS VARCHAR) + ', @OperationId = ' +
 									  CAST([O].[Id] AS VARCHAR), '; ')
-						FROM [crudex].[Operations] [O]
+						FROM [dbo].[Operations] [O]
 						WHERE [O].[TransactionId] = @TransactionId
 							  AND [O].[IsConfirmed] IS NULL)
 		EXEC sp_executesql @sql
-		UPDATE [crudex].[Transactions]
+		UPDATE [dbo].[Transactions]
 			SET [IsConfirmed] = 1
 				,[UpdatedBy] = @UserName
 				,[UpdatedAt] = GETDATE()
 			WHERE [Id] = @TransactionId
 		COMMIT TRANSACTION
 
-		RETURN 1
+		RETURN 0
 	END TRY
 	BEGIN CATCH
         IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
+            ROLLBACK TRANSACTION [SavePoint]
             COMMIT TRANSACTION
         END
         SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));

@@ -2,7 +2,7 @@
 	EXEC('CREATE PROCEDURE [dbo].[ScriptSystem] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[ScriptSystem](@SystemName VARCHAR(25),
-									 @ReturnValue INT OUT) AS
+									 @ReturnValue BIGINT OUT) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(250)
 
@@ -12,7 +12,7 @@ BEGIN
 		IF @SystemName IS NULL
 			THROW 51000, 'Nome de sistema requerido', 1
 		-- 1 [Systems]
-		SELECT 	'RecordSystem' AS [ClassName]
+		SELECT 	'System' AS [ClassName]
 				,[Id]
 				,[Name]
 				,[Description]
@@ -26,7 +26,7 @@ BEGIN
 			THROW 51000, 'Sistema não cadastrado', 1
 		ALTER TABLE [dbo].[#Systems] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 2 [[SystemsDatabases]]
-		SELECT 	'RecordSystemDatabase' AS [ClassName]
+		SELECT 	'SystemDatabase' AS [ClassName]
 				,[SD].[Id]
 				,[SD].[SystemId]
 				,[S].[Name] AS [#SystemName]
@@ -40,26 +40,37 @@ BEGIN
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Sistemas x Bancos-de-dados não cadastrado(s)', 1
 		ALTER TABLE [dbo].[#SystemsDatabases] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 3 [Databases]
-		SELECT 	'RecordDatabase' AS [ClassName]
+		-- 3 [Connections]
+		SELECT [Id]
+			  ,[Provider]
+			  ,[HostName]
+			  ,[Port]
+			  ,[IntegratedSecurity]
+			  ,[ConnectionTimeout]
+			  ,[ExtendedProperties]
+			  ,[UserID]
+			  ,[Password]
+			  ,[PersistSecurityInfo]
+			  ,[AdditionalParameters]
+		  INTO [dbo].[#Connections]
+		  FROM [dbo].[Connections]
+		-- 4 [Databases]
+		SELECT 	'Database' AS [ClassName]
 				,[D].[Id]
+				,[D].[ConnectionId]
 				,[D].[Name]
-				,[D].[Description]
 				,[D].[Alias]
-				,[D].[ServerName]
-				,[D].[HostName]
-				,[D].[Port]
-				,[D].[Logon]
-				,[D].[Password]
+				,[D].[Description]
 				,[D].[Folder]
+				,[D].[CurrentOperationId]
 			INTO [dbo].[#Databases]
 			FROM [dbo].[Databases] [D]
 				INNER JOIN [dbo].[#SystemsDatabases] [SD] ON [SD].[DatabaseId] = [D].[Id]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Banco(s)-de-dados não cadastrado(s)', 1
 		ALTER TABLE [dbo].[#Databases] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 4 [DatabasesTables]
-		SELECT 'RecordDatabaseTable' AS [ClassName]
+		-- 5 [DatabasesTables]
+		SELECT 'DatabaseTable' AS [ClassName]
 			  ,[DT].[Id]
 			  ,[DT].[DatabaseId]
 			  ,[D].[Name] AS [#DatabaseName]
@@ -71,15 +82,15 @@ BEGIN
 				INNER JOIN [dbo].[#Databases] [D] ON [D].[Id] = [DT].[DatabaseId]
 				INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [DT].[TableId]
 		ALTER TABLE [dbo].[#DatabasesTables] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 5 [Tables]
-		SELECT	'RecordTable' AS [ClassName]
+		-- 6 [Tables]
+		SELECT	'Table' AS [ClassName]
 				,[T].[Id]
 				,[T].[Name]
 				,[T].[Alias]
 				,[T].[Description]
 				,[T].[ParentTableId]
 				,[PT].[Name] AS [#ParentTableName]
-				,[T].[IsPaged]
+				,[T].[IsLegacy]
 				,[T].[CurrentId]
 			INTO [dbo].[#Tables]
 			FROM [dbo].[Tables] [T]
@@ -88,8 +99,8 @@ BEGIN
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Tabela(s) não cadastrada(s)', 1
 		ALTER TABLE [dbo].[#Tables] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 6 [Categories]
-		SELECT 	'RecordCategory' AS [ClassName]
+		-- 7 [Categories]
+		SELECT 	'Category' AS [ClassName]
 				,[C].[Id]
 				,[C].[Name]
 				,[C].[HtmlInputType]
@@ -106,8 +117,8 @@ BEGIN
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Categoria(s) de tipos não cadastrada(s)', 1
 		ALTER TABLE [dbo].[#Categories] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 7 [Types]
-		SELECT 	'RecordType' AS [ClassName]
+		-- 8 [Types]
+		SELECT 	'Type' AS [ClassName]
 				,[T].[Id]
 				,[T].[CategoryId]
 				,[C].[Name] AS [#CategoryName]
@@ -130,15 +141,15 @@ BEGIN
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Tipos de domínios não cadastrados', 1
 		ALTER TABLE [dbo].[#Types] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 8 [Masks]
-		SELECT 	'RecordMask' AS [ClassName]
+		-- 9 [Masks]
+		SELECT 	'Mask' AS [ClassName]
 				,[M].[Id]
 				,[M].[Name]
 				,[M].[Mask]
 			INTO [dbo].[#Masks]
 			FROM [dbo].[Masks] [M]
-		-- 9 [Domains]
-		SELECT	'RecordDomain' AS [ClassName]
+		-- 10 [Domains]
+		SELECT	'Domain' AS [ClassName]
 				,[D].[Id]
 				,[D].[TypeId]
 				,[T].[Name] AS [#TypeName]
@@ -169,8 +180,8 @@ BEGIN
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Domínios de colunas não cadastrados', 1
 		ALTER TABLE [dbo].[#Domains] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 10 [Menus]
-		SELECT 	'RecordMenu' AS [ClassName]
+		-- 11 [Menus]
+		SELECT 	'Menu' AS [ClassName]
 				,[M].[Id]
 				,[M].[SystemId]
 				,[S].[Name] AS [#SystemName]
@@ -187,8 +198,8 @@ BEGIN
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Menu(s) de sistema não cadastrado(s)', 1
 		ALTER TABLE [dbo].[#Menus] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 11 [SystemsUsers]
-		SELECT 'RecordSystemUser' AS [ClassName] 
+		-- 12 [SystemsUsers]
+		SELECT 'SystemUser' AS [ClassName] 
 			  ,[SU].[Id]
 			  ,[SU].[SystemId]
 			  ,[S].[Name] AS [#SystemName]
@@ -202,8 +213,8 @@ BEGIN
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Menu(s) de sistema não cadastrado(s)', 1
 		ALTER TABLE [dbo].[#SystemsUsers] ADD PRIMARY KEY NONCLUSTERED([Id])
-		-- 12 [Users]
-		SELECT 'RecordUser' AS [ClassName] 
+		-- 13 [Users]
+		SELECT 'User' AS [ClassName] 
 			  ,[U].[Id]
 			  ,[U].[Name]
 			  ,[U].[Password]
@@ -214,8 +225,8 @@ BEGIN
 			FROM [dbo].[Users] [U]
 				INNER JOIN [dbo].[#SystemsUsers] [SU] ON [SU].[UserId] = [U].[Id]
 		ALTER TABLE [dbo].[#Users] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 13 [Columns]
-		SELECT 'RecordColumn' AS [ClassName]
+		-- 14 [Columns]
+		SELECT 'Column' AS [ClassName]
 			  ,[C].[Id]
 			  ,[C].[TableId]
 			  ,[T].[Name] AS [#TableName]
@@ -229,10 +240,10 @@ BEGIN
 			  ,[C].[ReferenceTableId]
 			  ,[RT].[Name] AS [#ReferenceTableName]
 			  ,[C].[Name]
+			  ,[C].[Alias]
 			  ,[C].[Description]
 			  ,[C].[Title]
 			  ,[C].[Caption]
-			  ,[C].[ValidValues]
 			  ,[C].[Default]
 			  ,[C].[Minimum]
 			  ,[C].[Maximum]
@@ -253,8 +264,8 @@ BEGIN
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Coluna(s) de tabela(s) não cadastrada(s)', 1
 		ALTER TABLE [dbo].[#Columns] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 14 [Indexes]
-		SELECT 'RecordIndex' AS [ClassName]
+		-- 15 [Indexes]
+		SELECT 'Index' AS [ClassName]
 			  ,[I].[Id]
 			  ,[I].[DatabaseId]
 			  ,[D].[Name] AS [#DatabaseName]
@@ -267,8 +278,8 @@ BEGIN
 			INNER JOIN [dbo].[#Databases] [D] ON [D].[Id] = [I].[DatabaseId]
 			INNER JOIN [dbo].[#Tables] [T] ON [T].[Id] = [I].[TableId]
 		ALTER TABLE [dbo].[#Indexes] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 15 [Indexkeys]
-		SELECT 'RecordIndexkey' AS [ClassName]
+		-- 16 [Indexkeys]
+		SELECT 'Indexkey' AS [ClassName]
 			  ,[IK].[Id]
 			  ,[IK].[IndexId]
 			  ,[I].[Name] AS [#IndexName]
@@ -281,8 +292,8 @@ BEGIN
 			INNER JOIN [dbo].[#Indexes] [I] ON [I].[Id] = [IK].[IndexId]
 			INNER JOIN [dbo].[#Columns] [C] ON [C].[Id] = [IK].[ColumnId]
 		ALTER TABLE [dbo].[#Indexkeys] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 16 [Logins]
-		SELECT TOP 0 'RecordLogin' AS [ClassName]
+		-- 17 [Logins]
+		SELECT TOP 0 'Login' AS [ClassName]
 					,[Id]
 				    ,[SystemId]
 					,[UserId]
@@ -290,6 +301,26 @@ BEGIN
 					,[IsLogged]
 			INTO [dbo].[#Logins]
 			FROM [dbo].[Logins]
+		-- 18 [Transactions]
+		SELECT TOP 0 'Transaction' AS [ClassName]
+					,[Id]
+				    ,[LoginId]
+					,[IsConfirmed]
+			INTO [dbo].[#Transactions]
+			FROM [dbo].[Transactions]
+		-- 19 [Operations]
+		SELECT TOP 0 'Operation' AS [ClassName]
+					,[Id]
+				    ,[TransactionId]
+					,[TableName]
+					,[ParentOperationId]
+					,[Action]
+					,[OriginalRecord]
+					,[ActualRecord]
+					,[IsConfirmed]
+			INTO [dbo].[#Operations]
+			FROM [dbo].[Operations]
+
 		SELECT * FROM [dbo].[#Categories]
 		SELECT * FROM [dbo].[#Types]
 		SELECT * FROM [dbo].[#Masks]
@@ -298,6 +329,7 @@ BEGIN
 		SELECT * FROM [dbo].[#Menus] ORDER BY [SystemId], [Sequence]
 		SELECT * FROM [dbo].[#Users]
 		SELECT * FROM [dbo].[#SystemsUsers]
+		SELECT * FROM [dbo].[#Connections]
 		SELECT * FROM [dbo].[#Databases]
 		SELECT * FROM [dbo].[#SystemsDatabases]
 		SELECT * FROM [dbo].[#Tables]
@@ -306,6 +338,8 @@ BEGIN
 		SELECT * FROM [dbo].[#Indexes]
 		SELECT * FROM [dbo].[#Indexkeys] ORDER BY [IndexId], [Sequence]
 		SELECT * FROM [dbo].[#Logins]
+		SELECT * FROM [dbo].[#Transactions]
+		SELECT * FROM [dbo].[#Operations]
 	END TRY
 	BEGIN CATCH
         SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));

@@ -2,8 +2,8 @@ IF(SELECT object_id('[dbo].[NewOperationId]','P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[NewOperationId] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[NewOperationId](@SystemName VARCHAR(25)
-									  ,@DatabaseName VARCHAR(25)) AS
-BEGIN
+									  ,@DatabaseName VARCHAR(25)
+									  ,@ReturnValue BIGINT OUT) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 			,@ErrorMessage NVARCHAR(MAX)
 
@@ -11,9 +11,9 @@ BEGIN
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @SystemId INT
-				,@DatabaseId INT
-				,@NexOperationtId INT
+		DECLARE @SystemId BIGINT
+				,@DatabaseId BIGINT
+				,@NexOperationtId BIGINT
 
 		BEGIN TRANSACTION
 		SAVE TRANSACTION [SavePoint]
@@ -28,12 +28,18 @@ BEGIN
 			WHERE [Name] = @DatabaseName
 		IF @DatabaseId IS NULL
 			THROW 51000, 'Banco-de-dados não encontrado', 1
+		IF NOT EXISTS(SELECT 1
+						FROM [dbo].[SystemsDatabases]
+						WHERE [SystemId] = @SystemId
+							  AND [DatabaseId] = @DatabaseId)
+			THROW 51000, 'Banco-de-dados não pertence ao sistema especificado', 1
 		UPDATE [dbo].[Databases] 
 			SET [CurrentOperationId] = @NexOperationtId
 			WHERE [Id] = @DatabaseId
+		SET @ReturnValue = @NexOperationtId
 		COMMIT TRANSACTION
 
-		RETURN @NexOperationtId
+		RETURN 0
 	END TRY
 	BEGIN CATCH
         IF @@TRANCOUNT > @TRANCOUNT BEGIN

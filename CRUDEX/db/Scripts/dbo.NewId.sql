@@ -3,8 +3,8 @@
 GO
 ALTER PROCEDURE [dbo].[NewId](@SystemName VARCHAR(25)
 							 ,@DatabaseName VARCHAR(25)
-							 ,@TableName VARCHAR(25)) AS
-BEGIN
+							 ,@TableName VARCHAR(25)
+							 ,@ReturnValue BIGINT OUT) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 			,@ErrorMessage NVARCHAR(MAX)
 
@@ -12,10 +12,10 @@ BEGIN
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @SystemId INT
-				,@DatabaseId INT
-				,@TableId INT
-				,@NextId INT
+		DECLARE @SystemId BIGINT
+				,@DatabaseId BIGINT
+				,@TableId BIGINT
+				,@NextId BIGINT
 
 		BEGIN TRANSACTION
 		SAVE TRANSACTION [SavePoint]
@@ -48,9 +48,10 @@ BEGIN
 		UPDATE [dbo].[Tables] 
 			SET [CurrentId] = @NextId
 			WHERE [Id] = @TableId
+		SET @ReturnValue = @NextId
 		COMMIT TRANSACTION
 
-		RETURN @NextId
+		RETURN 0
 	END TRY
 	BEGIN CATCH
         IF @@TRANCOUNT > @TRANCOUNT BEGIN

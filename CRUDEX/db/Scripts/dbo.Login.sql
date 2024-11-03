@@ -2,7 +2,7 @@
 	EXEC('CREATE PROCEDURE [dbo].[Login] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
-							 ,@ReturnValue INT OUT) AS BEGIN
+							 ,@ReturnValue BIGINT OUT) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
 			,@ErrorMessage NVARCHAR(MAX)
 
@@ -16,16 +16,16 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
 		DECLARE @Action VARCHAR(15) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.Action') AS VARCHAR(15))
-				,@LoginId INT = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.LoginId') AS INT)
+				,@LoginId BIGINT = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.LoginId') AS BIGINT)
 				,@SystemName VARCHAR(25) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.SystemName') AS VARCHAR(25))
 				,@UserName VARCHAR(25) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.UserName') AS VARCHAR(25))
 				,@Password VARCHAR(256) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.Password') AS VARCHAR(256))
 				,@PublicKey VARCHAR(256) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.PublicKey') AS VARCHAR(256))
 				,@PasswordAux VARCHAR(256)
-				,@SystemId INT
-				,@SystemIdAux INT
-				,@UserId INT
-				,@UserIdAux INT
+				,@SystemId BIGINT
+				,@SystemIdAux BIGINT
+				,@UserId BIGINT
+				,@UserIdAux BIGINT
 				,@MaxRetryLogins TINYINT
 				,@RetryLogins TINYINT
 				,@IsLogged BIT
@@ -85,7 +85,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 		IF @action = 'login' BEGIN
 			IF @PublicKey IS NULL
 				THROW 51000, 'Chave pública é requerida', 1
-			EXEC @LoginId = [dbo].[NewId] 'crudex', 'crudex', 'Logins'
+			EXEC [dbo].[NewId] 'crudex', 'crudex', 'Logins', @LoginId OUT
 			INSERT [dbo].[Logins]([Id],
 								  [SystemId],
 								  [UserId],
@@ -126,10 +126,10 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 		UPDATE [dbo].[Users]
 			SET [RetryLogins] = 0
 			WHERE [Id] = @UserId
-		COMMIT TRANSACTION
 		SET @ReturnValue = @LoginId
+		COMMIT TRANSACTION
 
-		RETURN @ReturnValue
+		RETURN 0
 	END TRY
 	BEGIN CATCH
         IF @@TRANCOUNT > @TRANCOUNT BEGIN
