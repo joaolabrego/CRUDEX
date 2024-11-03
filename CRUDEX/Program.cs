@@ -15,8 +15,8 @@ namespace CRUDA_LIB
             {
                 if (context.Request.Method == "GET" && context.Request.Path.ToString().EndsWith(".class.mjs")) {
                     context.Response.Headers.ContentType = "text/javascript";
-                    await context.Response.WriteAsync(File.ReadAllText($"{Settings.builder.Environment.ContentRootPath}\\StaticFiles{context.Request.Path}")
-                        , Encoding.UTF8);
+                    await context.Response.WriteAsync(File.ReadAllText($"{Settings.builder.Environment.ContentRootPath}\\StaticFiles{context.Request.Path}"), 
+                        Encoding.UTF8);
                 }
                 else
                     await next.Invoke();
