@@ -65,9 +65,9 @@ namespace CRUDA_LIB
             {
                 Provider = Get("DB_PROVIDER"),
                 DataSource = $"{Get("DB_HOST")},{Get("DB_PORT")}",
-                ["Initial Catalog"] = Get("DB_INITIAL_CATALOG") ?? null,
-                ["Connect Timeout"] = Get("DB_CONNECT_TIMEOUT") ?? null,
-                ["Persist Security Info"] = Get("PERSIST_SECURITY_INFO") ?? null,
+                ["Initial Catalog"] = Get("DB_INITIAL_CATALOG"),
+                ["Connect Timeout"] = Get("DB_CONNECTION_TIMEOUT"),
+                ["Persist Security Info"] = Get("PERSIST_SECURITY_INFO"),
                 ["Integrated Security"] = integratedSecurity ? "SSPI" : null,
                 ["User ID"] = integratedSecurity ? null : Get("DB_USER_ID") ?? null,
                 ["Password"] = integratedSecurity ? null : Get("DB_PASSWORD") ?? null,
@@ -75,17 +75,17 @@ namespace CRUDA_LIB
 
             return result.ToString();
         }
-        public static string ConnectionString(DataRow connection)
+        public static string ConnectionString(string databaseAlias, DataRow connection)
         {
             var integratedSecurity = Convert.ToBoolean(Get("DB_INTEGRATED_SECURITY"));
             var result = new OleDbConnectionStringBuilder
             {
                 Provider = ToString(connection["Provider"]),
                 DataSource = $"{connection["HostName"]},{connection["Port"]}",
-                ["Initial Catalog"] = connection["InitialCatalog"] ?? null,
-                ["Connect Timeout"] = connection["ConnectionTimeout"] ?? null,
-                ["Persist Security Info"] = connection["PersistSecurityInfo"] ?? null,
-                ["Integrated Security"] = integratedSecurity ? "SSPI;" : null,
+                ["Initial Catalog"] = databaseAlias,
+                ["Connect Timeout"] = connection["ConnectionTimeout"],
+                ["Persist Security Info"] = connection["PersistSecurityInfo"],
+                ["Integrated Security"] = integratedSecurity ? "SSPI" : null,
                 ["User ID"] = integratedSecurity ? null : connection["UserID"] ?? null,
                 ["Password"] = integratedSecurity ? null : connection["Password"] ?? null,
             };

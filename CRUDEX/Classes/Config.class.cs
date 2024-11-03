@@ -48,8 +48,9 @@ namespace CRUDA_LIB
                 config.Data = new
                 {
                     System = result.DataSet.Tables[0].Rows[0].Table,
-                    Databases = result.DataSet.Tables[1].Rows[0].Table,
-                    Tables = result.DataSet.Tables[2].Rows[0].Table,
+                    Connections = result.DataSet.Tables[1].Rows[0].Table,
+                    Databases = result.DataSet.Tables[2].Rows[0].Table,
+                    Tables = result.DataSet.Tables[3].Rows[0].Table,
                 };
 
             return config;

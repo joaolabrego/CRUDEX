@@ -68,8 +68,10 @@ namespace CRUDA_LIB
             var databaseName = parms?["DatabaseName"];
             var tableName = parms?["TableName"];
             var action = parms?["Action"];
-            var databaseRow = GetConfig(systemName, databaseName, tableName).Result.DataSet.Tables[1].Rows[0];
-            var connectionString = $"Provider=SQLOLEDB;Data Source={databaseRow["ServerName"]};Initial Catalog={databaseRow["Alias"]};User ID={databaseRow["Logon"]};Password={databaseRow["Password"]}";
+            var config = GetConfig(systemName, databaseName, tableName).Result.DataSet.Tables;
+            var databaseAlias = config[2].Rows[0]["Alias"];
+            var connectionRow = config[1].Rows[0];
+            var connectionString = Settings.ConnectionString(databaseAlias, connectionRow);
             var procedureName = action switch
             {
                 Actions.BEGIN => $"TransactionBegin",

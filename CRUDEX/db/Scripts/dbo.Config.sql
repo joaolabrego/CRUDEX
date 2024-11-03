@@ -46,14 +46,10 @@ BEGIN
 		-- 1 [Databases]
 		SELECT 	'Database' AS [ClassName]
 				,[D].[Id]
+				,[D].[ConnectionId]
 				,[D].[Name]
-				,[D].[Description]
 				,[D].[Alias]
-				,[D].[ServerName]
-				,[D].[HostName]
-				,[D].[Port]
-				,[D].[Logon]
-				,[D].[Password]
+				,[D].[Description]
 				,[D].[Folder]
 			INTO [dbo].[#Databases]
 			FROM [dbo].[Databases] [D]
@@ -66,15 +62,32 @@ BEGIN
 		END
 		ALTER TABLE [dbo].[#Databases] ADD PRIMARY KEY CLUSTERED([Id])
 		IF @DatabaseName IS NULL BEGIN
-			ALTER TABLE [dbo].[#Databases] DROP COLUMN [ServerName]
-			ALTER TABLE [dbo].[#Databases] DROP COLUMN [HostName]
-			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Port]
-			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Logon]
-			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Password]
 			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Folder]
 		END
 
-		-- 2 [Tables]
+		-- 2 [Connections]
+		SELECT 	'Connection' AS [ClassName]
+				,[C].[Id]
+				,[C].[Provider]
+				,[C].[HostName]
+				,[C].[Port]
+				,[C].[IntegratedSecurity]
+				,[C].[ConnectionTimeout]
+				,[C].[ExtendedProperties]
+				,[C].[UserID]
+				,[C].[Password]
+				,[C].[PersistSecurityInfo]
+				,[C].[AdditionalParameters]
+			INTO [dbo].[#Connections]
+			FROM [dbo].[Connections] [C]
+			WHERE [C].[Id] IN (SELECT [ConnectionId] FROM [dbo].[#Databases])
+		IF @@ROWCOUNT = 0 BEGIN
+			SET @ErrorMessage = 'Banco(s)-de-dados não cadastrado(s).';
+			THROW 51000, @ErrorMessage, 1
+		END
+		ALTER TABLE [dbo].[#Connections] ADD PRIMARY KEY CLUSTERED([Id])
+
+		-- 3 [Tables]
 		SELECT	'Table' AS [ClassName]
 				,[T].[Id]
 				,[DT].[DatabaseId]
@@ -82,7 +95,7 @@ BEGIN
 				,[T].[Alias]
 				,[T].[Description]
 				,[T].[ParentTableId]
-				,[T].[IsPaged]
+				,[T].[IsLegacy]
 			INTO [dbo].[#Tables]
 			FROM [dbo].[Tables] [T]
 				INNER JOIN [dbo].[DatabasesTables] [DT] ON [DT].[TableId] = [T].[Id]
@@ -95,7 +108,7 @@ BEGIN
 		ALTER TABLE [dbo].[#Tables] ADD PRIMARY KEY CLUSTERED([Id])
 
 		IF @DatabaseName IS NULL BEGIN
-			-- 3 [Columns]
+			-- 4 [Columns]
 			SELECT	'Column' AS [ClassName]
 					,[C].[Id]
 					,[C].[TableId]
@@ -103,6 +116,7 @@ BEGIN
 					,[C].[DomainId]
 					,[C].[ReferenceTableId]
 					,[C].[Name]
+					,[C].[Alias]
 					,[C].[Description]
 					,[C].[Title]
 					,[C].[Caption]
@@ -117,6 +131,7 @@ BEGIN
 					,[C].[IsEditable]
 					,[C].[IsGridable]			
 					,[C].[IsEncrypted]
+					,[C].[IsInWords]
 				INTO [dbo].[#Columns]
 				FROM [dbo].[Columns] [C]
 					INNER JOIN [dbo].[#Tables] [T] ON [T].[Id]= [C].[TableId] 
@@ -127,7 +142,7 @@ BEGIN
 			ALTER TABLE [dbo].[#Columns] ADD PRIMARY KEY CLUSTERED([Id])
 			CREATE INDEX [#ColumnsDomainId] ON [dbo].[#Columns]([DomainId])
 
-			-- 4 [Domains]
+			-- 5 [Domains]
 			SELECT	'Domain' AS [ClassName]
 					,[D].[Id]
 					,[D].[TypeId]
@@ -150,7 +165,7 @@ BEGIN
 			ALTER TABLE [dbo].[#Domains] ADD PRIMARY KEY NONCLUSTERED([Id])
 			CREATE INDEX [#DomainsTypeId] ON [dbo].[#Domains]([TypeId])
 
-			-- 5 [Types]
+			-- 6 [Types]
 			SELECT 	'Type' AS [ClassName]
 					,[T].[Id]
 					,[T].[CategoryId]
@@ -175,7 +190,7 @@ BEGIN
 			END
 			CREATE INDEX [#TypesCategoryId] ON [dbo].[#Types]([CategoryId])
 
-			-- 6 [Categories]
+			-- 7 [Categories]
 			SELECT 	'Category' AS [ClassName]
 					,[C].[Id]
 					,[C].[Name]
@@ -196,7 +211,7 @@ BEGIN
 			   THROW 51000, @ErrorMessage, 1
 			END
 
-			-- 7 [Menus]
+			-- 8 [Menus]
 			SELECT 	'Menu' AS [ClassName]
 					,[M].[Id]
 					,[M].[SystemId]
@@ -213,9 +228,10 @@ BEGIN
 			   THROW 51000, @ErrorMessage, 1
 			END
 
-			-- 8 [Indexes]
+			-- 9 [Indexes]
 			SELECT 	'Index' AS [ClassName]
 					,[I].[Id]
+					,[I].[DatabaseId]
 					,[I].[TableId]
 					,[I].[Name]
 					,[I].[IsUnique]
@@ -224,7 +240,7 @@ BEGIN
 					INNER JOIN [dbo].[#Tables] [T] ON [T].[Id] = [I].[TableId]
 			ALTER TABLE [dbo].[#Indexes] ADD PRIMARY KEY NONCLUSTERED([Id])
 
-			-- 9 [Indexkeys]
+			-- 10 [Indexkeys]
 			SELECT 	'Indexkey' AS [ClassName]
 					,[IK].[Id]
 					,[IK].[IndexId]
@@ -234,7 +250,7 @@ BEGIN
 				INTO [dbo].[#Indexkeys]
 				FROM [dbo].[Indexkeys] [IK]
 					INNER JOIN [dbo].[#Indexes] [I] ON [I].[Id] = [IK].IndexId
-			-- 10 [Masks]
+			-- 11 [Masks]
 			SELECT 	'Mask' AS [ClassName]
 					,[M].[Id]
 					,[M].[Name]
@@ -247,6 +263,7 @@ BEGIN
 		-- Results
 		SELECT * FROM [dbo].[#Systems] ORDER BY [Name] -- 0 [#Systems]
 		IF @DatabaseName IS NULL BEGIN
+			
 			SELECT * FROM [dbo].[#Databases] ORDER BY [Name] -- 1 [#Databases]
 			SELECT * FROM [dbo].[#Tables] ORDER BY [DatabaseId], [Name] -- 2 [#Tables]
 			SELECT * FROM [dbo].[#Columns] ORDER BY [TableId], [Sequence] -- 3 [#Columns]
@@ -258,8 +275,9 @@ BEGIN
 			SELECT * FROM [dbo].[#Indexkeys] ORDER BY [IndexId], [Sequence] -- 9 [#Indexkeys]
 			SELECT * FROM [dbo].[#Masks] ORDER BY [Id] -- 10 [#Masks]
 		END ELSE BEGIN
-			SELECT * FROM [dbo].[#Databases] ORDER BY [Name] -- 1 [#Databases]
-			SELECT * FROM [dbo].[#Tables] ORDER BY [DatabaseId], [Name] -- 2 [#Tables]
+			SELECT * FROM [dbo].[#Connections] ORDER BY [Id] -- 1 [#Connections]]
+			SELECT * FROM [dbo].[#Databases] ORDER BY [Name] -- 2 [#Databases]
+			SELECT * FROM [dbo].[#Tables] ORDER BY [DatabaseId], [Name] -- 3 [#Tables]
 		END
 		SET @ReturnValue = 1
 		

@@ -145,14 +145,10 @@ BEGIN
 		-- 1 [Databases]
 		SELECT 	'Database' AS [ClassName]
 				,[D].[Id]
+				,[D].[ConnectionId]
 				,[D].[Name]
-				,[D].[Description]
 				,[D].[Alias]
-				,[D].[ServerName]
-				,[D].[HostName]
-				,[D].[Port]
-				,[D].[Logon]
-				,[D].[Password]
+				,[D].[Description]
 				,[D].[Folder]
 			INTO [dbo].[#Databases]
 			FROM [dbo].[Databases] [D]
@@ -165,15 +161,32 @@ BEGIN
 		END
 		ALTER TABLE [dbo].[#Databases] ADD PRIMARY KEY CLUSTERED([Id])
 		IF @DatabaseName IS NULL BEGIN
-			ALTER TABLE [dbo].[#Databases] DROP COLUMN [ServerName]
-			ALTER TABLE [dbo].[#Databases] DROP COLUMN [HostName]
-			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Port]
-			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Logon]
-			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Password]
 			ALTER TABLE [dbo].[#Databases] DROP COLUMN [Folder]
 		END
 
-		-- 2 [Tables]
+		-- 2 [Connections]
+		SELECT 	'Connection' AS [ClassName]
+				,[C].[Id]
+				,[C].[Provider]
+				,[C].[HostName]
+				,[C].[Port]
+				,[C].[IntegratedSecurity]
+				,[C].[ConnectionTimeout]
+				,[C].[ExtendedProperties]
+				,[C].[UserID]
+				,[C].[Password]
+				,[C].[PersistSecurityInfo]
+				,[C].[AdditionalParameters]
+			INTO [dbo].[#Connections]
+			FROM [dbo].[Connections] [C]
+			WHERE [C].[Id] IN (SELECT [ConnectionId] FROM [dbo].[#Databases])
+		IF @@ROWCOUNT = 0 BEGIN
+			SET @ErrorMessage = 'Banco(s)-de-dados não cadastrado(s).';
+			THROW 51000, @ErrorMessage, 1
+		END
+		ALTER TABLE [dbo].[#Connections] ADD PRIMARY KEY CLUSTERED([Id])
+
+		-- 3 [Tables]
 		SELECT	'Table' AS [ClassName]
 				,[T].[Id]
 				,[DT].[DatabaseId]
@@ -181,7 +194,7 @@ BEGIN
 				,[T].[Alias]
 				,[T].[Description]
 				,[T].[ParentTableId]
-				,[T].[IsPaged]
+				,[T].[IsLegacy]
 			INTO [dbo].[#Tables]
 			FROM [dbo].[Tables] [T]
 				INNER JOIN [dbo].[DatabasesTables] [DT] ON [DT].[TableId] = [T].[Id]
@@ -194,7 +207,7 @@ BEGIN
 		ALTER TABLE [dbo].[#Tables] ADD PRIMARY KEY CLUSTERED([Id])
 
 		IF @DatabaseName IS NULL BEGIN
-			-- 3 [Columns]
+			-- 4 [Columns]
 			SELECT	'Column' AS [ClassName]
 					,[C].[Id]
 					,[C].[TableId]
@@ -202,6 +215,7 @@ BEGIN
 					,[C].[DomainId]
 					,[C].[ReferenceTableId]
 					,[C].[Name]
+					,[C].[Alias]
 					,[C].[Description]
 					,[C].[Title]
 					,[C].[Caption]
@@ -216,6 +230,7 @@ BEGIN
 					,[C].[IsEditable]
 					,[C].[IsGridable]			
 					,[C].[IsEncrypted]
+					,[C].[IsInWords]
 				INTO [dbo].[#Columns]
 				FROM [dbo].[Columns] [C]
 					INNER JOIN [dbo].[#Tables] [T] ON [T].[Id]= [C].[TableId] 
@@ -226,7 +241,7 @@ BEGIN
 			ALTER TABLE [dbo].[#Columns] ADD PRIMARY KEY CLUSTERED([Id])
 			CREATE INDEX [#ColumnsDomainId] ON [dbo].[#Columns]([DomainId])
 
-			-- 4 [Domains]
+			-- 5 [Domains]
 			SELECT	'Domain' AS [ClassName]
 					,[D].[Id]
 					,[D].[TypeId]
@@ -249,7 +264,7 @@ BEGIN
 			ALTER TABLE [dbo].[#Domains] ADD PRIMARY KEY NONCLUSTERED([Id])
 			CREATE INDEX [#DomainsTypeId] ON [dbo].[#Domains]([TypeId])
 
-			-- 5 [Types]
+			-- 6 [Types]
 			SELECT 	'Type' AS [ClassName]
 					,[T].[Id]
 					,[T].[CategoryId]
@@ -274,7 +289,7 @@ BEGIN
 			END
 			CREATE INDEX [#TypesCategoryId] ON [dbo].[#Types]([CategoryId])
 
-			-- 6 [Categories]
+			-- 7 [Categories]
 			SELECT 	'Category' AS [ClassName]
 					,[C].[Id]
 					,[C].[Name]
@@ -295,7 +310,7 @@ BEGIN
 			   THROW 51000, @ErrorMessage, 1
 			END
 
-			-- 7 [Menus]
+			-- 8 [Menus]
 			SELECT 	'Menu' AS [ClassName]
 					,[M].[Id]
 					,[M].[SystemId]
@@ -312,9 +327,10 @@ BEGIN
 			   THROW 51000, @ErrorMessage, 1
 			END
 
-			-- 8 [Indexes]
+			-- 9 [Indexes]
 			SELECT 	'Index' AS [ClassName]
 					,[I].[Id]
+					,[I].[DatabaseId]
 					,[I].[TableId]
 					,[I].[Name]
 					,[I].[IsUnique]
@@ -323,7 +339,7 @@ BEGIN
 					INNER JOIN [dbo].[#Tables] [T] ON [T].[Id] = [I].[TableId]
 			ALTER TABLE [dbo].[#Indexes] ADD PRIMARY KEY NONCLUSTERED([Id])
 
-			-- 9 [Indexkeys]
+			-- 10 [Indexkeys]
 			SELECT 	'Indexkey' AS [ClassName]
 					,[IK].[Id]
 					,[IK].[IndexId]
@@ -333,7 +349,7 @@ BEGIN
 				INTO [dbo].[#Indexkeys]
 				FROM [dbo].[Indexkeys] [IK]
 					INNER JOIN [dbo].[#Indexes] [I] ON [I].[Id] = [IK].IndexId
-			-- 10 [Masks]
+			-- 11 [Masks]
 			SELECT 	'Mask' AS [ClassName]
 					,[M].[Id]
 					,[M].[Name]
@@ -346,6 +362,7 @@ BEGIN
 		-- Results
 		SELECT * FROM [dbo].[#Systems] ORDER BY [Name] -- 0 [#Systems]
 		IF @DatabaseName IS NULL BEGIN
+			
 			SELECT * FROM [dbo].[#Databases] ORDER BY [Name] -- 1 [#Databases]
 			SELECT * FROM [dbo].[#Tables] ORDER BY [DatabaseId], [Name] -- 2 [#Tables]
 			SELECT * FROM [dbo].[#Columns] ORDER BY [TableId], [Sequence] -- 3 [#Columns]
@@ -357,8 +374,9 @@ BEGIN
 			SELECT * FROM [dbo].[#Indexkeys] ORDER BY [IndexId], [Sequence] -- 9 [#Indexkeys]
 			SELECT * FROM [dbo].[#Masks] ORDER BY [Id] -- 10 [#Masks]
 		END ELSE BEGIN
-			SELECT * FROM [dbo].[#Databases] ORDER BY [Name] -- 1 [#Databases]
-			SELECT * FROM [dbo].[#Tables] ORDER BY [DatabaseId], [Name] -- 2 [#Tables]
+			SELECT * FROM [dbo].[#Connections] ORDER BY [Id] -- 1 [#Connections]]
+			SELECT * FROM [dbo].[#Databases] ORDER BY [Name] -- 2 [#Databases]
+			SELECT * FROM [dbo].[#Tables] ORDER BY [DatabaseId], [Name] -- 3 [#Tables]
 		END
 		SET @ReturnValue = 1
 		
@@ -1320,47 +1338,6 @@ BEGIN
 END
 GO
 /**********************************************************************************
-Criar tabela [crudex].[Transactions]
-**********************************************************************************/
-IF (SELECT object_id('[crudex].[Transactions]', 'U')) IS NOT NULL
-    DROP TABLE [crudex].[Transactions]
-CREATE TABLE [crudex].[Transactions]([Id] [int] IDENTITY(1,1) NOT NULL
-                                   ,[LoginId] [int] NOT NULL
-                                   ,[IsConfirmed] [bit] NULL
-                                   ,[CreatedAt] datetime NOT NULL
-                                   ,[CreatedBy] varchar(25) NOT NULL
-                                   ,[UpdatedAt] datetime NULL
-                                   ,[UpdatedBy] varchar(25) NULL)
-ALTER TABLE [crudex].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED([Id])
-CREATE INDEX [IDX_Transactions_LoginId_IsConfirmed] ON [crudex].[Transactions]([LoginId], [IsConfirmed])
-GO
-/**********************************************************************************
-Criar tabela [crudex].[Operations]
-**********************************************************************************/
-IF (SELECT object_id('[crudex].[Operations]', 'U')) IS NOT NULL
-    DROP TABLE [crudex].[Operations]
-CREATE TABLE [crudex].[Operations]([Id] [int] IDENTITY(1,1) NOT NULL
-                                 ,[TransactionId] [int] NOT NULL
-                                 ,[TableName] [varchar](25) NOT NULL
-                                 ,[Action] [varchar](15) NOT NULL
-                                 ,[LastRecord] [varchar](max) NULL
-                                 ,[ActualRecord] [varchar](max) NOT NULL
-                                 ,[IsConfirmed] [bit] NULL
-                                 ,[CreatedAt] datetime NOT NULL
-                                 ,[CreatedBy] varchar(25) NOT NULL
-                                 ,[UpdatedAt] datetime NULL
-                                 ,[UpdatedBy] varchar(25) NULL)
-ALTER TABLE [crudex].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED([Id])
-CREATE INDEX [IDX_Operations_TransactionId_TableName_Action_IsConfirmed] ON [crudex].[Operations]([TransactionId], [TableName], [Action], [IsConfirmed])
-GO
-ALTER TABLE [crudex].[Operations] WITH CHECK 
-    ADD CONSTRAINT [FK_Operations_Transactions] 
-    FOREIGN KEY([TransactionId]) 
-    REFERENCES [crudex].[Transactions] ([Id])
-GO
-ALTER TABLE [crudex].[Operations] CHECK CONSTRAINT [FK_Operations_Transactions]
-GO
-/**********************************************************************************
 Criar stored procedure [crudex].TransactionBegin]
 **********************************************************************************/
 IF(SELECT object_id('[crudex].[TransactionBegin]', 'P')) IS NULL
@@ -1707,19 +1684,36 @@ CREATE UNIQUE INDEX [UNQ_SystemsUsers_SystemId_UserId] ON [dbo].[SystemsUsers]([
 CREATE UNIQUE INDEX [UNQ_SystemsUsers_Name] ON [dbo].[SystemsUsers]([Name] ASC)
 GO
 /**********************************************************************************
+Criar tabela [dbo].[Connections]
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Connections]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Connections]
+CREATE TABLE [dbo].[Connections]([Id] int NOT NULL
+                                    ,[Provider] nvarchar(50) NOT NULL
+                                    ,[HostName] nvarchar(25) NOT NULL
+                                    ,[Port] int NOT NULL CHECK ([Port] >= CAST('1' AS int))
+                                    ,[IntegratedSecurity] bit NOT NULL
+                                    ,[ConnectionTimeout] smallint NOT NULL CHECK ([ConnectionTimeout] >= CAST('0' AS smallint))
+                                    ,[ExtendedProperties] nvarchar(max) NULL
+                                    ,[UserID] nvarchar(25) NULL
+                                    ,[Password] nvarchar(256) NULL
+                                    ,[PersistSecurityInfo] bit NULL
+                                    ,[AdditionalParameters] nvarchar(max) NULL
+                                    ,[CreatedAt] datetime NOT NULL
+                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[UpdatedAt] datetime NULL
+                                    ,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[Connections] ADD CONSTRAINT PK_Connections PRIMARY KEY CLUSTERED ([Id])
+/**********************************************************************************
 Criar tabela [dbo].[Databases]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Databases]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Databases]
 CREATE TABLE [dbo].[Databases]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
+                                    ,[ConnectionId] int NOT NULL CHECK ([ConnectionId] >= CAST('1' AS int))
                                     ,[Name] nvarchar(25) NOT NULL
-                                    ,[Description] nvarchar(50) NOT NULL
                                     ,[Alias] nvarchar(25) NOT NULL
-                                    ,[ServerName] nvarchar(50) NULL
-                                    ,[HostName] nvarchar(25) NULL
-                                    ,[Port] int NULL CHECK ([Port] >= CAST('1' AS int))
-                                    ,[Logon] nvarchar(256) NULL
-                                    ,[Password] nvarchar(256) NULL
+                                    ,[Description] nvarchar(50) NOT NULL
                                     ,[Folder] nvarchar(256) NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
@@ -1756,7 +1750,7 @@ CREATE TABLE [dbo].[Tables]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
                                     ,[Alias] nvarchar(25) NOT NULL
                                     ,[Description] nvarchar(50) NOT NULL
                                     ,[ParentTableId] int NULL CHECK ([ParentTableId] >= CAST('0' AS int))
-                                    ,[IsPaged] bit NOT NULL
+                                    ,[IsLegacy] bit NOT NULL
                                     ,[CurrentId] int NOT NULL DEFAULT CAST('0' AS int) CHECK ([CurrentId] >= CAST('0' AS int))
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] varchar(25) NOT NULL
@@ -1794,10 +1788,10 @@ CREATE TABLE [dbo].[Columns]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
                                     ,[DomainId] int NOT NULL CHECK ([DomainId] >= CAST('1' AS int))
                                     ,[ReferenceTableId] int NULL CHECK ([ReferenceTableId] >= CAST('1' AS int))
                                     ,[Name] nvarchar(25) NOT NULL
+                                    ,[Alias] nvarchar(25) NULL
                                     ,[Description] nvarchar(50) NOT NULL
                                     ,[Title] nvarchar(25) NOT NULL
                                     ,[Caption] nvarchar(25) NOT NULL
-                                    ,[ValidValues] nvarchar(max) NULL
                                     ,[Default] nvarchar(max) NULL
                                     ,[Minimum] nvarchar(max) NULL
                                     ,[Maximum] nvarchar(max) NULL
@@ -1868,8 +1862,39 @@ CREATE TABLE [dbo].[Logins]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] varchar(25) NULL)
 ALTER TABLE [dbo].[Logins] ADD CONSTRAINT PK_Logins PRIMARY KEY CLUSTERED ([Id])
-CREATE  INDEX [IDX_Logins_SystemId_UserId_IsLogged] ON [dbo].[Logins]([SystemId] ASC, [UserId] ASC, [IsLogged] ASC)
+CREATE  INDEX [UNQ_Logins_SystemId_UserId_IsLogged] ON [dbo].[Logins]([SystemId] ASC, [UserId] ASC, [IsLogged] ASC)
 GO
+/**********************************************************************************
+Criar tabela [dbo].[Transactions]
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Transactions]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Transactions]
+CREATE TABLE [dbo].[Transactions]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
+                                    ,[LoginId] int NOT NULL CHECK ([LoginId] >= CAST('1' AS int))
+                                    ,[IsConfirmed] bit NOT NULL CHECK ([IsConfirmed] >= CAST('1' AS bit))
+                                    ,[CreatedAt] datetime NOT NULL
+                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[UpdatedAt] datetime NULL
+                                    ,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED ([Id])
+/**********************************************************************************
+Criar tabela [dbo].[Operations]
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Operations]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Operations]
+CREATE TABLE [dbo].[Operations]([Id] int NOT NULL CHECK ([Id] >= CAST('1' AS int))
+                                    ,[TransactionId] int NOT NULL CHECK ([TransactionId] >= CAST('1' AS int))
+                                    ,[TableName] nvarchar(25) NOT NULL
+                                    ,[ParentOperationId] int NULL CHECK ([ParentOperationId] >= CAST('1' AS int))
+                                    ,[Action] nvarchar(15) NOT NULL
+                                    ,[OriginalRecord] nvarchar(max) NULL
+                                    ,[ActualRecord] nvarchar(max) NOT NULL
+                                    ,[IsConfirmed] bit NULL
+                                    ,[CreatedAt] datetime NOT NULL
+                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[UpdatedAt] datetime NULL
+                                    ,[UpdatedBy] varchar(25) NULL)
+ALTER TABLE [dbo].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED ([Id])
 /**********************************************************************************
 Criar referências de [dbo].[Types]
 **********************************************************************************/
@@ -1951,6 +1976,19 @@ ALTER TABLE [dbo].[SystemsUsers] WITH CHECK
     REFERENCES [dbo].[Users] ([Id])
 GO
 ALTER TABLE [dbo].[SystemsUsers] CHECK CONSTRAINT [FK_SystemsUsers_Users]
+GO
+/**********************************************************************************
+Criar referências de [dbo].[Databases]
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Databases_Connections')
+    ALTER TABLE [dbo].[Databases] DROP CONSTRAINT FK_Databases_Connections
+GO
+ALTER TABLE [dbo].[Databases] WITH CHECK 
+    ADD CONSTRAINT [FK_Databases_Connections] 
+    FOREIGN KEY([ConnectionId]) 
+    REFERENCES [dbo].[Connections] ([Id])
+GO
+ALTER TABLE [dbo].[Databases] CHECK CONSTRAINT [FK_Databases_Connections]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[SystemsDatabases]
@@ -2099,6 +2137,42 @@ ALTER TABLE [dbo].[Logins] WITH CHECK
     REFERENCES [dbo].[Users] ([Id])
 GO
 ALTER TABLE [dbo].[Logins] CHECK CONSTRAINT [FK_Logins_Users]
+GO
+/**********************************************************************************
+Criar referências de [dbo].[Transactions]
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Transactions_Logins')
+    ALTER TABLE [dbo].[Transactions] DROP CONSTRAINT FK_Transactions_Logins
+GO
+ALTER TABLE [dbo].[Transactions] WITH CHECK 
+    ADD CONSTRAINT [FK_Transactions_Logins] 
+    FOREIGN KEY([LoginId]) 
+    REFERENCES [dbo].[Logins] ([Id])
+GO
+ALTER TABLE [dbo].[Transactions] CHECK CONSTRAINT [FK_Transactions_Logins]
+GO
+/**********************************************************************************
+Criar referências de [dbo].[Operations]
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Operations_Transactions')
+    ALTER TABLE [dbo].[Operations] DROP CONSTRAINT FK_Operations_Transactions
+GO
+ALTER TABLE [dbo].[Operations] WITH CHECK 
+    ADD CONSTRAINT [FK_Operations_Transactions] 
+    FOREIGN KEY([TransactionId]) 
+    REFERENCES [dbo].[Transactions] ([Id])
+GO
+ALTER TABLE [dbo].[Operations] CHECK CONSTRAINT [FK_Operations_Transactions]
+GO
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Operations_Operations')
+    ALTER TABLE [dbo].[Operations] DROP CONSTRAINT FK_Operations_Operations
+GO
+ALTER TABLE [dbo].[Operations] WITH CHECK 
+    ADD CONSTRAINT [FK_Operations_Operations] 
+    FOREIGN KEY([ParentOperationId]) 
+    REFERENCES [dbo].[Operations] ([Id])
+GO
+ALTER TABLE [dbo].[Operations] CHECK CONSTRAINT [FK_Operations_Operations]
 GO
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Categories]
@@ -4519,10 +4593,10 @@ INSERT INTO [dbo].[Domains] ([Id]
                          VALUES (CAST('21' AS int)
                                 ,CAST('20' AS tinyint)
                                 ,NULL
-                                ,CAST('Action' AS nvarchar(25))
+                                ,CAST('OperationAction' AS nvarchar(25))
                                 ,CAST('15' AS smallint)
                                 ,NULL
-                                ,CAST('create;read;update;delete;commit;rollback' AS nvarchar(max))
+                                ,CAST('create;update;delete' AS nvarchar(max))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -4918,31 +4992,57 @@ INSERT INTO [dbo].[SystemsUsers] ([Id]
                                 ,NULL)
 GO
 /**********************************************************************************
+Inserir dados na tabela [dbo].[Connections]
+**********************************************************************************/
+INSERT INTO [dbo].[Connections] ([Id]
+                                ,[Provider]
+                                ,[HostName]
+                                ,[Port]
+                                ,[IntegratedSecurity]
+                                ,[ConnectionTimeout]
+                                ,[ExtendedProperties]
+                                ,[UserID]
+                                ,[Password]
+                                ,[PersistSecurityInfo]
+                                ,[AdditionalParameters]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS int)
+                                ,CAST('MSOLEDBSQL' AS nvarchar(50))
+                                ,CAST('localhost' AS nvarchar(25))
+                                ,CAST('1433' AS int)
+                                ,CAST('0' AS bit)
+                                ,CAST('30' AS smallint)
+                                ,NULL
+                                ,CAST('sa' AS nvarchar(25))
+                                ,CAST('diva' AS nvarchar(256))
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+/**********************************************************************************
 Inserir dados na tabela [dbo].[Databases]
 **********************************************************************************/
 INSERT INTO [dbo].[Databases] ([Id]
+                                ,[ConnectionId]
                                 ,[Name]
-                                ,[Description]
                                 ,[Alias]
-                                ,[ServerName]
-                                ,[HostName]
-                                ,[Port]
-                                ,[Logon]
-                                ,[Password]
+                                ,[Description]
                                 ,[Folder]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS int)
+                                ,CAST('1' AS int)
+                                ,CAST('crudex' AS nvarchar(25))
                                 ,CAST('crudex' AS nvarchar(25))
                                 ,CAST('CRUD Express' AS nvarchar(50))
-                                ,CAST('crudex' AS nvarchar(25))
-                                ,CAST('NOTEBOOK-DELL' AS nvarchar(50))
-                                ,CAST('localhost' AS nvarchar(25))
-                                ,CAST('1433' AS int)
-                                ,CAST('sa' AS nvarchar(256))
-                                ,CAST('diva' AS nvarchar(256))
                                 ,CAST('D:\CRUDEX-C#\CRUDEX\CRUDEX\db\' AS nvarchar(256))
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -4963,7 +5063,7 @@ INSERT INTO [dbo].[SystemsDatabases] ([Id]
                          VALUES (CAST('1' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('cruda x cruda' AS nvarchar(50))
+                                ,CAST('crudex x crudex' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -4977,7 +5077,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -4988,7 +5088,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Category' AS nvarchar(25))
                                 ,CAST('Categorias de tipos de dados' AS nvarchar(50))
                                 ,NULL
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('10' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5000,7 +5100,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5009,9 +5109,9 @@ INSERT INTO [dbo].[Tables] ([Id]
                          VALUES (CAST('2' AS int)
                                 ,CAST('Types' AS nvarchar(25))
                                 ,CAST('Type' AS nvarchar(25))
-                                ,CAST('Tipos' AS nvarchar(50))
+                                ,CAST('Tipos de dados' AS nvarchar(50))
                                 ,NULL
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('37' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5023,7 +5123,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5034,7 +5134,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Mask' AS nvarchar(25))
                                 ,CAST('Máscaras de Edição' AS nvarchar(50))
                                 ,NULL
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('6' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5046,7 +5146,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5055,9 +5155,9 @@ INSERT INTO [dbo].[Tables] ([Id]
                          VALUES (CAST('4' AS int)
                                 ,CAST('Domains' AS nvarchar(25))
                                 ,CAST('Domain' AS nvarchar(25))
-                                ,CAST('Domínios' AS nvarchar(50))
+                                ,CAST('Domínios de colunas' AS nvarchar(50))
                                 ,NULL
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('21' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5069,7 +5169,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5080,7 +5180,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('System' AS nvarchar(25))
                                 ,CAST('Sistemas' AS nvarchar(50))
                                 ,NULL
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5092,7 +5192,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5101,9 +5201,9 @@ INSERT INTO [dbo].[Tables] ([Id]
                          VALUES (CAST('6' AS int)
                                 ,CAST('Menus' AS nvarchar(25))
                                 ,CAST('Menu' AS nvarchar(25))
-                                ,CAST('Menus' AS nvarchar(50))
+                                ,CAST('Menus de sistemas' AS nvarchar(50))
                                 ,CAST('5' AS int)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('12' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5115,7 +5215,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5124,9 +5224,9 @@ INSERT INTO [dbo].[Tables] ([Id]
                          VALUES (CAST('7' AS int)
                                 ,CAST('Users' AS nvarchar(25))
                                 ,CAST('User' AS nvarchar(25))
-                                ,CAST('Usuários' AS nvarchar(50))
+                                ,CAST('Usuários de sistemas' AS nvarchar(50))
                                 ,NULL
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('2' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5138,7 +5238,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5149,7 +5249,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('SystemUser' AS nvarchar(25))
                                 ,CAST('Sistemas x Usuários' AS nvarchar(50))
                                 ,CAST('5' AS int)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('2' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5161,18 +5261,18 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('9' AS int)
-                                ,CAST('Databases' AS nvarchar(25))
-                                ,CAST('Database' AS nvarchar(25))
-                                ,CAST('Bancos-de-Dados' AS nvarchar(50))
+                                ,CAST('Connections' AS nvarchar(25))
+                                ,CAST('Connection' AS nvarchar(25))
+                                ,CAST('Conexões de bancos-de-dados' AS nvarchar(50))
                                 ,NULL
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5184,18 +5284,18 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('10' AS int)
-                                ,CAST('SystemsDatabases' AS nvarchar(25))
-                                ,CAST('SystemDatabase' AS nvarchar(25))
-                                ,CAST('Sistemas x Bancos-de-Dados' AS nvarchar(50))
-                                ,CAST('5' AS int)
-                                ,CAST('1' AS bit)
+                                ,CAST('Databases' AS nvarchar(25))
+                                ,CAST('Database' AS nvarchar(25))
+                                ,CAST('Bancos-de-Dados' AS nvarchar(50))
+                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5207,19 +5307,19 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('11' AS int)
-                                ,CAST('Tables' AS nvarchar(25))
-                                ,CAST('Table' AS nvarchar(25))
-                                ,CAST('Tabelas' AS nvarchar(50))
-                                ,CAST('9' AS int)
-                                ,CAST('1' AS bit)
-                                ,CAST('16' AS int)
+                                ,CAST('SystemsDatabases' AS nvarchar(25))
+                                ,CAST('SystemDatabase' AS nvarchar(25))
+                                ,CAST('Sistemas x Bancos-de-Dados' AS nvarchar(50))
+                                ,CAST('5' AS int)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5230,19 +5330,19 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('12' AS int)
-                                ,CAST('DatabasesTables' AS nvarchar(25))
-                                ,CAST('DatabaseTable' AS nvarchar(25))
-                                ,CAST('Bancos-de-Dados x Tabelas' AS nvarchar(50))
+                                ,CAST('Tables' AS nvarchar(25))
+                                ,CAST('Table' AS nvarchar(25))
+                                ,CAST('Tabelas de bancos-de-dados' AS nvarchar(50))
                                 ,CAST('9' AS int)
-                                ,CAST('1' AS bit)
-                                ,CAST('16' AS int)
+                                ,CAST('0' AS bit)
+                                ,CAST('19' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5253,19 +5353,19 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('13' AS int)
-                                ,CAST('Columns' AS nvarchar(25))
-                                ,CAST('Column' AS nvarchar(25))
-                                ,CAST('Colunas' AS nvarchar(50))
-                                ,CAST('11' AS int)
-                                ,CAST('1' AS bit)
-                                ,CAST('126' AS int)
+                                ,CAST('DatabasesTables' AS nvarchar(25))
+                                ,CAST('DatabaseTable' AS nvarchar(25))
+                                ,CAST('Bancos-de-Dados x Tabelas' AS nvarchar(50))
+                                ,CAST('9' AS int)
+                                ,CAST('0' AS bit)
+                                ,CAST('19' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5276,18 +5376,41 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('14' AS int)
+                                ,CAST('Columns' AS nvarchar(25))
+                                ,CAST('Column' AS nvarchar(25))
+                                ,CAST('Colunas de tabelas' AS nvarchar(50))
+                                ,CAST('11' AS int)
+                                ,CAST('0' AS bit)
+                                ,CAST('142' AS int)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[ParentTableId]
+                                ,[IsLegacy]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('15' AS int)
                                 ,CAST('Indexes' AS nvarchar(25))
                                 ,CAST('Index' AS nvarchar(25))
-                                ,CAST('Índices' AS nvarchar(50))
+                                ,CAST('Índices de tabelas' AS nvarchar(50))
                                 ,CAST('11' AS int)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('24' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5299,18 +5422,18 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('15' AS int)
+                         VALUES (CAST('16' AS int)
                                 ,CAST('Indexkeys' AS nvarchar(25))
                                 ,CAST('Indexkey' AS nvarchar(25))
                                 ,CAST('Chaves de índices' AS nvarchar(50))
                                 ,CAST('14' AS int)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('36' AS int)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -5322,16 +5445,62 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[ParentTableId]
-                                ,[IsPaged]
+                                ,[IsLegacy]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('16' AS int)
+                         VALUES (CAST('17' AS int)
                                 ,CAST('Logins' AS nvarchar(25))
                                 ,CAST('Login' AS nvarchar(25))
-                                ,CAST('Logins de Acesso aos Sistemas' AS nvarchar(50))
+                                ,CAST('Logins de acesso aos sistemas' AS nvarchar(50))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS int)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[ParentTableId]
+                                ,[IsLegacy]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('18' AS int)
+                                ,CAST('Transactions' AS nvarchar(25))
+                                ,CAST('Transaction' AS nvarchar(25))
+                                ,CAST('Transações de bancos-de-dados' AS nvarchar(50))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS int)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[ParentTableId]
+                                ,[IsLegacy]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('19' AS int)
+                                ,CAST('Operations' AS nvarchar(25))
+                                ,CAST('Operation' AS nvarchar(25))
+                                ,CAST('Operações de transações' AS nvarchar(50))
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS int)
@@ -5354,7 +5523,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('1' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('cruda x Categories' AS nvarchar(50))
+                                ,CAST('crudex x Categories' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5371,7 +5540,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('2' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('2' AS int)
-                                ,CAST('cruda x Types' AS nvarchar(50))
+                                ,CAST('crudex x Types' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5388,7 +5557,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('3' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('3' AS int)
-                                ,CAST('cruda x Masks' AS nvarchar(50))
+                                ,CAST('crudex x Masks' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5405,7 +5574,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('4' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('4' AS int)
-                                ,CAST('cruda x Domains' AS nvarchar(50))
+                                ,CAST('crudex x Domains' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5422,7 +5591,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('5' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('5' AS int)
-                                ,CAST('cruda x Systems' AS nvarchar(50))
+                                ,CAST('crudex x Systems' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5439,7 +5608,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('6' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('6' AS int)
-                                ,CAST('cruda x Menus' AS nvarchar(50))
+                                ,CAST('crudex x Menus' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5456,7 +5625,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('7' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('7' AS int)
-                                ,CAST('cruda x Users' AS nvarchar(50))
+                                ,CAST('crudex x Users' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5473,7 +5642,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('8' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('8' AS int)
-                                ,CAST('cruda x SystemsUsers' AS nvarchar(50))
+                                ,CAST('crudex x SystemsUsers' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5490,7 +5659,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('9' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('9' AS int)
-                                ,CAST('cruda x Databases' AS nvarchar(50))
+                                ,CAST('crudex x Connections' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5507,7 +5676,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('10' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('10' AS int)
-                                ,CAST('cruda x SystemsDatabases' AS nvarchar(50))
+                                ,CAST('crudex x Databases' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5524,7 +5693,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('11' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('11' AS int)
-                                ,CAST('cruda x Tables' AS nvarchar(50))
+                                ,CAST('crudex x SystemsDatabases' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5541,7 +5710,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('12' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('12' AS int)
-                                ,CAST('cruda x DatabasesTables' AS nvarchar(50))
+                                ,CAST('crudex x Tables' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5558,7 +5727,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('13' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('13' AS int)
-                                ,CAST('cruda x Columns' AS nvarchar(50))
+                                ,CAST('crudex x DatabasesTables' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5575,7 +5744,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('14' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('14' AS int)
-                                ,CAST('cruda x Indexes' AS nvarchar(50))
+                                ,CAST('crudex x Columns' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5592,7 +5761,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('15' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('15' AS int)
-                                ,CAST('cruda x Indexkeys' AS nvarchar(50))
+                                ,CAST('crudex x Indexes' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5609,7 +5778,58 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('16' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('16' AS int)
-                                ,CAST('cruda x Logins' AS nvarchar(50))
+                                ,CAST('crudex x Indexkeys' AS nvarchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('17' AS int)
+                                ,CAST('1' AS int)
+                                ,CAST('17' AS int)
+                                ,CAST('crudex x Logins' AS nvarchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('18' AS int)
+                                ,CAST('1' AS int)
+                                ,CAST('18' AS int)
+                                ,CAST('crudex x Transactions' AS nvarchar(50))
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('19' AS int)
+                                ,CAST('1' AS int)
+                                ,CAST('19' AS int)
+                                ,CAST('crudex x Operations' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5624,10 +5844,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -5650,15 +5870,15 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Id da categoria' AS nvarchar(50))
                                 ,CAST('Categoria' AS nvarchar(25))
                                 ,CAST('Categoria' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -5677,10 +5897,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -5703,10 +5923,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('9' AS int)
                                 ,NULL
                                 ,CAST('Name' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Nome da categoria' AS nvarchar(50))
                                 ,CAST('Nome' AS nvarchar(25))
                                 ,CAST('Nome' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -5730,10 +5950,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -5756,10 +5976,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('19' AS int)
                                 ,NULL
                                 ,CAST('HtmlInputType' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Tipo do input HTML' AS nvarchar(50))
                                 ,CAST('Tipo input HTML' AS nvarchar(25))
                                 ,CAST('Tipo input HTML' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -5783,10 +6003,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -5809,10 +6029,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('20' AS int)
                                 ,NULL
                                 ,CAST('HtmlInputAlign' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Alinhamento do input HTML' AS nvarchar(50))
                                 ,CAST('Alinhamento input HTML' AS nvarchar(25))
                                 ,CAST('Alinhamento input HTML' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -5836,10 +6056,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -5862,10 +6082,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskEncrypted' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Categoria de tipo pede criptografia?' AS nvarchar(50))
                                 ,CAST('Pede criptografia?' AS nvarchar(25))
                                 ,CAST('Pede criptografia?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -5889,10 +6109,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -5915,10 +6135,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskMask' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Categoria de tipo pede máscara?' AS nvarchar(50))
                                 ,CAST('Pede máscara?' AS nvarchar(25))
                                 ,CAST('Pede máscara?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -5942,10 +6162,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -5968,10 +6188,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskListable' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Categoria de tipo pede listável?' AS nvarchar(50))
                                 ,CAST('Pede listável?' AS nvarchar(25))
                                 ,CAST('Pede listável?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -5995,10 +6215,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6021,10 +6241,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskDefault' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Categoria de tipo pede valor padrão?' AS nvarchar(50))
                                 ,CAST('Pede valor padrão?' AS nvarchar(25))
                                 ,CAST('Pede valor padrão?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6048,10 +6268,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6074,10 +6294,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskMinimum' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Categoria de tipo pede valor mínimo?' AS nvarchar(50))
                                 ,CAST('Pede valor mínimo?' AS nvarchar(25))
                                 ,CAST('Pede valor mínimo?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6101,10 +6321,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6127,10 +6347,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskMaximum' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Categoria de tipo pede valor máximo?' AS nvarchar(50))
                                 ,CAST('Pede valor máximo?' AS nvarchar(25))
                                 ,CAST('Pede valor máximo?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6154,10 +6374,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6180,10 +6400,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskInWords' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Categoria de tipo pede extenso?' AS nvarchar(50))
                                 ,CAST('Pede extenso?' AS nvarchar(25))
                                 ,CAST('Pede extenso?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6207,10 +6427,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6233,15 +6453,15 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID do tipo' AS nvarchar(50))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -6260,10 +6480,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6286,10 +6506,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS int)
                                 ,CAST('1' AS int)
                                 ,CAST('CategoryId' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Categoria do tipo' AS nvarchar(50))
                                 ,CAST('Categoria' AS nvarchar(25))
                                 ,CAST('Categoria' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6313,10 +6533,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6339,10 +6559,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('9' AS int)
                                 ,NULL
                                 ,CAST('Name' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Nome do tipo' AS nvarchar(50))
                                 ,CAST('Nome' AS nvarchar(25))
                                 ,CAST('Nome' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6366,10 +6586,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6392,10 +6612,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS int)
                                 ,NULL
                                 ,CAST('MaxLength' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Tamanho máximo' AS nvarchar(50))
                                 ,CAST('Tamanho máximo' AS nvarchar(25))
                                 ,CAST('Tamanho máximo' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
@@ -6419,10 +6639,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6445,10 +6665,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('17' AS int)
                                 ,NULL
                                 ,CAST('Minimum' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Valor mínimo do tipo' AS nvarchar(50))
                                 ,CAST('Mínimo' AS nvarchar(25))
                                 ,CAST('Mínimo' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6472,10 +6692,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6498,10 +6718,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('17' AS int)
                                 ,NULL
                                 ,CAST('Maximum' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Valor máximo do tipo' AS nvarchar(50))
                                 ,CAST('Máximo' AS nvarchar(25))
                                 ,CAST('Máximo' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6525,10 +6745,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6551,10 +6771,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskLength' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Tipo pede tamanho?' AS nvarchar(50))
                                 ,CAST('Pede Tamanho?' AS nvarchar(25))
                                 ,CAST('Pede Tamanho?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6578,10 +6798,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6604,10 +6824,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskDecimals' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Tipo pede decimais?' AS nvarchar(50))
                                 ,CAST('Pede decimais?' AS nvarchar(25))
                                 ,CAST('Pede decimais?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6631,10 +6851,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6657,10 +6877,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskPrimarykey' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Tipo pede chave-primária?' AS nvarchar(50))
                                 ,CAST('Pede chave-primária?' AS nvarchar(25))
                                 ,CAST('Pede chave-primária?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6684,10 +6904,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6710,10 +6930,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskAutoincrement' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Tipo pede autoincremento?' AS nvarchar(50))
                                 ,CAST('Pede autoincremento?' AS nvarchar(25))
                                 ,CAST('Pede autoincremento?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6737,10 +6957,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6763,10 +6983,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskFilterable' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Tipo pede filtrável?' AS nvarchar(50))
                                 ,CAST('Pede filtrável?' AS nvarchar(25))
                                 ,CAST('Pede filtrável?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6790,10 +7010,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6816,10 +7036,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskGridable' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Tipo pede exibível em grade?' AS nvarchar(50))
                                 ,CAST('Pede exibível em grade?' AS nvarchar(25))
                                 ,CAST('Pede exibível em grade?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6843,10 +7063,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6869,10 +7089,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('AskCodification' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Tipo pede codificação?' AS nvarchar(50))
                                 ,CAST('Pede codificação?' AS nvarchar(25))
                                 ,CAST('Pede codificação?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6896,10 +7116,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6922,10 +7142,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('IsActive' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Tipo é ativo?' AS nvarchar(50))
                                 ,CAST('É ativo?' AS nvarchar(25))
                                 ,CAST('É ativo?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -6949,10 +7169,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -6972,18 +7192,18 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('26' AS int)
                                 ,CAST('3' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID da máscara de edição' AS nvarchar(50))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -7002,10 +7222,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7028,10 +7248,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('9' AS int)
                                 ,NULL
                                 ,CAST('Name' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Nome da máscara' AS nvarchar(50))
                                 ,CAST('Nome' AS nvarchar(25))
                                 ,CAST('Nome' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7055,10 +7275,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7081,10 +7301,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('12' AS int)
                                 ,NULL
                                 ,CAST('Mask' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Máscara de edição' AS nvarchar(50))
                                 ,CAST('Máscara' AS nvarchar(25))
                                 ,CAST('Máscara' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7108,10 +7328,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7131,18 +7351,18 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('29' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID do domínio' AS nvarchar(50))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -7161,10 +7381,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7187,10 +7407,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS int)
                                 ,CAST('2' AS int)
                                 ,CAST('TypeId' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID do tipo do domínio' AS nvarchar(50))
                                 ,CAST('Tipo' AS nvarchar(25))
                                 ,CAST('Tipo' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
@@ -7214,10 +7434,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7237,13 +7457,13 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('31' AS int)
                                 ,CAST('4' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,CAST('3' AS int)
                                 ,CAST('MaskId' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Id da máscara de edição do domínio' AS nvarchar(50))
                                 ,CAST('Máscara' AS nvarchar(25))
                                 ,CAST('Máscara' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7267,10 +7487,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7293,10 +7513,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('9' AS int)
                                 ,NULL
                                 ,CAST('Name' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Nome do domínio' AS nvarchar(50))
                                 ,CAST('Nome' AS nvarchar(25))
                                 ,CAST('Nome' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7320,10 +7540,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7346,10 +7566,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS int)
                                 ,NULL
                                 ,CAST('Length' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Tamanho do domínio' AS nvarchar(50))
                                 ,CAST('Tamanho' AS nvarchar(25))
                                 ,CAST('Tamanho' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,CAST('0' AS nvarchar(max))
                                 ,NULL
@@ -7373,10 +7593,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7399,10 +7619,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS int)
                                 ,NULL
                                 ,CAST('Decimals' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Decimais do domínio' AS nvarchar(50))
                                 ,CAST('Decimais' AS nvarchar(25))
                                 ,CAST('Decimais' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,CAST('0' AS nvarchar(max))
                                 ,NULL
@@ -7426,10 +7646,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7452,10 +7672,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('12' AS int)
                                 ,NULL
                                 ,CAST('ValidValues' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Valores válidos' AS nvarchar(50))
                                 ,CAST('Valores válidos' AS nvarchar(25))
                                 ,CAST('Valores válidos' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7479,10 +7699,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7505,10 +7725,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('17' AS int)
                                 ,NULL
                                 ,CAST('Default' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Valor padrão do domínio' AS nvarchar(50))
                                 ,CAST('Padrão' AS nvarchar(25))
                                 ,CAST('Padrão' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7532,10 +7752,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7558,10 +7778,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('17' AS int)
                                 ,NULL
                                 ,CAST('Minimum' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Valor mínimo do domínio' AS nvarchar(50))
                                 ,CAST('Mínimo' AS nvarchar(25))
                                 ,CAST('Mínimo' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7585,10 +7805,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7611,10 +7831,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('17' AS int)
                                 ,NULL
                                 ,CAST('Maximum' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Valor máximo do domínio' AS nvarchar(50))
                                 ,CAST('Máximo' AS nvarchar(25))
                                 ,CAST('Máximo' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7638,10 +7858,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7664,10 +7884,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('18' AS int)
                                 ,NULL
                                 ,CAST('Codification' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Codificação do domínio' AS nvarchar(50))
                                 ,CAST('Codificação' AS nvarchar(25))
                                 ,CAST('Codificação' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7691,10 +7911,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7714,18 +7934,18 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('40' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID do sistema' AS nvarchar(50))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -7744,10 +7964,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7770,10 +7990,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('9' AS int)
                                 ,NULL
                                 ,CAST('Name' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Nome do sistema' AS nvarchar(50))
                                 ,CAST('Nome' AS nvarchar(25))
                                 ,CAST('Nome' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7797,10 +8017,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7823,10 +8043,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS int)
                                 ,NULL
                                 ,CAST('Description' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Descrição do sistema' AS nvarchar(50))
                                 ,CAST('Descrição' AS nvarchar(25))
                                 ,CAST('Descrição' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7850,10 +8070,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7876,10 +8096,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('7' AS int)
                                 ,NULL
                                 ,CAST('ClientName' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Cliente do sistema' AS nvarchar(50))
                                 ,CAST('Cliente' AS nvarchar(25))
                                 ,CAST('Cliente' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -7903,10 +8123,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7929,10 +8149,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS int)
                                 ,NULL
                                 ,CAST('MaxRetryLogins' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Máximo de tentativas de logins' AS nvarchar(50))
                                 ,CAST('Máximo de logins' AS nvarchar(25))
                                 ,CAST('Máximo de logins' AS nvarchar(25))
-                                ,NULL
                                 ,CAST('5' AS nvarchar(max))
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
@@ -7956,10 +8176,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -7982,10 +8202,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('IsOffAir' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Sistema fora-do-ar' AS nvarchar(50))
                                 ,CAST('Fora-do-ar' AS nvarchar(25))
                                 ,CAST('Fora-do-ar' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -8009,10 +8229,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8032,18 +8252,18 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('46' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID do menu' AS nvarchar(50))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -8062,10 +8282,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8085,13 +8305,13 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('47' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('SystemId' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID do sistema do menu' AS nvarchar(50))
                                 ,CAST('Sistema' AS nvarchar(25))
                                 ,CAST('Sistema' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
@@ -8115,10 +8335,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8141,10 +8361,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS int)
                                 ,NULL
                                 ,CAST('Sequence' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Sequência do menu' AS nvarchar(50))
                                 ,CAST('Sequência' AS nvarchar(25))
                                 ,CAST('Sequência' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
@@ -8168,10 +8388,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8194,10 +8414,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('8' AS int)
                                 ,NULL
                                 ,CAST('Caption' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Opção do menu' AS nvarchar(50))
                                 ,CAST('Opção' AS nvarchar(25))
                                 ,CAST('Opção' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -8221,10 +8441,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8247,10 +8467,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS int)
                                 ,NULL
                                 ,CAST('Message' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Mensagem do menu' AS nvarchar(50))
                                 ,CAST('Mensagem' AS nvarchar(25))
                                 ,CAST('Mensagem' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -8274,10 +8494,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8300,10 +8520,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS int)
                                 ,NULL
                                 ,CAST('Action' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Ação do menu' AS nvarchar(50))
                                 ,CAST('Ação' AS nvarchar(25))
                                 ,CAST('Ação' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -8327,10 +8547,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8350,13 +8570,13 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('52' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('35' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,CAST('6' AS int)
                                 ,CAST('ParentMenuId' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID do menu-pai' AS nvarchar(50))
                                 ,CAST('Menu-pai' AS nvarchar(25))
                                 ,CAST('Menu-pai' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
@@ -8380,10 +8600,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8403,18 +8623,18 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('53' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID do usuário' AS nvarchar(50))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -8433,10 +8653,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8459,10 +8679,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('9' AS int)
                                 ,NULL
                                 ,CAST('Name' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Nome do usuário' AS nvarchar(50))
                                 ,CAST('Nome' AS nvarchar(25))
                                 ,CAST('Nome' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -8486,10 +8706,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8512,10 +8732,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('11' AS int)
                                 ,NULL
                                 ,CAST('Password' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Senha do usuário' AS nvarchar(50))
                                 ,CAST('Senha' AS nvarchar(25))
                                 ,CAST('Senha' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -8539,10 +8759,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8565,10 +8785,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS int)
                                 ,NULL
                                 ,CAST('FullName' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Nome completo do usuário' AS nvarchar(50))
                                 ,CAST('Nome completo' AS nvarchar(25))
                                 ,CAST('Nome completo' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -8592,10 +8812,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8618,10 +8838,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS int)
                                 ,NULL
                                 ,CAST('RetryLogins' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Tentativas de login' AS nvarchar(50))
                                 ,CAST('Tentativas de login' AS nvarchar(25))
                                 ,CAST('Tentativas de login' AS nvarchar(25))
-                                ,NULL
                                 ,CAST('0' AS nvarchar(max))
                                 ,CAST('0' AS nvarchar(max))
                                 ,NULL
@@ -8645,10 +8865,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8671,10 +8891,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('IsActive' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Ativo?' AS nvarchar(50))
                                 ,CAST('Ativo?' AS nvarchar(25))
                                 ,CAST('Ativo?' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -8698,10 +8918,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8721,18 +8941,18 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('59' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID do sistema x usuário' AS nvarchar(50))
                                 ,CAST('Sistema' AS nvarchar(25))
                                 ,CAST('Sistema' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -8751,10 +8971,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8774,13 +8994,13 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('60' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,CAST('5' AS int)
                                 ,CAST('SystemId' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID do sistema' AS nvarchar(50))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,CAST('ID' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
@@ -8804,10 +9024,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8827,13 +9047,13 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('61' AS int)
                                 ,CAST('8' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('UserId' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID do usuário' AS nvarchar(50))
                                 ,CAST('Usuário' AS nvarchar(25))
                                 ,CAST('Usuário' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
@@ -8857,10 +9077,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8883,10 +9103,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS int)
                                 ,NULL
                                 ,CAST('Name' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Nome do sistema x usuário' AS nvarchar(50))
                                 ,CAST('Nome' AS nvarchar(25))
                                 ,CAST('Nome' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -8910,10 +9130,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8933,20 +9153,20 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('63' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
-                                ,CAST('ID do banco-de-dados' AS nvarchar(50))
+                                ,NULL
+                                ,CAST('ID de conexões' AS nvarchar(50))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,CAST('ID' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -8963,10 +9183,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -8986,13 +9206,13 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('64' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('9' AS int)
+                                ,CAST('10' AS int)
                                 ,NULL
-                                ,CAST('Name' AS nvarchar(25))
-                                ,CAST('Nome do banco-de-dados' AS nvarchar(50))
-                                ,CAST('Nome' AS nvarchar(25))
-                                ,CAST('Nome' AS nvarchar(25))
+                                ,CAST('Provider' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Provedor OleDb ' AS nvarchar(50))
+                                ,CAST('Provedor' AS nvarchar(25))
+                                ,CAST('Provedor' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -9016,10 +9236,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9039,21 +9259,21 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('65' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('10' AS int)
+                                ,CAST('9' AS int)
                                 ,NULL
-                                ,CAST('Description' AS nvarchar(25))
-                                ,CAST('Descrição do banco-de-dados' AS nvarchar(50))
-                                ,CAST('Descrição' AS nvarchar(25))
-                                ,CAST('Descrição' AS nvarchar(25))
+                                ,CAST('HostName' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Nome da Hospedagem' AS nvarchar(50))
+                                ,CAST('Hospedagem' AS nvarchar(25))
+                                ,CAST('Hospedagem' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
@@ -9069,10 +9289,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9092,25 +9312,25 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('66' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('20' AS smallint)
-                                ,CAST('9' AS int)
+                                ,CAST('3' AS int)
                                 ,NULL
-                                ,CAST('Alias' AS nvarchar(25))
-                                ,CAST('Alias  do banco-de-dados' AS nvarchar(50))
-                                ,CAST('Alias' AS nvarchar(25))
-                                ,CAST('Alias' AS nvarchar(25))
+                                ,CAST('Port' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Porta TCP/IP' AS nvarchar(50))
+                                ,CAST('Porta' AS nvarchar(25))
+                                ,CAST('Porta' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9122,10 +9342,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9145,24 +9365,24 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('67' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('25' AS smallint)
-                                ,CAST('10' AS int)
+                                ,CAST('6' AS int)
                                 ,NULL
-                                ,CAST('ServerName' AS nvarchar(25))
-                                ,CAST('String de conexão do banco-de-dados' AS nvarchar(50))
-                                ,CAST('String de Conexão' AS nvarchar(25))
-                                ,CAST('String de Conexão' AS nvarchar(25))
+                                ,CAST('IntegratedSecurity' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Segurança integrada?' AS nvarchar(50))
+                                ,CAST('Segurança integrada?' AS nvarchar(25))
+                                ,CAST('Segurança integrada?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -9175,10 +9395,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9198,25 +9418,25 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('68' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('30' AS smallint)
-                                ,CAST('9' AS int)
+                                ,CAST('4' AS int)
                                 ,NULL
-                                ,CAST('HostName' AS nvarchar(25))
-                                ,CAST('Hospedeiro do banco-de-dados' AS nvarchar(50))
-                                ,CAST('Hospedeiro' AS nvarchar(25))
-                                ,CAST('Hospedeiro' AS nvarchar(25))
+                                ,CAST('ConnectionTimeout' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Timeout de conexão' AS nvarchar(50))
+                                ,CAST('Timeout' AS nvarchar(25))
+                                ,CAST('Timeout' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('0' AS nvarchar(max))
                                 ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9228,10 +9448,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9251,25 +9471,25 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('69' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('35' AS smallint)
-                                ,CAST('3' AS int)
+                                ,CAST('12' AS int)
                                 ,NULL
-                                ,CAST('Port' AS nvarchar(25))
-                                ,CAST('Porta TCP/IP do banco-de-dados' AS nvarchar(50))
-                                ,CAST('Porta TCP/IP' AS nvarchar(25))
-                                ,CAST('Porta TCP/IP' AS nvarchar(25))
+                                ,CAST('ExtendedProperties' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Propriedades extendidas' AS nvarchar(50))
+                                ,CAST('Propriedades' AS nvarchar(25))
+                                ,CAST('Propriedades' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,NULL
                                 ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9281,10 +9501,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9304,24 +9524,24 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('70' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('40' AS smallint)
-                                ,CAST('11' AS int)
+                                ,CAST('9' AS int)
                                 ,NULL
-                                ,CAST('Logon' AS nvarchar(25))
-                                ,CAST('Usuário do banco-de-dados' AS nvarchar(50))
+                                ,CAST('UserID' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Usuário ID' AS nvarchar(50))
                                 ,CAST('Usuário' AS nvarchar(25))
                                 ,CAST('Usuário' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -9334,10 +9554,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9360,18 +9580,18 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('11' AS int)
                                 ,NULL
                                 ,CAST('Password' AS nvarchar(25))
-                                ,CAST('Senha do banco-de-dados' AS nvarchar(50))
+                                ,NULL
+                                ,CAST('Senha do usuário' AS nvarchar(50))
                                 ,CAST('Senha' AS nvarchar(25))
                                 ,CAST('Senha' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -9387,10 +9607,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9410,24 +9630,24 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('72' AS int)
                                 ,CAST('9' AS int)
                                 ,CAST('50' AS smallint)
-                                ,CAST('11' AS int)
+                                ,CAST('6' AS int)
                                 ,NULL
-                                ,CAST('Folder' AS nvarchar(25))
-                                ,CAST('Pasta diretório do banco-de-dados' AS nvarchar(50))
-                                ,CAST('Pasta' AS nvarchar(25))
-                                ,CAST('Pasta' AS nvarchar(25))
+                                ,CAST('PersistSecurityInfo' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Persiste informação de segurança?' AS nvarchar(50))
+                                ,CAST('Persiste info?' AS nvarchar(25))
+                                ,CAST('Persiste info?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,NULL
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -9440,10 +9660,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9461,27 +9681,27 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('73' AS int)
-                                ,CAST('10' AS int)
-                                ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('9' AS int)
+                                ,CAST('55' AS smallint)
+                                ,CAST('12' AS int)
                                 ,NULL
-                                ,CAST('Id' AS nvarchar(25))
-                                ,CAST('ID do sistema x banco-de-dados' AS nvarchar(50))
-                                ,CAST('ID' AS nvarchar(25))
-                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('AdditionalParameters' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Parâmetros adicionais' AS nvarchar(50))
+                                ,CAST('Parâmetros' AS nvarchar(25))
+                                ,CAST('Parâmetros' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
-                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9493,10 +9713,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9515,24 +9735,24 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('74' AS int)
                                 ,CAST('10' AS int)
-                                ,CAST('10' AS smallint)
-                                ,CAST('2' AS int)
-                                ,CAST('5' AS int)
-                                ,CAST('SystemId' AS nvarchar(25))
-                                ,CAST('ID do sistema' AS nvarchar(50))
-                                ,CAST('Sistema' AS nvarchar(25))
-                                ,CAST('Sistema' AS nvarchar(25))
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS int)
                                 ,NULL
+                                ,CAST('Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID do banco-de-dados' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
@@ -9546,10 +9766,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9568,14 +9788,14 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('75' AS int)
                                 ,CAST('10' AS int)
-                                ,CAST('15' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS int)
                                 ,CAST('9' AS int)
-                                ,CAST('DatabaseId' AS nvarchar(25))
-                                ,CAST('ID do banco-de-dados' AS nvarchar(50))
-                                ,CAST('Banco-de-dados' AS nvarchar(25))
-                                ,CAST('Banco-de-dados' AS nvarchar(25))
+                                ,CAST('ConnectionId' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('ID da conexão' AS nvarchar(50))
+                                ,CAST('Conexão' AS nvarchar(25))
+                                ,CAST('Conexão' AS nvarchar(25))
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
@@ -9599,10 +9819,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9621,14 +9841,14 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('76' AS int)
                                 ,CAST('10' AS int)
-                                ,CAST('20' AS smallint)
-                                ,CAST('10' AS int)
+                                ,CAST('15' AS smallint)
+                                ,CAST('9' AS int)
                                 ,NULL
                                 ,CAST('Name' AS nvarchar(25))
-                                ,CAST('Nome do sistema x banco-de-dados' AS nvarchar(50))
-                                ,CAST('Nome' AS nvarchar(25))
-                                ,CAST('Nome' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Nome do banco-de-dados' AS nvarchar(50))
+                                ,CAST('Nome' AS nvarchar(25))
+                                ,CAST('Nome' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -9652,10 +9872,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9673,27 +9893,27 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('77' AS int)
-                                ,CAST('11' AS int)
-                                ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('10' AS int)
+                                ,CAST('20' AS smallint)
+                                ,CAST('9' AS int)
                                 ,NULL
-                                ,CAST('Id' AS nvarchar(25))
-                                ,CAST('ID da tabela' AS nvarchar(50))
-                                ,CAST('ID' AS nvarchar(25))
-                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('Alias' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Alias  do banco-de-dados' AS nvarchar(50))
+                                ,CAST('Alias' AS nvarchar(25))
+                                ,CAST('Alias' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
-                                ,NULL
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
                                 ,NULL
-                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9705,10 +9925,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9726,23 +9946,23 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('78' AS int)
-                                ,CAST('11' AS int)
-                                ,CAST('10' AS smallint)
-                                ,CAST('9' AS int)
+                                ,CAST('10' AS int)
+                                ,CAST('25' AS smallint)
+                                ,CAST('10' AS int)
                                 ,NULL
-                                ,CAST('Name' AS nvarchar(25))
-                                ,CAST('Nome da tabela' AS nvarchar(50))
-                                ,CAST('Nome' AS nvarchar(25))
-                                ,CAST('Nome' AS nvarchar(25))
+                                ,CAST('Description' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Descrição do banco-de-dados' AS nvarchar(50))
+                                ,CAST('Descrição' AS nvarchar(25))
+                                ,CAST('Descrição' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
@@ -9758,10 +9978,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9779,26 +9999,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('79' AS int)
+                                ,CAST('10' AS int)
+                                ,CAST('30' AS smallint)
                                 ,CAST('11' AS int)
-                                ,CAST('15' AS smallint)
-                                ,CAST('9' AS int)
                                 ,NULL
-                                ,CAST('Alias' AS nvarchar(25))
-                                ,CAST('Alias da tabela' AS nvarchar(50))
-                                ,CAST('Alias' AS nvarchar(25))
-                                ,CAST('Alias' AS nvarchar(25))
+                                ,CAST('Folder' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Pasta diretório do banco-de-dados' AS nvarchar(50))
+                                ,CAST('Pasta' AS nvarchar(25))
+                                ,CAST('Pasta' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -9811,10 +10031,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9833,26 +10053,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('80' AS int)
                                 ,CAST('11' AS int)
-                                ,CAST('20' AS smallint)
-                                ,CAST('10' AS int)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS int)
                                 ,NULL
-                                ,CAST('Description' AS nvarchar(25))
-                                ,CAST('Descrição da tabela' AS nvarchar(50))
-                                ,CAST('Descrição' AS nvarchar(25))
-                                ,CAST('Descrição' AS nvarchar(25))
+                                ,CAST('Id' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('ID do sistema x banco-de-dados' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9864,10 +10084,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9886,24 +10106,24 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('81' AS int)
                                 ,CAST('11' AS int)
-                                ,CAST('25' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('5' AS int)
+                                ,CAST('SystemId' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('ParentTableId' AS nvarchar(25))
-                                ,CAST('Id da tabela-pai' AS nvarchar(50))
-                                ,CAST('Tabela-pai' AS nvarchar(25))
-                                ,CAST('Tabela-pai' AS nvarchar(25))
+                                ,CAST('ID do sistema' AS nvarchar(50))
+                                ,CAST('Sistema' AS nvarchar(25))
+                                ,CAST('Sistema' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,CAST('0' AS nvarchar(max))
+                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
@@ -9917,10 +10137,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9939,26 +10159,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('82' AS int)
                                 ,CAST('11' AS int)
-                                ,CAST('30' AS smallint)
-                                ,CAST('6' AS int)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('10' AS int)
+                                ,CAST('DatabaseId' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('IsPaged' AS nvarchar(25))
-                                ,CAST('Consulta é paginada?' AS nvarchar(50))
-                                ,CAST('Paginado?' AS nvarchar(25))
-                                ,CAST('Paginado?' AS nvarchar(25))
+                                ,CAST('ID do banco-de-dados' AS nvarchar(50))
+                                ,CAST('Banco-de-dados' AS nvarchar(25))
+                                ,CAST('Banco-de-dados' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -9970,10 +10190,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -9992,26 +10212,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('83' AS int)
                                 ,CAST('11' AS int)
-                                ,CAST('35' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('20' AS smallint)
+                                ,CAST('10' AS int)
                                 ,NULL
-                                ,CAST('CurrentId' AS nvarchar(25))
-                                ,CAST('Id atual' AS nvarchar(50))
-                                ,CAST('Id atual' AS nvarchar(25))
-                                ,CAST('Id atual' AS nvarchar(25))
+                                ,CAST('Name' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('0' AS nvarchar(max))
-                                ,CAST('0' AS nvarchar(max))
+                                ,CAST('Nome do sistema x banco-de-dados' AS nvarchar(50))
+                                ,CAST('Nome' AS nvarchar(25))
+                                ,CAST('Nome' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
                                 ,NULL
-                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10023,10 +10243,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10046,18 +10266,18 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('84' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('1' AS int)
                                 ,NULL
                                 ,CAST('Id' AS nvarchar(25))
-                                ,CAST('ID do banco-de-dados x tabela' AS nvarchar(50))
-                                ,CAST('ID' AS nvarchar(25))
-                                ,CAST('ID' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('ID da tabela' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
@@ -10076,10 +10296,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10099,25 +10319,25 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('85' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('2' AS int)
                                 ,CAST('9' AS int)
-                                ,CAST('DatabaseId' AS nvarchar(25))
-                                ,CAST('ID do banco-de-dados' AS nvarchar(50))
-                                ,CAST('Sistema' AS nvarchar(25))
-                                ,CAST('Sistema' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Name' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Nome da tabela' AS nvarchar(50))
+                                ,CAST('Nome' AS nvarchar(25))
+                                ,CAST('Nome' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10129,10 +10349,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10152,25 +10372,25 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('86' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('2' AS int)
-                                ,CAST('11' AS int)
-                                ,CAST('TableId' AS nvarchar(25))
-                                ,CAST('ID da tabela' AS nvarchar(50))
-                                ,CAST('Banco-de-dados' AS nvarchar(25))
-                                ,CAST('Banco-de-dados' AS nvarchar(25))
+                                ,CAST('9' AS int)
+                                ,NULL
+                                ,CAST('Alias' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Alias da tabela' AS nvarchar(50))
+                                ,CAST('Alias' AS nvarchar(25))
+                                ,CAST('Alias' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10182,10 +10402,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10207,19 +10427,19 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
                                 ,NULL
-                                ,CAST('Name' AS nvarchar(25))
-                                ,CAST('Nome do banco-de-dados x tabela' AS nvarchar(50))
-                                ,CAST('Nome' AS nvarchar(25))
-                                ,CAST('Nome' AS nvarchar(25))
+                                ,CAST('Description' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Descrição da tabela' AS nvarchar(50))
+                                ,CAST('Descrição' AS nvarchar(25))
+                                ,CAST('Descrição' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
@@ -10235,10 +10455,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10256,23 +10476,23 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('88' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('12' AS int)
+                                ,CAST('25' AS smallint)
+                                ,CAST('1' AS int)
                                 ,NULL
-                                ,CAST('Id' AS nvarchar(25))
-                                ,CAST('ID da coluna' AS nvarchar(50))
-                                ,CAST('ID' AS nvarchar(25))
-                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ParentTableId' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Id da tabela-pai' AS nvarchar(50))
+                                ,CAST('Tabela-pai' AS nvarchar(25))
+                                ,CAST('Tabela-pai' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
+                                ,CAST('0' AS nvarchar(max))
                                 ,NULL
-                                ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -10288,10 +10508,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10309,27 +10529,27 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('89' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('10' AS smallint)
-                                ,CAST('2' AS int)
-                                ,CAST('11' AS int)
-                                ,CAST('TableId' AS nvarchar(25))
-                                ,CAST('Tabela' AS nvarchar(50))
-                                ,CAST('Tabela' AS nvarchar(25))
-                                ,CAST('Tabela' AS nvarchar(25))
+                                ,CAST('12' AS int)
+                                ,CAST('30' AS smallint)
+                                ,CAST('6' AS int)
+                                ,NULL
+                                ,CAST('IsLegacy' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('É tabela legada?' AS nvarchar(50))
+                                ,CAST('Legada?' AS nvarchar(25))
+                                ,CAST('Legada?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10341,10 +10561,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10362,25 +10582,25 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('90' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('15' AS smallint)
-                                ,CAST('4' AS int)
+                                ,CAST('12' AS int)
+                                ,CAST('35' AS smallint)
+                                ,CAST('1' AS int)
                                 ,NULL
-                                ,CAST('Sequence' AS nvarchar(25))
-                                ,CAST('Sequência' AS nvarchar(50))
-                                ,CAST('Sequência' AS nvarchar(25))
-                                ,CAST('Sequência' AS nvarchar(25))
+                                ,CAST('CurrentId' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,CAST('1' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('Id atual' AS nvarchar(50))
+                                ,CAST('Id atual' AS nvarchar(25))
+                                ,CAST('Id atual' AS nvarchar(25))
+                                ,CAST('0' AS nvarchar(max))
+                                ,CAST('0' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
@@ -10394,10 +10614,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10416,24 +10636,24 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('91' AS int)
                                 ,CAST('13' AS int)
-                                ,CAST('20' AS smallint)
-                                ,CAST('2' AS int)
-                                ,CAST('4' AS int)
-                                ,CAST('DomainId' AS nvarchar(25))
-                                ,CAST('Domínio da coluna' AS nvarchar(50))
-                                ,CAST('Domínio' AS nvarchar(25))
-                                ,CAST('Domínio' AS nvarchar(25))
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS int)
                                 ,NULL
+                                ,CAST('Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID do banco-de-dados x tabela' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
@@ -10447,10 +10667,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10469,20 +10689,20 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('92' AS int)
                                 ,CAST('13' AS int)
-                                ,CAST('25' AS smallint)
-                                ,CAST('2' AS int)
-                                ,CAST('11' AS int)
-                                ,CAST('ReferenceTableId' AS nvarchar(25))
-                                ,CAST('Tabela-referência' AS nvarchar(50))
-                                ,CAST('Referência' AS nvarchar(25))
-                                ,CAST('Referência' AS nvarchar(25))
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('10' AS int)
+                                ,CAST('DatabaseId' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('ID do banco-de-dados' AS nvarchar(50))
+                                ,CAST('Sistema' AS nvarchar(25))
+                                ,CAST('Sistema' AS nvarchar(25))
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -10500,10 +10720,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10522,26 +10742,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('93' AS int)
                                 ,CAST('13' AS int)
-                                ,CAST('30' AS smallint)
-                                ,CAST('9' AS int)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('12' AS int)
+                                ,CAST('TableId' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('Name' AS nvarchar(25))
-                                ,CAST('Nome da coluna' AS nvarchar(50))
-                                ,CAST('Nome' AS nvarchar(25))
-                                ,CAST('Nome' AS nvarchar(25))
+                                ,CAST('ID da tabela' AS nvarchar(50))
+                                ,CAST('Banco-de-dados' AS nvarchar(25))
+                                ,CAST('Banco-de-dados' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10553,10 +10773,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10575,22 +10795,22 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('94' AS int)
                                 ,CAST('13' AS int)
-                                ,CAST('35' AS smallint)
+                                ,CAST('20' AS smallint)
                                 ,CAST('10' AS int)
                                 ,NULL
-                                ,CAST('Description' AS nvarchar(25))
-                                ,CAST('Descrição da Coluna' AS nvarchar(50))
-                                ,CAST('Descrição' AS nvarchar(25))
-                                ,CAST('Descrição' AS nvarchar(25))
+                                ,CAST('Name' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Nome do banco-de-dados x tabela' AS nvarchar(50))
+                                ,CAST('Nome' AS nvarchar(25))
+                                ,CAST('Nome' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
@@ -10606,10 +10826,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10627,27 +10847,27 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('95' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('40' AS smallint)
-                                ,CAST('9' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS int)
                                 ,NULL
-                                ,CAST('Title' AS nvarchar(25))
-                                ,CAST('Título da Coluna' AS nvarchar(50))
-                                ,CAST('Título' AS nvarchar(25))
-                                ,CAST('Título' AS nvarchar(25))
+                                ,CAST('Id' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('ID da coluna' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10659,10 +10879,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10680,27 +10900,27 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('96' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('45' AS smallint)
-                                ,CAST('9' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('12' AS int)
+                                ,CAST('TableId' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('Caption' AS nvarchar(25))
-                                ,CAST('Legenda da Coluna' AS nvarchar(50))
-                                ,CAST('Legenda' AS nvarchar(25))
-                                ,CAST('Legenda' AS nvarchar(25))
+                                ,CAST('Tabela' AS nvarchar(50))
+                                ,CAST('Tabela' AS nvarchar(25))
+                                ,CAST('Tabela' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10712,10 +10932,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10733,27 +10953,27 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('97' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('50' AS smallint)
-                                ,CAST('12' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('15' AS smallint)
+                                ,CAST('4' AS int)
                                 ,NULL
-                                ,CAST('ValidValues' AS nvarchar(25))
-                                ,CAST('Valores válidos' AS nvarchar(50))
-                                ,CAST('Valores válidos' AS nvarchar(25))
-                                ,CAST('Valores válidos' AS nvarchar(25))
+                                ,CAST('Sequence' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Sequência' AS nvarchar(50))
+                                ,CAST('Sequência' AS nvarchar(25))
+                                ,CAST('Sequência' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10765,10 +10985,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10786,27 +11006,27 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('98' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('55' AS smallint)
-                                ,CAST('17' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('20' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('4' AS int)
+                                ,CAST('DomainId' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('Default' AS nvarchar(25))
-                                ,CAST('Valor padrão da coluna' AS nvarchar(50))
-                                ,CAST('Padrão' AS nvarchar(25))
-                                ,CAST('Padrão' AS nvarchar(25))
+                                ,CAST('Domínio da coluna' AS nvarchar(50))
+                                ,CAST('Domínio' AS nvarchar(25))
+                                ,CAST('Domínio' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
                                 ,CAST('0' AS bit)
-                                ,NULL
-                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10818,10 +11038,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10839,27 +11059,27 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('99' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('60' AS smallint)
-                                ,CAST('17' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('25' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('12' AS int)
+                                ,CAST('ReferenceTableId' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('Minimum' AS nvarchar(25))
-                                ,CAST('Valor mínimo da coluna' AS nvarchar(50))
-                                ,CAST('Mínimo' AS nvarchar(25))
-                                ,CAST('Mínimo' AS nvarchar(25))
+                                ,CAST('Tabela-referência' AS nvarchar(50))
+                                ,CAST('Referência' AS nvarchar(25))
+                                ,CAST('Referência' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
                                 ,CAST('0' AS bit)
-                                ,NULL
-                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -10871,10 +11091,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10892,26 +11112,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('100' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('65' AS smallint)
-                                ,CAST('17' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('30' AS smallint)
+                                ,CAST('9' AS int)
                                 ,NULL
-                                ,CAST('Maximum' AS nvarchar(25))
-                                ,CAST('Valor máximo da coluna' AS nvarchar(50))
-                                ,CAST('Máximo' AS nvarchar(25))
-                                ,CAST('Máximo' AS nvarchar(25))
+                                ,CAST('Name' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,NULL
+                                ,CAST('Nome da coluna' AS nvarchar(50))
+                                ,CAST('Nome' AS nvarchar(25))
+                                ,CAST('Nome' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,NULL
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -10924,10 +11144,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10945,26 +11165,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('101' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('70' AS smallint)
-                                ,CAST('6' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('35' AS smallint)
+                                ,CAST('9' AS int)
                                 ,NULL
-                                ,CAST('IsPrimarykey' AS nvarchar(25))
-                                ,CAST('Coluna é chave-primária?' AS nvarchar(50))
-                                ,CAST('Chave-primária?' AS nvarchar(25))
-                                ,CAST('Chave-primária?' AS nvarchar(25))
+                                ,CAST('Alias' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,NULL
+                                ,CAST('Alias da coluna' AS nvarchar(50))
+                                ,CAST('Alias' AS nvarchar(25))
+                                ,CAST('Alias' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -10977,10 +11197,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -10998,26 +11218,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('102' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('75' AS smallint)
-                                ,CAST('6' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('40' AS smallint)
+                                ,CAST('10' AS int)
                                 ,NULL
-                                ,CAST('IsAutoIncrement' AS nvarchar(25))
-                                ,CAST('Coluna é autoincremento?' AS nvarchar(50))
-                                ,CAST('Autoincremento?' AS nvarchar(25))
-                                ,CAST('Autoincremento?' AS nvarchar(25))
+                                ,CAST('Description' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,NULL
+                                ,CAST('Descrição da Coluna' AS nvarchar(50))
+                                ,CAST('Descrição' AS nvarchar(25))
+                                ,CAST('Descrição' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,NULL
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -11030,10 +11250,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11051,26 +11271,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('103' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('80' AS smallint)
-                                ,CAST('6' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('45' AS smallint)
+                                ,CAST('9' AS int)
                                 ,NULL
-                                ,CAST('IsRequired' AS nvarchar(25))
-                                ,CAST('Coluna é requerida?' AS nvarchar(50))
-                                ,CAST('Requerida?' AS nvarchar(25))
-                                ,CAST('Requerida?' AS nvarchar(25))
+                                ,CAST('Title' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,NULL
+                                ,CAST('Título da Coluna' AS nvarchar(50))
+                                ,CAST('Título' AS nvarchar(25))
+                                ,CAST('Título' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,NULL
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -11083,10 +11303,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11104,26 +11324,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('104' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('85' AS smallint)
-                                ,CAST('6' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('50' AS smallint)
+                                ,CAST('9' AS int)
                                 ,NULL
-                                ,CAST('IsListable' AS nvarchar(25))
-                                ,CAST('Coluna é listável?' AS nvarchar(50))
-                                ,CAST('Listável?' AS nvarchar(25))
-                                ,CAST('Listável?' AS nvarchar(25))
+                                ,CAST('Caption' AS nvarchar(25))
                                 ,NULL
-                                ,NULL
-                                ,NULL
+                                ,CAST('Legenda da Coluna' AS nvarchar(50))
+                                ,CAST('Legenda' AS nvarchar(25))
+                                ,CAST('Legenda' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -11136,10 +11356,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11157,15 +11377,15 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('105' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('90' AS smallint)
-                                ,CAST('6' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('55' AS smallint)
+                                ,CAST('17' AS int)
                                 ,NULL
-                                ,CAST('IsFilterable' AS nvarchar(25))
-                                ,CAST('Coluna é filtrável?' AS nvarchar(50))
-                                ,CAST('Filtrável?' AS nvarchar(25))
-                                ,CAST('Filtrável?' AS nvarchar(25))
+                                ,CAST('Default' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Valor padrão da coluna' AS nvarchar(50))
+                                ,CAST('Padrão' AS nvarchar(25))
+                                ,CAST('Padrão' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -11173,9 +11393,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
@@ -11189,10 +11409,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11210,15 +11430,15 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('106' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('95' AS smallint)
-                                ,CAST('6' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('60' AS smallint)
+                                ,CAST('17' AS int)
                                 ,NULL
-                                ,CAST('IsEditable' AS nvarchar(25))
-                                ,CAST('Coluna é editável?' AS nvarchar(50))
-                                ,CAST('Editável?' AS nvarchar(25))
-                                ,CAST('Editável?' AS nvarchar(25))
+                                ,CAST('Minimum' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Valor mínimo da coluna' AS nvarchar(50))
+                                ,CAST('Mínimo' AS nvarchar(25))
+                                ,CAST('Mínimo' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -11226,9 +11446,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
@@ -11242,10 +11462,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11263,15 +11483,15 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('107' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('100' AS smallint)
-                                ,CAST('6' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('65' AS smallint)
+                                ,CAST('17' AS int)
                                 ,NULL
-                                ,CAST('IsGridable' AS nvarchar(25))
-                                ,CAST('Coluna é exibível em grade?' AS nvarchar(50))
-                                ,CAST('Exibível em grade?' AS nvarchar(25))
-                                ,CAST('Exibível em grade?' AS nvarchar(25))
+                                ,CAST('Maximum' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Valor máximo da coluna' AS nvarchar(50))
+                                ,CAST('Máximo' AS nvarchar(25))
+                                ,CAST('Máximo' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -11279,9 +11499,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
@@ -11295,10 +11515,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11316,15 +11536,15 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('108' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('105' AS smallint)
+                                ,CAST('14' AS int)
+                                ,CAST('70' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
-                                ,CAST('IsEncrypted' AS nvarchar(25))
-                                ,CAST('Coluna é encriptada?' AS nvarchar(50))
-                                ,CAST('Encriptada?' AS nvarchar(25))
-                                ,CAST('Encriptada?' AS nvarchar(25))
+                                ,CAST('IsPrimarykey' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Coluna é chave-primária?' AS nvarchar(50))
+                                ,CAST('Chave-primária?' AS nvarchar(25))
+                                ,CAST('Chave-primária?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -11332,9 +11552,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
@@ -11348,10 +11568,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11369,15 +11589,15 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('109' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('110' AS smallint)
+                                ,CAST('14' AS int)
+                                ,CAST('75' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
-                                ,CAST('IsInWords' AS nvarchar(25))
-                                ,CAST('Valor da coluna por extenso?' AS nvarchar(50))
-                                ,CAST('Valor por extenso?' AS nvarchar(25))
-                                ,CAST('Valor por extenso?' AS nvarchar(25))
+                                ,CAST('IsAutoIncrement' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('Coluna é autoincremento?' AS nvarchar(50))
+                                ,CAST('Autoincremento?' AS nvarchar(25))
+                                ,CAST('Autoincremento?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -11387,7 +11607,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
@@ -11401,10 +11621,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11423,26 +11643,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('110' AS int)
                                 ,CAST('14' AS int)
-                                ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('80' AS smallint)
+                                ,CAST('6' AS int)
                                 ,NULL
-                                ,CAST('Id' AS nvarchar(25))
-                                ,CAST('ID do índice' AS nvarchar(50))
-                                ,CAST('ID' AS nvarchar(25))
-                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('IsRequired' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Coluna é requerida?' AS nvarchar(50))
+                                ,CAST('Requerida?' AS nvarchar(25))
+                                ,CAST('Requerida?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,NULL
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
-                                ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11454,10 +11674,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11476,26 +11696,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('111' AS int)
                                 ,CAST('14' AS int)
-                                ,CAST('10' AS smallint)
-                                ,CAST('2' AS int)
-                                ,CAST('9' AS int)
-                                ,CAST('DatabaseId' AS nvarchar(25))
-                                ,CAST('ID do banco-de-dados do índice' AS nvarchar(50))
-                                ,CAST('Banco-de-dados' AS nvarchar(25))
-                                ,CAST('Banco-de-dados' AS nvarchar(25))
+                                ,CAST('85' AS smallint)
+                                ,CAST('6' AS int)
+                                ,NULL
+                                ,CAST('IsListable' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Coluna é listável?' AS nvarchar(50))
+                                ,CAST('Listável?' AS nvarchar(25))
+                                ,CAST('Listável?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
                                 ,NULL
-                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11507,10 +11727,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11529,26 +11749,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('112' AS int)
                                 ,CAST('14' AS int)
-                                ,CAST('15' AS smallint)
-                                ,CAST('2' AS int)
-                                ,CAST('11' AS int)
-                                ,CAST('TableId' AS nvarchar(25))
-                                ,CAST('ID da tabela do índice' AS nvarchar(50))
-                                ,CAST('Tabela' AS nvarchar(25))
-                                ,CAST('Tabela' AS nvarchar(25))
+                                ,CAST('90' AS smallint)
+                                ,CAST('6' AS int)
+                                ,NULL
+                                ,CAST('IsFilterable' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Coluna é filtrável?' AS nvarchar(50))
+                                ,CAST('Filtrável?' AS nvarchar(25))
+                                ,CAST('Filtrável?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
                                 ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11560,10 +11780,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11582,13 +11802,15 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('113' AS int)
                                 ,CAST('14' AS int)
-                                ,CAST('20' AS smallint)
-                                ,CAST('10' AS int)
+                                ,CAST('95' AS smallint)
+                                ,CAST('6' AS int)
                                 ,NULL
-                                ,CAST('Name' AS nvarchar(25))
-                                ,CAST('Nome do índice' AS nvarchar(50))
-                                ,CAST('Nome' AS nvarchar(25))
-                                ,CAST('Nome' AS nvarchar(25))
+                                ,CAST('IsEditable' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Coluna é editável?' AS nvarchar(50))
+                                ,CAST('Editável?' AS nvarchar(25))
+                                ,CAST('Editável?' AS nvarchar(25))
+                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -11598,9 +11820,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,NULL
                                 ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -11613,10 +11833,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11635,20 +11855,20 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('114' AS int)
                                 ,CAST('14' AS int)
-                                ,CAST('25' AS smallint)
+                                ,CAST('100' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
-                                ,CAST('IsUnique' AS nvarchar(25))
-                                ,CAST('É índice único?' AS nvarchar(50))
-                                ,CAST('É único?' AS nvarchar(25))
-                                ,CAST('É único?' AS nvarchar(25))
+                                ,CAST('IsGridable' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Coluna é exibível em grade?' AS nvarchar(50))
+                                ,CAST('Exibível em grade?' AS nvarchar(25))
+                                ,CAST('Exibível em grade?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -11666,10 +11886,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11687,27 +11907,27 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('115' AS int)
-                                ,CAST('15' AS int)
-                                ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('105' AS smallint)
+                                ,CAST('6' AS int)
                                 ,NULL
-                                ,CAST('Id' AS nvarchar(25))
-                                ,CAST('ID da chave de índice' AS nvarchar(50))
-                                ,CAST('ID' AS nvarchar(25))
-                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('IsEncrypted' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Coluna é encriptada?' AS nvarchar(50))
+                                ,CAST('Encriptada?' AS nvarchar(25))
+                                ,CAST('Encriptada?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
                                 ,NULL
-                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11719,10 +11939,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11740,27 +11960,27 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('116' AS int)
-                                ,CAST('15' AS int)
-                                ,CAST('10' AS smallint)
-                                ,CAST('2' AS int)
                                 ,CAST('14' AS int)
-                                ,CAST('IndexId' AS nvarchar(25))
-                                ,CAST('ID do índice da chave' AS nvarchar(50))
-                                ,CAST('Índice' AS nvarchar(25))
-                                ,CAST('Índice' AS nvarchar(25))
+                                ,CAST('110' AS smallint)
+                                ,CAST('6' AS int)
+                                ,NULL
+                                ,CAST('IsInWords' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Valor da coluna por extenso?' AS nvarchar(50))
+                                ,CAST('Valor por extenso?' AS nvarchar(25))
+                                ,CAST('Valor por extenso?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
                                 ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11772,10 +11992,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11794,24 +12014,24 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('117' AS int)
                                 ,CAST('15' AS int)
-                                ,CAST('15' AS smallint)
-                                ,CAST('4' AS int)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS int)
                                 ,NULL
-                                ,CAST('Sequence' AS nvarchar(25))
-                                ,CAST('Sequência da chave' AS nvarchar(50))
-                                ,CAST('Sequência' AS nvarchar(25))
-                                ,CAST('Sequência' AS nvarchar(25))
+                                ,CAST('Id' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('ID do índice' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
@@ -11825,10 +12045,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11847,14 +12067,14 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('118' AS int)
                                 ,CAST('15' AS int)
-                                ,CAST('20' AS smallint)
-                                ,CAST('2' AS int)
-                                ,CAST('13' AS int)
-                                ,CAST('ColumnId' AS nvarchar(25))
-                                ,CAST('ID da coluna-chave do índice' AS nvarchar(50))
-                                ,CAST('Coluna' AS nvarchar(25))
-                                ,CAST('Coluna' AS nvarchar(25))
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('10' AS int)
+                                ,CAST('DatabaseId' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('ID do banco-de-dados do índice' AS nvarchar(50))
+                                ,CAST('Banco-de-dados' AS nvarchar(25))
+                                ,CAST('Banco-de-dados' AS nvarchar(25))
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
@@ -11862,9 +12082,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
@@ -11878,10 +12098,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11900,26 +12120,26 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('119' AS int)
                                 ,CAST('15' AS int)
-                                ,CAST('25' AS smallint)
-                                ,CAST('6' AS int)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('12' AS int)
+                                ,CAST('TableId' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('IsDescending' AS nvarchar(25))
-                                ,CAST('Ordem descedente da chave?' AS nvarchar(50))
-                                ,CAST('Descendente?' AS nvarchar(25))
-                                ,CAST('Descendente?' AS nvarchar(25))
+                                ,CAST('ID da tabela do índice' AS nvarchar(50))
+                                ,CAST('Tabela' AS nvarchar(25))
+                                ,CAST('Tabela' AS nvarchar(25))
                                 ,NULL
+                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11931,10 +12151,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -11952,27 +12172,27 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('120' AS int)
-                                ,CAST('16' AS int)
-                                ,CAST('5' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('15' AS int)
+                                ,CAST('20' AS smallint)
+                                ,CAST('10' AS int)
                                 ,NULL
-                                ,CAST('Id' AS nvarchar(25))
-                                ,CAST('ID do Login de Acesso' AS nvarchar(50))
-                                ,CAST('ID' AS nvarchar(25))
-                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('Name' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Nome do índice' AS nvarchar(50))
+                                ,CAST('Nome' AS nvarchar(25))
+                                ,CAST('Nome' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
-                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
                                 ,NULL
-                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -11984,10 +12204,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -12005,27 +12225,27 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('121' AS int)
-                                ,CAST('16' AS int)
-                                ,CAST('10' AS smallint)
-                                ,CAST('2' AS int)
-                                ,CAST('5' AS int)
-                                ,CAST('SystemId' AS nvarchar(25))
-                                ,CAST('ID do Sistema' AS nvarchar(50))
-                                ,CAST('Sistema' AS nvarchar(25))
-                                ,CAST('Sistema' AS nvarchar(25))
+                                ,CAST('15' AS int)
+                                ,CAST('25' AS smallint)
+                                ,CAST('6' AS int)
+                                ,NULL
+                                ,CAST('IsUnique' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('É índice único?' AS nvarchar(50))
+                                ,CAST('É único?' AS nvarchar(25))
+                                ,CAST('É único?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
                                 ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,NULL
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
-                                ,CAST('0' AS bit)
+                                ,NULL
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -12037,10 +12257,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -12059,14 +12279,385 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('122' AS int)
                                 ,CAST('16' AS int)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS int)
+                                ,NULL
+                                ,CAST('Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID da chave de índice' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('123' AS int)
+                                ,CAST('16' AS int)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('15' AS int)
+                                ,CAST('IndexId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID do índice da chave' AS nvarchar(50))
+                                ,CAST('Índice' AS nvarchar(25))
+                                ,CAST('Índice' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('124' AS int)
+                                ,CAST('16' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('2' AS int)
+                                ,CAST('4' AS int)
+                                ,NULL
+                                ,CAST('Sequence' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Sequência da chave' AS nvarchar(50))
+                                ,CAST('Sequência' AS nvarchar(25))
+                                ,CAST('Sequência' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('125' AS int)
+                                ,CAST('16' AS int)
+                                ,CAST('20' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('14' AS int)
+                                ,CAST('ColumnId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID da coluna-chave do índice' AS nvarchar(50))
+                                ,CAST('Coluna' AS nvarchar(25))
+                                ,CAST('Coluna' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('126' AS int)
+                                ,CAST('16' AS int)
+                                ,CAST('25' AS smallint)
+                                ,CAST('6' AS int)
+                                ,NULL
+                                ,CAST('IsDescending' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Ordem descedente da chave?' AS nvarchar(50))
+                                ,CAST('Descendente?' AS nvarchar(25))
+                                ,CAST('Descendente?' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('127' AS int)
+                                ,CAST('17' AS int)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS int)
+                                ,NULL
+                                ,CAST('Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID do Login de Acesso' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('128' AS int)
+                                ,CAST('17' AS int)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('5' AS int)
+                                ,CAST('SystemId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID do Sistema' AS nvarchar(50))
+                                ,CAST('Sistema' AS nvarchar(25))
+                                ,CAST('Sistema' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('129' AS int)
+                                ,CAST('17' AS int)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS int)
                                 ,CAST('7' AS int)
                                 ,CAST('UserId' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('ID do usuário' AS nvarchar(50))
                                 ,CAST('Usuário' AS nvarchar(25))
                                 ,CAST('Usuário' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,CAST('1' AS nvarchar(max))
                                 ,NULL
@@ -12090,10 +12681,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -12110,16 +12701,16 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('123' AS int)
-                                ,CAST('16' AS int)
+                         VALUES (CAST('130' AS int)
+                                ,CAST('17' AS int)
                                 ,CAST('20' AS smallint)
                                 ,CAST('11' AS int)
                                 ,NULL
                                 ,CAST('PublicKey' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Chave pública do usuário' AS nvarchar(50))
                                 ,CAST('Chave pública' AS nvarchar(25))
                                 ,CAST('Chave pública' AS nvarchar(25))
-                                ,NULL
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -12143,10 +12734,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[DomainId]
                                 ,[ReferenceTableId]
                                 ,[Name]
+                                ,[Alias]
                                 ,[Description]
                                 ,[Title]
                                 ,[Caption]
-                                ,[ValidValues]
                                 ,[Default]
                                 ,[Minimum]
                                 ,[Maximum]
@@ -12163,12 +12754,13 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('124' AS int)
-                                ,CAST('16' AS int)
+                         VALUES (CAST('131' AS int)
+                                ,CAST('17' AS int)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS int)
                                 ,NULL
                                 ,CAST('IsLogged' AS nvarchar(25))
+                                ,NULL
                                 ,CAST('Logado?' AS nvarchar(50))
                                 ,CAST('Logado?' AS nvarchar(25))
                                 ,CAST('Logado?' AS nvarchar(25))
@@ -12177,11 +12769,593 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('132' AS int)
+                                ,CAST('18' AS int)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS int)
+                                ,NULL
+                                ,CAST('Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID da transação' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('133' AS int)
+                                ,CAST('18' AS int)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('17' AS int)
+                                ,CAST('LoginId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Login do usuário' AS nvarchar(50))
+                                ,CAST('Login' AS nvarchar(25))
+                                ,CAST('Login' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('134' AS int)
+                                ,CAST('18' AS int)
+                                ,CAST('15' AS smallint)
+                                ,CAST('6' AS int)
+                                ,NULL
+                                ,CAST('IsConfirmed' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('É confirmado?' AS nvarchar(50))
+                                ,CAST('Confirmado?' AS nvarchar(25))
+                                ,CAST('Confirmado?' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('135' AS int)
+                                ,CAST('19' AS int)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS int)
+                                ,NULL
+                                ,CAST('Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID da operação' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('136' AS int)
+                                ,CAST('19' AS int)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('18' AS int)
+                                ,CAST('TransactionId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID da transação' AS nvarchar(50))
+                                ,CAST('Transação' AS nvarchar(25))
+                                ,CAST('Transação' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('137' AS int)
+                                ,CAST('19' AS int)
+                                ,CAST('15' AS smallint)
+                                ,CAST('9' AS int)
+                                ,NULL
+                                ,CAST('TableName' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Nome da tabela' AS nvarchar(50))
+                                ,CAST('Tabela' AS nvarchar(25))
+                                ,CAST('Tabela' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('138' AS int)
+                                ,CAST('19' AS int)
+                                ,CAST('20' AS smallint)
+                                ,CAST('1' AS int)
+                                ,CAST('19' AS int)
+                                ,CAST('ParentOperationId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID da operação-pai' AS nvarchar(50))
+                                ,CAST('Operação-pai' AS nvarchar(25))
+                                ,CAST('Operação-pai' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('139' AS int)
+                                ,CAST('19' AS int)
+                                ,CAST('25' AS smallint)
+                                ,CAST('21' AS int)
+                                ,NULL
+                                ,CAST('Action' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Ação da operação' AS nvarchar(50))
+                                ,CAST('Ação' AS nvarchar(25))
+                                ,CAST('Ação' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('140' AS int)
+                                ,CAST('19' AS int)
+                                ,CAST('30' AS smallint)
+                                ,CAST('12' AS int)
+                                ,NULL
+                                ,CAST('OriginalRecord' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Registro original' AS nvarchar(50))
+                                ,CAST('Registro original' AS nvarchar(25))
+                                ,CAST('Registro original' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('141' AS int)
+                                ,CAST('19' AS int)
+                                ,CAST('35' AS smallint)
+                                ,CAST('12' AS int)
+                                ,NULL
+                                ,CAST('ActualRecord' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Registro atual' AS nvarchar(50))
+                                ,CAST('Registro atual' AS nvarchar(25))
+                                ,CAST('Registro atual' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('142' AS int)
+                                ,CAST('19' AS int)
+                                ,CAST('40' AS smallint)
+                                ,CAST('6' AS int)
+                                ,NULL
+                                ,CAST('IsConfirmed' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('É confirmado?' AS nvarchar(50))
+                                ,CAST('Confirmado?' AS nvarchar(25))
+                                ,CAST('Confirmado?' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
@@ -12394,7 +13568,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('11' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('9' AS int)
+                                ,CAST('10' AS int)
                                 ,CAST('UNQ_Databases_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12413,7 +13587,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('12' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('9' AS int)
+                                ,CAST('10' AS int)
                                 ,CAST('UNQ_Databases_Alias' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12432,7 +13606,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('13' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('10' AS int)
+                                ,CAST('11' AS int)
                                 ,CAST('UNQ_SystemsDatabases_SystemId_DatabaseId' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12451,7 +13625,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('14' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('10' AS int)
+                                ,CAST('11' AS int)
                                 ,CAST('UNQ_SystemsDatabases_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12470,7 +13644,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('15' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('11' AS int)
+                                ,CAST('12' AS int)
                                 ,CAST('UNQ_Tables_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12489,7 +13663,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('16' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('11' AS int)
+                                ,CAST('12' AS int)
                                 ,CAST('UNQ_Tables_Alias' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12508,7 +13682,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('17' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('12' AS int)
+                                ,CAST('13' AS int)
                                 ,CAST('UNQ_DatabasesTables_DatabaseId_TableId' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12527,7 +13701,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('18' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('12' AS int)
+                                ,CAST('13' AS int)
                                 ,CAST('UNQ_DatabasesTables_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12546,7 +13720,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('19' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('13' AS int)
+                                ,CAST('14' AS int)
                                 ,CAST('UNQ_Columns_TableId_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12565,7 +13739,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('20' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('13' AS int)
+                                ,CAST('14' AS int)
                                 ,CAST('UNQ_Columns_TableId_Sequence' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12584,7 +13758,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('21' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('14' AS int)
+                                ,CAST('15' AS int)
                                 ,CAST('UNQ_Indexes_DatabaseId_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12603,7 +13777,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('22' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('15' AS int)
+                                ,CAST('16' AS int)
                                 ,CAST('UNQ_Indexkeys_IndexId_Sequence' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12622,7 +13796,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('23' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('15' AS int)
+                                ,CAST('16' AS int)
                                 ,CAST('UNQ_Indexkeys_IndexId_ColumnId' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -12641,8 +13815,8 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('24' AS int)
                                 ,CAST('1' AS int)
-                                ,CAST('16' AS int)
-                                ,CAST('IDX_Logins_SystemId_UserId_IsLogged' AS nvarchar(50))
+                                ,CAST('17' AS int)
+                                ,CAST('UNQ_Logins_SystemId_UserId_IsLogged' AS nvarchar(50))
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12911,7 +14085,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('14' AS int)
                                 ,CAST('11' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('64' AS int)
+                                ,CAST('76' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12930,7 +14104,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('15' AS int)
                                 ,CAST('12' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('66' AS int)
+                                ,CAST('77' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12949,7 +14123,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('16' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('74' AS int)
+                                ,CAST('81' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12968,7 +14142,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('17' AS int)
                                 ,CAST('13' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('75' AS int)
+                                ,CAST('82' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -12987,7 +14161,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('18' AS int)
                                 ,CAST('14' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('76' AS int)
+                                ,CAST('83' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13006,7 +14180,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('19' AS int)
                                 ,CAST('15' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('78' AS int)
+                                ,CAST('85' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13025,7 +14199,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('20' AS int)
                                 ,CAST('16' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('79' AS int)
+                                ,CAST('86' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13044,7 +14218,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('21' AS int)
                                 ,CAST('17' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('85' AS int)
+                                ,CAST('92' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13063,7 +14237,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('22' AS int)
                                 ,CAST('17' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('86' AS int)
+                                ,CAST('93' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13082,7 +14256,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('23' AS int)
                                 ,CAST('18' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('87' AS int)
+                                ,CAST('94' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13101,7 +14275,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('24' AS int)
                                 ,CAST('19' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('89' AS int)
+                                ,CAST('96' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13120,7 +14294,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('25' AS int)
                                 ,CAST('19' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('93' AS int)
+                                ,CAST('100' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13139,7 +14313,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('26' AS int)
                                 ,CAST('20' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('89' AS int)
+                                ,CAST('96' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13158,7 +14332,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('27' AS int)
                                 ,CAST('20' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('90' AS int)
+                                ,CAST('97' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13177,7 +14351,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('28' AS int)
                                 ,CAST('21' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('111' AS int)
+                                ,CAST('118' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13196,7 +14370,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('29' AS int)
                                 ,CAST('21' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('113' AS int)
+                                ,CAST('120' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13215,7 +14389,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('30' AS int)
                                 ,CAST('22' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('116' AS int)
+                                ,CAST('123' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13234,7 +14408,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('31' AS int)
                                 ,CAST('22' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('117' AS int)
+                                ,CAST('124' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13253,7 +14427,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('32' AS int)
                                 ,CAST('23' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('116' AS int)
+                                ,CAST('123' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13272,7 +14446,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('33' AS int)
                                 ,CAST('23' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('118' AS int)
+                                ,CAST('125' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13291,7 +14465,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('34' AS int)
                                 ,CAST('24' AS int)
                                 ,CAST('5' AS smallint)
-                                ,CAST('121' AS int)
+                                ,CAST('128' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13310,7 +14484,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('35' AS int)
                                 ,CAST('24' AS int)
                                 ,CAST('10' AS smallint)
-                                ,CAST('122' AS int)
+                                ,CAST('129' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13329,7 +14503,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('36' AS int)
                                 ,CAST('24' AS int)
                                 ,CAST('15' AS smallint)
-                                ,CAST('124' AS int)
+                                ,CAST('131' AS int)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -13345,7 +14519,7 @@ GO
 ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -13365,7 +14539,7 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
@@ -13374,7 +14548,7 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -13394,36 +14568,36 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Categories', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputType'), [crudex].[JSON_EXTRACT](@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputAlign'), [crudex].[JSON_EXTRACT](@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskEncrypted'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskEncrypted'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMask'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMask'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskListable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskListable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDefault'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDefault'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMinimum'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMaximum'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskInWords'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskInWords'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputType'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.HtmlInputType'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputAlign'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskEncrypted'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskEncrypted'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMask'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskMask'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskListable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskListable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDefault'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskDefault'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskMinimum'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskMaximum'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskInWords'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskInWords'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Categories]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([HtmlInputType], [crudex].[JSON_EXTRACT](@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([HtmlInputAlign], [crudex].[JSON_EXTRACT](@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
-                                  AND [AskEncrypted] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskEncrypted')
-                                  AND [AskMask] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMask')
-                                  AND [AskListable] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskListable')
-                                  AND [AskDefault] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDefault')
-                                  AND [AskMinimum] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMinimum')
-                                  AND [AskMaximum] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMaximum')
-                                  AND [AskInWords] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskInWords'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
+                                  AND [crudex].[IS_EQUAL]([HtmlInputType], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.HtmlInputType'), 'nvarchar') = 1
+                                  AND [crudex].[IS_EQUAL]([HtmlInputAlign], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
+                                  AND [AskEncrypted] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskEncrypted')
+                                  AND [AskMask] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskMask')
+                                  AND [AskListable] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskListable')
+                                  AND [AskDefault] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskDefault')
+                                  AND [AskMinimum] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskMinimum')
+                                  AND [AskMaximum] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskMaximum')
+                                  AND [AskInWords] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskInWords'))
                 THROW 51000, 'Registro de Categories alterado por outro usuário', 1
         END
 
@@ -13484,7 +14658,7 @@ GO
 ALTER PROCEDURE [dbo].[CategoryPersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -13502,21 +14676,21 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -13524,7 +14698,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Categories'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -13542,21 +14716,21 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[CategoryValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -13597,7 +14771,7 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -13613,10 +14787,10 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -13628,7 +14802,7 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
@@ -13691,7 +14865,7 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -13763,9 +14937,9 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
@@ -13780,7 +14954,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskInWords') AS bit) AS [AskInWords]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Categories'
                   AND [IsConfirmed] IS NULL
@@ -14030,7 +15204,7 @@ GO
 ALTER PROCEDURE [dbo].[TypeValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -14050,7 +15224,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
@@ -14059,7 +15233,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -14079,42 +15253,42 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Types', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CategoryId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.CategoryId'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxLength'), [crudex].[JSON_EXTRACT](@LastRecord, '$.MaxLength'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskLength'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskLength'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDecimals'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDecimals'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskPrimarykey'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskPrimarykey'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskAutoincrement'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskAutoincrement'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskFilterable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskFilterable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskGridable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskGridable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskCodification'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskCodification'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsActive'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CategoryId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.CategoryId'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxLength'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.MaxLength'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskLength'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskLength'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDecimals'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskDecimals'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskPrimarykey'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskPrimarykey'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskAutoincrement'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskAutoincrement'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskFilterable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskFilterable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskGridable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskGridable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskCodification'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskCodification'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsActive'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Types]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [CategoryId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.CategoryId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([MaxLength], [crudex].[JSON_EXTRACT](@LastRecord, '$.MaxLength'), 'int') = 1
-                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                                  AND [AskLength] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskLength')
-                                  AND [AskDecimals] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDecimals')
-                                  AND [AskPrimarykey] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskPrimarykey')
-                                  AND [AskAutoincrement] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskAutoincrement')
-                                  AND [AskFilterable] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskFilterable')
-                                  AND [AskGridable] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskGridable')
-                                  AND [AskCodification] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskCodification')
-                                  AND [IsActive] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsActive'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [CategoryId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.CategoryId')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
+                                  AND [crudex].[IS_EQUAL]([MaxLength], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.MaxLength'), 'int') = 1
+                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [AskLength] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskLength')
+                                  AND [AskDecimals] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskDecimals')
+                                  AND [AskPrimarykey] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskPrimarykey')
+                                  AND [AskAutoincrement] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskAutoincrement')
+                                  AND [AskFilterable] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskFilterable')
+                                  AND [AskGridable] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskGridable')
+                                  AND [AskCodification] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskCodification')
+                                  AND [IsActive] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsActive'))
                 THROW 51000, 'Registro de Types alterado por outro usuário', 1
         END
 
@@ -14186,7 +15360,7 @@ GO
 ALTER PROCEDURE [dbo].[TypePersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -14204,21 +15378,21 @@ ALTER PROCEDURE [dbo].[TypePersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -14226,7 +15400,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Types'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -14244,21 +15418,21 @@ ALTER PROCEDURE [dbo].[TypePersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[TypeValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -14299,7 +15473,7 @@ ALTER PROCEDURE [dbo].[TypeCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -14315,10 +15489,10 @@ ALTER PROCEDURE [dbo].[TypeCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -14330,7 +15504,7 @@ ALTER PROCEDURE [dbo].[TypeCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
@@ -14405,7 +15579,7 @@ ALTER PROCEDURE [dbo].[TypeCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -14477,9 +15651,9 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
@@ -14497,7 +15671,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskCodification') AS bit) AS [AskCodification]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Types'
                   AND [IsConfirmed] IS NULL
@@ -14779,7 +15953,7 @@ GO
 ALTER PROCEDURE [dbo].[MaskValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -14799,7 +15973,7 @@ ALTER PROCEDURE [dbo].[MaskValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -14808,7 +15982,7 @@ ALTER PROCEDURE [dbo].[MaskValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -14826,20 +16000,20 @@ ALTER PROCEDURE [dbo].[MaskValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Masks', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Mask'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Mask'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Mask'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Mask'), 'nvarchar(max)') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Masks]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [Mask] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Mask'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
+                                  AND [Mask] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Mask'))
                 THROW 51000, 'Registro de Masks alterado por outro usuário', 1
         END
 
@@ -14880,7 +16054,7 @@ GO
 ALTER PROCEDURE [dbo].[MaskPersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -14898,21 +16072,21 @@ ALTER PROCEDURE [dbo].[MaskPersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -14920,7 +16094,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Masks'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -14938,21 +16112,21 @@ ALTER PROCEDURE [dbo].[MaskPersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[MaskValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -14993,7 +16167,7 @@ ALTER PROCEDURE [dbo].[MaskCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -15009,10 +16183,10 @@ ALTER PROCEDURE [dbo].[MaskCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -15024,7 +16198,7 @@ ALTER PROCEDURE [dbo].[MaskCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -15055,7 +16229,7 @@ ALTER PROCEDURE [dbo].[MaskCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -15127,16 +16301,16 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Mask') AS nvarchar(max)) AS [Mask]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Masks'
                   AND [IsConfirmed] IS NULL
@@ -15247,7 +16421,7 @@ GO
 ALTER PROCEDURE [dbo].[DomainValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -15267,7 +16441,7 @@ ALTER PROCEDURE [dbo].[DomainValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -15276,7 +16450,7 @@ ALTER PROCEDURE [dbo].[DomainValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -15296,36 +16470,36 @@ ALTER PROCEDURE [dbo].[DomainValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Domains', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TypeId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TypeId'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaskId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.MaskId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Length'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Length'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Decimals'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Decimals'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ValidValues'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Codification'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Codification'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TypeId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TypeId'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaskId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.MaskId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Length'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Length'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Decimals'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Decimals'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ValidValues'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ValidValues'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Default'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Codification'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Codification'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Domains]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [TypeId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TypeId')
-                                  AND [crudex].[IS_EQUAL]([MaskId], [crudex].[JSON_EXTRACT](@LastRecord, '$.MaskId'), 'int') = 1
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([Length], [crudex].[JSON_EXTRACT](@LastRecord, '$.Length'), 'smallint') = 1
-                                  AND [crudex].[IS_EQUAL]([Decimals], [crudex].[JSON_EXTRACT](@LastRecord, '$.Decimals'), 'tinyint') = 1
-                                  AND [crudex].[IS_EQUAL]([ValidValues], [crudex].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Default], [crudex].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Codification], [crudex].[JSON_EXTRACT](@LastRecord, '$.Codification'), 'nvarchar') = 1)
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [TypeId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TypeId')
+                                  AND [crudex].[IS_EQUAL]([MaskId], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.MaskId'), 'int') = 1
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
+                                  AND [crudex].[IS_EQUAL]([Length], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Length'), 'smallint') = 1
+                                  AND [crudex].[IS_EQUAL]([Decimals], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Decimals'), 'tinyint') = 1
+                                  AND [crudex].[IS_EQUAL]([ValidValues], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ValidValues'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Default], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Default'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Codification], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Codification'), 'nvarchar') = 1)
                 THROW 51000, 'Registro de Domains alterado por outro usuário', 1
         END
 
@@ -15384,7 +16558,7 @@ GO
 ALTER PROCEDURE [dbo].[DomainPersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -15402,21 +16576,21 @@ ALTER PROCEDURE [dbo].[DomainPersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -15424,7 +16598,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Domains'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -15442,21 +16616,21 @@ ALTER PROCEDURE [dbo].[DomainPersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[DomainValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -15497,7 +16671,7 @@ ALTER PROCEDURE [dbo].[DomainCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -15513,10 +16687,10 @@ ALTER PROCEDURE [dbo].[DomainCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -15528,7 +16702,7 @@ ALTER PROCEDURE [dbo].[DomainCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -15591,7 +16765,7 @@ ALTER PROCEDURE [dbo].[DomainCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -15663,9 +16837,9 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -15680,7 +16854,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(max)) AS [Maximum]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Codification') AS nvarchar(5)) AS [Codification]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Domains'
                   AND [IsConfirmed] IS NULL
@@ -15937,7 +17111,7 @@ GO
 ALTER PROCEDURE [dbo].[SystemValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -15957,7 +17131,7 @@ ALTER PROCEDURE [dbo].[SystemValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -15966,7 +17140,7 @@ ALTER PROCEDURE [dbo].[SystemValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -15986,26 +17160,26 @@ ALTER PROCEDURE [dbo].[SystemValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Systems', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ClientName'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ClientName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxRetryLogins'), [crudex].[JSON_EXTRACT](@LastRecord, '$.MaxRetryLogins'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsOffAir'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsOffAir'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ClientName'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ClientName'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxRetryLogins'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.MaxRetryLogins'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsOffAir'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsOffAir'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Systems]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [Description] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Description')
-                                  AND [ClientName] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ClientName')
-                                  AND [MaxRetryLogins] = [crudex].[JSON_EXTRACT](@LastRecord, '$.MaxRetryLogins')
-                                  AND [IsOffAir] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsOffAir'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
+                                  AND [Description] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description')
+                                  AND [ClientName] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ClientName')
+                                  AND [MaxRetryLogins] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.MaxRetryLogins')
+                                  AND [IsOffAir] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsOffAir'))
                 THROW 51000, 'Registro de Systems alterado por outro usuário', 1
         END
 
@@ -16063,7 +17237,7 @@ GO
 ALTER PROCEDURE [dbo].[SystemPersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -16081,21 +17255,21 @@ ALTER PROCEDURE [dbo].[SystemPersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -16103,7 +17277,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Systems'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -16121,21 +17295,21 @@ ALTER PROCEDURE [dbo].[SystemPersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[SystemValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -16176,7 +17350,7 @@ ALTER PROCEDURE [dbo].[SystemCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -16192,10 +17366,10 @@ ALTER PROCEDURE [dbo].[SystemCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -16207,7 +17381,7 @@ ALTER PROCEDURE [dbo].[SystemCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -16250,7 +17424,7 @@ ALTER PROCEDURE [dbo].[SystemCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -16322,9 +17496,9 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -16334,7 +17508,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsOffAir') AS bit) AS [IsOffAir]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Systems'
                   AND [IsConfirmed] IS NULL
@@ -16528,7 +17702,7 @@ GO
 ALTER PROCEDURE [dbo].[MenuValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -16548,7 +17722,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -16557,7 +17731,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -16577,28 +17751,28 @@ ALTER PROCEDURE [dbo].[MenuValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Menus', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Caption'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Message'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Message'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentMenuId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentMenuId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Sequence'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Caption'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Message'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Message'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Action'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentMenuId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ParentMenuId'), 'int') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Menus]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
-                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence')
-                                  AND [Caption] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Caption')
-                                  AND [Message] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Message')
-                                  AND [crudex].[IS_EQUAL]([Action], [crudex].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([ParentMenuId], [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentMenuId'), 'int') = 1)
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId')
+                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Sequence')
+                                  AND [Caption] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Caption')
+                                  AND [Message] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Message')
+                                  AND [crudex].[IS_EQUAL]([Action], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Action'), 'nvarchar') = 1
+                                  AND [crudex].[IS_EQUAL]([ParentMenuId], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ParentMenuId'), 'int') = 1)
                 THROW 51000, 'Registro de Menus alterado por outro usuário', 1
         END
 
@@ -16661,7 +17835,7 @@ GO
 ALTER PROCEDURE [dbo].[MenuPersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -16679,21 +17853,21 @@ ALTER PROCEDURE [dbo].[MenuPersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -16701,7 +17875,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Menus'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -16719,21 +17893,21 @@ ALTER PROCEDURE [dbo].[MenuPersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[MenuValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -16774,7 +17948,7 @@ ALTER PROCEDURE [dbo].[MenuCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -16790,10 +17964,10 @@ ALTER PROCEDURE [dbo].[MenuCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -16805,7 +17979,7 @@ ALTER PROCEDURE [dbo].[MenuCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -16852,7 +18026,7 @@ ALTER PROCEDURE [dbo].[MenuCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -16924,9 +18098,9 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -16937,7 +18111,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Action') AS nvarchar(50)) AS [Action]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ParentMenuId') AS int) AS [ParentMenuId]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Menus'
                   AND [IsConfirmed] IS NULL
@@ -17093,7 +18267,7 @@ GO
 ALTER PROCEDURE [dbo].[UserValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -17113,7 +18287,7 @@ ALTER PROCEDURE [dbo].[UserValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -17122,7 +18296,7 @@ ALTER PROCEDURE [dbo].[UserValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -17142,26 +18316,26 @@ ALTER PROCEDURE [dbo].[UserValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Users', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.FullName'), [crudex].[JSON_EXTRACT](@LastRecord, '$.FullName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.RetryLogins'), [crudex].[JSON_EXTRACT](@LastRecord, '$.RetryLogins'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsActive'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Password'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.FullName'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.FullName'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.RetryLogins'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.RetryLogins'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsActive'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Users]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [Password] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Password')
-                                  AND [FullName] = [crudex].[JSON_EXTRACT](@LastRecord, '$.FullName')
-                                  AND [RetryLogins] = [crudex].[JSON_EXTRACT](@LastRecord, '$.RetryLogins')
-                                  AND [IsActive] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsActive'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
+                                  AND [Password] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Password')
+                                  AND [FullName] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.FullName')
+                                  AND [RetryLogins] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.RetryLogins')
+                                  AND [IsActive] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsActive'))
                 THROW 51000, 'Registro de Users alterado por outro usuário', 1
         END
 
@@ -17215,7 +18389,7 @@ GO
 ALTER PROCEDURE [dbo].[UserPersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -17233,21 +18407,21 @@ ALTER PROCEDURE [dbo].[UserPersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[UserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[UserValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -17255,7 +18429,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Users'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -17273,21 +18447,21 @@ ALTER PROCEDURE [dbo].[UserPersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[UserValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -17328,7 +18502,7 @@ ALTER PROCEDURE [dbo].[UserCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -17344,10 +18518,10 @@ ALTER PROCEDURE [dbo].[UserCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -17359,7 +18533,7 @@ ALTER PROCEDURE [dbo].[UserCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[UserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[UserValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -17402,7 +18576,7 @@ ALTER PROCEDURE [dbo].[UserCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -17474,9 +18648,9 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -17486,7 +18660,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.RetryLogins') AS tinyint) AS [RetryLogins]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Users'
                   AND [IsConfirmed] IS NULL
@@ -17686,7 +18860,7 @@ GO
 ALTER PROCEDURE [dbo].[SystemUserValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -17706,7 +18880,7 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -17715,7 +18889,7 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -17735,22 +18909,22 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em SystemsUsers', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.UserId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[SystemsUsers]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
-                                  AND [UserId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId')
+                                  AND [UserId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.UserId')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'))
                 THROW 51000, 'Registro de SystemsUsers alterado por outro usuário', 1
         END
 
@@ -17803,7 +18977,7 @@ GO
 ALTER PROCEDURE [dbo].[SystemUserPersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -17821,21 +18995,21 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -17843,7 +19017,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'SystemsUsers'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -17861,21 +19035,21 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[SystemUserValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -17916,7 +19090,7 @@ ALTER PROCEDURE [dbo].[SystemUserCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -17932,10 +19106,10 @@ ALTER PROCEDURE [dbo].[SystemUserCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -17947,7 +19121,7 @@ ALTER PROCEDURE [dbo].[SystemUserCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -17982,7 +19156,7 @@ ALTER PROCEDURE [dbo].[SystemUserCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -18054,9 +19228,9 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -18064,7 +19238,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.UserId') AS int) AS [UserId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'SystemsUsers'
                   AND [IsConfirmed] IS NULL
@@ -18270,15 +19444,15 @@ ALTER PROCEDURE [dbo].[SystemsUsersList](@Value NVARCHAR(MAX)
 END
 GO
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabaseValidate]
+Criar stored procedure [dbo].[ConnectionValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabaseValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabaseValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ConnectionValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConnectionValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId INT
+ALTER PROCEDURE [dbo].[ConnectionValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -18298,7 +19472,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -18307,7 +19481,658 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
+            WHERE [Id] = @TransactionId
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1;
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create'
+                THROW 51000, 'Chave-primária já existe em Connections', 1
+        END ELSE IF @Action <> 'create'
+            THROW 51000, 'Chave-primária não existe em Connections', 1
+        IF @Action <> 'create' BEGIN
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @Action = 'update'
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Provider'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Provider'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HostName'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.HostName'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Port'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Port'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IntegratedSecurity'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IntegratedSecurity'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionTimeout'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ConnectionTimeout'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ExtendedProperties'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ExtendedProperties'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserID'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.UserID'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Password'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.PersistSecurityInfo'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.PersistSecurityInfo'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AdditionalParameters'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AdditionalParameters'), 'nvarchar(max)') = 1
+                THROW 51000, 'Nenhuma alteração feita no registro', 1
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Connections]
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [Provider] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Provider')
+                                  AND [HostName] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.HostName')
+                                  AND [Port] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Port')
+                                  AND [IntegratedSecurity] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IntegratedSecurity')
+                                  AND [ConnectionTimeout] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ConnectionTimeout')
+                                  AND [crudex].[IS_EQUAL]([ExtendedProperties], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ExtendedProperties'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([UserID], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.UserID'), 'nvarchar') = 1
+                                  AND [crudex].[IS_EQUAL]([Password], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Password'), 'nvarchar') = 1
+                                  AND [crudex].[IS_EQUAL]([PersistSecurityInfo], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.PersistSecurityInfo'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([AdditionalParameters], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AdditionalParameters'), 'nvarchar(max)') = 1)
+                THROW 51000, 'Registro de Connections alterado por outro usuário', 1
+        END
+
+        IF @Action = 'delete' BEGIN
+            IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [ConnectionId] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Databases', 1
+        END ELSE BEGIN
+
+            DECLARE @W_Provider nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Provider') AS nvarchar(50))
+                   ,@W_HostName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.HostName') AS nvarchar(25))
+                   ,@W_Port int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Port') AS int)
+                   ,@W_IntegratedSecurity bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IntegratedSecurity') AS bit)
+                   ,@W_ConnectionTimeout smallint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionTimeout') AS smallint)
+                   ,@W_ExtendedProperties nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ExtendedProperties') AS nvarchar(max))
+                   ,@W_UserID nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserID') AS nvarchar(25))
+                   ,@W_Password nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password') AS nvarchar(256))
+                   ,@W_PersistSecurityInfo bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.PersistSecurityInfo') AS bit)
+                   ,@W_AdditionalParameters nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AdditionalParameters') AS nvarchar(max))
+
+            IF @W_Provider IS NULL
+                THROW 51000, 'Valor de Provider em @ActualRecord é requerido.', 1
+            IF @W_HostName IS NULL
+                THROW 51000, 'Valor de HostName em @ActualRecord é requerido.', 1
+            IF @W_Port IS NULL
+                THROW 51000, 'Valor de Port em @ActualRecord é requerido.', 1
+            IF @W_Port < CAST('1' AS int)
+                THROW 51000, 'Valor de Port em @ActualRecord deve ser maior que ou igual a 1', 1
+            IF @W_IntegratedSecurity IS NULL
+                THROW 51000, 'Valor de IntegratedSecurity em @ActualRecord é requerido.', 1
+            IF @W_ConnectionTimeout IS NULL
+                THROW 51000, 'Valor de ConnectionTimeout em @ActualRecord é requerido.', 1
+            IF @W_ConnectionTimeout < CAST('0' AS smallint)
+                THROW 51000, 'Valor de ConnectionTimeout em @ActualRecord deve ser maior que ou igual a 0', 1
+        END
+
+        RETURN @TransactionId
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[ConnectionPersist]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ConnectionPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConnectionPersist] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ConnectionPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
+           ,@ErrorMessage NVARCHAR(255)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @TransactionId INT
+               ,@OperationId INT
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
+               ,@IsConfirmed BIT
+               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
+
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        EXEC @TransactionId = [dbo].[ConnectionValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
+              ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Columns'
+                  AND [IsConfirmed] IS NULL
+                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
+        IF @@ROWCOUNT = 0 BEGIN
+            INSERT INTO [dbo].[Operations] ([TransactionId]
+                                             ,[TableName]
+                                             ,[Action]
+                                             ,[OriginalRecord]
+                                             ,[ActualRecord]
+                                             ,[IsConfirmed]
+                                             ,[CreatedAt]
+                                             ,[CreatedBy])
+                                       VALUES(@TransactionId
+                                             ,'Connections'
+                                             ,@Action
+                                             ,@OriginalRecord
+                                             ,@ActualRecord
+                                             ,NULL
+                                             ,GETDATE()
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        ELSE IF @ActionAux = 'delete'
+            THROW 51000, 'Registro excluído nesta transação', 1
+        ELSE IF @Action = 'create'
+            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'update' BEGIN
+            IF @ActionAux = 'create'
+                EXEC [dbo].[ConnectionValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END ELSE IF @ActionAux = 'create' BEGIN
+            UPDATE [dbo].[Operations] 
+                SET [IsConfirmed] = 0
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END ELSE BEGIN
+            UPDATE [dbo].[Operations]
+                SET [Action] = 'delete'
+                   ,[OriginalRecord] = @OriginalRecord
+                   ,[ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
+        COMMIT TRANSACTION
+
+        RETURN CAST(@OperationId AS INT)
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[ConnectionCommit]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ConnectionCommit]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConnectionCommit] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ConnectionCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
+                                             ,@OperationId INT) AS BEGIN
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @TransactionId INT
+               ,@TransactionIdAux INT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@OriginalRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName requerido', 1
+        IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@OriginalRecord = [OriginalRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Connections'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        EXEC @TransactionIdAux = [dbo].[ConnectionValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
+
+        IF @Action = 'delete'
+            DELETE FROM [dbo].[Connections] WHERE [Id] = @W_Id
+        ELSE BEGIN
+
+            DECLARE @W_Provider nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Provider') AS nvarchar(50))
+                   ,@W_HostName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.HostName') AS nvarchar(25))
+                   ,@W_Port int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Port') AS int)
+                   ,@W_IntegratedSecurity bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IntegratedSecurity') AS bit)
+                   ,@W_ConnectionTimeout smallint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionTimeout') AS smallint)
+                   ,@W_ExtendedProperties nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ExtendedProperties') AS nvarchar(max))
+                   ,@W_UserID nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserID') AS nvarchar(25))
+                   ,@W_Password nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password') AS nvarchar(256))
+                   ,@W_PersistSecurityInfo bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.PersistSecurityInfo') AS bit)
+                   ,@W_AdditionalParameters nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AdditionalParameters') AS nvarchar(max))
+
+            IF @Action = 'create'
+                INSERT INTO [dbo].[Connections] ([Id]
+                                                ,[Provider]
+                                                ,[HostName]
+                                                ,[Port]
+                                                ,[IntegratedSecurity]
+                                                ,[ConnectionTimeout]
+                                                ,[ExtendedProperties]
+                                                ,[UserID]
+                                                ,[Password]
+                                                ,[PersistSecurityInfo]
+                                                ,[AdditionalParameters]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
+                                          VALUES (@W_Id
+                                                 ,@W_Provider
+                                                 ,@W_HostName
+                                                 ,@W_Port
+                                                 ,@W_IntegratedSecurity
+                                                 ,@W_ConnectionTimeout
+                                                 ,@W_ExtendedProperties
+                                                 ,@W_UserID
+                                                 ,@W_Password
+                                                 ,@W_PersistSecurityInfo
+                                                 ,@W_AdditionalParameters
+                                                 ,GETDATE()
+                                                 ,@UserName)
+            ELSE
+                UPDATE [dbo].[Connections] SET [Id] = @W_Id
+                                              ,[Provider] = @W_Provider
+                                              ,[HostName] = @W_HostName
+                                              ,[Port] = @W_Port
+                                              ,[IntegratedSecurity] = @W_IntegratedSecurity
+                                              ,[ConnectionTimeout] = @W_ConnectionTimeout
+                                              ,[ExtendedProperties] = @W_ExtendedProperties
+                                              ,[UserID] = @W_UserID
+                                              ,[Password] = @W_Password
+                                              ,[PersistSecurityInfo] = @W_PersistSecurityInfo
+                                              ,[AdditionalParameters] = @W_AdditionalParameters
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
+                    WHERE [Id] = @W_Id
+        END
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+        COMMIT TRANSACTION
+
+        RETURN @TransactionId
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[ConnectionsRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ConnectionsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConnectionsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId INT
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
+        IF @RecordFilter IS NULL
+            SET @RecordFilter = '{}'
+        ELSE IF ISJSON(@RecordFilter) = 0
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
+        IF @OrderBy = ''
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
+                                                    FROM [sys].[columns] [#1]
+                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
+                                                    WHERE [#2].[name] = 'Connections') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
+                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
+                                                         ELSE 'ASC'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
+        END
+
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
+
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
+        SELECT [Action] AS [_]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Provider') AS nvarchar(50)) AS [Provider]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.HostName') AS nvarchar(25)) AS [HostName]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Port') AS int) AS [Port]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IntegratedSecurity') AS bit) AS [IntegratedSecurity]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ConnectionTimeout') AS smallint) AS [ConnectionTimeout]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ExtendedProperties') AS nvarchar(max)) AS [ExtendedProperties]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.UserID') AS nvarchar(25)) AS [UserID]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.PersistSecurityInfo') AS bit) AS [PersistSecurityInfo]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AdditionalParameters') AS nvarchar(max)) AS [AdditionalParameters]
+            INTO [dbo].[#operations]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Connections'
+                  AND [IsConfirmed] IS NULL
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_Provider nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Provider') AS nvarchar(50))
+                   ,@W_HostName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.HostName') AS nvarchar(25))
+                   ,@W_Port int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Port') AS int)
+                   ,@W_IntegratedSecurity bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IntegratedSecurity') AS bit)
+
+            IF @W_Id IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_Provider IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Provider] = @Provider'
+            END
+            IF @W_HostName IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[HostName] = @HostName'
+            END
+            IF @W_Port IS NOT NULL BEGIN
+                IF @W_Port < CAST('1' AS int)
+                    THROW 51000, 'Valor de Port deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Port] = @Port'
+            END
+            IF @W_IntegratedSecurity IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IntegratedSecurity] = @IntegratedSecurity'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Connections] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[T].[Id]
+                                FROM [dbo].[#operations] [T]
+                                WHERE [T].[_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int
+                               ,@Provider nvarchar(50)
+                               ,@HostName nvarchar(25)
+                               ,@Port int
+                               ,@IntegratedSecurity bit'
+                           ,@Id = @W_Id
+                           ,@Provider = @W_Provider
+                           ,@HostName = @W_HostName
+                           ,@Port = @W_Port
+                           ,@IntegratedSecurity = @W_IntegratedSecurity
+        ELSE
+            EXEC sp_executesql @sql
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS nvarchar(50)) AS [Provider]
+                    ,CAST(NULL AS nvarchar(25)) AS [HostName]
+                    ,CAST(NULL AS int) AS [Port]
+                    ,CAST(NULL AS bit) AS [IntegratedSecurity]
+                    ,CAST(NULL AS smallint) AS [ConnectionTimeout]
+                    ,CAST(NULL AS nvarchar(max)) AS [ExtendedProperties]
+                    ,CAST(NULL AS nvarchar(25)) AS [UserID]
+                    ,CAST(NULL AS nvarchar(256)) AS [Password]
+                    ,CAST(NULL AS bit) AS [PersistSecurityInfo]
+                    ,CAST(NULL AS nvarchar(max)) AS [AdditionalParameters]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Connection'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[Provider]
+                              ,[T].[HostName]
+                              ,[T].[Port]
+                              ,[T].[IntegratedSecurity]
+                              ,[T].[ConnectionTimeout]
+                              ,[T].[ExtendedProperties]
+                              ,[T].[UserID]
+                              ,[T].[Password]
+                              ,[T].[PersistSecurityInfo]
+                              ,[T].[AdditionalParameters]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[Connections] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Connection'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[Provider]
+                                  ,[O].[HostName]
+                                  ,[O].[Port]
+                                  ,[O].[IntegratedSecurity]
+                                  ,[O].[ConnectionTimeout]
+                                  ,[O].[ExtendedProperties]
+                                  ,[O].[UserID]
+                                  ,[O].[Password]
+                                  ,[O].[PersistSecurityInfo]
+                                  ,[O].[AdditionalParameters]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[Provider]
+              ,[HostName]
+              ,[Port]
+              ,[IntegratedSecurity]
+              ,[ConnectionTimeout]
+              ,[ExtendedProperties]
+              ,[UserID]
+              ,[Password]
+              ,[PersistSecurityInfo]
+              ,[AdditionalParameters]
+            FROM [dbo].[#result]
+        SET @ReturnValue = @RowCount
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[ConnectionsList]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ConnectionsList]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConnectionsList] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ConnectionsList](@Value NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @Value IS NULL
+            SET @Value = ''
+        SELECT [Id]
+            INTO [dbo].[#query]
+            FROM [dbo].[Connections]
+            WHERE [Provider] LIKE '%' + @Value + '%'
+            ORDER BY [Provider]
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+
+        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SET @sql = 'SELECT [T].[Id]
+                          ,[T].[Provider]
+                       FROM [dbo].[#query] [Q]
+                           INNER JOIN [dbo].[Connections] [T] ON [T].[Id] = [Q].[Id]
+                       ORDER BY [T].[Provider]
+                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SET @ReturnValue = @RowCount
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[DatabaseValidate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[DatabaseValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabaseValidate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName é requerido', 1
+        IF @Action IS NULL
+            THROW 51000, 'Valor de @Action é requerido', 1
+        IF @Action NOT IN ('create', 'update', 'delete')
+            THROW 51000, 'Valor de @Action é inválido', 1
+        IF @ActualRecord IS NULL
+            THROW 51000, 'Valor de @ActualRecord é requerido', 1
+        IF ISJSON(@ActualRecord) = 0
+            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
+
+        IF @TransactionId IS NULL
+            THROW 51000, 'Não existe transação para este @LoginId', 1
+        SELECT @IsConfirmed = [IsConfirmed]
+              ,@CreatedBy = [CreatedBy]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -18327,34 +20152,26 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Databases', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ServerName'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ServerName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HostName'), [crudex].[JSON_EXTRACT](@LastRecord, '$.HostName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Port'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Port'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Logon'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Logon'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Folder'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Folder'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ConnectionId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Folder'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Folder'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Databases]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [Description] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Description')
-                                  AND [Alias] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias')
-                                  AND [crudex].[IS_EQUAL]([ServerName], [crudex].[JSON_EXTRACT](@LastRecord, '$.ServerName'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([HostName], [crudex].[JSON_EXTRACT](@LastRecord, '$.HostName'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([Port], [crudex].[JSON_EXTRACT](@LastRecord, '$.Port'), 'int') = 1
-                                  AND [crudex].[IS_EQUAL]([Logon], [crudex].[JSON_EXTRACT](@LastRecord, '$.Logon'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([Password], [crudex].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([Folder], [crudex].[JSON_EXTRACT](@LastRecord, '$.Folder'), 'nvarchar') = 1)
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [ConnectionId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ConnectionId')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
+                                  AND [Alias] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias')
+                                  AND [Description] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description')
+                                  AND [crudex].[IS_EQUAL]([Folder], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Folder'), 'nvarchar') = 1)
                 THROW 51000, 'Registro de Databases alterado por outro usuário', 1
         END
 
@@ -18367,24 +20184,24 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId INT
                 THROW 51000, 'Chave-primária referenciada em Indexes', 1
         END ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
+            DECLARE @W_ConnectionId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionId') AS int)
+                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
                    ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_ServerName nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ServerName') AS nvarchar(50))
-                   ,@W_HostName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.HostName') AS nvarchar(25))
-                   ,@W_Port int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Port') AS int)
-                   ,@W_Logon nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Logon') AS nvarchar(256))
-                   ,@W_Password nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password') AS nvarchar(256))
+                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
                    ,@W_Folder nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Folder') AS nvarchar(256))
 
+            IF @W_ConnectionId IS NULL
+                THROW 51000, 'Valor de ConnectionId em @ActualRecord é requerido.', 1
+            IF @W_ConnectionId < CAST('1' AS int)
+                THROW 51000, 'Valor de ConnectionId em @ActualRecord deve ser maior que ou igual a 1', 1
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Connections] WHERE [Id] = @W_ConnectionId)
+                THROW 51000, 'Valor de ConnectionId em @ActualRecord inexiste em Connections', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
-            IF @W_Description IS NULL
-                THROW 51000, 'Valor de Description em @ActualRecord é requerido.', 1
             IF @W_Alias IS NULL
                 THROW 51000, 'Valor de Alias em @ActualRecord é requerido.', 1
-            IF @W_Port IS NOT NULL AND @W_Port < CAST('1' AS int)
-                THROW 51000, 'Valor de Port em @ActualRecord deve ser maior que ou igual a 1', 1
+            IF @W_Description IS NULL
+                THROW 51000, 'Valor de Description em @ActualRecord é requerido.', 1
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_Databases_Name já existe', 1
@@ -18414,7 +20231,7 @@ GO
 ALTER PROCEDURE [dbo].[DatabasePersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -18432,21 +20249,21 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -18454,7 +20271,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Databases'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -18472,21 +20289,21 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[DatabaseValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -18527,7 +20344,7 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -18543,10 +20360,10 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -18558,7 +20375,7 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -18567,57 +20384,41 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@LoginId INT
             DELETE FROM [dbo].[Databases] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
+            DECLARE @W_ConnectionId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionId') AS int)
+                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
                    ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_ServerName nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ServerName') AS nvarchar(50))
-                   ,@W_HostName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.HostName') AS nvarchar(25))
-                   ,@W_Port int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Port') AS int)
-                   ,@W_Logon nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Logon') AS nvarchar(256))
-                   ,@W_Password nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password') AS nvarchar(256))
+                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
                    ,@W_Folder nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Folder') AS nvarchar(256))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Databases] ([Id]
+                                                ,[ConnectionId]
                                                 ,[Name]
-                                                ,[Description]
                                                 ,[Alias]
-                                                ,[ServerName]
-                                                ,[HostName]
-                                                ,[Port]
-                                                ,[Logon]
-                                                ,[Password]
+                                                ,[Description]
                                                 ,[Folder]
                                                 ,[CreatedAt]
                                                 ,[CreatedBy])
                                           VALUES (@W_Id
+                                                 ,@W_ConnectionId
                                                  ,@W_Name
-                                                 ,@W_Description
                                                  ,@W_Alias
-                                                 ,@W_ServerName
-                                                 ,@W_HostName
-                                                 ,@W_Port
-                                                 ,@W_Logon
-                                                 ,@W_Password
+                                                 ,@W_Description
                                                  ,@W_Folder
                                                  ,GETDATE()
                                                  ,@UserName)
             ELSE
                 UPDATE [dbo].[Databases] SET [Id] = @W_Id
+                                              ,[ConnectionId] = @W_ConnectionId
                                               ,[Name] = @W_Name
-                                              ,[Description] = @W_Description
                                               ,[Alias] = @W_Alias
-                                              ,[ServerName] = @W_ServerName
-                                              ,[HostName] = @W_HostName
-                                              ,[Port] = @W_Port
-                                              ,[Logon] = @W_Logon
-                                              ,[Password] = @W_Password
+                                              ,[Description] = @W_Description
                                               ,[Folder] = @W_Folder
                                               ,[UpdatedAt] = GETDATE()
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -18689,23 +20490,19 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ConnectionId') AS int) AS [ConnectionId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ServerName') AS nvarchar(50)) AS [ServerName]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.HostName') AS nvarchar(25)) AS [HostName]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Port') AS int) AS [Port]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Logon') AS nvarchar(256)) AS [Logon]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Folder') AS nvarchar(256)) AS [Folder]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Databases'
                   AND [IsConfirmed] IS NULL
@@ -18717,6 +20514,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
 
         IF @_ IS NULL BEGIN
             DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+                   ,@W_ConnectionId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ConnectionId') AS int)
                    ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
                    ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
 
@@ -18724,6 +20522,11 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
                 IF @W_Id < CAST('1' AS int)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_ConnectionId IS NOT NULL BEGIN
+                IF @W_ConnectionId < CAST('1' AS int)
+                    THROW 51000, 'Valor de ConnectionId deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[ConnectionId] = @ConnectionId'
             END
             IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
@@ -18748,9 +20551,11 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id int
+                               ,@ConnectionId int
                                ,@Name nvarchar(25)
                                ,@Alias nvarchar(25)'
                            ,@Id = @W_Id
+                           ,@ConnectionId = @W_ConnectionId
                            ,@Name = @W_Name
                            ,@Alias = @W_Alias
         ELSE
@@ -18777,27 +20582,19 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
                     ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS int) AS [ConnectionId]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
-                    ,CAST(NULL AS nvarchar(50)) AS [Description]
                     ,CAST(NULL AS nvarchar(25)) AS [Alias]
-                    ,CAST(NULL AS nvarchar(50)) AS [ServerName]
-                    ,CAST(NULL AS nvarchar(25)) AS [HostName]
-                    ,CAST(NULL AS int) AS [Port]
-                    ,CAST(NULL AS nvarchar(256)) AS [Logon]
-                    ,CAST(NULL AS nvarchar(256)) AS [Password]
+                    ,CAST(NULL AS nvarchar(50)) AS [Description]
                     ,CAST(NULL AS nvarchar(256)) AS [Folder]
             INTO [dbo].[#result]
         SET @sql = 'INSERT #result
                         SELECT ''Database'' AS [ClassName]
                               ,[T].[Id]
+                              ,[T].[ConnectionId]
                               ,[T].[Name]
-                              ,[T].[Description]
                               ,[T].[Alias]
-                              ,[T].[ServerName]
-                              ,[T].[HostName]
-                              ,[T].[Port]
-                              ,[T].[Logon]
-                              ,[T].[Password]
+                              ,[T].[Description]
                               ,[T].[Folder]
                             FROM [dbo].[#table] [#]
                                 INNER JOIN [dbo].[Databases] [T] ON [T].[Id] = [#].[Id]
@@ -18805,14 +20602,10 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
                         UNION ALL
                             SELECT ''Database'' AS [ClassName]
                                   ,[O].[Id]
+                                  ,[O].[ConnectionId]
                                   ,[O].[Name]
-                                  ,[O].[Description]
                                   ,[O].[Alias]
-                                  ,[O].[ServerName]
-                                  ,[O].[HostName]
-                                  ,[O].[Port]
-                                  ,[O].[Logon]
-                                  ,[O].[Password]
+                                  ,[O].[Description]
                                   ,[O].[Folder]
                                 FROM [dbo].[#table] [#]
                                     INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
@@ -18823,16 +20616,26 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId INT
         EXEC sp_executesql @sql
         SELECT [ClassName]
               ,[Id]
+              ,[ConnectionId]
               ,[Name]
-              ,[Description]
               ,[Alias]
-              ,[ServerName]
-              ,[HostName]
-              ,[Port]
-              ,[Logon]
-              ,[Password]
+              ,[Description]
               ,[Folder]
             FROM [dbo].[#result]
+        SELECT 'Connection' AS ClassName
+              ,[REF].[Id]
+              ,[REF].[Provider]
+              ,[REF].[HostName]
+              ,[REF].[Port]
+              ,[REF].[IntegratedSecurity]
+              ,[REF].[ConnectionTimeout]
+              ,[REF].[ExtendedProperties]
+              ,[REF].[UserID]
+              ,[REF].[Password]
+              ,[REF].[PersistSecurityInfo]
+              ,[REF].[AdditionalParameters]
+            FROM [dbo].[#result] [RES]
+                INNER JOIN [dbo].[Connections] [REF] ON [REF].[Id] = [RES].[ConnectionId]
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
@@ -18915,7 +20718,7 @@ GO
 ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -18935,7 +20738,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -18944,7 +20747,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -18964,22 +20767,22 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em SystemsDatabases', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DatabaseId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[SystemsDatabases]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
-                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId')
+                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DatabaseId')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'))
                 THROW 51000, 'Registro de SystemsDatabases alterado por outro usuário', 1
         END
 
@@ -19032,7 +20835,7 @@ GO
 ALTER PROCEDURE [dbo].[SystemDatabasePersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -19050,21 +20853,21 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -19072,7 +20875,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'SystemsDatabases'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -19090,21 +20893,21 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[SystemDatabaseValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -19145,7 +20948,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -19161,10 +20964,10 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -19176,7 +20979,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -19211,7 +21014,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -19283,9 +21086,9 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -19293,7 +21096,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS int) AS [DatabaseId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'SystemsDatabases'
                   AND [IsConfirmed] IS NULL
@@ -19418,14 +21221,10 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId INT
                 INNER JOIN [dbo].[Systems] [REF] ON [REF].[Id] = [RES].[SystemId]
         SELECT 'Database' AS ClassName
               ,[REF].[Id]
+              ,[REF].[ConnectionId]
               ,[REF].[Name]
-              ,[REF].[Description]
               ,[REF].[Alias]
-              ,[REF].[ServerName]
-              ,[REF].[HostName]
-              ,[REF].[Port]
-              ,[REF].[Logon]
-              ,[REF].[Password]
+              ,[REF].[Description]
               ,[REF].[Folder]
             FROM [dbo].[#result] [RES]
                 INNER JOIN [dbo].[Databases] [REF] ON [REF].[Id] = [RES].[DatabaseId]
@@ -19511,7 +21310,7 @@ GO
 ALTER PROCEDURE [dbo].[TableValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -19531,7 +21330,7 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -19540,7 +21339,7 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -19560,28 +21359,28 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Tables', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentTableId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsPaged'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsPaged'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.CurrentId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ParentTableId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsLegacy'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.CurrentId'), 'int') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Tables]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [Alias] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias')
-                                  AND [Description] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Description')
-                                  AND [crudex].[IS_EQUAL]([ParentTableId], [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentTableId'), 'int') = 1
-                                  AND [IsPaged] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsPaged')
-                                  AND [CurrentId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.CurrentId'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
+                                  AND [Alias] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias')
+                                  AND [Description] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description')
+                                  AND [crudex].[IS_EQUAL]([ParentTableId], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ParentTableId'), 'int') = 1
+                                  AND [IsLegacy] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsLegacy')
+                                  AND [CurrentId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.CurrentId'))
                 THROW 51000, 'Registro de Tables alterado por outro usuário', 1
         END
 
@@ -19600,7 +21399,7 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId INT
                    ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
                    ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
                    ,@W_ParentTableId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId') AS int)
-                   ,@W_IsPaged bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsPaged') AS bit)
+                   ,@W_IsLegacy bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy') AS bit)
                    ,@W_CurrentId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentId') AS int)
 
             IF @W_Name IS NULL
@@ -19611,8 +21410,8 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId INT
                 THROW 51000, 'Valor de Description em @ActualRecord é requerido.', 1
             IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('0' AS int)
                 THROW 51000, 'Valor de ParentTableId em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF @W_IsPaged IS NULL
-                THROW 51000, 'Valor de IsPaged em @ActualRecord é requerido.', 1
+            IF @W_IsLegacy IS NULL
+                THROW 51000, 'Valor de IsLegacy em @ActualRecord é requerido.', 1
             IF @W_CurrentId IS NULL
                 THROW 51000, 'Valor de CurrentId em @ActualRecord é requerido.', 1
             IF @W_CurrentId < CAST('0' AS int)
@@ -19646,7 +21445,7 @@ GO
 ALTER PROCEDURE [dbo].[TablePersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -19664,21 +21463,21 @@ ALTER PROCEDURE [dbo].[TablePersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[TableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[TableValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -19686,7 +21485,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Tables'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -19704,21 +21503,21 @@ ALTER PROCEDURE [dbo].[TablePersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[TableValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -19759,7 +21558,7 @@ ALTER PROCEDURE [dbo].[TableCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -19775,10 +21574,10 @@ ALTER PROCEDURE [dbo].[TableCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -19790,7 +21589,7 @@ ALTER PROCEDURE [dbo].[TableCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[TableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[TableValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -19803,7 +21602,7 @@ ALTER PROCEDURE [dbo].[TableCommit](@LoginId INT
                    ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
                    ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
                    ,@W_ParentTableId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId') AS int)
-                   ,@W_IsPaged bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsPaged') AS bit)
+                   ,@W_IsLegacy bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy') AS bit)
                    ,@W_CurrentId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentId') AS int)
 
             IF @Action = 'create'
@@ -19812,7 +21611,7 @@ ALTER PROCEDURE [dbo].[TableCommit](@LoginId INT
                                                 ,[Alias]
                                                 ,[Description]
                                                 ,[ParentTableId]
-                                                ,[IsPaged]
+                                                ,[IsLegacy]
                                                 ,[CurrentId]
                                                 ,[CreatedAt]
                                                 ,[CreatedBy])
@@ -19821,7 +21620,7 @@ ALTER PROCEDURE [dbo].[TableCommit](@LoginId INT
                                                  ,@W_Alias
                                                  ,@W_Description
                                                  ,@W_ParentTableId
-                                                 ,@W_IsPaged
+                                                 ,@W_IsLegacy
                                                  ,@W_CurrentId
                                                  ,GETDATE()
                                                  ,@UserName)
@@ -19831,13 +21630,13 @@ ALTER PROCEDURE [dbo].[TableCommit](@LoginId INT
                                               ,[Alias] = @W_Alias
                                               ,[Description] = @W_Description
                                               ,[ParentTableId] = @W_ParentTableId
-                                              ,[IsPaged] = @W_IsPaged
+                                              ,[IsLegacy] = @W_IsLegacy
                                               ,[CurrentId] = @W_CurrentId
                                               ,[UpdatedAt] = GETDATE()
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -19909,9 +21708,9 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -19919,10 +21718,10 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ParentTableId') AS int) AS [ParentTableId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsPaged') AS bit) AS [IsPaged]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsLegacy') AS bit) AS [IsLegacy]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.CurrentId') AS int) AS [CurrentId]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Tables'
                   AND [IsConfirmed] IS NULL
@@ -19936,7 +21735,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
             DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
                    ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
                    ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
-                   ,@W_IsPaged bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsPaged') AS bit)
+                   ,@W_IsLegacy bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsLegacy') AS bit)
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS int)
@@ -19949,8 +21748,8 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
             IF @W_Alias IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Alias] = @Alias'
             END
-            IF @W_IsPaged IS NOT NULL BEGIN
-                SET @Where = @Where + ' AND [T].[IsPaged] = @IsPaged'
+            IF @W_IsLegacy IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsLegacy] = @IsLegacy'
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
@@ -19971,11 +21770,11 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
                                ,N'@Id int
                                ,@Name nvarchar(25)
                                ,@Alias nvarchar(25)
-                               ,@IsPaged bit'
+                               ,@IsLegacy bit'
                            ,@Id = @W_Id
                            ,@Name = @W_Name
                            ,@Alias = @W_Alias
-                           ,@IsPaged = @W_IsPaged
+                           ,@IsLegacy = @W_IsLegacy
         ELSE
             EXEC sp_executesql @sql
 
@@ -20004,7 +21803,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
                     ,CAST(NULL AS nvarchar(25)) AS [Alias]
                     ,CAST(NULL AS nvarchar(50)) AS [Description]
                     ,CAST(NULL AS int) AS [ParentTableId]
-                    ,CAST(NULL AS bit) AS [IsPaged]
+                    ,CAST(NULL AS bit) AS [IsLegacy]
                     ,CAST(NULL AS int) AS [CurrentId]
             INTO [dbo].[#result]
         SET @sql = 'INSERT #result
@@ -20014,7 +21813,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
                               ,[T].[Alias]
                               ,[T].[Description]
                               ,[T].[ParentTableId]
-                              ,[T].[IsPaged]
+                              ,[T].[IsLegacy]
                               ,[T].[CurrentId]
                             FROM [dbo].[#table] [#]
                                 INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [#].[Id]
@@ -20026,7 +21825,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
                                   ,[O].[Alias]
                                   ,[O].[Description]
                                   ,[O].[ParentTableId]
-                                  ,[O].[IsPaged]
+                                  ,[O].[IsLegacy]
                                   ,[O].[CurrentId]
                                 FROM [dbo].[#table] [#]
                                     INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
@@ -20041,7 +21840,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId INT
               ,[Alias]
               ,[Description]
               ,[ParentTableId]
-              ,[IsPaged]
+              ,[IsLegacy]
               ,[CurrentId]
             FROM [dbo].[#result]
         SET @ReturnValue = @RowCount
@@ -20126,7 +21925,7 @@ GO
 ALTER PROCEDURE [dbo].[DatabaseTableValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -20146,7 +21945,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -20155,7 +21954,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -20175,22 +21974,22 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em DatabasesTables', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DatabaseId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[DatabasesTables]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId')
-                                  AND [TableId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DatabaseId')
+                                  AND [TableId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'))
                 THROW 51000, 'Registro de DatabasesTables alterado por outro usuário', 1
         END
 
@@ -20243,7 +22042,7 @@ GO
 ALTER PROCEDURE [dbo].[DatabaseTablePersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -20261,21 +22060,21 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -20283,7 +22082,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'DatabasesTables'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -20301,21 +22100,21 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[DatabaseTableValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -20356,7 +22155,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -20372,10 +22171,10 @@ ALTER PROCEDURE [dbo].[DatabaseTableCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -20387,7 +22186,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -20422,7 +22221,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -20494,9 +22293,9 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -20504,7 +22303,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS int) AS [TableId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'DatabasesTables'
                   AND [IsConfirmed] IS NULL
@@ -20620,14 +22419,10 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
             FROM [dbo].[#result]
         SELECT 'Database' AS ClassName
               ,[REF].[Id]
+              ,[REF].[ConnectionId]
               ,[REF].[Name]
-              ,[REF].[Description]
               ,[REF].[Alias]
-              ,[REF].[ServerName]
-              ,[REF].[HostName]
-              ,[REF].[Port]
-              ,[REF].[Logon]
-              ,[REF].[Password]
+              ,[REF].[Description]
               ,[REF].[Folder]
             FROM [dbo].[#result] [RES]
                 INNER JOIN [dbo].[Databases] [REF] ON [REF].[Id] = [RES].[DatabaseId]
@@ -20637,7 +22432,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId INT
               ,[REF].[Alias]
               ,[REF].[Description]
               ,[REF].[ParentTableId]
-              ,[REF].[IsPaged]
+              ,[REF].[IsLegacy]
               ,[REF].[CurrentId]
             FROM [dbo].[#result] [RES]
                 INNER JOIN [dbo].[Tables] [REF] ON [REF].[Id] = [RES].[TableId]
@@ -20723,7 +22518,7 @@ GO
 ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -20743,7 +22538,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -20752,7 +22547,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -20772,58 +22567,58 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Columns', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DomainId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.DomainId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ReferenceTableId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Title'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Title'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Caption'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ValidValues'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsPrimarykey'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsPrimarykey'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsAutoIncrement'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsRequired'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsRequired'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsListable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsListable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsFilterable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsFilterable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEditable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEditable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsGridable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsGridable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEncrypted'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsInWords'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsInWords'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Sequence'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DomainId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DomainId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ReferenceTableId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Title'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Title'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Caption'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Default'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsPrimarykey'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsPrimarykey'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsAutoIncrement'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsAutoIncrement'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsRequired'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsRequired'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsListable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsListable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsFilterable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsFilterable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEditable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsEditable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsGridable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsGridable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsEncrypted'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsInWords'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsInWords'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Columns]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [TableId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId')
-                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence')
-                                  AND [DomainId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.DomainId')
-                                  AND [crudex].[IS_EQUAL]([ReferenceTableId], [crudex].[JSON_EXTRACT](@LastRecord, '$.ReferenceTableId'), 'int') = 1
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [Description] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Description')
-                                  AND [Title] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Title')
-                                  AND [Caption] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Caption')
-                                  AND [crudex].[IS_EQUAL]([ValidValues], [crudex].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Default], [crudex].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([IsPrimarykey], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsPrimarykey'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsAutoIncrement], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
-                                  AND [IsRequired] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsRequired')
-                                  AND [crudex].[IS_EQUAL]([IsListable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsListable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsFilterable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsFilterable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsEditable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEditable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsGridable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsGridable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsEncrypted], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEncrypted'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsInWords], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsInWords'), 'bit') = 1)
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [TableId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId')
+                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Sequence')
+                                  AND [DomainId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DomainId')
+                                  AND [crudex].[IS_EQUAL]([ReferenceTableId], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ReferenceTableId'), 'int') = 1
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
+                                  AND [crudex].[IS_EQUAL]([Alias], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias'), 'nvarchar') = 1
+                                  AND [Description] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description')
+                                  AND [Title] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Title')
+                                  AND [Caption] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Caption')
+                                  AND [crudex].[IS_EQUAL]([Default], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Default'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([IsPrimarykey], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsPrimarykey'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsAutoIncrement], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsAutoIncrement'), 'bit') = 1
+                                  AND [IsRequired] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsRequired')
+                                  AND [crudex].[IS_EQUAL]([IsListable], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsListable'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsFilterable], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsFilterable'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsEditable], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsEditable'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsGridable], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsGridable'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsEncrypted], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsEncrypted'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsInWords], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsInWords'), 'bit') = 1)
                 THROW 51000, 'Registro de Columns alterado por outro usuário', 1
         END
 
@@ -20837,10 +22632,10 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId INT
                    ,@W_DomainId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.DomainId') AS int)
                    ,@W_ReferenceTableId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId') AS int)
                    ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
                    ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
                    ,@W_Title nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Title') AS nvarchar(25))
                    ,@W_Caption nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption') AS nvarchar(25))
-                   ,@W_ValidValues nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ValidValues') AS nvarchar(max))
                    ,@W_Default nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default') AS nvarchar(max))
                    ,@W_Minimum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(max))
                    ,@W_Maximum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(max))
@@ -20913,7 +22708,7 @@ GO
 ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -20931,21 +22726,21 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -20953,7 +22748,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Columns'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -20971,21 +22766,21 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[ColumnValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -21026,7 +22821,7 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -21042,10 +22837,10 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -21057,7 +22852,7 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -21071,10 +22866,10 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId INT
                    ,@W_DomainId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.DomainId') AS int)
                    ,@W_ReferenceTableId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId') AS int)
                    ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
                    ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
                    ,@W_Title nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Title') AS nvarchar(25))
                    ,@W_Caption nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption') AS nvarchar(25))
-                   ,@W_ValidValues nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ValidValues') AS nvarchar(max))
                    ,@W_Default nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default') AS nvarchar(max))
                    ,@W_Minimum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(max))
                    ,@W_Maximum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(max))
@@ -21095,10 +22890,10 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId INT
                                                 ,[DomainId]
                                                 ,[ReferenceTableId]
                                                 ,[Name]
+                                                ,[Alias]
                                                 ,[Description]
                                                 ,[Title]
                                                 ,[Caption]
-                                                ,[ValidValues]
                                                 ,[Default]
                                                 ,[Minimum]
                                                 ,[Maximum]
@@ -21119,10 +22914,10 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId INT
                                                  ,@W_DomainId
                                                  ,@W_ReferenceTableId
                                                  ,@W_Name
+                                                 ,@W_Alias
                                                  ,@W_Description
                                                  ,@W_Title
                                                  ,@W_Caption
-                                                 ,@W_ValidValues
                                                  ,@W_Default
                                                  ,@W_Minimum
                                                  ,@W_Maximum
@@ -21144,10 +22939,10 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId INT
                                               ,[DomainId] = @W_DomainId
                                               ,[ReferenceTableId] = @W_ReferenceTableId
                                               ,[Name] = @W_Name
+                                              ,[Alias] = @W_Alias
                                               ,[Description] = @W_Description
                                               ,[Title] = @W_Title
                                               ,[Caption] = @W_Caption
-                                              ,[ValidValues] = @W_ValidValues
                                               ,[Default] = @W_Default
                                               ,[Minimum] = @W_Minimum
                                               ,[Maximum] = @W_Maximum
@@ -21164,7 +22959,7 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -21236,9 +23031,9 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -21247,10 +23042,10 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.DomainId') AS int) AS [DomainId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ReferenceTableId') AS int) AS [ReferenceTableId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Title') AS nvarchar(25)) AS [Title]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Caption') AS nvarchar(25)) AS [Caption]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ValidValues') AS nvarchar(max)) AS [ValidValues]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Default') AS nvarchar(max)) AS [Default]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(max)) AS [Minimum]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(max)) AS [Maximum]
@@ -21264,7 +23059,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsInWords') AS bit) AS [IsInWords]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
@@ -21280,6 +23075,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                    ,@W_DomainId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.DomainId') AS int)
                    ,@W_ReferenceTableId int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ReferenceTableId') AS int)
                    ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
                    ,@W_IsAutoIncrement bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsAutoIncrement') AS bit)
                    ,@W_IsRequired bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsRequired') AS bit)
                    ,@W_IsListable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsListable') AS bit)
@@ -21311,6 +23107,9 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
             END
             IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
+            END
+            IF @W_Alias IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Alias] = @Alias'
             END
             IF @W_IsAutoIncrement IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsAutoIncrement] = @IsAutoIncrement'
@@ -21357,6 +23156,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                                ,@DomainId int
                                ,@ReferenceTableId int
                                ,@Name nvarchar(25)
+                               ,@Alias nvarchar(25)
                                ,@IsAutoIncrement bit
                                ,@IsRequired bit
                                ,@IsListable bit
@@ -21370,6 +23170,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                            ,@DomainId = @W_DomainId
                            ,@ReferenceTableId = @W_ReferenceTableId
                            ,@Name = @W_Name
+                           ,@Alias = @W_Alias
                            ,@IsAutoIncrement = @W_IsAutoIncrement
                            ,@IsRequired = @W_IsRequired
                            ,@IsListable = @W_IsListable
@@ -21407,10 +23208,10 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                     ,CAST(NULL AS int) AS [DomainId]
                     ,CAST(NULL AS int) AS [ReferenceTableId]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
+                    ,CAST(NULL AS nvarchar(25)) AS [Alias]
                     ,CAST(NULL AS nvarchar(50)) AS [Description]
                     ,CAST(NULL AS nvarchar(25)) AS [Title]
                     ,CAST(NULL AS nvarchar(25)) AS [Caption]
-                    ,CAST(NULL AS nvarchar(max)) AS [ValidValues]
                     ,CAST(NULL AS nvarchar(max)) AS [Default]
                     ,CAST(NULL AS nvarchar(max)) AS [Minimum]
                     ,CAST(NULL AS nvarchar(max)) AS [Maximum]
@@ -21432,10 +23233,10 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                               ,[T].[DomainId]
                               ,[T].[ReferenceTableId]
                               ,[T].[Name]
+                              ,[T].[Alias]
                               ,[T].[Description]
                               ,[T].[Title]
                               ,[T].[Caption]
-                              ,[T].[ValidValues]
                               ,[T].[Default]
                               ,[T].[Minimum]
                               ,[T].[Maximum]
@@ -21459,10 +23260,10 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
                                   ,[O].[DomainId]
                                   ,[O].[ReferenceTableId]
                                   ,[O].[Name]
+                                  ,[O].[Alias]
                                   ,[O].[Description]
                                   ,[O].[Title]
                                   ,[O].[Caption]
-                                  ,[O].[ValidValues]
                                   ,[O].[Default]
                                   ,[O].[Minimum]
                                   ,[O].[Maximum]
@@ -21489,10 +23290,10 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
               ,[DomainId]
               ,[ReferenceTableId]
               ,[Name]
+              ,[Alias]
               ,[Description]
               ,[Title]
               ,[Caption]
-              ,[ValidValues]
               ,[Default]
               ,[Minimum]
               ,[Maximum]
@@ -21512,7 +23313,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
               ,[REF].[Alias]
               ,[REF].[Description]
               ,[REF].[ParentTableId]
-              ,[REF].[IsPaged]
+              ,[REF].[IsLegacy]
               ,[REF].[CurrentId]
             FROM [dbo].[#result] [RES]
                 INNER JOIN [dbo].[Tables] [REF] ON [REF].[Id] = [RES].[TableId]
@@ -21536,7 +23337,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId INT
               ,[REF].[Alias]
               ,[REF].[Description]
               ,[REF].[ParentTableId]
-              ,[REF].[IsPaged]
+              ,[REF].[IsLegacy]
               ,[REF].[CurrentId]
             FROM [dbo].[#result] [RES]
                 INNER JOIN [dbo].[Tables] [REF] ON [REF].[Id] = [RES].[ReferenceTableId]
@@ -21559,7 +23360,7 @@ GO
 ALTER PROCEDURE [dbo].[IndexValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -21579,7 +23380,7 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -21588,7 +23389,7 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -21608,24 +23409,24 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Indexes', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsUnique'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsUnique'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DatabaseId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsUnique'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsUnique'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Indexes]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId')
-                                  AND [TableId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [IsUnique] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsUnique'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DatabaseId')
+                                  AND [TableId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
+                                  AND [IsUnique] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsUnique'))
                 THROW 51000, 'Registro de Indexes alterado por outro usuário', 1
         END
 
@@ -21680,7 +23481,7 @@ GO
 ALTER PROCEDURE [dbo].[IndexPersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -21698,21 +23499,21 @@ ALTER PROCEDURE [dbo].[IndexPersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -21720,7 +23521,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Indexes'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -21738,21 +23539,21 @@ ALTER PROCEDURE [dbo].[IndexPersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[IndexValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -21793,7 +23594,7 @@ ALTER PROCEDURE [dbo].[IndexCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -21809,10 +23610,10 @@ ALTER PROCEDURE [dbo].[IndexCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -21824,7 +23625,7 @@ ALTER PROCEDURE [dbo].[IndexCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -21863,7 +23664,7 @@ ALTER PROCEDURE [dbo].[IndexCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -21935,9 +23736,9 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -21946,7 +23747,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Indexes'
                   AND [IsConfirmed] IS NULL
@@ -22064,14 +23865,10 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
             FROM [dbo].[#result]
         SELECT 'Database' AS ClassName
               ,[REF].[Id]
+              ,[REF].[ConnectionId]
               ,[REF].[Name]
-              ,[REF].[Description]
               ,[REF].[Alias]
-              ,[REF].[ServerName]
-              ,[REF].[HostName]
-              ,[REF].[Port]
-              ,[REF].[Logon]
-              ,[REF].[Password]
+              ,[REF].[Description]
               ,[REF].[Folder]
             FROM [dbo].[#result] [RES]
                 INNER JOIN [dbo].[Databases] [REF] ON [REF].[Id] = [RES].[DatabaseId]
@@ -22081,7 +23878,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId INT
               ,[REF].[Alias]
               ,[REF].[Description]
               ,[REF].[ParentTableId]
-              ,[REF].[IsPaged]
+              ,[REF].[IsLegacy]
               ,[REF].[CurrentId]
             FROM [dbo].[#result] [RES]
                 INNER JOIN [dbo].[Tables] [REF] ON [REF].[Id] = [RES].[TableId]
@@ -22167,7 +23964,7 @@ GO
 ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -22187,7 +23984,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -22196,7 +23993,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -22216,24 +24013,24 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Indexkeys', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IndexId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IndexId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsDescending'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsDescending'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IndexId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IndexId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Sequence'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ColumnId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsDescending'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsDescending'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Indexkeys]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [IndexId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IndexId')
-                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence')
-                                  AND [ColumnId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId')
-                                  AND [IsDescending] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsDescending'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [IndexId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IndexId')
+                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Sequence')
+                                  AND [ColumnId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ColumnId')
+                                  AND [IsDescending] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsDescending'))
                 THROW 51000, 'Registro de Indexkeys alterado por outro usuário', 1
         END
 
@@ -22291,7 +24088,7 @@ GO
 ALTER PROCEDURE [dbo].[IndexkeyPersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -22309,21 +24106,21 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -22331,7 +24128,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Indexkeys'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -22349,21 +24146,21 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[IndexkeyValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -22404,7 +24201,7 @@ ALTER PROCEDURE [dbo].[IndexkeyCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -22420,10 +24217,10 @@ ALTER PROCEDURE [dbo].[IndexkeyCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -22435,7 +24232,7 @@ ALTER PROCEDURE [dbo].[IndexkeyCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -22474,7 +24271,7 @@ ALTER PROCEDURE [dbo].[IndexkeyCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -22546,9 +24343,9 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -22557,7 +24354,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ColumnId') AS int) AS [ColumnId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsDescending') AS bit) AS [IsDescending]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Indexkeys'
                   AND [IsConfirmed] IS NULL
@@ -22690,10 +24487,10 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId INT
               ,[REF].[DomainId]
               ,[REF].[ReferenceTableId]
               ,[REF].[Name]
+              ,[REF].[Alias]
               ,[REF].[Description]
               ,[REF].[Title]
               ,[REF].[Caption]
-              ,[REF].[ValidValues]
               ,[REF].[Default]
               ,[REF].[Minimum]
               ,[REF].[Maximum]
@@ -22727,7 +24524,7 @@ GO
 ALTER PROCEDURE [dbo].[LoginValidate](@LoginId INT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
+                                               ,@OriginalRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -22747,7 +24544,7 @@ ALTER PROCEDURE [dbo].[LoginValidate](@LoginId INT
         IF ISJSON(@ActualRecord) = 0
             THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -22756,7 +24553,7 @@ ALTER PROCEDURE [dbo].[LoginValidate](@LoginId INT
             THROW 51000, 'Não existe transação para este @LoginId', 1
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
-            FROM [crudex].[Transactions]
+            FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -22776,28 +24573,31 @@ ALTER PROCEDURE [dbo].[LoginValidate](@LoginId INT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Logins', 1
         IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.PublicKey'), [crudex].[JSON_EXTRACT](@LastRecord, '$.PublicKey'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLogged'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLogged'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.UserId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.PublicKey'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.PublicKey'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLogged'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsLogged'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Logins]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
-                                  AND [UserId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId')
-                                  AND [PublicKey] = [crudex].[JSON_EXTRACT](@LastRecord, '$.PublicKey')
-                                  AND [IsLogged] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLogged'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId')
+                                  AND [UserId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.UserId')
+                                  AND [PublicKey] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.PublicKey')
+                                  AND [IsLogged] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsLogged'))
                 THROW 51000, 'Registro de Logins alterado por outro usuário', 1
         END
 
-        IF @Action <> 'delete' BEGIN
+        IF @Action = 'delete' BEGIN
+            IF EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [LoginId] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Transactions', 1
+        END ELSE BEGIN
 
             DECLARE @W_SystemId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS int)
                    ,@W_UserId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId') AS int)
@@ -22839,7 +24639,7 @@ GO
 ALTER PROCEDURE [dbo].[LoginPersist](@LoginId INT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
+                                              ,@OriginalRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -22857,21 +24657,21 @@ ALTER PROCEDURE [dbo].[LoginPersist](@LoginId INT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
                   AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [crudex].[Operations] ([TransactionId]
+            INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[LastRecord]
+                                             ,[OriginalRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -22879,7 +24679,7 @@ ALTER PROCEDURE [dbo].[LoginPersist](@LoginId INT
                                        VALUES(@TransactionId
                                              ,'Logins'
                                              ,@Action
-                                             ,@LastRecord
+                                             ,@OriginalRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -22897,21 +24697,21 @@ ALTER PROCEDURE [dbo].[LoginPersist](@LoginId INT
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
                 EXEC [dbo].[LoginValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [crudex].[Operations] 
+            UPDATE [dbo].[Operations] 
                 SET [IsConfirmed] = 0
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END ELSE BEGIN
-            UPDATE [crudex].[Operations]
+            UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
+                   ,[OriginalRecord] = @OriginalRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -22952,7 +24752,7 @@ ALTER PROCEDURE [dbo].[LoginCommit](@LoginId INT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
+               ,@OriginalRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -22968,10 +24768,10 @@ ALTER PROCEDURE [dbo].[LoginCommit](@LoginId INT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
+               ,@OriginalRecord = [OriginalRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
@@ -22983,7 +24783,7 @@ ALTER PROCEDURE [dbo].[LoginCommit](@LoginId INT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
@@ -23022,7 +24822,7 @@ ALTER PROCEDURE [dbo].[LoginCommit](@LoginId INT
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
         END
-        UPDATE [crudex].[Operations]
+        UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
@@ -23094,9 +24894,9 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [crudex].[Transactions] WHERE [LoginId] = @LoginId)
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
 
-        IF NOT EXISTS(SELECT 1 FROM [crudex].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
@@ -23105,7 +24905,7 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.PublicKey') AS nvarchar(256)) AS [PublicKey]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsLogged') AS bit) AS [IsLogged]
             INTO [dbo].[#operations]
-            FROM [crudex].[Operations]
+            FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Logins'
                   AND [IsConfirmed] IS NULL
@@ -23241,6 +25041,1029 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId INT
               ,[REF].[IsActive]
             FROM [dbo].[#result] [RES]
                 INNER JOIN [dbo].[Users] [REF] ON [REF].[Id] = [RES].[UserId]
+        SET @ReturnValue = @RowCount
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[TransactionValidate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[TransactionValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TransactionValidate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[TransactionValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName é requerido', 1
+        IF @Action IS NULL
+            THROW 51000, 'Valor de @Action é requerido', 1
+        IF @Action NOT IN ('create', 'update', 'delete')
+            THROW 51000, 'Valor de @Action é inválido', 1
+        IF @ActualRecord IS NULL
+            THROW 51000, 'Valor de @ActualRecord é requerido', 1
+        IF ISJSON(@ActualRecord) = 0
+            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
+
+        IF @TransactionId IS NULL
+            THROW 51000, 'Não existe transação para este @LoginId', 1
+        SELECT @IsConfirmed = [IsConfirmed]
+              ,@CreatedBy = [CreatedBy]
+            FROM [dbo].[Transactions]
+            WHERE [Id] = @TransactionId
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1;
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS int)
+            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create'
+                THROW 51000, 'Chave-primária já existe em Transactions', 1
+        END ELSE IF @Action <> 'create'
+            THROW 51000, 'Chave-primária não existe em Transactions', 1
+        IF @Action <> 'create' BEGIN
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @Action = 'update'
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.LoginId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.LoginId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsConfirmed'), 'bit') = 1
+                THROW 51000, 'Nenhuma alteração feita no registro', 1
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Transactions]
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [LoginId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.LoginId')
+                                  AND [IsConfirmed] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsConfirmed'))
+                THROW 51000, 'Registro de Transactions alterado por outro usuário', 1
+        END
+
+        IF @Action = 'delete' BEGIN
+            IF EXISTS(SELECT 1 FROM [dbo].[Operations] WHERE [TransactionId] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Operations', 1
+        END ELSE BEGIN
+
+            DECLARE @W_LoginId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.LoginId') AS int)
+                   ,@W_IsConfirmed bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed') AS bit)
+
+            IF @W_LoginId IS NULL
+                THROW 51000, 'Valor de LoginId em @ActualRecord é requerido.', 1
+            IF @W_LoginId < CAST('1' AS int)
+                THROW 51000, 'Valor de LoginId em @ActualRecord deve ser maior que ou igual a 1', 1
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Logins] WHERE [Id] = @W_LoginId)
+                THROW 51000, 'Valor de LoginId em @ActualRecord inexiste em Logins', 1
+            IF @W_IsConfirmed IS NULL
+                THROW 51000, 'Valor de IsConfirmed em @ActualRecord é requerido.', 1
+            IF @W_IsConfirmed < CAST('1' AS bit)
+                THROW 51000, 'Valor de IsConfirmed em @ActualRecord deve ser maior que ou igual a 1', 1
+        END
+
+        RETURN @TransactionId
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[TransactionPersist]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[TransactionPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TransactionPersist] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[TransactionPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
+           ,@ErrorMessage NVARCHAR(255)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @TransactionId INT
+               ,@OperationId INT
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
+               ,@IsConfirmed BIT
+               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
+
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        EXEC @TransactionId = [dbo].[TransactionValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
+              ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Columns'
+                  AND [IsConfirmed] IS NULL
+                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
+        IF @@ROWCOUNT = 0 BEGIN
+            INSERT INTO [dbo].[Operations] ([TransactionId]
+                                             ,[TableName]
+                                             ,[Action]
+                                             ,[OriginalRecord]
+                                             ,[ActualRecord]
+                                             ,[IsConfirmed]
+                                             ,[CreatedAt]
+                                             ,[CreatedBy])
+                                       VALUES(@TransactionId
+                                             ,'Transactions'
+                                             ,@Action
+                                             ,@OriginalRecord
+                                             ,@ActualRecord
+                                             ,NULL
+                                             ,GETDATE()
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        ELSE IF @ActionAux = 'delete'
+            THROW 51000, 'Registro excluído nesta transação', 1
+        ELSE IF @Action = 'create'
+            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'update' BEGIN
+            IF @ActionAux = 'create'
+                EXEC [dbo].[TransactionValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END ELSE IF @ActionAux = 'create' BEGIN
+            UPDATE [dbo].[Operations] 
+                SET [IsConfirmed] = 0
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END ELSE BEGIN
+            UPDATE [dbo].[Operations]
+                SET [Action] = 'delete'
+                   ,[OriginalRecord] = @OriginalRecord
+                   ,[ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
+        COMMIT TRANSACTION
+
+        RETURN CAST(@OperationId AS INT)
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[TransactionCommit]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[TransactionCommit]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TransactionCommit] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[TransactionCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
+                                             ,@OperationId INT) AS BEGIN
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @TransactionId INT
+               ,@TransactionIdAux INT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@OriginalRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName requerido', 1
+        IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@OriginalRecord = [OriginalRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Transactions'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        EXEC @TransactionIdAux = [dbo].[TransactionValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
+
+        IF @Action = 'delete'
+            DELETE FROM [dbo].[Transactions] WHERE [Id] = @W_Id
+        ELSE BEGIN
+
+            DECLARE @W_LoginId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.LoginId') AS int)
+                   ,@W_IsConfirmed bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed') AS bit)
+
+            IF @Action = 'create'
+                INSERT INTO [dbo].[Transactions] ([Id]
+                                                ,[LoginId]
+                                                ,[IsConfirmed]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
+                                          VALUES (@W_Id
+                                                 ,@W_LoginId
+                                                 ,@W_IsConfirmed
+                                                 ,GETDATE()
+                                                 ,@UserName)
+            ELSE
+                UPDATE [dbo].[Transactions] SET [Id] = @W_Id
+                                              ,[LoginId] = @W_LoginId
+                                              ,[IsConfirmed] = @W_IsConfirmed
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
+                    WHERE [Id] = @W_Id
+        END
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+        COMMIT TRANSACTION
+
+        RETURN @TransactionId
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[TransactionsRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[TransactionsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TransactionsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId INT
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
+        IF @RecordFilter IS NULL
+            SET @RecordFilter = '{}'
+        ELSE IF ISJSON(@RecordFilter) = 0
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
+        IF @OrderBy = ''
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
+                                                    FROM [sys].[columns] [#1]
+                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
+                                                    WHERE [#2].[name] = 'Transactions') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
+                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
+                                                         ELSE 'ASC'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
+        END
+
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
+
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
+        SELECT [Action] AS [_]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.LoginId') AS int) AS [LoginId]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsConfirmed') AS bit) AS [IsConfirmed]
+            INTO [dbo].[#operations]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Transactions'
+                  AND [IsConfirmed] IS NULL
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Transactions] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[T].[Id]
+                                FROM [dbo].[#operations] [T]
+                                WHERE [T].[_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int'
+                           ,@Id = @W_Id
+        ELSE
+            EXEC sp_executesql @sql
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS int) AS [LoginId]
+                    ,CAST(NULL AS bit) AS [IsConfirmed]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Transaction'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[LoginId]
+                              ,[T].[IsConfirmed]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[Transactions] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Transaction'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[LoginId]
+                                  ,[O].[IsConfirmed]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[LoginId]
+              ,[IsConfirmed]
+            FROM [dbo].[#result]
+        SELECT 'Login' AS ClassName
+              ,[REF].[Id]
+              ,[REF].[SystemId]
+              ,[REF].[UserId]
+              ,[REF].[PublicKey]
+              ,[REF].[IsLogged]
+            FROM [dbo].[#result] [RES]
+                INNER JOIN [dbo].[Logins] [REF] ON [REF].[Id] = [RES].[LoginId]
+        SET @ReturnValue = @RowCount
+
+        RETURN @RowCount
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[OperationValidate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperationValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperationValidate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperationValidate](@LoginId INT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName é requerido', 1
+        IF @Action IS NULL
+            THROW 51000, 'Valor de @Action é requerido', 1
+        IF @Action NOT IN ('create', 'update', 'delete')
+            THROW 51000, 'Valor de @Action é inválido', 1
+        IF @ActualRecord IS NULL
+            THROW 51000, 'Valor de @ActualRecord é requerido', 1
+        IF ISJSON(@ActualRecord) = 0
+            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
+
+        IF @TransactionId IS NULL
+            THROW 51000, 'Não existe transação para este @LoginId', 1
+        SELECT @IsConfirmed = [IsConfirmed]
+              ,@CreatedBy = [CreatedBy]
+            FROM [dbo].[Transactions]
+            WHERE [Id] = @TransactionId
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1;
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS int)
+            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+            IF @Action = 'create'
+                THROW 51000, 'Chave-primária já existe em Operations', 1
+        END ELSE IF @Action <> 'create'
+            THROW 51000, 'Chave-primária não existe em Operations', 1
+        IF @Action <> 'create' BEGIN
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @Action = 'update'
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TransactionId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TransactionId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableName'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableName'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentOperationId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ParentOperationId'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Action'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.OriginalRecord'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.OriginalRecord'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ActualRecord'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ActualRecord'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsConfirmed'), 'bit') = 1
+                THROW 51000, 'Nenhuma alteração feita no registro', 1
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [TransactionId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TransactionId')
+                                  AND [TableName] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableName')
+                                  AND [crudex].[IS_EQUAL]([ParentOperationId], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ParentOperationId'), 'int') = 1
+                                  AND [Action] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Action')
+                                  AND [crudex].[IS_EQUAL]([OriginalRecord], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.OriginalRecord'), 'nvarchar(max)') = 1
+                                  AND [ActualRecord] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ActualRecord')
+                                  AND [crudex].[IS_EQUAL]([IsConfirmed], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsConfirmed'), 'bit') = 1)
+                THROW 51000, 'Registro de Operations alterado por outro usuário', 1
+        END
+
+        IF @Action = 'delete' BEGIN
+            IF EXISTS(SELECT 1 FROM [dbo].[Operations] WHERE [ParentOperationId] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Operations', 1
+        END ELSE BEGIN
+
+            DECLARE @W_TransactionId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TransactionId') AS int)
+                   ,@W_TableName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableName') AS nvarchar(25))
+                   ,@W_ParentOperationId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentOperationId') AS int)
+                   ,@W_Action nvarchar(15) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action') AS nvarchar(15))
+                   ,@W_OriginalRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.OriginalRecord') AS nvarchar(max))
+                   ,@W_ActualRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ActualRecord') AS nvarchar(max))
+                   ,@W_IsConfirmed bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed') AS bit)
+
+            IF @W_TransactionId IS NULL
+                THROW 51000, 'Valor de TransactionId em @ActualRecord é requerido.', 1
+            IF @W_TransactionId < CAST('1' AS int)
+                THROW 51000, 'Valor de TransactionId em @ActualRecord deve ser maior que ou igual a 1', 1
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @W_TransactionId)
+                THROW 51000, 'Valor de TransactionId em @ActualRecord inexiste em Transactions', 1
+            IF @W_TableName IS NULL
+                THROW 51000, 'Valor de TableName em @ActualRecord é requerido.', 1
+            IF @W_ParentOperationId IS NOT NULL AND @W_ParentOperationId < CAST('1' AS int)
+                THROW 51000, 'Valor de ParentOperationId em @ActualRecord deve ser maior que ou igual a 1', 1
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Operations] WHERE [Id] = @W_ParentOperationId)
+                THROW 51000, 'Valor de ParentOperationId em @ActualRecord inexiste em Operations', 1
+            IF @W_Action IS NULL
+                THROW 51000, 'Valor de Action em @ActualRecord é requerido.', 1
+            IF @W_ActualRecord IS NULL
+                THROW 51000, 'Valor de ActualRecord em @ActualRecord é requerido.', 1
+        END
+
+        RETURN @TransactionId
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[OperationPersist]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperationPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperationPersist] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperationPersist](@LoginId INT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
+           ,@ErrorMessage NVARCHAR(255)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @TransactionId INT
+               ,@OperationId INT
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
+               ,@IsConfirmed BIT
+               ,@W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
+
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        EXEC @TransactionId = [dbo].[OperationValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
+              ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Columns'
+                  AND [IsConfirmed] IS NULL
+                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) = @W_Id
+        IF @@ROWCOUNT = 0 BEGIN
+            INSERT INTO [dbo].[Operations] ([TransactionId]
+                                             ,[TableName]
+                                             ,[Action]
+                                             ,[OriginalRecord]
+                                             ,[ActualRecord]
+                                             ,[IsConfirmed]
+                                             ,[CreatedAt]
+                                             ,[CreatedBy])
+                                       VALUES(@TransactionId
+                                             ,'Operations'
+                                             ,@Action
+                                             ,@OriginalRecord
+                                             ,@ActualRecord
+                                             ,NULL
+                                             ,GETDATE()
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        ELSE IF @ActionAux = 'delete'
+            THROW 51000, 'Registro excluído nesta transação', 1
+        ELSE IF @Action = 'create'
+            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'update' BEGIN
+            IF @ActionAux = 'create'
+                EXEC [dbo].[OperationValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END ELSE IF @ActionAux = 'create' BEGIN
+            UPDATE [dbo].[Operations] 
+                SET [IsConfirmed] = 0
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END ELSE BEGIN
+            UPDATE [dbo].[Operations]
+                SET [Action] = 'delete'
+                   ,[OriginalRecord] = @OriginalRecord
+                   ,[ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
+        COMMIT TRANSACTION
+
+        RETURN CAST(@OperationId AS INT)
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[OperationCommit]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperationCommit]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperationCommit] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperationCommit](@LoginId INT
+                                             ,@UserName NVARCHAR(25)
+                                             ,@OperationId INT) AS BEGIN
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @TransactionId INT
+               ,@TransactionIdAux INT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@OriginalRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName requerido', 1
+        IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@OriginalRecord = [OriginalRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Operations'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        EXEC @TransactionIdAux = [dbo].[OperationValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS int)
+
+        IF @Action = 'delete'
+            DELETE FROM [dbo].[Operations] WHERE [Id] = @W_Id
+        ELSE BEGIN
+
+            DECLARE @W_TransactionId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TransactionId') AS int)
+                   ,@W_TableName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableName') AS nvarchar(25))
+                   ,@W_ParentOperationId int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentOperationId') AS int)
+                   ,@W_Action nvarchar(15) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action') AS nvarchar(15))
+                   ,@W_OriginalRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.OriginalRecord') AS nvarchar(max))
+                   ,@W_ActualRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ActualRecord') AS nvarchar(max))
+                   ,@W_IsConfirmed bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed') AS bit)
+
+            IF @Action = 'create'
+                INSERT INTO [dbo].[Operations] ([Id]
+                                                ,[TransactionId]
+                                                ,[TableName]
+                                                ,[ParentOperationId]
+                                                ,[Action]
+                                                ,[OriginalRecord]
+                                                ,[ActualRecord]
+                                                ,[IsConfirmed]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
+                                          VALUES (@W_Id
+                                                 ,@W_TransactionId
+                                                 ,@W_TableName
+                                                 ,@W_ParentOperationId
+                                                 ,@W_Action
+                                                 ,@W_OriginalRecord
+                                                 ,@W_ActualRecord
+                                                 ,@W_IsConfirmed
+                                                 ,GETDATE()
+                                                 ,@UserName)
+            ELSE
+                UPDATE [dbo].[Operations] SET [Id] = @W_Id
+                                              ,[TransactionId] = @W_TransactionId
+                                              ,[TableName] = @W_TableName
+                                              ,[ParentOperationId] = @W_ParentOperationId
+                                              ,[Action] = @W_Action
+                                              ,[OriginalRecord] = @W_OriginalRecord
+                                              ,[ActualRecord] = @W_ActualRecord
+                                              ,[IsConfirmed] = @W_IsConfirmed
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
+                    WHERE [Id] = @W_Id
+        END
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+        COMMIT TRANSACTION
+
+        RETURN @TransactionId
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+/**********************************************************************************
+Criar stored procedure [dbo].[OperationsRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperationsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperationsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperationsRead](@LoginId INT
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue INT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
+        IF @RecordFilter IS NULL
+            SET @RecordFilter = '{}'
+        ELSE IF ISJSON(@RecordFilter) = 0
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
+        IF @OrderBy = ''
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
+                                                    FROM [sys].[columns] [#1]
+                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
+                                                    WHERE [#2].[name] = 'Operations') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
+                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
+                                                         ELSE 'ASC'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
+        END
+
+        DECLARE @TransactionId INT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
+
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
+        SELECT [Action] AS [_]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS int) AS [Id]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TransactionId') AS int) AS [TransactionId]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableName') AS nvarchar(25)) AS [TableName]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ParentOperationId') AS int) AS [ParentOperationId]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Action') AS nvarchar(15)) AS [Action]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.OriginalRecord') AS nvarchar(max)) AS [OriginalRecord]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ActualRecord') AS nvarchar(max)) AS [ActualRecord]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsConfirmed') AS bit) AS [IsConfirmed]
+            INTO [dbo].[#operations]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Operations'
+                  AND [IsConfirmed] IS NULL
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where VARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS int)
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS int)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Operations] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[T].[Id]
+                                FROM [dbo].[#operations] [T]
+                                WHERE [T].[_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] int)
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id int'
+                           ,@Id = @W_Id
+        ELSE
+            EXEC sp_executesql @sql
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS int) AS [Id]
+                    ,CAST(NULL AS int) AS [TransactionId]
+                    ,CAST(NULL AS nvarchar(25)) AS [TableName]
+                    ,CAST(NULL AS int) AS [ParentOperationId]
+                    ,CAST(NULL AS nvarchar(15)) AS [Action]
+                    ,CAST(NULL AS nvarchar(max)) AS [OriginalRecord]
+                    ,CAST(NULL AS nvarchar(max)) AS [ActualRecord]
+                    ,CAST(NULL AS bit) AS [IsConfirmed]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Operation'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[TransactionId]
+                              ,[T].[TableName]
+                              ,[T].[ParentOperationId]
+                              ,[T].[Action]
+                              ,[T].[OriginalRecord]
+                              ,[T].[ActualRecord]
+                              ,[T].[IsConfirmed]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[Operations] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Operation'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[TransactionId]
+                                  ,[O].[TableName]
+                                  ,[O].[ParentOperationId]
+                                  ,[O].[Action]
+                                  ,[O].[OriginalRecord]
+                                  ,[O].[ActualRecord]
+                                  ,[O].[IsConfirmed]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[TransactionId]
+              ,[TableName]
+              ,[ParentOperationId]
+              ,[Action]
+              ,[OriginalRecord]
+              ,[ActualRecord]
+              ,[IsConfirmed]
+            FROM [dbo].[#result]
+        SELECT 'Transaction' AS ClassName
+              ,[REF].[Id]
+              ,[REF].[LoginId]
+              ,[REF].[IsConfirmed]
+            FROM [dbo].[#result] [RES]
+                INNER JOIN [dbo].[Transactions] [REF] ON [REF].[Id] = [RES].[TransactionId]
+        SELECT 'Operation' AS ClassName
+              ,[REF].[Id]
+              ,[REF].[TransactionId]
+              ,[REF].[TableName]
+              ,[REF].[ParentOperationId]
+              ,[REF].[Action]
+              ,[REF].[OriginalRecord]
+              ,[REF].[ActualRecord]
+              ,[REF].[IsConfirmed]
+            FROM [dbo].[#result] [RES]
+                INNER JOIN [dbo].[Operations] [REF] ON [REF].[Id] = [RES].[ParentOperationId]
         SET @ReturnValue = @RowCount
 
         RETURN @RowCount
