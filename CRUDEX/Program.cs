@@ -13,7 +13,13 @@ namespace CRUDA_LIB
 
             app.Use(async (context, next) =>
             {
-                await next.Invoke();
+                if (context.Request.Method == "GET" && context.Request.Path.ToString().EndsWith(".class.mjs")) {
+                    context.Response.Headers.ContentType = "text/javascript";
+                    await context.Response.WriteAsync(File.ReadAllText($"{Settings.builder.Environment.ContentRootPath}\\StaticFiles{context.Request.Path}")
+                        , Encoding.UTF8);
+                }
+                else
+                    await next.Invoke();
             });
 
             app.MapGet("/", async (HttpContext context) =>

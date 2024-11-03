@@ -18,7 +18,7 @@
             var directory = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_STYLES"));
 
             Body = File.ReadAllText(Path.Combine(directory, Settings.Get("BODY_STYLE")));
-            Screen = File.ReadAllText(Path.Combine(directory, Settings.Get("MAIN_STYLE"))) + '\n' +
+            Screen = File.ReadAllText(Path.Combine(directory, Settings.Get("MAIN_STYLE"))) + "\r\n" +
                 File.ReadAllText(Path.Combine(directory, Settings.Get("SCREEN_STYLE")));
             Dialog = File.ReadAllText(Path.Combine(directory, Settings.Get("DIALOG_STYLE")));
             Login = File.ReadAllText(Path.Combine(directory, Settings.Get("LOGIN_STYLE")));

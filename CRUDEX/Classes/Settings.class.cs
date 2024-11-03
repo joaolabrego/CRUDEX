@@ -10,18 +10,14 @@ namespace CRUDA_LIB
     public static class Settings
     {
         public static readonly string ClassName = "Settings";
-        private static readonly WebApplicationBuilder builder = WebApplication.CreateBuilder();
-        private static readonly WebApplication app = builder.Build();
+        public static readonly WebApplicationBuilder builder = WebApplication.CreateBuilder();
+        public static readonly WebApplication app = builder.Build();
         public static WebApplication Initialize()
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             CultureInfo.DefaultThreadCurrentCulture = 
                 CultureInfo.DefaultThreadCurrentUICulture = 
                 new CultureInfo("pt-BR");
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "StaticFiles"))
-            });
             app.UseRouting();
 
             return app;
