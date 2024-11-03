@@ -6,13 +6,7 @@ import TLogin from "./TLogin.class.mjs"
 import TSystem from "./TSystem.class.mjs"
 
 export default class TTable {
-    #Id = 0
     #Name = ""
-    #Alias = ""
-    #Description = ""
-    #ParentTableId = 0
-    #IsPaged = false
-    #LastId = 0
 
     #PageNumber = 1
     #RowNumber = 0
@@ -30,13 +24,7 @@ export default class TTable {
             throw new Error("Argumento database não é do tipo TDatabase.")
         if (rowTable.ClassName !== "Table")
             throw new Error("Argumento rowTable não é do tipo Table.")
-        this.#Id = rowTable.Id
-        this.#Name = rowTable.Name
-        this.#Alias = rowTable.Alias
-        this.#Description = rowTable.Description
-        this.#ParentTableId = rowTable.ParentTableId
-        this.#IsPaged = rowTable.IsPaged
-        this.#LastId = rowTable.LastId
+        TConfig.CreateProperties(rowTable, this)
         this.#Database = database
     }
     AddColumn(column) {
@@ -127,25 +115,6 @@ export default class TTable {
 
         return primarykeys
     }
-    get Id() {
-        return this.#Id
-    }
-    get Name() {
-        return this.#Name
-    }
-    get Description() {
-        return this.#Description
-    }
-    get Alias() {
-        return this.#Alias
-    }
-    get ParentTableId() {
-        return this.#ParentTableId
-    }
-    set ParentTableId(value) {
-        this.#ParentTableId = value
-        this.#ParentTableId = value ? TSystem.GetTable(value) : null
-    }
     get Row() {
         return this.#Recordset[this.#RowNumber]
     }
@@ -173,11 +142,5 @@ export default class TTable {
     }
     get Recordset() {
         return this.#Recordset
-    }
-    get IsPaged(){
-        return this.#IsPaged
-    }
-    get LastId(){
-        return this.#LastId
     }
 }

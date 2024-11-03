@@ -82,6 +82,23 @@ export default class TConfig {
             clearTimeout(this.#Timer)
         }
     }
+    static IsEmpty(value) {
+        return value === null || value === undefined || String(value).trim() === ""
+    }
+    static CreateProperties(origin, target) {
+        for (let [key, value] of Object.entries(origin)) {
+            let propertyName = `#${key}`
+
+            if (key !== "ClassName") {
+                target[propertyName] = value
+                Object.defineProperty(target, key, {
+                    get() { return target[propertyName]; },
+                });
+            }
+        }
+
+        return target
+    }
     static get Locale() {
         if (this.#Locale)
             return this.#Locale
@@ -111,8 +128,5 @@ export default class TConfig {
      */
     static set IdleTimeInMinutesLimit(value) {
         this.#IdleTimeInMinutesLimit = value
-    }
-    static IsEmpty(value) {
-        return value === null || value === undefined || String(value).trim() === ""
     }
 }

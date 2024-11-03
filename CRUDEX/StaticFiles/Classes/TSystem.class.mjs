@@ -15,14 +15,10 @@ import TColumn from "./TColumn.class.mjs"
 import TIndex from "./TIndex.class.mjs"
 import TIndexkey from "./TIndexkey.class.mjs"
 import TActions from "./TActions.class.mjs"
-import TCategory from "./TCategory.mjs"
-import TMask from "./TMask.mjs"
+import TCategory from "./TCategory.class.mjs"
+import TMask from "./TMask.class.mjs"
 import TSpinner from "./TSpinner.class.mjs"
 export default class TSystem {
-    static #Name = ""
-    static #Description = ""
-    static #ClientName = ""
-
     static #Action = ""
     static #RowsPerPage = 0
     static #PaddingGridLastPage = false
@@ -43,9 +39,7 @@ export default class TSystem {
                     }
                 });
                 document.body.style = config.Styles.Body
-                this.#Name = config.Data.System[0].Name
-                this.#Description = config.Data.System[0].Description
-                this.#ClientName = config.Data.System[0].ClientName
+                TConfig.CreateProperties(config.Data.System[0], this)
                 this.#RowsPerPage = config.RowsPerPage
                 this.#PaddingGridLastPage = config.PaddingGridLastPage
                 TConfig.IdleTimeInMinutesLimit = config.IdleTimeInMinutesLimit
@@ -193,15 +187,6 @@ export default class TSystem {
     }
     static get Action() {
         return this.#Action
-    }
-    static get Name() {
-        return this.#Name
-    }
-    static get Description() {
-        return this.#Description
-    }
-    static get ClientName() {
-        return this.#ClientName
     }
     static get RowsPerPage() {
         return this.#RowsPerPage
