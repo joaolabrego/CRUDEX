@@ -59,30 +59,30 @@ namespace CRUDA_LIB
         {
             var favIcon = Images.ReadImageFile($"{Path.Combine(Directory.GetCurrentDirectory(), "Assets/Images", Settings.Get("FAVICON_IMAGE"))}");
 
-            return $"<!DOCTYPE html>\n" +
-                   $"<html lang='pt-br'>\n" +
-                   $"    <head>\n" +
-                   $"        <meta charset='utf-8' />\n" +
-                   $"        <meta http-equiv='X-UA-Compatible' content='IE=edge' />\n" +
-                   $"        <meta http-equiv='pragma' content='no-cache, no-store' />\n" +
-                   $"        <meta http-equiv='content-type' content='text/html; X-Content-Type-Options=nosniff;' />\n" +
-                   $"        <meta name='viewport' content='width=device-width, initial-scale=1.0' />\n" +
-                   $"        <meta name='application-name' content='CRUDEX - CRUD Express' />\n" +
-                   $"        <meta name='author' content='João da Rocha Labrego' />\n" +
-                   $"        <meta name='copyright' content='© 2024 Labrego' />\n" +
-                   $"        <meta name='description' content='Sistema de operações CRUD em tabelas de bancos-de-dados MS-SQL Server' />\n" +
-                   $"        <link rel='icon' href='{favIcon}' />\n" +
-                   $"        <title>{systemName.ToUpper()}</title>\n" +
-                   (message == null ? $"        <script type='module' defer>\n" +
-                                      $"            import TSystem from './Classes/TSystem.class.mjs'\n" +
-                                      $"            TSystem.Run({Settings.Get("WITH_BACKGROUND_IMAGE").ToLower()})\n" +
-                                      $"        </script>\n" +
-                                      $"    </head>\n" +
-                                      $"    <body>\n" +
+            return $"<!DOCTYPE html>" +
+                   $"<html lang='pt-br'>\r\n" +
+                   $"    <head>\r\n" +
+                   $"        <meta charset='utf-8' />\r\n" +
+                   $"        <meta http-equiv='X-UA-Compatible' content='IE=edge' />\r\n" +
+                   $"        <meta http-equiv='pragma' content='no-cache, no-store' />\r\n" +
+                   $"        <meta http-equiv='content-type' content='text/html; X-Content-Type-Options=nosniff;' />\r\n" +
+                   $"        <meta name='viewport' content='width=device-width, initial-scale=1.0' />\r\n" +
+                   $"        <meta name='application-name' content='CRUDEX - CRUD Express' />\r\n" +
+                   $"        <meta name='author' content='João da Rocha Labrego' />\r\n" +
+                   $"        <meta name='copyright' content='© 2024 Labrego' />\r\n" +
+                   $"        <meta name='description' content='Sistema de operações CRUD em tabelas de bancos-de-dados MS-SQL Server' />\r\n" +
+                   $"        <link rel='icon' href='{favIcon}' />\r\n" +
+                   $"        <title>{systemName.ToUpper()}</title>\r\n" +
+                   (message == null ? $"        <script type='module' defer>\r\n" +
+                                      $"            import TSystem from './Classes/TSystem.class.mjs'\r\n" +
+                                      $"            TSystem.Run({Settings.Get("WITH_BACKGROUND_IMAGE").ToLower()})\r\n" +
+                                      $"        </script>\r\n" +
+                                      $"    </head>\r\n" +
+                                      $"    <body>\r\n" +
                                       $"        <noscript><h1 style='color: red;'>Seu navegador não suporta JavaScript ou o JavaScript está desabilitado.</h1></noscript>\n"
-                                    : $"    <body>\n" +
-                                      $"        <h1 style='color: red;'>{message}</h1>\n") +
-                   $"    </body>\n" +
+                                    : $"    <body>\r\n" +
+                                      $"        <h1 style='color: red;'>{message}</h1>\r\n") +
+                   $"    </body>\r\n" +
                    $"</html>";
         }
         public static TDictionary ToDictionary(object json)
