@@ -18,6 +18,7 @@ export default class TGrid {
     #IsNavigateByScroll = false
     #Rows = []
     #Data = null
+    #References = []
     #Table = null
     #Recordset = null
 
@@ -300,6 +301,16 @@ export default class TGrid {
         this.#PageCount = result.Parameters.MaxPage
         if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
             this.#RowNumber = tr.rowIndex - 1
+        this.#References.length = 0
+        Object.entries(result.DataSet).forEach(([, table], index) => {
+            if (index) {
+                table.forEach(rowTable => {
+                    if (!this.#References.find(row => row.ClassName === rowTable.ClassName && row.Id === rowTable.Id)) {
+                        this.#References.push(rowTable);
+                    }
+                });
+            }
+        });
 
         return result.DataSet.Table
     }

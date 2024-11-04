@@ -10,17 +10,17 @@ namespace CRUDA_LIB
     public static class Settings
     {
         public static readonly string ClassName = "Settings";
-        public static readonly WebApplicationBuilder builder = WebApplication.CreateBuilder();
-        public static readonly WebApplication app = builder.Build();
+        public static readonly WebApplicationBuilder Builder = WebApplication.CreateBuilder();
+        public static readonly WebApplication Application = Builder.Build();
         public static WebApplication Initialize()
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             CultureInfo.DefaultThreadCurrentCulture = 
                 CultureInfo.DefaultThreadCurrentUICulture = 
                 new CultureInfo("pt-BR");
-            app.UseRouting();
+            Application.UseRouting();
 
-            return app;
+            return Application;
         }
         public static bool IsNull(object? value)
         {
@@ -90,7 +90,7 @@ namespace CRUDA_LIB
         }
         public static string Get(string key)
         {
-            return Environment.GetEnvironmentVariable(key) ?? app.Configuration[key] ?? string.Empty;
+            return Environment.GetEnvironmentVariable(key) ?? Application.Configuration[key] ?? string.Empty;
         }
     }
 }

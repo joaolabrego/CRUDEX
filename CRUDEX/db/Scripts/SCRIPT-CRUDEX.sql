@@ -94,6 +94,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE SCHEMA crudex AUTHORIZATION [dbo]
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Categories]
 **********************************************************************************/
@@ -111,12 +112,13 @@ CREATE TABLE [dbo].[Categories]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS
                                     ,[AskMaximum] bit NOT NULL
                                     ,[AskInWords] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Categories] ADD CONSTRAINT PK_Categories PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Categories_Name] ON [dbo].[Categories]([Name] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Types]
 **********************************************************************************/
@@ -137,12 +139,13 @@ CREATE TABLE [dbo].[Types]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tiny
                                     ,[AskCodification] bit NOT NULL
                                     ,[IsActive] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Types] ADD CONSTRAINT PK_Types PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Types_Name] ON [dbo].[Types]([Name] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Masks]
 **********************************************************************************/
@@ -152,12 +155,13 @@ CREATE TABLE [dbo].[Masks]([Id] bigint NOT NULL
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Mask] nvarchar(max) NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Masks] ADD CONSTRAINT PK_Masks PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Masks_Name] ON [dbo].[Masks]([Name] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Domains]
 **********************************************************************************/
@@ -175,12 +179,13 @@ CREATE TABLE [dbo].[Domains]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[Maximum] nvarchar(max) NULL
                                     ,[Codification] nvarchar(5) NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Domains] ADD CONSTRAINT PK_Domains PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Domains_Name] ON [dbo].[Domains]([Name] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Systems]
 **********************************************************************************/
@@ -193,12 +198,13 @@ CREATE TABLE [dbo].[Systems]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[MaxRetryLogins] tinyint NOT NULL DEFAULT CAST('5' AS tinyint) CHECK ([MaxRetryLogins] >= CAST('1' AS tinyint))
                                     ,[IsOffAir] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Systems] ADD CONSTRAINT PK_Systems PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Systems_Name] ON [dbo].[Systems]([Name] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Menus]
 **********************************************************************************/
@@ -212,13 +218,14 @@ CREATE TABLE [dbo].[Menus]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigin
                                     ,[Action] nvarchar(50) NULL
                                     ,[ParentMenuId] bigint NULL CHECK ([ParentMenuId] >= CAST('1' AS bigint))
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Menus] ADD CONSTRAINT PK_Menus PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Sequence] ON [dbo].[Menus]([SystemId] ASC, [Sequence] ASC)
 CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Caption] ON [dbo].[Menus]([SystemId] ASC, [Caption] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Users]
 **********************************************************************************/
@@ -231,12 +238,13 @@ CREATE TABLE [dbo].[Users]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigin
                                     ,[RetryLogins] tinyint NOT NULL DEFAULT CAST('0' AS tinyint) CHECK ([RetryLogins] >= CAST('0' AS tinyint))
                                     ,[IsActive] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Users] ADD CONSTRAINT PK_Users PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Users_Name] ON [dbo].[Users]([Name] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[SystemsUsers]
 **********************************************************************************/
@@ -247,13 +255,14 @@ CREATE TABLE [dbo].[SystemsUsers]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' A
                                     ,[UserId] bigint NOT NULL CHECK ([UserId] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(50) NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[SystemsUsers] ADD CONSTRAINT PK_SystemsUsers PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_SystemsUsers_SystemId_UserId] ON [dbo].[SystemsUsers]([SystemId] ASC, [UserId] ASC)
 CREATE UNIQUE INDEX [UNQ_SystemsUsers_Name] ON [dbo].[SystemsUsers]([Name] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Connections]
 **********************************************************************************/
@@ -271,10 +280,11 @@ CREATE TABLE [dbo].[Connections]([Id] bigint NOT NULL
                                     ,[PersistSecurityInfo] bit NULL
                                     ,[AdditionalParameters] nvarchar(max) NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Connections] ADD CONSTRAINT PK_Connections PRIMARY KEY CLUSTERED ([Id])
+
 /**********************************************************************************
 Criar tabela [dbo].[Databases]
 **********************************************************************************/
@@ -286,15 +296,17 @@ CREATE TABLE [dbo].[Databases]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS b
                                     ,[Alias] nvarchar(25) NOT NULL
                                     ,[Description] nvarchar(50) NOT NULL
                                     ,[Folder] nvarchar(256) NULL
+                                    ,[IsLegacy] bit NOT NULL
                                     ,[CurrentOperationId] bigint NOT NULL DEFAULT CAST('0' AS bigint) CHECK ([CurrentOperationId] >= CAST('0' AS bigint))
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Databases] ADD CONSTRAINT PK_Databases PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Databases_Name] ON [dbo].[Databases]([Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Databases_Alias] ON [dbo].[Databases]([Alias] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[SystemsDatabases]
 **********************************************************************************/
@@ -305,13 +317,14 @@ CREATE TABLE [dbo].[SystemsDatabases]([Id] bigint NOT NULL CHECK ([Id] >= CAST('
                                     ,[DatabaseId] bigint NOT NULL CHECK ([DatabaseId] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(50) NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[SystemsDatabases] ADD CONSTRAINT PK_SystemsDatabases PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_SystemsDatabases_SystemId_DatabaseId] ON [dbo].[SystemsDatabases]([SystemId] ASC, [DatabaseId] ASC)
 CREATE UNIQUE INDEX [UNQ_SystemsDatabases_Name] ON [dbo].[SystemsDatabases]([Name] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Tables]
 **********************************************************************************/
@@ -325,13 +338,14 @@ CREATE TABLE [dbo].[Tables]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigi
                                     ,[IsLegacy] bit NOT NULL
                                     ,[CurrentId] bigint NOT NULL DEFAULT CAST('0' AS bigint) CHECK ([CurrentId] >= CAST('0' AS bigint))
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Tables] ADD CONSTRAINT PK_Tables PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Tables_Name] ON [dbo].[Tables]([Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Tables_Alias] ON [dbo].[Tables]([Alias] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[DatabasesTables]
 **********************************************************************************/
@@ -342,13 +356,14 @@ CREATE TABLE [dbo].[DatabasesTables]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1
                                     ,[TableId] bigint NOT NULL CHECK ([TableId] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(50) NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[DatabasesTables] ADD CONSTRAINT PK_DatabasesTables PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_DatabasesTables_DatabaseId_TableId] ON [dbo].[DatabasesTables]([DatabaseId] ASC, [TableId] ASC)
 CREATE UNIQUE INDEX [UNQ_DatabasesTables_Name] ON [dbo].[DatabasesTables]([Name] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Columns]
 **********************************************************************************/
@@ -377,13 +392,14 @@ CREATE TABLE [dbo].[Columns]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[IsEncrypted] bit NULL
                                     ,[IsInWords] bit NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Columns] ADD CONSTRAINT PK_Columns PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Columns_TableId_Name] ON [dbo].[Columns]([TableId] ASC, [Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Columns_TableId_Sequence] ON [dbo].[Columns]([TableId] ASC, [Sequence] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Indexes]
 **********************************************************************************/
@@ -395,12 +411,13 @@ CREATE TABLE [dbo].[Indexes]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[Name] nvarchar(50) NOT NULL
                                     ,[IsUnique] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Indexes] ADD CONSTRAINT PK_Indexes PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Indexes_DatabaseId_Name] ON [dbo].[Indexes]([DatabaseId] ASC, [Name] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Indexkeys]
 **********************************************************************************/
@@ -412,13 +429,14 @@ CREATE TABLE [dbo].[Indexkeys]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS b
                                     ,[ColumnId] bigint NOT NULL CHECK ([ColumnId] >= CAST('1' AS bigint))
                                     ,[IsDescending] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Indexkeys] ADD CONSTRAINT PK_Indexkeys PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_Sequence] ON [dbo].[Indexkeys]([IndexId] ASC, [Sequence] ASC)
 CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_ColumnId] ON [dbo].[Indexkeys]([IndexId] ASC, [ColumnId] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Logins]
 **********************************************************************************/
@@ -430,12 +448,13 @@ CREATE TABLE [dbo].[Logins]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigi
                                     ,[PublicKey] nvarchar(256) NOT NULL
                                     ,[IsLogged] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Logins] ADD CONSTRAINT PK_Logins PRIMARY KEY CLUSTERED ([Id])
 CREATE  INDEX [UNQ_Logins_SystemId_UserId_IsLogged] ON [dbo].[Logins]([SystemId] ASC, [UserId] ASC, [IsLogged] ASC)
 GO
+
 /**********************************************************************************
 Criar tabela [dbo].[Transactions]
 **********************************************************************************/
@@ -445,10 +464,11 @@ CREATE TABLE [dbo].[Transactions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' A
                                     ,[LoginId] bigint NOT NULL CHECK ([LoginId] >= CAST('1' AS bigint))
                                     ,[IsConfirmed] bit NOT NULL CHECK ([IsConfirmed] >= CAST('1' AS bit))
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED ([Id])
+
 /**********************************************************************************
 Criar tabela [dbo].[Operations]
 **********************************************************************************/
@@ -463,10 +483,11 @@ CREATE TABLE [dbo].[Operations]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS 
                                     ,[ActualRecord] nvarchar(max) NOT NULL
                                     ,[IsConfirmed] bit NULL
                                     ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] varchar(25) NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] varchar(25) NULL)
+                                    ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED ([Id])
+
 /**********************************************************************************
 Criar stored procedure [dbo].[Config]
 **********************************************************************************/
@@ -853,18 +874,18 @@ ALTER PROCEDURE [dbo].[NewOperationId](@SystemName VARCHAR(25)
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
 		IF @SystemId IS NULL
-			THROW 51000, 'Sistema n�o encontrado', 1
+			THROW 51000, 'Sistema não encontrado', 1
 		SELECT @DatabaseId = [Id]
 				,@NexOperationtId = ISNULL([CurrentOperationId], 0) + 1
 			FROM [dbo].[Databases]
 			WHERE [Name] = @DatabaseName
 		IF @DatabaseId IS NULL
-			THROW 51000, 'Banco-de-dados n�o encontrado', 1
+			THROW 51000, 'Banco-de-dados não encontrado', 1
 		IF NOT EXISTS(SELECT 1
 						FROM [dbo].[SystemsDatabases]
 						WHERE [SystemId] = @SystemId
 							  AND [DatabaseId] = @DatabaseId)
-			THROW 51000, 'Banco-de-dados n�o pertence ao sistema especificado', 1
+			THROW 51000, 'Banco-de-dados não pertence ao sistema especificado', 1
 		UPDATE [dbo].[Databases] 
 			SET [CurrentOperationId] = @NexOperationtId
 			WHERE [Id] = @DatabaseId
@@ -1707,6 +1728,7 @@ BEGIN
 	RETURN @Minus + ' ' + @Result
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [crudex].[IS_EQUAL]
 **********************************************************************************/
@@ -1992,6 +2014,7 @@ ALTER PROCEDURE[crudex].[TransactionRollback](@TransactionId INT
 	END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar referências de [dbo].[Types]
 **********************************************************************************/
@@ -2271,6 +2294,7 @@ ALTER TABLE [dbo].[Operations] WITH CHECK
 GO
 ALTER TABLE [dbo].[Operations] CHECK CONSTRAINT [FK_Operations_Operations]
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Categories]
 **********************************************************************************/
@@ -2584,6 +2608,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Types]
 **********************************************************************************/
@@ -3956,6 +3981,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Masks]
 **********************************************************************************/
@@ -4049,6 +4075,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Domains]
 **********************************************************************************/
@@ -4703,6 +4730,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Systems]
 **********************************************************************************/
@@ -4727,6 +4755,7 @@ INSERT INTO [dbo].[Systems] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Menus]
 **********************************************************************************/
@@ -5006,6 +5035,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Users]
 **********************************************************************************/
@@ -5051,6 +5081,7 @@ INSERT INTO [dbo].[Users] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[SystemsUsers]
 **********************************************************************************/
@@ -5088,6 +5119,7 @@ INSERT INTO [dbo].[SystemsUsers] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Connections]
 **********************************************************************************/
@@ -5122,6 +5154,7 @@ INSERT INTO [dbo].[Connections] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Databases]
 **********************************************************************************/
@@ -5131,6 +5164,7 @@ INSERT INTO [dbo].[Databases] ([Id]
                                 ,[Alias]
                                 ,[Description]
                                 ,[Folder]
+                                ,[IsLegacy]
                                 ,[CurrentOperationId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5142,12 +5176,14 @@ INSERT INTO [dbo].[Databases] ([Id]
                                 ,CAST('crudex' AS nvarchar(25))
                                 ,CAST('CRUD Express' AS nvarchar(50))
                                 ,CAST('D:\CRUDEX-C#\CRUDEX\CRUDEX\db\' AS nvarchar(256))
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[SystemsDatabases]
 **********************************************************************************/
@@ -5168,6 +5204,7 @@ INSERT INTO [dbo].[SystemsDatabases] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Tables]
 **********************************************************************************/
@@ -5439,7 +5476,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Tables' AS nvarchar(25))
                                 ,CAST('Table' AS nvarchar(25))
                                 ,CAST('Tabelas de bancos-de-dados' AS nvarchar(50))
-                                ,CAST('9' AS bigint)
+                                ,CAST('10' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,CAST('19' AS bigint)
                                 ,GETDATE()
@@ -5462,7 +5499,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('DatabasesTables' AS nvarchar(25))
                                 ,CAST('DatabaseTable' AS nvarchar(25))
                                 ,CAST('Bancos-de-Dados x Tabelas' AS nvarchar(50))
-                                ,CAST('9' AS bigint)
+                                ,CAST('10' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,CAST('19' AS bigint)
                                 ,GETDATE()
@@ -5485,9 +5522,9 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Columns' AS nvarchar(25))
                                 ,CAST('Column' AS nvarchar(25))
                                 ,CAST('Colunas de tabelas' AS nvarchar(50))
-                                ,CAST('11' AS bigint)
+                                ,CAST('12' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('142' AS bigint)
+                                ,CAST('144' AS bigint)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
@@ -5508,7 +5545,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Indexes' AS nvarchar(25))
                                 ,CAST('Index' AS nvarchar(25))
                                 ,CAST('Índices de tabelas' AS nvarchar(50))
-                                ,CAST('11' AS bigint)
+                                ,CAST('12' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,CAST('24' AS bigint)
                                 ,GETDATE()
@@ -5531,7 +5568,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Indexkeys' AS nvarchar(25))
                                 ,CAST('Indexkey' AS nvarchar(25))
                                 ,CAST('Chaves de índices' AS nvarchar(50))
-                                ,CAST('14' AS bigint)
+                                ,CAST('15' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,CAST('36' AS bigint)
                                 ,GETDATE()
@@ -5608,6 +5645,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[DatabasesTables]
 **********************************************************************************/
@@ -5934,6 +5972,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Columns]
 **********************************************************************************/
@@ -9318,7 +9357,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -9371,7 +9410,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -9424,7 +9463,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -9477,7 +9516,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -9530,7 +9569,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -9583,7 +9622,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
@@ -9636,7 +9675,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -9689,7 +9728,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
@@ -10153,6 +10192,59 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('80' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('35' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsLegacy' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('É banco-de-dados legado?' AS nvarchar(50))
+                                ,CAST('Legado?' AS nvarchar(25))
+                                ,CAST('Legado?' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,GETDATE()
+                                ,'admnistrator'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('81' AS bigint)
+                                ,CAST('10' AS bigint)
+                                ,CAST('40' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,NULL
                                 ,CAST('CurrentOperationId' AS nvarchar(25))
@@ -10166,7 +10258,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
+                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -10203,7 +10295,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('81' AS bigint)
+                         VALUES (CAST('82' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10256,7 +10348,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('82' AS bigint)
+                         VALUES (CAST('83' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10309,7 +10401,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('83' AS bigint)
+                         VALUES (CAST('84' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10362,7 +10454,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('84' AS bigint)
+                         VALUES (CAST('85' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -10415,7 +10507,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('85' AS bigint)
+                         VALUES (CAST('86' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10468,7 +10560,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('86' AS bigint)
+                         VALUES (CAST('87' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -10521,7 +10613,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('87' AS bigint)
+                         VALUES (CAST('88' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -10574,7 +10666,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('88' AS bigint)
+                         VALUES (CAST('89' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -10627,7 +10719,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('89' AS bigint)
+                         VALUES (CAST('90' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10680,7 +10772,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('90' AS bigint)
+                         VALUES (CAST('91' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -10733,7 +10825,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('91' AS bigint)
+                         VALUES (CAST('92' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10786,7 +10878,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('92' AS bigint)
+                         VALUES (CAST('93' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10839,7 +10931,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('93' AS bigint)
+                         VALUES (CAST('94' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10892,7 +10984,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('94' AS bigint)
+                         VALUES (CAST('95' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10945,7 +11037,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('95' AS bigint)
+                         VALUES (CAST('96' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -10998,7 +11090,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('96' AS bigint)
+                         VALUES (CAST('97' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11051,7 +11143,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('97' AS bigint)
+                         VALUES (CAST('98' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11104,7 +11196,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('98' AS bigint)
+                         VALUES (CAST('99' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
@@ -11157,7 +11249,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('99' AS bigint)
+                         VALUES (CAST('100' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11210,7 +11302,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('100' AS bigint)
+                         VALUES (CAST('101' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11263,7 +11355,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('101' AS bigint)
+                         VALUES (CAST('102' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -11316,7 +11408,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('102' AS bigint)
+                         VALUES (CAST('103' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -11369,7 +11461,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('103' AS bigint)
+                         VALUES (CAST('104' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -11422,7 +11514,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('104' AS bigint)
+                         VALUES (CAST('105' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('45' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -11475,7 +11567,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('105' AS bigint)
+                         VALUES (CAST('106' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('50' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -11528,7 +11620,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('106' AS bigint)
+                         VALUES (CAST('107' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('55' AS smallint)
                                 ,CAST('17' AS bigint)
@@ -11581,7 +11673,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('107' AS bigint)
+                         VALUES (CAST('108' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('60' AS smallint)
                                 ,CAST('17' AS bigint)
@@ -11634,7 +11726,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('108' AS bigint)
+                         VALUES (CAST('109' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('65' AS smallint)
                                 ,CAST('17' AS bigint)
@@ -11687,7 +11779,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('109' AS bigint)
+                         VALUES (CAST('110' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('70' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -11740,7 +11832,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('110' AS bigint)
+                         VALUES (CAST('111' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('75' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -11793,7 +11885,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('111' AS bigint)
+                         VALUES (CAST('112' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('80' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -11846,7 +11938,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('112' AS bigint)
+                         VALUES (CAST('113' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('85' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -11899,7 +11991,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('113' AS bigint)
+                         VALUES (CAST('114' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('90' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -11952,7 +12044,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('114' AS bigint)
+                         VALUES (CAST('115' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('95' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12005,7 +12097,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('115' AS bigint)
+                         VALUES (CAST('116' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('100' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12058,7 +12150,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('116' AS bigint)
+                         VALUES (CAST('117' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('105' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12111,7 +12203,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('117' AS bigint)
+                         VALUES (CAST('118' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('110' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12164,7 +12256,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('118' AS bigint)
+                         VALUES (CAST('119' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12217,7 +12309,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('119' AS bigint)
+                         VALUES (CAST('120' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12270,7 +12362,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('120' AS bigint)
+                         VALUES (CAST('121' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12323,7 +12415,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('121' AS bigint)
+                         VALUES (CAST('122' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -12376,7 +12468,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('122' AS bigint)
+                         VALUES (CAST('123' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12429,7 +12521,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('123' AS bigint)
+                         VALUES (CAST('124' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12482,7 +12574,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('124' AS bigint)
+                         VALUES (CAST('125' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12535,7 +12627,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('125' AS bigint)
+                         VALUES (CAST('126' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
@@ -12588,7 +12680,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('126' AS bigint)
+                         VALUES (CAST('127' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12641,7 +12733,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('127' AS bigint)
+                         VALUES (CAST('128' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12694,7 +12786,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('128' AS bigint)
+                         VALUES (CAST('129' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12747,7 +12839,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('129' AS bigint)
+                         VALUES (CAST('130' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12800,7 +12892,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('130' AS bigint)
+                         VALUES (CAST('131' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12853,7 +12945,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('131' AS bigint)
+                         VALUES (CAST('132' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('11' AS bigint)
@@ -12906,7 +12998,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('132' AS bigint)
+                         VALUES (CAST('133' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12959,7 +13051,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('133' AS bigint)
+                         VALUES (CAST('134' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13012,7 +13104,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('134' AS bigint)
+                         VALUES (CAST('135' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13065,7 +13157,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('135' AS bigint)
+                         VALUES (CAST('136' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13118,7 +13210,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('136' AS bigint)
+                         VALUES (CAST('137' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13171,7 +13263,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('137' AS bigint)
+                         VALUES (CAST('138' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13224,7 +13316,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('138' AS bigint)
+                         VALUES (CAST('139' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -13277,7 +13369,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('139' AS bigint)
+                         VALUES (CAST('140' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13330,7 +13422,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('140' AS bigint)
+                         VALUES (CAST('141' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('21' AS bigint)
@@ -13383,7 +13475,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('141' AS bigint)
+                         VALUES (CAST('142' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('12' AS bigint)
@@ -13436,7 +13528,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('142' AS bigint)
+                         VALUES (CAST('143' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('12' AS bigint)
@@ -13489,7 +13581,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('143' AS bigint)
+                         VALUES (CAST('144' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13516,6 +13608,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Indexes]
 **********************************************************************************/
@@ -13975,6 +14068,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Indexkeys]
 **********************************************************************************/
@@ -14275,7 +14369,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('16' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('82' AS bigint)
+                                ,CAST('83' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14294,7 +14388,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('17' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('83' AS bigint)
+                                ,CAST('84' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14313,7 +14407,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('18' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('84' AS bigint)
+                                ,CAST('85' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14332,7 +14426,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('19' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('86' AS bigint)
+                                ,CAST('87' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14351,7 +14445,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('20' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('87' AS bigint)
+                                ,CAST('88' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14370,7 +14464,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('21' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('93' AS bigint)
+                                ,CAST('94' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14389,7 +14483,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('22' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('94' AS bigint)
+                                ,CAST('95' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14408,7 +14502,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('23' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('95' AS bigint)
+                                ,CAST('96' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14427,7 +14521,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('24' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('97' AS bigint)
+                                ,CAST('98' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14446,7 +14540,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('25' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('101' AS bigint)
+                                ,CAST('102' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14465,7 +14559,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('26' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('97' AS bigint)
+                                ,CAST('98' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14484,7 +14578,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('27' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('98' AS bigint)
+                                ,CAST('99' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14503,7 +14597,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('28' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('119' AS bigint)
+                                ,CAST('120' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14522,7 +14616,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('29' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('121' AS bigint)
+                                ,CAST('122' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14541,7 +14635,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('30' AS bigint)
                                 ,CAST('22' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('124' AS bigint)
+                                ,CAST('125' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14560,7 +14654,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('31' AS bigint)
                                 ,CAST('22' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('125' AS bigint)
+                                ,CAST('126' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14579,7 +14673,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('32' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('124' AS bigint)
+                                ,CAST('125' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14598,7 +14692,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('33' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('126' AS bigint)
+                                ,CAST('127' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14617,7 +14711,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('34' AS bigint)
                                 ,CAST('24' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('129' AS bigint)
+                                ,CAST('130' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14636,7 +14730,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('35' AS bigint)
                                 ,CAST('24' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('130' AS bigint)
+                                ,CAST('131' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14655,13 +14749,17 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('36' AS bigint)
                                 ,CAST('24' AS bigint)
                                 ,CAST('15' AS smallint)
-                                ,CAST('132' AS bigint)
+                                ,CAST('133' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
                                 ,NULL
                                 ,NULL)
 GO
+
+
+
+
 /**********************************************************************************
 Criar stored procedure [dbo].[CategoryValidate]
 **********************************************************************************/
@@ -14800,6 +14898,7 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[CategoryPersist]
 **********************************************************************************/
@@ -14901,6 +15000,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[CategoryCommit]
 **********************************************************************************/
@@ -15035,6 +15135,7 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[CategoriesRead]
 **********************************************************************************/
@@ -15112,7 +15213,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -15283,6 +15384,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[CategoriesList]
 **********************************************************************************/
@@ -15312,8 +15414,7 @@ ALTER PROCEDURE [dbo].[CategoriesList](@Value NVARCHAR(MAX)
                ,@OffSet INT
                ,@sql NVARCHAR(MAX)
 
-        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
@@ -15346,6 +15447,7 @@ ALTER PROCEDURE [dbo].[CategoriesList](@Value NVARCHAR(MAX)
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TypeValidate]
 **********************************************************************************/
@@ -15501,6 +15603,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TypePersist]
 **********************************************************************************/
@@ -15602,6 +15705,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TypeCommit]
 **********************************************************************************/
@@ -15748,6 +15852,7 @@ ALTER PROCEDURE [dbo].[TypeCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TypesRead]
 **********************************************************************************/
@@ -15828,7 +15933,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -16008,19 +16113,19 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
               ,[IsActive]
             FROM [dbo].[#result]
         SELECT 'Category' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Name]
-              ,[REF].[HtmlInputType]
-              ,[REF].[HtmlInputAlign]
-              ,[REF].[AskEncrypted]
-              ,[REF].[AskMask]
-              ,[REF].[AskListable]
-              ,[REF].[AskDefault]
-              ,[REF].[AskMinimum]
-              ,[REF].[AskMaximum]
-              ,[REF].[AskInWords]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Categories] [REF] ON [REF].[Id] = [RES].[CategoryId]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[HtmlInputType]
+              ,[R].[HtmlInputAlign]
+              ,[R].[AskEncrypted]
+              ,[R].[AskMask]
+              ,[R].[AskListable]
+              ,[R].[AskDefault]
+              ,[R].[AskMinimum]
+              ,[R].[AskMaximum]
+              ,[R].[AskInWords]
+            FROM [dbo].[Categories] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [CategoryId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -16031,6 +16136,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TypesList]
 **********************************************************************************/
@@ -16060,8 +16166,7 @@ ALTER PROCEDURE [dbo].[TypesList](@Value NVARCHAR(MAX)
                ,@OffSet INT
                ,@sql NVARCHAR(MAX)
 
-        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
@@ -16094,6 +16199,7 @@ ALTER PROCEDURE [dbo].[TypesList](@Value NVARCHAR(MAX)
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[MaskValidate]
 **********************************************************************************/
@@ -16194,6 +16300,7 @@ ALTER PROCEDURE [dbo].[MaskValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[MaskPersist]
 **********************************************************************************/
@@ -16295,6 +16402,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[MaskCommit]
 **********************************************************************************/
@@ -16397,6 +16505,7 @@ ALTER PROCEDURE [dbo].[MaskCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[MasksRead]
 **********************************************************************************/
@@ -16466,7 +16575,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -16561,6 +16670,8 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DomainValidate]
 **********************************************************************************/
@@ -16697,6 +16808,7 @@ ALTER PROCEDURE [dbo].[DomainValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DomainPersist]
 **********************************************************************************/
@@ -16798,6 +16910,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DomainCommit]
 **********************************************************************************/
@@ -16932,6 +17045,7 @@ ALTER PROCEDURE [dbo].[DomainCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DomainsRead]
 **********************************************************************************/
@@ -17009,7 +17123,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -17155,28 +17269,28 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
               ,[Codification]
             FROM [dbo].[#result]
         SELECT 'Type' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[CategoryId]
-              ,[REF].[Name]
-              ,[REF].[MaxLength]
-              ,[REF].[Minimum]
-              ,[REF].[Maximum]
-              ,[REF].[AskLength]
-              ,[REF].[AskDecimals]
-              ,[REF].[AskPrimarykey]
-              ,[REF].[AskAutoincrement]
-              ,[REF].[AskFilterable]
-              ,[REF].[AskGridable]
-              ,[REF].[AskCodification]
-              ,[REF].[IsActive]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Types] [REF] ON [REF].[Id] = [RES].[TypeId]
+              ,[R].[Id]
+              ,[R].[CategoryId]
+              ,[R].[Name]
+              ,[R].[MaxLength]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[AskLength]
+              ,[R].[AskDecimals]
+              ,[R].[AskPrimarykey]
+              ,[R].[AskAutoincrement]
+              ,[R].[AskFilterable]
+              ,[R].[AskGridable]
+              ,[R].[AskCodification]
+              ,[R].[IsActive]
+            FROM [dbo].[Types] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [TypeId] =  [R].[Id])
         SELECT 'Mask' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Name]
-              ,[REF].[Mask]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Masks] [REF] ON [REF].[Id] = [RES].[MaskId]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Mask]
+            FROM [dbo].[Masks] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [MaskId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -17187,6 +17301,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DomainsList]
 **********************************************************************************/
@@ -17216,8 +17331,7 @@ ALTER PROCEDURE [dbo].[DomainsList](@Value NVARCHAR(MAX)
                ,@OffSet INT
                ,@sql NVARCHAR(MAX)
 
-        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
@@ -17250,6 +17364,7 @@ ALTER PROCEDURE [dbo].[DomainsList](@Value NVARCHAR(MAX)
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemValidate]
 **********************************************************************************/
@@ -17375,6 +17490,7 @@ ALTER PROCEDURE [dbo].[SystemValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemPersist]
 **********************************************************************************/
@@ -17476,6 +17592,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemCommit]
 **********************************************************************************/
@@ -17590,6 +17707,7 @@ ALTER PROCEDURE [dbo].[SystemCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemsRead]
 **********************************************************************************/
@@ -17662,7 +17780,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -17777,6 +17895,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemsList]
 **********************************************************************************/
@@ -17806,8 +17925,7 @@ ALTER PROCEDURE [dbo].[SystemsList](@Value NVARCHAR(MAX)
                ,@OffSet INT
                ,@sql NVARCHAR(MAX)
 
-        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
@@ -17840,6 +17958,7 @@ ALTER PROCEDURE [dbo].[SystemsList](@Value NVARCHAR(MAX)
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[MenuValidate]
 **********************************************************************************/
@@ -17972,6 +18091,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[MenuPersist]
 **********************************************************************************/
@@ -18073,6 +18193,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[MenuCommit]
 **********************************************************************************/
@@ -18191,6 +18312,7 @@ ALTER PROCEDURE [dbo].[MenuCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[MenusRead]
 **********************************************************************************/
@@ -18264,7 +18386,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -18376,24 +18498,24 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
               ,[ParentMenuId]
             FROM [dbo].[#result]
         SELECT 'System' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Name]
-              ,[REF].[Description]
-              ,[REF].[ClientName]
-              ,[REF].[MaxRetryLogins]
-              ,[REF].[IsOffAir]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Systems] [REF] ON [REF].[Id] = [RES].[SystemId]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Description]
+              ,[R].[ClientName]
+              ,[R].[MaxRetryLogins]
+              ,[R].[IsOffAir]
+            FROM [dbo].[Systems] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [SystemId] =  [R].[Id])
         SELECT 'Menu' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[SystemId]
-              ,[REF].[Sequence]
-              ,[REF].[Caption]
-              ,[REF].[Message]
-              ,[REF].[Action]
-              ,[REF].[ParentMenuId]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Menus] [REF] ON [REF].[Id] = [RES].[ParentMenuId]
+              ,[R].[Id]
+              ,[R].[SystemId]
+              ,[R].[Sequence]
+              ,[R].[Caption]
+              ,[R].[Message]
+              ,[R].[Action]
+              ,[R].[ParentMenuId]
+            FROM [dbo].[Menus] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [ParentMenuId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -18404,6 +18526,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
+
 /**********************************************************************************
 Criar stored procedure [dbo].[UserValidate]
 **********************************************************************************/
@@ -18525,6 +18649,7 @@ ALTER PROCEDURE [dbo].[UserValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[UserPersist]
 **********************************************************************************/
@@ -18626,6 +18751,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[UserCommit]
 **********************************************************************************/
@@ -18740,6 +18866,7 @@ ALTER PROCEDURE [dbo].[UserCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[UsersRead]
 **********************************************************************************/
@@ -18812,7 +18939,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -18933,6 +19060,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[UsersList]
 **********************************************************************************/
@@ -18962,8 +19090,7 @@ ALTER PROCEDURE [dbo].[UsersList](@Value NVARCHAR(MAX)
                ,@OffSet INT
                ,@sql NVARCHAR(MAX)
 
-        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
@@ -18996,6 +19123,7 @@ ALTER PROCEDURE [dbo].[UsersList](@Value NVARCHAR(MAX)
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemUserValidate]
 **********************************************************************************/
@@ -19112,6 +19240,7 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemUserPersist]
 **********************************************************************************/
@@ -19213,6 +19342,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemUserCommit]
 **********************************************************************************/
@@ -19319,6 +19449,7 @@ ALTER PROCEDURE [dbo].[SystemUserCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemsUsersRead]
 **********************************************************************************/
@@ -19389,7 +19520,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -19497,23 +19628,23 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
               ,[Name]
             FROM [dbo].[#result]
         SELECT 'System' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Name]
-              ,[REF].[Description]
-              ,[REF].[ClientName]
-              ,[REF].[MaxRetryLogins]
-              ,[REF].[IsOffAir]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Systems] [REF] ON [REF].[Id] = [RES].[SystemId]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Description]
+              ,[R].[ClientName]
+              ,[R].[MaxRetryLogins]
+              ,[R].[IsOffAir]
+            FROM [dbo].[Systems] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [SystemId] =  [R].[Id])
         SELECT 'User' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Name]
-              ,[REF].[Password]
-              ,[REF].[FullName]
-              ,[REF].[RetryLogins]
-              ,[REF].[IsActive]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Users] [REF] ON [REF].[Id] = [RES].[UserId]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Password]
+              ,[R].[FullName]
+              ,[R].[RetryLogins]
+              ,[R].[IsActive]
+            FROM [dbo].[Users] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [UserId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -19524,6 +19655,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemsUsersList]
 **********************************************************************************/
@@ -19553,8 +19685,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersList](@Value NVARCHAR(MAX)
                ,@OffSet INT
                ,@sql NVARCHAR(MAX)
 
-        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
@@ -19587,6 +19718,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersList](@Value NVARCHAR(MAX)
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[ConnectionValidate]
 **********************************************************************************/
@@ -19715,6 +19847,7 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[ConnectionPersist]
 **********************************************************************************/
@@ -19816,6 +19949,7 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[ConnectionCommit]
 **********************************************************************************/
@@ -19950,6 +20084,7 @@ ALTER PROCEDURE [dbo].[ConnectionCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[ConnectionsRead]
 **********************************************************************************/
@@ -20027,7 +20162,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -20174,69 +20309,8 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
     END CATCH
 END
 GO
-/**********************************************************************************
-Criar stored procedure [dbo].[ConnectionsList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[ConnectionsList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ConnectionsList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[ConnectionsList](@Value NVARCHAR(MAX)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [dbo].[#query]
-            FROM [dbo].[Connections]
-            WHERE [Provider] LIKE '%' + @Value + '%'
-            ORDER BY [Provider]
 
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Provider]
-                       FROM [dbo].[#query] [Q]
-                           INNER JOIN [dbo].[Connections] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Provider]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
-        SET @ReturnValue = @RowCount
-
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
-END
-GO
 /**********************************************************************************
 Criar stored procedure [dbo].[DatabaseValidate]
 **********************************************************************************/
@@ -20305,6 +20379,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId BIGINT
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias'), 'nvarchar') = 1
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description'), 'nvarchar') = 1
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Folder'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Folder'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsLegacy'), 'bit') = 1
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentOperationId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.CurrentOperationId'), 'bigint') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
@@ -20315,6 +20390,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId BIGINT
                                   AND [Alias] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias')
                                   AND [Description] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description')
                                   AND [crudex].[IS_EQUAL]([Folder], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Folder'), 'nvarchar') = 1
+                                  AND [IsLegacy] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsLegacy')
                                   AND [CurrentOperationId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.CurrentOperationId'))
                 THROW 51000, 'Registro de Databases alterado por outro usuário', 1
         END
@@ -20333,6 +20409,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId BIGINT
                    ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
                    ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
                    ,@W_Folder nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Folder') AS nvarchar(256))
+                   ,@W_IsLegacy bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy') AS bit)
                    ,@W_CurrentOperationId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentOperationId') AS bigint)
 
             IF @W_ConnectionId IS NULL
@@ -20347,6 +20424,8 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de Alias em @ActualRecord é requerido.', 1
             IF @W_Description IS NULL
                 THROW 51000, 'Valor de Description em @ActualRecord é requerido.', 1
+            IF @W_IsLegacy IS NULL
+                THROW 51000, 'Valor de IsLegacy em @ActualRecord é requerido.', 1
             IF @W_CurrentOperationId IS NULL
                 THROW 51000, 'Valor de CurrentOperationId em @ActualRecord é requerido.', 1
             IF @W_CurrentOperationId < CAST('0' AS bigint)
@@ -20371,6 +20450,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DatabasePersist]
 **********************************************************************************/
@@ -20472,6 +20552,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DatabaseCommit]
 **********************************************************************************/
@@ -20538,6 +20619,7 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@LoginId BIGINT
                    ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
                    ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
                    ,@W_Folder nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Folder') AS nvarchar(256))
+                   ,@W_IsLegacy bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy') AS bit)
                    ,@W_CurrentOperationId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentOperationId') AS bigint)
 
             IF @Action = 'create'
@@ -20547,6 +20629,7 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@LoginId BIGINT
                                                 ,[Alias]
                                                 ,[Description]
                                                 ,[Folder]
+                                                ,[IsLegacy]
                                                 ,[CurrentOperationId]
                                                 ,[CreatedAt]
                                                 ,[CreatedBy])
@@ -20556,6 +20639,7 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@LoginId BIGINT
                                                  ,@W_Alias
                                                  ,@W_Description
                                                  ,@W_Folder
+                                                 ,@W_IsLegacy
                                                  ,@W_CurrentOperationId
                                                  ,GETDATE()
                                                  ,@UserName)
@@ -20566,6 +20650,7 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@LoginId BIGINT
                                               ,[Alias] = @W_Alias
                                               ,[Description] = @W_Description
                                               ,[Folder] = @W_Folder
+                                              ,[IsLegacy] = @W_IsLegacy
                                               ,[CurrentOperationId] = @W_CurrentOperationId
                                               ,[UpdatedAt] = GETDATE()
                                               ,[UpdatedBy] = @UserName
@@ -20590,6 +20675,7 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DatabasesRead]
 **********************************************************************************/
@@ -20654,6 +20740,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Folder') AS nvarchar(256)) AS [Folder]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsLegacy') AS bit) AS [IsLegacy]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.CurrentOperationId') AS bigint) AS [CurrentOperationId]
             INTO [dbo].[#operations]
             FROM [dbo].[Operations]
@@ -20663,7 +20750,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -20741,6 +20828,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
                     ,CAST(NULL AS nvarchar(25)) AS [Alias]
                     ,CAST(NULL AS nvarchar(50)) AS [Description]
                     ,CAST(NULL AS nvarchar(256)) AS [Folder]
+                    ,CAST(NULL AS bit) AS [IsLegacy]
                     ,CAST(NULL AS bigint) AS [CurrentOperationId]
             INTO [dbo].[#result]
         SET @sql = 'INSERT #result
@@ -20751,6 +20839,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
                               ,[T].[Alias]
                               ,[T].[Description]
                               ,[T].[Folder]
+                              ,[T].[IsLegacy]
                               ,[T].[CurrentOperationId]
                             FROM [dbo].[#table] [#]
                                 INNER JOIN [dbo].[Databases] [T] ON [T].[Id] = [#].[Id]
@@ -20763,6 +20852,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
                                   ,[O].[Alias]
                                   ,[O].[Description]
                                   ,[O].[Folder]
+                                  ,[O].[IsLegacy]
                                   ,[O].[CurrentOperationId]
                                 FROM [dbo].[#table] [#]
                                     INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
@@ -20778,22 +20868,23 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
               ,[Alias]
               ,[Description]
               ,[Folder]
+              ,[IsLegacy]
               ,[CurrentOperationId]
             FROM [dbo].[#result]
         SELECT 'Connection' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Provider]
-              ,[REF].[HostName]
-              ,[REF].[Port]
-              ,[REF].[IntegratedSecurity]
-              ,[REF].[ConnectionTimeout]
-              ,[REF].[ExtendedProperties]
-              ,[REF].[UserID]
-              ,[REF].[Password]
-              ,[REF].[PersistSecurityInfo]
-              ,[REF].[AdditionalParameters]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Connections] [REF] ON [REF].[Id] = [RES].[ConnectionId]
+              ,[R].[Id]
+              ,[R].[Provider]
+              ,[R].[HostName]
+              ,[R].[Port]
+              ,[R].[IntegratedSecurity]
+              ,[R].[ConnectionTimeout]
+              ,[R].[ExtendedProperties]
+              ,[R].[UserID]
+              ,[R].[Password]
+              ,[R].[PersistSecurityInfo]
+              ,[R].[AdditionalParameters]
+            FROM [dbo].[Connections] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [ConnectionId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -20804,6 +20895,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DatabasesList]
 **********************************************************************************/
@@ -20833,8 +20925,7 @@ ALTER PROCEDURE [dbo].[DatabasesList](@Value NVARCHAR(MAX)
                ,@OffSet INT
                ,@sql NVARCHAR(MAX)
 
-        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
@@ -20867,6 +20958,7 @@ ALTER PROCEDURE [dbo].[DatabasesList](@Value NVARCHAR(MAX)
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemDatabaseValidate]
 **********************************************************************************/
@@ -20983,6 +21075,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemDatabasePersist]
 **********************************************************************************/
@@ -21084,6 +21177,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemDatabaseCommit]
 **********************************************************************************/
@@ -21190,6 +21284,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemsDatabasesRead]
 **********************************************************************************/
@@ -21260,7 +21355,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -21368,24 +21463,25 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,[Name]
             FROM [dbo].[#result]
         SELECT 'System' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Name]
-              ,[REF].[Description]
-              ,[REF].[ClientName]
-              ,[REF].[MaxRetryLogins]
-              ,[REF].[IsOffAir]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Systems] [REF] ON [REF].[Id] = [RES].[SystemId]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Description]
+              ,[R].[ClientName]
+              ,[R].[MaxRetryLogins]
+              ,[R].[IsOffAir]
+            FROM [dbo].[Systems] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [SystemId] =  [R].[Id])
         SELECT 'Database' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[ConnectionId]
-              ,[REF].[Name]
-              ,[REF].[Alias]
-              ,[REF].[Description]
-              ,[REF].[Folder]
-              ,[REF].[CurrentOperationId]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Databases] [REF] ON [REF].[Id] = [RES].[DatabaseId]
+              ,[R].[Id]
+              ,[R].[ConnectionId]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[Folder]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentOperationId]
+            FROM [dbo].[Databases] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [DatabaseId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -21396,6 +21492,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[SystemsDatabasesList]
 **********************************************************************************/
@@ -21425,8 +21522,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesList](@Value NVARCHAR(MAX)
                ,@OffSet INT
                ,@sql NVARCHAR(MAX)
 
-        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
@@ -21459,6 +21555,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesList](@Value NVARCHAR(MAX)
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TableValidate]
 **********************************************************************************/
@@ -21593,6 +21690,7 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TablePersist]
 **********************************************************************************/
@@ -21694,6 +21792,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TableCommit]
 **********************************************************************************/
@@ -21812,6 +21911,7 @@ ALTER PROCEDURE [dbo].[TableCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TablesRead]
 **********************************************************************************/
@@ -21885,7 +21985,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -22010,6 +22110,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TablesList]
 **********************************************************************************/
@@ -22039,8 +22140,7 @@ ALTER PROCEDURE [dbo].[TablesList](@Value NVARCHAR(MAX)
                ,@OffSet INT
                ,@sql NVARCHAR(MAX)
 
-        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
@@ -22073,6 +22173,7 @@ ALTER PROCEDURE [dbo].[TablesList](@Value NVARCHAR(MAX)
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DatabaseTableValidate]
 **********************************************************************************/
@@ -22189,6 +22290,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DatabaseTablePersist]
 **********************************************************************************/
@@ -22290,6 +22392,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DatabaseTableCommit]
 **********************************************************************************/
@@ -22396,6 +22499,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DatabasesTablesRead]
 **********************************************************************************/
@@ -22466,7 +22570,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -22574,25 +22678,26 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,[Name]
             FROM [dbo].[#result]
         SELECT 'Database' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[ConnectionId]
-              ,[REF].[Name]
-              ,[REF].[Alias]
-              ,[REF].[Description]
-              ,[REF].[Folder]
-              ,[REF].[CurrentOperationId]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Databases] [REF] ON [REF].[Id] = [RES].[DatabaseId]
+              ,[R].[Id]
+              ,[R].[ConnectionId]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[Folder]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentOperationId]
+            FROM [dbo].[Databases] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [DatabaseId] =  [R].[Id])
         SELECT 'Table' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Name]
-              ,[REF].[Alias]
-              ,[REF].[Description]
-              ,[REF].[ParentTableId]
-              ,[REF].[IsLegacy]
-              ,[REF].[CurrentId]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Tables] [REF] ON [REF].[Id] = [RES].[TableId]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[ParentTableId]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentId]
+            FROM [dbo].[Tables] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [TableId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -22603,6 +22708,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[DatabasesTablesList]
 **********************************************************************************/
@@ -22632,8 +22738,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesList](@Value NVARCHAR(MAX)
                ,@OffSet INT
                ,@sql NVARCHAR(MAX)
 
-        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
@@ -22666,6 +22771,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesList](@Value NVARCHAR(MAX)
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[ColumnValidate]
 **********************************************************************************/
@@ -22855,6 +22961,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[ColumnPersist]
 **********************************************************************************/
@@ -22956,6 +23063,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[ColumnCommit]
 **********************************************************************************/
@@ -23134,6 +23242,7 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[ColumnsRead]
 **********************************************************************************/
@@ -23222,7 +23331,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -23464,39 +23573,39 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[IsInWords]
             FROM [dbo].[#result]
         SELECT 'Table' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Name]
-              ,[REF].[Alias]
-              ,[REF].[Description]
-              ,[REF].[ParentTableId]
-              ,[REF].[IsLegacy]
-              ,[REF].[CurrentId]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Tables] [REF] ON [REF].[Id] = [RES].[TableId]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[ParentTableId]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentId]
+            FROM [dbo].[Tables] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [TableId] =  [R].[Id])
         SELECT 'Domain' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[TypeId]
-              ,[REF].[MaskId]
-              ,[REF].[Name]
-              ,[REF].[Length]
-              ,[REF].[Decimals]
-              ,[REF].[ValidValues]
-              ,[REF].[Default]
-              ,[REF].[Minimum]
-              ,[REF].[Maximum]
-              ,[REF].[Codification]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Domains] [REF] ON [REF].[Id] = [RES].[DomainId]
+              ,[R].[Id]
+              ,[R].[TypeId]
+              ,[R].[MaskId]
+              ,[R].[Name]
+              ,[R].[Length]
+              ,[R].[Decimals]
+              ,[R].[ValidValues]
+              ,[R].[Default]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[Codification]
+            FROM [dbo].[Domains] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [DomainId] =  [R].[Id])
         SELECT 'Table' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Name]
-              ,[REF].[Alias]
-              ,[REF].[Description]
-              ,[REF].[ParentTableId]
-              ,[REF].[IsLegacy]
-              ,[REF].[CurrentId]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Tables] [REF] ON [REF].[Id] = [RES].[ReferenceTableId]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[ParentTableId]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentId]
+            FROM [dbo].[Tables] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [ReferenceTableId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -23507,6 +23616,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
+
 /**********************************************************************************
 Criar stored procedure [dbo].[IndexValidate]
 **********************************************************************************/
@@ -23627,6 +23738,7 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[IndexPersist]
 **********************************************************************************/
@@ -23728,6 +23840,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[IndexCommit]
 **********************************************************************************/
@@ -23838,6 +23951,7 @@ ALTER PROCEDURE [dbo].[IndexCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[IndexesRead]
 **********************************************************************************/
@@ -23909,7 +24023,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -24019,25 +24133,26 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
               ,[IsUnique]
             FROM [dbo].[#result]
         SELECT 'Database' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[ConnectionId]
-              ,[REF].[Name]
-              ,[REF].[Alias]
-              ,[REF].[Description]
-              ,[REF].[Folder]
-              ,[REF].[CurrentOperationId]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Databases] [REF] ON [REF].[Id] = [RES].[DatabaseId]
+              ,[R].[Id]
+              ,[R].[ConnectionId]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[Folder]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentOperationId]
+            FROM [dbo].[Databases] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [DatabaseId] =  [R].[Id])
         SELECT 'Table' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Name]
-              ,[REF].[Alias]
-              ,[REF].[Description]
-              ,[REF].[ParentTableId]
-              ,[REF].[IsLegacy]
-              ,[REF].[CurrentId]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Tables] [REF] ON [REF].[Id] = [RES].[TableId]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[ParentTableId]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentId]
+            FROM [dbo].[Tables] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [TableId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -24048,6 +24163,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[IndexesList]
 **********************************************************************************/
@@ -24077,8 +24193,7 @@ ALTER PROCEDURE [dbo].[IndexesList](@Value NVARCHAR(MAX)
                ,@OffSet INT
                ,@sql NVARCHAR(MAX)
 
-        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
             SET @PageNumber = 1
@@ -24111,6 +24226,7 @@ ALTER PROCEDURE [dbo].[IndexesList](@Value NVARCHAR(MAX)
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[IndexkeyValidate]
 **********************************************************************************/
@@ -24234,6 +24350,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[IndexkeyPersist]
 **********************************************************************************/
@@ -24335,6 +24452,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[IndexkeyCommit]
 **********************************************************************************/
@@ -24445,6 +24563,7 @@ ALTER PROCEDURE [dbo].[IndexkeyCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[IndexkeysRead]
 **********************************************************************************/
@@ -24516,7 +24635,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -24628,38 +24747,38 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[IsDescending]
             FROM [dbo].[#result]
         SELECT 'Index' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[DatabaseId]
-              ,[REF].[TableId]
-              ,[REF].[Name]
-              ,[REF].[IsUnique]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Indexes] [REF] ON [REF].[Id] = [RES].[IndexId]
+              ,[R].[Id]
+              ,[R].[DatabaseId]
+              ,[R].[TableId]
+              ,[R].[Name]
+              ,[R].[IsUnique]
+            FROM [dbo].[Indexes] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [IndexId] =  [R].[Id])
         SELECT 'Column' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[TableId]
-              ,[REF].[Sequence]
-              ,[REF].[DomainId]
-              ,[REF].[ReferenceTableId]
-              ,[REF].[Name]
-              ,[REF].[Alias]
-              ,[REF].[Description]
-              ,[REF].[Title]
-              ,[REF].[Caption]
-              ,[REF].[Default]
-              ,[REF].[Minimum]
-              ,[REF].[Maximum]
-              ,[REF].[IsPrimarykey]
-              ,[REF].[IsAutoIncrement]
-              ,[REF].[IsRequired]
-              ,[REF].[IsListable]
-              ,[REF].[IsFilterable]
-              ,[REF].[IsEditable]
-              ,[REF].[IsGridable]
-              ,[REF].[IsEncrypted]
-              ,[REF].[IsInWords]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Columns] [REF] ON [REF].[Id] = [RES].[ColumnId]
+              ,[R].[Id]
+              ,[R].[TableId]
+              ,[R].[Sequence]
+              ,[R].[DomainId]
+              ,[R].[ReferenceTableId]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[Title]
+              ,[R].[Caption]
+              ,[R].[Default]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[IsPrimarykey]
+              ,[R].[IsAutoIncrement]
+              ,[R].[IsRequired]
+              ,[R].[IsListable]
+              ,[R].[IsFilterable]
+              ,[R].[IsEditable]
+              ,[R].[IsGridable]
+              ,[R].[IsEncrypted]
+              ,[R].[IsInWords]
+            FROM [dbo].[Columns] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [ColumnId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -24670,6 +24789,8 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
+
 /**********************************************************************************
 Criar stored procedure [dbo].[LoginValidate]
 **********************************************************************************/
@@ -24784,6 +24905,7 @@ ALTER PROCEDURE [dbo].[LoginValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[LoginPersist]
 **********************************************************************************/
@@ -24885,6 +25007,7 @@ ALTER PROCEDURE [dbo].[LoginPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[LoginCommit]
 **********************************************************************************/
@@ -24995,6 +25118,7 @@ ALTER PROCEDURE [dbo].[LoginCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[LoginsRead]
 **********************************************************************************/
@@ -25066,7 +25190,7 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -25178,23 +25302,23 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
               ,[IsLogged]
             FROM [dbo].[#result]
         SELECT 'System' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Name]
-              ,[REF].[Description]
-              ,[REF].[ClientName]
-              ,[REF].[MaxRetryLogins]
-              ,[REF].[IsOffAir]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Systems] [REF] ON [REF].[Id] = [RES].[SystemId]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Description]
+              ,[R].[ClientName]
+              ,[R].[MaxRetryLogins]
+              ,[R].[IsOffAir]
+            FROM [dbo].[Systems] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [SystemId] =  [R].[Id])
         SELECT 'User' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[Name]
-              ,[REF].[Password]
-              ,[REF].[FullName]
-              ,[REF].[RetryLogins]
-              ,[REF].[IsActive]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Users] [REF] ON [REF].[Id] = [RES].[UserId]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Password]
+              ,[R].[FullName]
+              ,[R].[RetryLogins]
+              ,[R].[IsActive]
+            FROM [dbo].[Users] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [UserId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -25205,6 +25329,8 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TransactionValidate]
 **********************************************************************************/
@@ -25307,6 +25433,7 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TransactionPersist]
 **********************************************************************************/
@@ -25408,6 +25535,7 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TransactionCommit]
 **********************************************************************************/
@@ -25510,6 +25638,7 @@ ALTER PROCEDURE [dbo].[TransactionCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[TransactionsRead]
 **********************************************************************************/
@@ -25579,7 +25708,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -25661,13 +25790,13 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
               ,[IsConfirmed]
             FROM [dbo].[#result]
         SELECT 'Login' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[SystemId]
-              ,[REF].[UserId]
-              ,[REF].[PublicKey]
-              ,[REF].[IsLogged]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Logins] [REF] ON [REF].[Id] = [RES].[LoginId]
+              ,[R].[Id]
+              ,[R].[SystemId]
+              ,[R].[UserId]
+              ,[R].[PublicKey]
+              ,[R].[IsLogged]
+            FROM [dbo].[Logins] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [LoginId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -25678,6 +25807,8 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
+
 /**********************************************************************************
 Criar stored procedure [dbo].[OperationValidate]
 **********************************************************************************/
@@ -25801,6 +25932,7 @@ ALTER PROCEDURE [dbo].[OperationValidate](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[OperationPersist]
 **********************************************************************************/
@@ -25902,6 +26034,7 @@ ALTER PROCEDURE [dbo].[OperationPersist](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[OperationCommit]
 **********************************************************************************/
@@ -26024,6 +26157,7 @@ ALTER PROCEDURE [dbo].[OperationCommit](@LoginId BIGINT
     END CATCH
 END
 GO
+
 /**********************************************************************************
 Criar stored procedure [dbo].[OperationsRead]
 **********************************************************************************/
@@ -26098,7 +26232,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
         CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where VARCHAR(MAX) = ''
+               ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
@@ -26200,22 +26334,22 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[IsConfirmed]
             FROM [dbo].[#result]
         SELECT 'Transaction' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[LoginId]
-              ,[REF].[IsConfirmed]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Transactions] [REF] ON [REF].[Id] = [RES].[TransactionId]
+              ,[R].[Id]
+              ,[R].[LoginId]
+              ,[R].[IsConfirmed]
+            FROM [dbo].[Transactions] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [TransactionId] =  [R].[Id])
         SELECT 'Operation' AS ClassName
-              ,[REF].[Id]
-              ,[REF].[TransactionId]
-              ,[REF].[TableName]
-              ,[REF].[ParentOperationId]
-              ,[REF].[Action]
-              ,[REF].[OriginalRecord]
-              ,[REF].[ActualRecord]
-              ,[REF].[IsConfirmed]
-            FROM [dbo].[#result] [RES]
-                INNER JOIN [dbo].[Operations] [REF] ON [REF].[Id] = [RES].[ParentOperationId]
+              ,[R].[Id]
+              ,[R].[TransactionId]
+              ,[R].[TableName]
+              ,[R].[ParentOperationId]
+              ,[R].[Action]
+              ,[R].[OriginalRecord]
+              ,[R].[ActualRecord]
+              ,[R].[IsConfirmed]
+            FROM [dbo].[Operations] [R]
+            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [ParentOperationId] =  [R].[Id])
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -26226,3 +26360,5 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
     END CATCH
 END
 GO
+
+

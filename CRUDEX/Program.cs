@@ -15,7 +15,7 @@ namespace CRUDA_LIB
             {
                 if (context.Request.Method == "GET" && context.Request.Path.ToString().EndsWith(".class.mjs")) {
                     context.Response.Headers.ContentType = "text/javascript";
-                    await context.Response.WriteAsync(File.ReadAllText($"{Settings.builder.Environment.ContentRootPath}\\StaticFiles{context.Request.Path}"), 
+                    await context.Response.WriteAsync(File.ReadAllText($"{Settings.Builder.Environment.ContentRootPath}\\StaticFiles{context.Request.Path}"), 
                         Encoding.UTF8);
                 }
                 else
@@ -43,7 +43,7 @@ namespace CRUDA_LIB
                 switch (action)
                 {
                     case null:
-                        await SQLScripts.Generate("crudex", "crudex", true);
+                        await SQLScripts.Generate("crudex", "crudex");
                         context.Response.Headers.ContentType = "text/html;";
                         await context.Response.WriteAsync(Config.GetHTML("cruda", "Nome do sistema é requerido na URL."), Encoding.UTF8);
                         break;
