@@ -406,7 +406,6 @@ Criar tabela [dbo].[Indexes]
 IF (SELECT object_id('[dbo].[Indexes]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Indexes]
 CREATE TABLE [dbo].[Indexes]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
-                                    ,[DatabaseId] bigint NOT NULL CHECK ([DatabaseId] >= CAST('1' AS bigint))
                                     ,[TableId] bigint NOT NULL CHECK ([TableId] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(50) NOT NULL
                                     ,[IsUnique] bit NOT NULL
@@ -415,7 +414,7 @@ CREATE TABLE [dbo].[Indexes]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Indexes] ADD CONSTRAINT PK_Indexes PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Indexes_DatabaseId_Name] ON [dbo].[Indexes]([DatabaseId] ASC, [Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Indexes_Name] ON [dbo].[Indexes]([Name] ASC)
 GO
 
 /**********************************************************************************
@@ -724,7 +723,6 @@ BEGIN
 			-- 9 [Indexes]
 			SELECT 	'Index' AS [ClassName]
 					,[I].[Id]
-					,[I].[DatabaseId]
 					,[I].[TableId]
 					,[I].[Name]
 					,[I].[IsUnique]
@@ -830,7 +828,7 @@ ALTER PROCEDURE [dbo].[NewId](@SystemName VARCHAR(25)
 						WHERE [DatabaseId] = @DatabaseId
 							  AND [TableId] = @TableId)
 			THROW 51000, 'Tabela não pertence ao banco-de-dados especificado', 1
-		UPDATE [dbo].[Tables] 
+		UPDATE [dbo].[Tables]
 			SET [CurrentId] = @NextId
 			WHERE [Id] = @TableId
 		SET @ReturnValue = @NextId
@@ -2192,16 +2190,6 @@ GO
 /**********************************************************************************
 Criar referências de [dbo].[Indexes]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Indexes_Databases')
-    ALTER TABLE [dbo].[Indexes] DROP CONSTRAINT FK_Indexes_Databases
-GO
-ALTER TABLE [dbo].[Indexes] WITH CHECK 
-    ADD CONSTRAINT [FK_Indexes_Databases] 
-    FOREIGN KEY([DatabaseId]) 
-    REFERENCES [dbo].[Databases] ([Id])
-GO
-ALTER TABLE [dbo].[Indexes] CHECK CONSTRAINT [FK_Indexes_Databases]
-GO
 IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Indexes_Tables')
     ALTER TABLE [dbo].[Indexes] DROP CONSTRAINT FK_Indexes_Tables
 GO
@@ -2749,7 +2737,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -2786,7 +2774,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('31/12/9999' AS nvarchar(max))
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -2823,7 +2811,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('31/12/9999 23:59:59.997' AS nvarchar(max))
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -2860,7 +2848,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('31/12/9999 23:59:59.9999999' AS nvarchar(max))
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -2897,7 +2885,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('31/12/9999 23:59:59.9999999' AS nvarchar(max))
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -3230,7 +3218,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -3341,7 +3329,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -3452,7 +3440,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('06/06/2079' AS nvarchar(max))
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -3600,7 +3588,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
@@ -3674,7 +3662,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('23:59:59.9999999' AS nvarchar(max))
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
@@ -3711,7 +3699,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -3896,7 +3884,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -12313,59 +12301,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('15' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('10' AS bigint)
-                                ,CAST('DatabaseId' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('ID do banco-de-dados do índice' AS nvarchar(50))
-                                ,CAST('Banco-de-dados' AS nvarchar(25))
-                                ,CAST('Banco-de-dados' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('1' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'admnistrator'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('121' AS bigint)
-                                ,CAST('15' AS bigint)
-                                ,CAST('15' AS smallint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('TableId' AS nvarchar(25))
                                 ,NULL
@@ -12415,9 +12350,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('122' AS bigint)
+                         VALUES (CAST('121' AS bigint)
                                 ,CAST('15' AS bigint)
-                                ,CAST('20' AS smallint)
+                                ,CAST('15' AS smallint)
                                 ,CAST('10' AS bigint)
                                 ,NULL
                                 ,CAST('Name' AS nvarchar(25))
@@ -12468,9 +12403,9 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('123' AS bigint)
+                         VALUES (CAST('122' AS bigint)
                                 ,CAST('15' AS bigint)
-                                ,CAST('25' AS smallint)
+                                ,CAST('20' AS smallint)
                                 ,CAST('6' AS bigint)
                                 ,NULL
                                 ,CAST('IsUnique' AS nvarchar(25))
@@ -12521,7 +12456,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('124' AS bigint)
+                         VALUES (CAST('123' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12574,7 +12509,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('125' AS bigint)
+                         VALUES (CAST('124' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12627,7 +12562,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('126' AS bigint)
+                         VALUES (CAST('125' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
@@ -12680,7 +12615,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('127' AS bigint)
+                         VALUES (CAST('126' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12733,7 +12668,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('128' AS bigint)
+                         VALUES (CAST('127' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12786,7 +12721,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('129' AS bigint)
+                         VALUES (CAST('128' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12839,7 +12774,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('130' AS bigint)
+                         VALUES (CAST('129' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12892,7 +12827,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('131' AS bigint)
+                         VALUES (CAST('130' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12945,7 +12880,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('132' AS bigint)
+                         VALUES (CAST('131' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('11' AS bigint)
@@ -12998,7 +12933,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('133' AS bigint)
+                         VALUES (CAST('132' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13051,7 +12986,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('134' AS bigint)
+                         VALUES (CAST('133' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13104,7 +13039,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('135' AS bigint)
+                         VALUES (CAST('134' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13157,7 +13092,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('136' AS bigint)
+                         VALUES (CAST('135' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13210,7 +13145,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('137' AS bigint)
+                         VALUES (CAST('136' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13263,7 +13198,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('138' AS bigint)
+                         VALUES (CAST('137' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13316,7 +13251,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('139' AS bigint)
+                         VALUES (CAST('138' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -13369,7 +13304,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('140' AS bigint)
+                         VALUES (CAST('139' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13422,7 +13357,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('141' AS bigint)
+                         VALUES (CAST('140' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('21' AS bigint)
@@ -13475,7 +13410,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('142' AS bigint)
+                         VALUES (CAST('141' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('12' AS bigint)
@@ -13528,7 +13463,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('143' AS bigint)
+                         VALUES (CAST('142' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('12' AS bigint)
@@ -13581,7 +13516,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('144' AS bigint)
+                         VALUES (CAST('143' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13613,7 +13548,6 @@ GO
 Inserir dados na tabela [dbo].[Indexes]
 **********************************************************************************/
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13623,7 +13557,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS bigint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('UNQ_Categories_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
@@ -13632,7 +13565,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13641,7 +13573,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('2' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('2' AS bigint)
                                 ,CAST('UNQ_Types_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13651,7 +13582,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13660,7 +13590,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('3' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('3' AS bigint)
                                 ,CAST('UNQ_Masks_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13670,7 +13599,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13679,7 +13607,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('4' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('4' AS bigint)
                                 ,CAST('UNQ_Domains_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13689,7 +13616,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13698,7 +13624,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('5' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('5' AS bigint)
                                 ,CAST('UNQ_Systems_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13708,7 +13633,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13717,7 +13641,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('6' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('6' AS bigint)
                                 ,CAST('UNQ_Menus_SystemId_Sequence' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13727,7 +13650,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13736,7 +13658,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('7' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('6' AS bigint)
                                 ,CAST('UNQ_Menus_SystemId_Caption' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13746,7 +13667,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13755,7 +13675,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('8' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('7' AS bigint)
                                 ,CAST('UNQ_Users_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13765,7 +13684,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13774,7 +13692,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('9' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('8' AS bigint)
                                 ,CAST('UNQ_SystemsUsers_SystemId_UserId' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13784,7 +13701,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13793,7 +13709,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('10' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('8' AS bigint)
                                 ,CAST('UNQ_SystemsUsers_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13803,7 +13718,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13812,7 +13726,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('11' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('UNQ_Databases_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13822,7 +13735,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13831,7 +13743,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('12' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('UNQ_Databases_Alias' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13841,7 +13752,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13850,7 +13760,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('13' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('UNQ_SystemsDatabases_SystemId_DatabaseId' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13860,7 +13769,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13869,7 +13777,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('14' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('UNQ_SystemsDatabases_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13879,7 +13786,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13888,7 +13794,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('15' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('UNQ_Tables_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13898,7 +13803,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13907,7 +13811,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('16' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('UNQ_Tables_Alias' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13917,7 +13820,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13926,7 +13828,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('17' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('UNQ_DatabasesTables_DatabaseId_TableId' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13936,7 +13837,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13945,7 +13845,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('18' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('UNQ_DatabasesTables_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13955,7 +13854,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13964,7 +13862,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('19' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('UNQ_Columns_TableId_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13974,7 +13871,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -13983,7 +13879,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('20' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('UNQ_Columns_TableId_Sequence' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -13993,7 +13888,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -14002,9 +13896,8 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('21' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('15' AS bigint)
-                                ,CAST('UNQ_Indexes_DatabaseId_Name' AS nvarchar(50))
+                                ,CAST('UNQ_Indexes_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14012,7 +13905,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -14021,7 +13913,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('22' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('UNQ_Indexkeys_IndexId_Sequence' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -14031,7 +13922,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -14040,7 +13930,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('23' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('UNQ_Indexkeys_IndexId_ColumnId' AS nvarchar(50))
                                 ,CAST('1' AS bit)
@@ -14050,7 +13939,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL)
 GO
 INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[DatabaseId]
                                 ,[TableId]
                                 ,[Name]
                                 ,[IsUnique]
@@ -14059,7 +13947,6 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('24' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('UNQ_Logins_SystemId_UserId_IsLogged' AS nvarchar(50))
                                 ,CAST('0' AS bit)
@@ -14597,7 +14484,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('28' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('120' AS bigint)
+                                ,CAST('121' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14614,9 +14501,9 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('29' AS bigint)
-                                ,CAST('21' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('122' AS bigint)
+                                ,CAST('22' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('124' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14634,7 +14521,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('30' AS bigint)
                                 ,CAST('22' AS bigint)
-                                ,CAST('5' AS smallint)
+                                ,CAST('10' AS smallint)
                                 ,CAST('125' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
@@ -14652,9 +14539,9 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('31' AS bigint)
-                                ,CAST('22' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('126' AS bigint)
+                                ,CAST('23' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('124' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14672,8 +14559,8 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('32' AS bigint)
                                 ,CAST('23' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('125' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('126' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14690,9 +14577,9 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('33' AS bigint)
-                                ,CAST('23' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('127' AS bigint)
+                                ,CAST('24' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('129' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -14710,7 +14597,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('34' AS bigint)
                                 ,CAST('24' AS bigint)
-                                ,CAST('5' AS smallint)
+                                ,CAST('10' AS smallint)
                                 ,CAST('130' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
@@ -14729,27 +14616,8 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('35' AS bigint)
                                 ,CAST('24' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('131' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'admnistrator'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('36' AS bigint)
-                                ,CAST('24' AS bigint)
                                 ,CAST('15' AS smallint)
-                                ,CAST('133' AS bigint)
+                                ,CAST('132' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'admnistrator'
@@ -20400,8 +20268,6 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId BIGINT
                 THROW 51000, 'Chave-primária referenciada em SystemsDatabases', 1
             IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em DatabasesTables', 1
-            IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_Id)
-                THROW 51000, 'Chave-primária referenciada em Indexes', 1
         END ELSE BEGIN
 
             DECLARE @W_ConnectionId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionId') AS bigint)
@@ -23681,7 +23547,6 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
             IF @Action = 'update'
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DatabaseId'), 'bigint') = 1
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId'), 'bigint') = 1
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsUnique'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsUnique'), 'bit') = 1
@@ -23689,7 +23554,6 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId BIGINT
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Indexes]
                             WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DatabaseId')
                                   AND [TableId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId')
                                   AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
                                   AND [IsUnique] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsUnique'))
@@ -23701,17 +23565,10 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Indexkeys', 1
         END ELSE BEGIN
 
-            DECLARE @W_DatabaseId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId') AS bigint)
-                   ,@W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS bigint)
+            DECLARE @W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS bigint)
                    ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(50))
                    ,@W_IsUnique bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsUnique') AS bit)
 
-            IF @W_DatabaseId IS NULL
-                THROW 51000, 'Valor de DatabaseId em @ActualRecord é requerido.', 1
-            IF @W_DatabaseId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId)
-                THROW 51000, 'Valor de DatabaseId em @ActualRecord inexiste em Databases', 1
             IF @W_TableId IS NULL
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS bigint)
@@ -23723,10 +23580,10 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId BIGINT
             IF @W_IsUnique IS NULL
                 THROW 51000, 'Valor de IsUnique em @ActualRecord é requerido.', 1
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId AND [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_Indexes_DatabaseId_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [DatabaseId] = @W_DatabaseId AND [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Indexes_DatabaseId_Name já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Name] = @W_Name)
+                    THROW 51000, 'Chave única de UNQ_Indexes_Name já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Chave única de UNQ_Indexes_Name já existe', 1
             END
         END
 
@@ -23902,21 +23759,18 @@ ALTER PROCEDURE [dbo].[IndexCommit](@LoginId BIGINT
             DELETE FROM [dbo].[Indexes] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_DatabaseId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId') AS bigint)
-                   ,@W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS bigint)
+            DECLARE @W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS bigint)
                    ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(50))
                    ,@W_IsUnique bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsUnique') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Indexes] ([Id]
-                                                ,[DatabaseId]
                                                 ,[TableId]
                                                 ,[Name]
                                                 ,[IsUnique]
                                                 ,[CreatedAt]
                                                 ,[CreatedBy])
                                           VALUES (@W_Id
-                                                 ,@W_DatabaseId
                                                  ,@W_TableId
                                                  ,@W_Name
                                                  ,@W_IsUnique
@@ -23924,7 +23778,6 @@ ALTER PROCEDURE [dbo].[IndexCommit](@LoginId BIGINT
                                                  ,@UserName)
             ELSE
                 UPDATE [dbo].[Indexes] SET [Id] = @W_Id
-                                              ,[DatabaseId] = @W_DatabaseId
                                               ,[TableId] = @W_TableId
                                               ,[Name] = @W_Name
                                               ,[IsUnique] = @W_IsUnique
@@ -24011,7 +23864,6 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS bigint) AS [TableId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
@@ -24096,7 +23948,6 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
                     ,CAST(NULL AS bigint) AS [Id]
-                    ,CAST(NULL AS bigint) AS [DatabaseId]
                     ,CAST(NULL AS bigint) AS [TableId]
                     ,CAST(NULL AS nvarchar(50)) AS [Name]
                     ,CAST(NULL AS bit) AS [IsUnique]
@@ -24104,7 +23955,6 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
         SET @sql = 'INSERT #result
                         SELECT ''Index'' AS [ClassName]
                               ,[T].[Id]
-                              ,[T].[DatabaseId]
                               ,[T].[TableId]
                               ,[T].[Name]
                               ,[T].[IsUnique]
@@ -24114,7 +23964,6 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
                         UNION ALL
                             SELECT ''Index'' AS [ClassName]
                                   ,[O].[Id]
-                                  ,[O].[DatabaseId]
                                   ,[O].[TableId]
                                   ,[O].[Name]
                                   ,[O].[IsUnique]
@@ -24127,22 +23976,10 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
         EXEC sp_executesql @sql
         SELECT [ClassName]
               ,[Id]
-              ,[DatabaseId]
               ,[TableId]
               ,[Name]
               ,[IsUnique]
             FROM [dbo].[#result]
-        SELECT 'Database' AS ClassName
-              ,[R].[Id]
-              ,[R].[ConnectionId]
-              ,[R].[Name]
-              ,[R].[Alias]
-              ,[R].[Description]
-              ,[R].[Folder]
-              ,[R].[IsLegacy]
-              ,[R].[CurrentOperationId]
-            FROM [dbo].[Databases] [R]
-            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [DatabaseId] =  [R].[Id])
         SELECT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -24748,7 +24585,6 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
             FROM [dbo].[#result]
         SELECT 'Index' AS ClassName
               ,[R].[Id]
-              ,[R].[DatabaseId]
               ,[R].[TableId]
               ,[R].[Name]
               ,[R].[IsUnique]

@@ -45,7 +45,7 @@ ALTER PROCEDURE [dbo].[NewId](@SystemName VARCHAR(25)
 						WHERE [DatabaseId] = @DatabaseId
 							  AND [TableId] = @TableId)
 			THROW 51000, 'Tabela não pertence ao banco-de-dados especificado', 1
-		UPDATE [dbo].[Tables] 
+		UPDATE [dbo].[Tables]
 			SET [CurrentId] = @NextId
 			WHERE [Id] = @TableId
 		SET @ReturnValue = @NextId

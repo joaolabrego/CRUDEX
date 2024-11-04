@@ -231,7 +231,6 @@ BEGIN
 			-- 9 [Indexes]
 			SELECT 	'Index' AS [ClassName]
 					,[I].[Id]
-					,[I].[DatabaseId]
 					,[I].[TableId]
 					,[I].[Name]
 					,[I].[IsUnique]

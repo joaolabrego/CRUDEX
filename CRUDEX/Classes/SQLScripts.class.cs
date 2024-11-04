@@ -130,6 +130,7 @@ namespace crudex.Classes
             var type = types.First(type => Settings.ToLong(type["Id"]) == Settings.ToLong(domain["TypeId"]));
             string value;
 
+            result.Add("AskPrimarykey", type["AskPrimarykey"]);
             if (Settings.ToBoolean(column["IsPrimarykey"]) || Settings.ToBoolean(column["IsRequired"]))
                 result.Add("Required", " NOT NULL");
             else
@@ -356,35 +357,35 @@ namespace crudex.Classes
 
                     if (firstTime)
                     {
-                        var message = $"Primeira coluna definida na tabela '{table["Name"]}' deve ";
+                        var message = $"Primeira coluna definida na tabela '{table["Name"]}' ";
 
                         if (!Settings.ToString(column["Name"]).Equals("Id"))
-                            throw new Exception(message + "ter nome 'Id'.");
-                        if (!Settings.ToString(column["#CategoryName"]).Equals("numeric"))
-                            throw new Exception(message + "ser de categoria 'numeric'.");
+                            throw new Exception(message + "deve ter nome 'Id'.");
+                        if (!Settings.ToBoolean(constraints["AskPrimarykey"]))
+                            throw new Exception(message + "deve permitir 'primary key'.");
                         if (!Settings.ToBoolean(column["IsPrimarykey"]))
-                            throw new Exception(message + "ser 'primary key'.");
+                            throw new Exception(message + "deve ser 'primary key'.");
                         if (!Settings.ToBoolean(column["IsAutoIncrement"]))
-                            throw new Exception(message + "ser 'auto increment'.");
+                            throw new Exception(message + "deve ser 'auto increment'.");
                         result.Append($"CREATE TABLE [dbo].[{table["Name"]}]({definition}\r\n");
                         firstTime = false;
                     }
                     else
                     {
-                        var message = $"Demais colunas definidas na tabela '{table["Name"]}' não devem ";
+                        var message = $"Demais colunas definidas na tabela '{table["Name"]}' ";
 
                         if (Settings.ToString(column["Name"]).ToLower().Equals("id"))
-                            throw new Exception(message + "ter nome 'Id'.");
+                            throw new Exception(message + "não devem ter nome 'Id'.");
                         if (Settings.ToBoolean(column["IsPrimarykey"]))
-                            throw new Exception(message + "ser 'primary key'.");
+                            throw new Exception(message + "não devem ser 'primary key'.");
                         if (Settings.ToBoolean(column["IsAutoIncrement"]))
-                            throw new Exception(message + "ser 'auto increment'.");
+                            throw new Exception(message + "não devem ser 'auto increment'.");
                         if (Settings.ToBoolean(column["IsListable"]))
                         {
                             if (isListable)
-                                throw new Exception(message + " ter mais de uma coluna listável.");
+                                throw new Exception(message + " não devem ter mais de uma coluna listável.");
                             if (!Settings.ToString(column["#CategoryName"]).Equals("string"))
-                                throw new Exception(message + " ser de categoria 'string'.");
+                                throw new Exception(message + " devem ser de categoria 'string'.");
                             isListable = true;
                         }
 
