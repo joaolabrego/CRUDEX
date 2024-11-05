@@ -528,7 +528,7 @@ namespace crudex.Classes
                         }
                         result.Append($"\r\n");
                         result.Append($"                                ,GETDATE()\r\n");
-                        result.Append($"                                ,'admnistrator'\r\n");
+                        result.Append($"                                ,'crudex'\r\n");
                         result.Append($"                                ,NULL\r\n");
                         result.Append($"                                ,NULL)\r\n");
                         result.Append($"GO\r\n");
@@ -568,7 +568,7 @@ namespace crudex.Classes
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
                 result.Append($"               ,@ActionAux NVARCHAR(15)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
-                result.Append($"               ,@W_{columnRows[0]["Name"]} {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{columnRows[0]["Name"]}') AS {columnRows[0]["#DataType"]})\r\n");
+                result.Append($"               ,@W_Id {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
                 result.Append($"        SAVE TRANSACTION [SavePoint]\r\n");
@@ -581,7 +581,7 @@ namespace crudex.Classes
                 result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                  AND [TableName] = 'Columns'\r\n");
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
-                result.Append($"                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.{columnRows[0]["Name"]}') AS {columnRows[0]["#DataType"]}) = @W_{columnRows[0]["Name"]}\r\n");
+                result.Append($"                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS {columnRows[0]["#DataType"]}) = @W_Id\r\n");
                 result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
                 result.Append($"            INSERT INTO [dbo].[Operations] ([TransactionId]\r\n");
                 result.Append($"                                             ,[TableName]\r\n");
@@ -712,10 +712,10 @@ namespace crudex.Classes
                 result.Append($"        EXEC @TransactionIdAux = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord\r\n");
                 result.Append($"        IF @TransactionId <> @TransactionIdAux\r\n");
                 result.Append($"            THROW 51000, 'Transação da operação é inválida', 1\r\n");
-                result.Append($"        DECLARE @W_{columnRows[0]["Name"]} {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{columnRows[0]["Name"]}') AS {columnRows[0]["#DataType"]})\r\n");
+                result.Append($"        DECLARE @W_Id {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF @Action = 'delete'\r\n");
-                result.Append($"            DELETE FROM [dbo].[{table["Name"]}] WHERE [{columnRows[0]["Name"]}] = @W_{columnRows[0]["Name"]}\r\n");
+                result.Append($"            DELETE FROM [dbo].[{table["Name"]}] WHERE [Id] = @W_Id\r\n");
 
                 var nonpkColumnRows = columnRows.FindAll(row => !Settings.ToBoolean(row["IsPrimarykey"]));
                 var firstTime = true;
@@ -777,7 +777,7 @@ namespace crudex.Classes
                 }
                 result.Append($"                                              ,[UpdatedAt] = GETDATE()\r\n");
                 result.Append($"                                              ,[UpdatedBy] = @UserName\r\n");
-                result.Append($"                    WHERE [{columnRows[0]["Name"]}] = @W_{columnRows[0]["Name"]}\r\n");
+                result.Append($"                    WHERE [Id] = @W_Id\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"        UPDATE [dbo].[Operations]\r\n");
                 result.Append($"            SET [IsConfirmed] = 1\r\n");
@@ -840,7 +840,7 @@ namespace crudex.Classes
                 result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
-                result.Append($"               ,@W_{columnRows[0]["Name"]} AS {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{columnRows[0]["Name"]}') AS {columnRows[0]["#DataType"]})\r\n");
+                result.Append($"               ,@W_Id AS {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF @TransactionId IS NULL\r\n");
                 result.Append($"            THROW 51000, 'Não existe transação para este @LoginId', 1\r\n");
@@ -857,21 +857,21 @@ namespace crudex.Classes
 
                 var constraints = GetConstraints(columnRows[0], domains, types);
 
-                result.Append($"        IF @W_{columnRows[0]["Name"]} IS NULL BEGIN\r\n");
+                result.Append($"        IF @W_Id IS NULL BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = 'Valor de {columnRows[0]["Name"]} em @ActualRecord é requerido.';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
                 if (constraints.TryGetValue("Minimum", out dynamic? value))
                 {
-                    result.Append($"        IF @W_{columnRows[0]["Name"]} < CAST('{value}' AS {columnRows[0]["#DataType"]})\r\n");
-                    result.Append($"            THROW 51000, 'Valor de {columnRows[0]["Name"]} em @ActualRecord deve ser maior que ou igual a {value}', 1\r\n");
+                    result.Append($"        IF @W_Id < CAST('{value}' AS {columnRows[0]["#DataType"]})\r\n");
+                    result.Append($"            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a {value}', 1\r\n");
                 }
                 if (constraints.TryGetValue("Maximum", out value))
                 {
-                    result.Append($"        IF @W_{columnRows[0]["Name"]} < CAST('{value}' AS {columnRows[0]["#DataType"]})\r\n");
-                    result.Append($"            THROW 51000, 'Valor de {columnRows[0]["Name"]} em @ActualRecord deve ser menor que ou igual a {value}', 1\r\n");
+                    result.Append($"        IF @W_Id < CAST('{value}' AS {columnRows[0]["#DataType"]})\r\n");
+                    result.Append($"            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a {value}', 1\r\n");
                 }
-                result.Append($"        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE {columnRows[0]["Name"]} = @W_{columnRows[0]["Name"]}");
+                result.Append($"        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id");
                 result.Append(") BEGIN\r\n");
                 result.Append($"            IF @Action = 'create'\r\n");
                 result.Append($"                THROW 51000, 'Chave-primária já existe em {table["Name"]}', 1\r\n");
@@ -1046,7 +1046,6 @@ namespace crudex.Classes
         {
             var result = new StringBuilder();
             var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(reference["ReferenceTableId"]));
-            var pkColumnRows = columnRows.FindAll(column => Settings.ToBoolean(column["IsPrimarykey"]));
             var firstTime = true;
 
             foreach( var column in columnRows)
@@ -1059,7 +1058,7 @@ namespace crudex.Classes
                 result.Append($"              ,[R].[{column["Name"]}]\r\n");
             }
             result.Append($"            FROM [dbo].[{reference["#ReferenceTableName"]}] [R]\r\n");
-            result.Append($"            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [{reference["Name"]}] =  [R].[{pkColumnRows[0]["Name"]}])\r\n");
+            result.Append($"            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [{reference["Name"]}] =  [R].[Id])\r\n");
 
             return result;
         }
@@ -1190,9 +1189,9 @@ namespace crudex.Classes
                 result.Append($"            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'\r\n");
                 result.Append($"        SET @sql = 'INSERT [dbo].[#table]\r\n");
                 result.Append($"                        SELECT ''T'' AS [_]\r\n");
-                result.Append($"                              ,[T].[{columnRows[0]["Name"]}]\r\n");
+                result.Append($"                              ,[T].[Id]\r\n");
                 result.Append($"                            FROM [dbo].[{table["Name"]}] [T]\r\n");
-                result.Append($"                                LEFT JOIN [dbo].[#operations] [#] ON [#].[{columnRows[0]["Name"]}] = [T].[{columnRows[0]["Name"]}]");
+                result.Append($"                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]");
                 result.Append($"\r\n");
                 result.Append($"                            WHERE [#].[{columnRows[0]["Name"]}] IS NULL' + @Where + '\r\n");
                 result.Append($"                        UNION ALL\r\n");
@@ -1262,14 +1261,14 @@ namespace crudex.Classes
                 foreach (var column in columnRows)
                     result.Append($"                              ,[T].[{column["Name"]}]\r\n");
                 result.Append($"                            FROM [dbo].[#table] [#]\r\n");
-                result.Append($"                                INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[{columnRows[0]["Name"]}] = [#].[{columnRows[0]["Name"]}]\r\n");
+                result.Append($"                                INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[Id] = [#].[Id]\r\n");
                 result.Append($"                            WHERE [#].[_] = ''T''\r\n");
                 result.Append($"                        UNION ALL\r\n");
                 result.Append($"                            SELECT ''{table["Alias"]}'' AS [ClassName]\r\n");
                 foreach (var column in columnRows)
                     result.Append($"                                  ,[O].[{column["Name"]}]\r\n");
                 result.Append($"                                FROM [dbo].[#table] [#]\r\n");
-                result.Append($"                                    INNER JOIN [dbo].[#operations] [O] ON [O].[{columnRows[0]["Name"]}] = [#].[{columnRows[0]["Name"]}]\r\n");
+                result.Append($"                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]\r\n");
                 result.Append($"                                WHERE [#].[_] = ''O''\r\n");
                 result.Append($"                        ORDER BY ' + @OrderBy + '\r\n");
                 result.Append($"                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
@@ -1338,7 +1337,7 @@ namespace crudex.Classes
                     result.Append($"        IF @Value IS NULL\r\n");
                     result.Append($"            SET @Value = ''\r\n");
 
-                    result.Append($"        SELECT [{columnRows[0]["Name"]}]\r\n");
+                    result.Append($"        SELECT [Id]\r\n");
                     result.Append($"            INTO [dbo].[#query]\r\n");
                     result.Append($"            FROM [dbo].[{table["Name"]}]\r\n");
                     result.Append($"            WHERE [{listableColumn["Name"]}] LIKE '%' + @Value + '%'\r\n");
@@ -1348,7 +1347,7 @@ namespace crudex.Classes
                     result.Append($"               ,@OffSet INT\r\n");
                     result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
                     result.Append($"\r\n");
-                    result.Append($"        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([{columnRows[0]["Name"]}])");
+                    result.Append($"        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])");
                     result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
                     result.Append($"            SET @OffSet = 0\r\n");
                     result.Append($"            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END\r\n");
@@ -1364,10 +1363,10 @@ namespace crudex.Classes
                     result.Append($"            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount\r\n");
                     result.Append($"                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END\r\n");
                     result.Append($"        END\r\n");
-                    result.Append($"        SET @sql = 'SELECT [T].[{columnRows[0]["Name"]}]\r\n");
+                    result.Append($"        SET @sql = 'SELECT [T].[Id]\r\n");
                     result.Append($"                          ,[T].[{listableColumn["Name"]}]\r\n");
                     result.Append($"                       FROM [dbo].[#query] [Q]\r\n");
-                    result.Append($"                           INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[{columnRows[0]["Name"]}] = [Q].[{columnRows[0]["Name"]}]\r\n");
+                    result.Append($"                           INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[Id] = [Q].[Id]\r\n");
                     result.Append($"                       ORDER BY [T].[{listableColumn["Name"]}]\r\n");
                     result.Append($"                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
                     result.Append($"                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'\r\n");

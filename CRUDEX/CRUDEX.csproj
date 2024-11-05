@@ -31,6 +31,7 @@
     <None Remove="StaticFiles\Classes\TGrid.mjs" />
     <None Remove="StaticFiles\Classes\TLogin.mjs" />
     <None Remove="StaticFiles\Classes\TMenu.mjs" />
+    <None Remove="StaticFiles\Classes\TRecord.class.mjs" />
     <None Remove="StaticFiles\Classes\TScreen.mjs" />
     <None Remove="StaticFiles\Classes\TSystem.mjs" />
     <None Remove="StaticFiles\Classes\TTable.mjs" />

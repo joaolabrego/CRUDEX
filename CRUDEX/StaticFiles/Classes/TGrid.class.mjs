@@ -426,7 +426,7 @@ export default class TGrid {
                 //   this.#ReferenceRecordsets[column.ReferenceTableId] = TSystem.GetTable(column.ReferenceTableId).ListTableRows()
             })
         this.#HTML.Head.innerHTML = null
-        tr.title = "Clique 1 vez no cabeçalho da coluna para ordenar os registros em ordem ascendente, 2 vezes em ordem descendente e 3 vezes para cancelar a ordenação"
+        tr.title = "Clique no cabeçalho da coluna para ordenar"
         this.#HTML.Head.appendChild(tr)
     }
     #BuildHtmlBody(dataPage) {
@@ -465,7 +465,7 @@ export default class TGrid {
             label
 
         th.colSpan = this.#Table.Columns.length.toString()
-        label = document.createElement("p")
+        label = document.createElement("label")
         label.style.float = "left"
         label.innerHTML = "Página:&nbsp;&nbsp;"
         label.hidden = this.#RowCount <= TSystem.RowsPerPage
@@ -484,6 +484,10 @@ export default class TGrid {
         this.#HTML.NumberInput.onchange = (event) => {
             let value = Number(event.target.value)
 
+            if (value > this.#PageCount)
+                value = this.#PageCount
+            else if (value < 1)
+                value = 1
             if (this.#IsNavigateByScroll) {
                 if (Math.floor(this.#PageNumber) !== Math.floor(this.#LastPageNumber))
                     this.Renderize(this.#PageNumber)

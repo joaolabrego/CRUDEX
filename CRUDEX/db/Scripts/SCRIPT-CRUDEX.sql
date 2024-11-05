@@ -2313,7 +2313,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2344,7 +2344,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2375,7 +2375,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2406,7 +2406,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2437,7 +2437,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2468,7 +2468,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2499,7 +2499,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2530,7 +2530,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2561,7 +2561,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2592,7 +2592,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2633,7 +2633,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2670,7 +2670,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2707,7 +2707,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2744,7 +2744,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2781,7 +2781,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2818,7 +2818,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2855,7 +2855,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2892,7 +2892,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2929,7 +2929,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -2966,7 +2966,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3003,7 +3003,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3040,7 +3040,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3077,7 +3077,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3114,7 +3114,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3151,7 +3151,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3188,7 +3188,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3225,7 +3225,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3262,7 +3262,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3299,7 +3299,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3336,7 +3336,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3373,7 +3373,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3410,7 +3410,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3447,7 +3447,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3484,7 +3484,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3521,7 +3521,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3558,7 +3558,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3595,7 +3595,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3632,7 +3632,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3669,7 +3669,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3706,7 +3706,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3743,7 +3743,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3780,7 +3780,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3817,7 +3817,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3854,7 +3854,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3891,7 +3891,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3928,7 +3928,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3965,7 +3965,7 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3984,7 +3984,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,CAST('BigInteger' AS nvarchar(25))
                                 ,CAST('#.###.###.###.###.###' AS nvarchar(max))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -3999,7 +3999,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,CAST('Integer' AS nvarchar(25))
                                 ,CAST('#.###.###.###' AS nvarchar(max))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4014,7 +4014,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,CAST('SmallInteger' AS nvarchar(25))
                                 ,CAST('##.###' AS nvarchar(max))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4029,7 +4029,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,CAST('TinyInteger' AS nvarchar(25))
                                 ,CAST('###' AS nvarchar(max))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4044,7 +4044,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,CAST('ShortInteger' AS nvarchar(25))
                                 ,CAST('##.###' AS nvarchar(max))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4059,7 +4059,7 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,CAST('DateTime' AS nvarchar(25))
                                 ,CAST('dd/MM/yyyy hh:mm:ss' AS nvarchar(max))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4094,7 +4094,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4125,7 +4125,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4156,7 +4156,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,CAST('65535' AS nvarchar(max))
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4187,7 +4187,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4218,7 +4218,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4249,7 +4249,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4280,7 +4280,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4311,7 +4311,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4342,7 +4342,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4373,7 +4373,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4404,7 +4404,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4435,7 +4435,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4466,7 +4466,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,CAST('JS' AS nvarchar(5))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4497,7 +4497,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,CAST('SQL' AS nvarchar(5))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4528,7 +4528,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,CAST('JSON' AS nvarchar(5))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4559,7 +4559,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4590,7 +4590,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4621,7 +4621,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4652,7 +4652,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4683,7 +4683,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4714,7 +4714,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4739,7 +4739,7 @@ INSERT INTO [dbo].[Systems] ([Id]
                                 ,CAST('5' AS tinyint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4766,7 +4766,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4789,7 +4789,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('grid/crudex/Users' AS nvarchar(50))
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4812,7 +4812,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('grid/crudex/Tables' AS nvarchar(50))
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4835,7 +4835,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('grid/crudex/Menus' AS nvarchar(50))
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4858,7 +4858,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('grid/crudex/Systems' AS nvarchar(50))
                                 ,CAST('3' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4881,7 +4881,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('grid/crudex/Databases' AS nvarchar(50))
                                 ,CAST('3' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4904,7 +4904,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('grid/crudex/Columns' AS nvarchar(50))
                                 ,CAST('6' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4927,7 +4927,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('grid/crudex/Types' AS nvarchar(50))
                                 ,CAST('6' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4950,7 +4950,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4973,7 +4973,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('grid/crudex/SystemsDatabases' AS nvarchar(50))
                                 ,CAST('9' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -4996,7 +4996,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('grid/crudex/SystemsUsers' AS nvarchar(50))
                                 ,CAST('9' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5019,7 +5019,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('exit/login' AS nvarchar(50))
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5044,7 +5044,7 @@ INSERT INTO [dbo].[Users] ([Id]
                                 ,CAST('0' AS tinyint)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5065,7 +5065,7 @@ INSERT INTO [dbo].[Users] ([Id]
                                 ,CAST('0' AS tinyint)
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5086,7 +5086,7 @@ INSERT INTO [dbo].[SystemsUsers] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('cruda x adm' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5103,7 +5103,7 @@ INSERT INTO [dbo].[SystemsUsers] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('cruda x labrego' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5138,7 +5138,7 @@ INSERT INTO [dbo].[Connections] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5167,7 +5167,7 @@ INSERT INTO [dbo].[Databases] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5188,7 +5188,7 @@ INSERT INTO [dbo].[SystemsDatabases] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('crudex x crudex' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5215,7 +5215,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('10' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5238,7 +5238,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('37' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5261,7 +5261,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('6' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5284,7 +5284,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('21' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5307,7 +5307,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5330,7 +5330,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('12' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5353,7 +5353,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('2' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5376,7 +5376,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('2' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5399,7 +5399,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5422,7 +5422,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5445,7 +5445,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5468,7 +5468,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('19' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5491,7 +5491,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('19' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5512,9 +5512,9 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Colunas de tabelas' AS nvarchar(50))
                                 ,CAST('12' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('144' AS bigint)
+                                ,CAST('143' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5537,7 +5537,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('24' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5558,9 +5558,9 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Chaves de índices' AS nvarchar(50))
                                 ,CAST('15' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('36' AS bigint)
+                                ,CAST('35' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5583,7 +5583,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5606,7 +5606,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5629,7 +5629,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5650,7 +5650,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('crudex x Categories' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5667,7 +5667,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('crudex x Types' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5684,7 +5684,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('3' AS bigint)
                                 ,CAST('crudex x Masks' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5701,7 +5701,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('4' AS bigint)
                                 ,CAST('crudex x Domains' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5718,7 +5718,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('5' AS bigint)
                                 ,CAST('crudex x Systems' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5735,7 +5735,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('6' AS bigint)
                                 ,CAST('crudex x Menus' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5752,7 +5752,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('7' AS bigint)
                                 ,CAST('crudex x Users' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5769,7 +5769,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('8' AS bigint)
                                 ,CAST('crudex x SystemsUsers' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5786,7 +5786,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('9' AS bigint)
                                 ,CAST('crudex x Connections' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5803,7 +5803,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('10' AS bigint)
                                 ,CAST('crudex x Databases' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5820,7 +5820,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('11' AS bigint)
                                 ,CAST('crudex x SystemsDatabases' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5837,7 +5837,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('12' AS bigint)
                                 ,CAST('crudex x Tables' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5854,7 +5854,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('13' AS bigint)
                                 ,CAST('crudex x DatabasesTables' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5871,7 +5871,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('14' AS bigint)
                                 ,CAST('crudex x Columns' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5888,7 +5888,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('15' AS bigint)
                                 ,CAST('crudex x Indexes' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5905,7 +5905,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('16' AS bigint)
                                 ,CAST('crudex x Indexkeys' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5922,7 +5922,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('17' AS bigint)
                                 ,CAST('crudex x Logins' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5939,7 +5939,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('18' AS bigint)
                                 ,CAST('crudex x Transactions' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -5956,7 +5956,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('19' AS bigint)
                                 ,CAST('crudex x Operations' AS nvarchar(50))
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6013,7 +6013,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6066,7 +6066,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6119,7 +6119,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6172,7 +6172,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6225,7 +6225,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6278,7 +6278,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6331,7 +6331,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6384,7 +6384,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6437,7 +6437,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6490,7 +6490,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6543,7 +6543,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6596,7 +6596,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6649,7 +6649,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6702,7 +6702,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6755,7 +6755,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6808,7 +6808,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6861,7 +6861,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6914,7 +6914,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -6967,7 +6967,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7020,7 +7020,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7073,7 +7073,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7126,7 +7126,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7179,7 +7179,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7232,7 +7232,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7285,7 +7285,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7338,7 +7338,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7391,7 +7391,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7444,7 +7444,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7497,7 +7497,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7550,7 +7550,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7603,7 +7603,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7656,7 +7656,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7709,7 +7709,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7762,7 +7762,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7815,7 +7815,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7868,7 +7868,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7921,7 +7921,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -7974,7 +7974,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8027,7 +8027,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8080,7 +8080,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8133,7 +8133,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8186,7 +8186,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8239,7 +8239,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8292,7 +8292,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8345,7 +8345,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8398,7 +8398,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8451,7 +8451,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8504,7 +8504,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8557,7 +8557,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8610,7 +8610,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8663,7 +8663,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8716,7 +8716,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8769,7 +8769,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8822,7 +8822,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8875,7 +8875,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8928,7 +8928,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -8981,7 +8981,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9034,7 +9034,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9087,7 +9087,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9140,7 +9140,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9193,7 +9193,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9246,7 +9246,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9299,7 +9299,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9352,7 +9352,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9405,7 +9405,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9458,7 +9458,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9511,7 +9511,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9564,7 +9564,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9617,7 +9617,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9670,7 +9670,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9723,7 +9723,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9776,7 +9776,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9829,7 +9829,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9882,7 +9882,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9935,7 +9935,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -9988,7 +9988,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10041,7 +10041,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10094,7 +10094,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10147,7 +10147,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10200,7 +10200,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10253,7 +10253,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10306,7 +10306,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10359,7 +10359,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10412,7 +10412,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10465,7 +10465,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10518,7 +10518,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10571,7 +10571,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10624,7 +10624,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10677,7 +10677,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10730,7 +10730,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10783,7 +10783,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10836,7 +10836,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10889,7 +10889,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10942,7 +10942,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -10995,7 +10995,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11048,7 +11048,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11101,7 +11101,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11154,7 +11154,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11207,7 +11207,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11260,7 +11260,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11313,7 +11313,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11366,7 +11366,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11419,7 +11419,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11472,7 +11472,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11525,7 +11525,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11578,7 +11578,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11631,7 +11631,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11684,7 +11684,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11737,7 +11737,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11790,7 +11790,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11843,7 +11843,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11896,7 +11896,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -11949,7 +11949,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12002,7 +12002,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12055,7 +12055,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12108,7 +12108,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12161,7 +12161,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12214,7 +12214,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12267,7 +12267,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12320,7 +12320,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12373,7 +12373,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12426,7 +12426,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12479,7 +12479,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12532,7 +12532,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12585,7 +12585,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12638,7 +12638,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12691,7 +12691,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12744,7 +12744,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12797,7 +12797,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12850,7 +12850,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12903,7 +12903,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -12956,7 +12956,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13009,7 +13009,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13062,7 +13062,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13115,7 +13115,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13168,7 +13168,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13221,7 +13221,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13274,7 +13274,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13327,7 +13327,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13380,7 +13380,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13433,7 +13433,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13486,7 +13486,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13539,7 +13539,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13560,7 +13560,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Categories_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13577,7 +13577,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Types_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13594,7 +13594,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Masks_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13611,7 +13611,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Domains_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13628,7 +13628,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Systems_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13645,7 +13645,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Menus_SystemId_Sequence' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13662,7 +13662,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Menus_SystemId_Caption' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13679,7 +13679,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Users_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13696,7 +13696,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_SystemsUsers_SystemId_UserId' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13713,7 +13713,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_SystemsUsers_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13730,7 +13730,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Databases_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13747,7 +13747,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Databases_Alias' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13764,7 +13764,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_SystemsDatabases_SystemId_DatabaseId' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13781,7 +13781,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_SystemsDatabases_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13798,7 +13798,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Tables_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13815,7 +13815,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Tables_Alias' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13832,7 +13832,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_DatabasesTables_DatabaseId_TableId' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13849,7 +13849,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_DatabasesTables_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13866,7 +13866,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Columns_TableId_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13883,7 +13883,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Columns_TableId_Sequence' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13900,7 +13900,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Indexes_Name' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13917,7 +13917,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Indexkeys_IndexId_Sequence' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13934,7 +13934,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Indexkeys_IndexId_ColumnId' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13951,7 +13951,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,CAST('UNQ_Logins_SystemId_UserId_IsLogged' AS nvarchar(50))
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13974,7 +13974,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -13993,7 +13993,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('14' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14012,7 +14012,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('27' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14031,7 +14031,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('32' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14050,7 +14050,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('41' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14069,7 +14069,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('47' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14088,7 +14088,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('48' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14107,7 +14107,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('47' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14126,7 +14126,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('49' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14145,7 +14145,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('54' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14164,7 +14164,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('60' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14183,7 +14183,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('61' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14202,7 +14202,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('62' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14221,7 +14221,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('76' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14240,7 +14240,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('77' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14259,7 +14259,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('83' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14278,7 +14278,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('84' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14297,7 +14297,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('85' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14316,7 +14316,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('87' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14335,7 +14335,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('88' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14354,7 +14354,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('94' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14373,7 +14373,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('95' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14392,7 +14392,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('96' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14411,7 +14411,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('98' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14430,7 +14430,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('102' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14449,7 +14449,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('98' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14468,7 +14468,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('99' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14487,7 +14487,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('121' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14506,7 +14506,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('124' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14525,7 +14525,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('125' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14544,7 +14544,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('124' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14563,7 +14563,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('126' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14582,7 +14582,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('129' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14601,7 +14601,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('130' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14620,7 +14620,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('132' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
-                                ,'admnistrator'
+                                ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
@@ -14679,7 +14679,7 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS tinyint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Categories', 1
         END ELSE IF @Action <> 'create'
@@ -15367,7 +15367,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS tinyint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Types', 1
         END ELSE IF @Action <> 'create'
@@ -16117,7 +16117,7 @@ ALTER PROCEDURE [dbo].[MaskValidate](@LoginId BIGINT
             SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Masks', 1
         END ELSE IF @Action <> 'create'
@@ -16591,7 +16591,7 @@ ALTER PROCEDURE [dbo].[DomainValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Domains', 1
         END ELSE IF @Action <> 'create'
@@ -17284,7 +17284,7 @@ ALTER PROCEDURE [dbo].[SystemValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Systems', 1
         END ELSE IF @Action <> 'create'
@@ -17878,7 +17878,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Menus', 1
         END ELSE IF @Action <> 'create'
@@ -18447,7 +18447,7 @@ ALTER PROCEDURE [dbo].[UserValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Users', 1
         END ELSE IF @Action <> 'create'
@@ -19043,7 +19043,7 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em SystemsUsers', 1
         END ELSE IF @Action <> 'create'
@@ -19636,7 +19636,7 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@LoginId BIGINT
             SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Connections', 1
         END ELSE IF @Action <> 'create'
@@ -20230,7 +20230,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Databases', 1
         END ELSE IF @Action <> 'create'
@@ -20876,7 +20876,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em SystemsDatabases', 1
         END ELSE IF @Action <> 'create'
@@ -21473,7 +21473,7 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Tables', 1
         END ELSE IF @Action <> 'create'
@@ -22091,7 +22091,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em DatabasesTables', 1
         END ELSE IF @Action <> 'create'
@@ -22689,7 +22689,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Columns', 1
         END ELSE IF @Action <> 'create'
@@ -23535,7 +23535,7 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Indexes', 1
         END ELSE IF @Action <> 'create'
@@ -24115,7 +24115,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Indexkeys', 1
         END ELSE IF @Action <> 'create'
@@ -24678,7 +24678,7 @@ ALTER PROCEDURE [dbo].[LoginValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Logins', 1
         END ELSE IF @Action <> 'create'
@@ -25218,7 +25218,7 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Transactions', 1
         END ELSE IF @Action <> 'create'
@@ -25696,7 +25696,7 @@ ALTER PROCEDURE [dbo].[OperationValidate](@LoginId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE Id = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Operations', 1
         END ELSE IF @Action <> 'create'
