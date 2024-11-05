@@ -15,40 +15,29 @@ namespace CRUDA_LIB
             await connection.OpenAsync(); // Tornando a abertura de conexão assíncrona
 
             using var command = new OleDbCommand(procedureName, connection);
-            try
-            {
-                command.CommandType = CommandType.StoredProcedure;
+            command.CommandType = CommandType.StoredProcedure;
 
-                if (parameters != null)
+            if (parameters != null)
+            {
+                foreach (var item in parameters.Where(item => "InputParams;OutputParams;IOParams".Contains(item.Key)))
                 {
-                    foreach (var item in parameters.Where(item => "InputParams;OutputParams;IOParams".Contains(item.Key)))
-                    {
-                        var listParameters = parameters[item.Key];
-                        var direction = item.Key == "InputParams" ? ParameterDirection.Input :
-                            item.Key == "OutputParams" ? ParameterDirection.Output : ParameterDirection.InputOutput;
+                    var listParameters = parameters[item.Key];
+                    var direction = item.Key == "InputParams" ? ParameterDirection.Input :
+                        item.Key == "OutputParams" ? ParameterDirection.Output : ParameterDirection.InputOutput;
 
-                        if (listParameters != null)
-                        {
-                            foreach (var subItem in listParameters)
-                            {
-                                command.Parameters.Add(new OleDbParameter(subItem.Key, subItem.Value ?? DBNull.Value) { Direction = direction });
-                            }
-                        }
-                    }
+                    if (listParameters != null)
+                        foreach (var subItem in listParameters)
+                            command.Parameters.Add(new OleDbParameter(subItem.Key, subItem.Value ?? DBNull.Value) { Direction = direction });
                 }
-                command.Parameters.Add(new OleDbParameter("ReturnValue", OleDbType.BigInt) { Direction = ParameterDirection.Output });
-                using var adapter = new OleDbDataAdapter(command);
-                await Task.Run(() => adapter.Fill(dataset));
+            }
+            command.Parameters.Add(new OleDbParameter("ReturnValue", OleDbType.BigInt) { Direction = ParameterDirection.Output });
+            using var adapter = new OleDbDataAdapter(command);
+            await Task.Run(() => adapter.Fill(dataset));
 
-                return new TResult(dataset, command.Parameters);
-            }
-            catch
-            {
-                throw;
-            }
+            return new TResult(dataset, command.Parameters);
         }
 
-        public static Task<TResult> GetConfig(string systemName, string? databaseName = null, string? tableName = null)
+        public static async Task<TResult> GetConfig(string systemName, string? databaseName = null, string? tableName = null)
         {
             var parameters = Config.ToDictionary(new
             {
@@ -60,9 +49,9 @@ namespace CRUDA_LIB
                 },
             });
 
-            return Execute(Settings.ConnectionString(), Settings.Get("CONFIG_PROCEDURE"), parameters);
+            return await Execute(Settings.ConnectionString(), Settings.Get("CONFIG_PROCEDURE"), parameters);
         }
-        public static Task<TResult> Execute(string systemName, TDictionary? parameters)
+        public static async Task<TResult> Execute(string systemName, TDictionary? parameters)
         {
             var parms = parameters?["Parameters"];
             var databaseName = parms?["DatabaseName"];
@@ -82,7 +71,7 @@ namespace CRUDA_LIB
                 _ => throw new Exception($"Ação inválida."),
             };
 
-            return Execute(connectionString, procedureName, parameters?["Parameters"]);
+            return await Execute(connectionString, procedureName, parameters?["Parameters"]);
         }
     }
 }
