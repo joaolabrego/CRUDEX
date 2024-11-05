@@ -4,35 +4,33 @@ using System.Data;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
-using System.Diagnostics;
 
 namespace crudex.Classes
 {
     public class SQLScripts
     {
         static readonly string DirectoryScripts = Path.Combine(Settings.Builder.Environment.ContentRootPath, Settings.Get("DIRECTORY_SCRIPTS"));
-        public static async Task Generate(string systemName, string databaseName, bool saveInDisk = true, bool? isExcel = null)
+        public static async Task Generate(string systemName = "crudex", string databaseName = "crudex", bool saveInDisk = true, bool? isExcel = null, bool withInsertData = true)
         {
             var result = new StringBuilder();
-            var dataSet = (isExcel ?? systemName == "crudex") ? await ExcelToDataSet() : await GetDataSet(systemName);
+            var dataSet = (isExcel ?? systemName == "crudex") ? await ExcelToDataSet() : await GetDataSet();
+            var system = (dataSet.Tables["Systems"] ?? throw new Exception("Tabela Systems não existe.")).AsEnumerable().ToList()
+                .First(row => Settings.ToString(row["Name"]) == systemName);
+            var database = (dataSet.Tables["Databases"] ?? throw new Exception("Tabela Databases não existe.")).AsEnumerable().ToList()
+                .First(row => Settings.ToString(row["Name"]) == databaseName);
             var columns = (dataSet.Tables["Columns"] ?? throw new Exception("Tabela Columns não existe.")).AsEnumerable().ToList();
             var indexes = (dataSet.Tables["Indexes"] ?? throw new Exception("Tabela Indexes não existe.")).AsEnumerable().ToList();
             var indexkeys = (dataSet.Tables["Indexkeys"] ?? throw new Exception("Tabela Indexkeys não existe.")).AsEnumerable().ToList();
             var domains = (dataSet.Tables["Domains"] ?? throw new Exception("Tabela Domains não existe.")).AsEnumerable().ToList();
             var categories = (dataSet.Tables["Categories"] ?? throw new Exception("Tabela Categories não existe.")).AsEnumerable().ToList();
             var types = (dataSet.Tables["Types"] ?? throw new Exception("Tabela Types não existe.")).AsEnumerable().ToList();
-            var system = (dataSet.Tables["Systems"] ?? throw new Exception("Tabela Systems não existe.")).AsEnumerable().ToList()
-                .First(row => Settings.ToString(row["Name"]) == systemName);
-            var database = (dataSet.Tables["Databases"] ?? throw new Exception("Tabela Databases não existe.")).AsEnumerable().ToList()
-                .First(row => Settings.ToString(row["Name"]) == databaseName);
-            var databasesTables = (dataSet.Tables["DatabasesTables"] ?? throw new Exception("Tabela DatabasesTables não existe.")).AsEnumerable().ToList()
-                .FindAll(row => Settings.ToLong(row["DatabaseId"]) == Settings.ToLong(database?["Id"]));
             var tables = (dataSet.Tables["Tables"] ?? throw new Exception("Tabela Tables não existe.")).AsEnumerable().ToList();
-            var filename = Path.Combine(DirectoryScripts, $"SCRIPT-{databaseName.ToUpper()}.sql");
+            var databaseTables = (dataSet.Tables["DatabasesTables"] ?? throw new Exception("Tabela DatabasesTables não existe.")).AsEnumerable().ToList()
+                .FindAll(row => Settings.ToLong(row["DatabaseId"]) == Settings.ToLong(database["Id"]));
+            var references = new TDataRows();
             var firstTime = true;
 
-            
-            foreach (DataRow databaseTable in databasesTables)
+            foreach (DataRow databaseTable in databaseTables)
             {
                 var table = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(databaseTable["TableId"]));
 
@@ -50,13 +48,16 @@ namespace crudex.Classes
                 result.AppendLine(GetScriptTransactions().ToString());
             }
             result.AppendLine(GetScriptReferences(tables, columns).ToString());
-            foreach (var table in tables)
+            if (withInsertData)
             {
-                var datatable = (dataSet.Tables[Settings.ToString(table["Name"])] ?? throw new Exception($"Tabela {table["Name"]} não encontrada")).AsEnumerable().ToList();
+                foreach (var table in tables)
+                {
+                    var datatable = (dataSet.Tables[Settings.ToString(table["Name"])] ?? throw new Exception($"Tabela {table["Name"]} não encontrada")).AsEnumerable().ToList();
 
-                result.AppendLine(GetScriptInsertTable(table, columns, datatable).ToString());
+                    result.AppendLine(GetScriptInsertTable(table, columns, datatable).ToString());
+                }
             }
-            foreach (DataRow databaseTable in databasesTables)
+            foreach (DataRow databaseTable in databaseTables)
             {
                 var table = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(databaseTable["TableId"]));
 
@@ -68,6 +69,8 @@ namespace crudex.Classes
             }
             if (saveInDisk)
             {
+                var filename = Path.Combine(DirectoryScripts, $"SCRIPT-{databaseName.ToUpper()}.sql");
+
                 using var stream = new StreamWriter(path: filename, append: false, encoding: Encoding.UTF8);
                 await stream.WriteAsync(result);
             }
@@ -90,16 +93,12 @@ namespace crudex.Classes
                 });
             });
         }
-        private static async Task<DataSet> GetDataSet(string systemName)
+        private static async Task<DataSet> GetDataSet()
         {
             var dataset = (await SQLProcedure.Execute(Settings.ConnectionString(),
                                                Settings.Get("SCRIPT_SYSTEM_PROCEDURE"),
                                                Config.ToDictionary(Config.ToDictionary(new
-                                               {
-                                                   InputParams = new
-                                                   {
-                                                       SystemName = systemName,
-                                                   },})))).DataSet;
+                                               {})))).DataSet;
 
             dataset.Tables[0].TableName = "Categories";
             dataset.Tables[1].TableName = "Types";
@@ -434,11 +433,11 @@ namespace crudex.Classes
         {
             var result = new StringBuilder();
             var lastTableName = string.Empty;
-            var foreignRows = columns.FindAll(column => Settings.ToString(column["ReferenceTableId"]) != string.Empty);
+            var foreignColumns = columns.FindAll(column => Settings.ToString(column["ReferenceTableId"]) != string.Empty);
 
-            if (foreignRows.Count > 0)
+            if (foreignColumns.Count > 0)
             {
-                foreach (var foreign in foreignRows)
+                foreach (var foreign in foreignColumns)
                 {
                     var primaryTable = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(foreign["TableId"]));
                     var foreignTable = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(foreign["ReferenceTableId"]));

@@ -1,16 +1,13 @@
 ﻿IF (SELECT object_id('[dbo].[ScriptSystem]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[ScriptSystem] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ScriptSystem](@SystemName VARCHAR(25),
-									 @ReturnValue BIGINT OUT) AS
+ALTER PROCEDURE [dbo].[ScriptSystem](@ReturnValue BIGINT OUT) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(250)
 
 	SET NOCOUNT ON
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 	BEGIN TRY
-		IF @SystemName IS NULL
-			THROW 51000, 'Nome de sistema requerido', 1
 		-- 1 [Systems]
 		SELECT 	'System' AS [ClassName]
 				,[Id]
@@ -21,7 +18,6 @@ BEGIN
 				,[IsOffAir]
 			INTO [dbo].[#Systems]
 			FROM [dbo].[Systems]
-			WHERE [Name] = @SystemName
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Sistema não cadastrado', 1
 		ALTER TABLE [dbo].[#Systems] ADD PRIMARY KEY CLUSTERED([Id])
@@ -32,6 +28,7 @@ BEGIN
 				,[S].[Name] AS [#SystemName]
 				,[SD].[DatabaseId]
 				,[D].[Name] AS [#DatabaseName]
+				,[D].[ConnectionId] AS [#ConnectionId]
 				,[SD].[Name]
 			INTO [dbo].[#SystemsDatabases]
 			FROM [dbo].[SystemsDatabases] [SD]
@@ -62,6 +59,7 @@ BEGIN
 				,[D].[Alias]
 				,[D].[Description]
 				,[D].[Folder]
+				,[D].[IsLegacy]
 				,[D].[CurrentOperationId]
 			INTO [dbo].[#Databases]
 			FROM [dbo].[Databases] [D]
@@ -74,6 +72,7 @@ BEGIN
 			  ,[DT].[Id]
 			  ,[DT].[DatabaseId]
 			  ,[D].[Name] AS [#DatabaseName]
+			  ,[D].[ConnectionId] AS [#ConnectionId]
 			  ,[DT].[TableId]
 			  ,[T].[Name] AS [#TableName]
 			  ,[DT].[Name]
@@ -267,15 +266,12 @@ BEGIN
 		-- 15 [Indexes]
 		SELECT 'Index' AS [ClassName]
 			  ,[I].[Id]
-			  ,[I].[DatabaseId]
-			  ,[D].[Name] AS [#DatabaseName]
 			  ,[I].[TableId]
 			  ,[T].[Name] AS [#TableName]
 			  ,[I].[Name]
 			  ,[I].[IsUnique]
 		  INTO [dbo].[#Indexes]
 		  FROM [dbo].[Indexes] [I]
-			INNER JOIN [dbo].[#Databases] [D] ON [D].[Id] = [I].[DatabaseId]
 			INNER JOIN [dbo].[#Tables] [T] ON [T].[Id] = [I].[TableId]
 		ALTER TABLE [dbo].[#Indexes] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 16 [Indexkeys]
