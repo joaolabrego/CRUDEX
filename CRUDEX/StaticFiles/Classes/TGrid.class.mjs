@@ -643,16 +643,8 @@ export default class TGrid {
     get FilterValues() {
         return this.#FilterValues
     }
-    /**
-     * @param {number} rowNumber
-     */
     get Primarykeys() {
-        let primarykeys = {}
-
-        this.#Table.Columns.filter(column => column.IsPrimarykey)
-            .forEach(column => primarykeys[column.Name] = this.#Data[this.#RowNumber][column.Name])
-
-        return primarykeys
+        return { Id: this.#Data[this.#RowNumber]["Id"], };
     }
     get OrderBy() {
         return this.#OrderBy.slice(0, -1)
