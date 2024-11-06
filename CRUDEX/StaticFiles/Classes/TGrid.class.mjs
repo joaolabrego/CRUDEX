@@ -271,7 +271,10 @@ export default class TGrid {
                     relativeY = event.clientY - trackRect.top
 
                 relativeY = Math.max(0, Math.min(relativeY, this.#HTML.Scroll.Track.clientHeight - this.#HTML.Scroll.Thumb.clientHeight))
-                this.#HTML.Scroll.Track.title = `Página ${this.#CalculatePage(relativeY)}`
+
+                let pageNumber = this.#CalculatePage(relativeY)
+
+                this.#HTML.Scroll.Track.title = `Página ${pageNumber}${pageNumber === this.#PageCount ? " (última)" : ""}`
             }
         }
         this.#HTML.Scroll.Track.onclick = (event) => {
@@ -342,7 +345,7 @@ export default class TGrid {
         try {
             this.#Data = await this.#ReadDataPage(pageNumber)
             this.#PageNumber = pageNumber
-            this.#HTML.Scroll.Thumb.title = `Página ${Math.floor(pageNumber)}`
+            this.#HTML.Scroll.Thumb.title = `Página ${Math.floor(pageNumber)}${pageNumber === this.#PageCount ? " (última)" : ""}`
             if (this.#RowCount > 1)
                 TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar."
             else

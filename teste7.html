@@ -1,27 +1,18 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Dropdown com Paginação e Filtro</title>
-        <style>
-        paginated-dropdown {
-            font-family: Arial, sans-serif;
-        }
-    </style>
-    </head>
-    <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dropdown com Paginação e Filtro</title>
+</head>
+<body>
 
-        <h2>Escolha uma opção ou digite:</h2>
-        <input type="text">
-        <paginated-dropdown></paginated-dropdown>
-
-        <script>
+    <script>
         class PaginatedDropdown extends HTMLElement {
             constructor() {
                 super();
                 this.attachShadow({ mode: 'open' });
-                
+
                 this.page = 1;
                 this.optionsPerPage = parseInt(this.getAttribute('options-per-page')) || 5;
                 this.options = [
@@ -48,56 +39,82 @@
                 ];
                 this.filterQuery = '';
 
-                this.shadowRoot.innerHTML = `
-                    <style>
-                        .dropdown-container {
-                            position: relative;
-                            display: inline-block;
-                        }
-                        .dropdown-options {
-                            display: none;
-                            position: absolute;
-                            width: 100%;
-                            max-height: 300px; /* Altura máxima para rolagem */
-                            overflow-y: auto;
-                        }
-                        .dropdown-option {
-                            padding: 2px;
-                            cursor: pointer;
-                        }
-                        .dropdown-option:hover {
-                            background-color: #f0f0f0;
-                        }
-                        .pagination-buttons {
-                            display: flex;
-                            justify-content: space-between;
-                            padding: 2px;
-                            background-color: #f9f9f9;
-                        }
-                        .pagination-button {
-                            font-size: 0.9rem;
-                            padding: 2px 4px;
-                            cursor: pointer;
-                            border: none;
-                            background: none;
-                            color: blue;
-                        }
-                        .pagination-button:disabled {
-                            color: grey;
-                            cursor: not-allowed;
-                        }
-                    </style>
-                    <div class="dropdown-container">
-                        <input type="text" class="dropdown-input" placeholder="Digite ou selecione...">
-                        <div class="dropdown-options"></div>
-                    </div>
+                // Definição do HTML e CSS
+                const style = document.createElement('style');
+                style.textContent = `
+                    .dropdown-container {
+                        position: relative;
+                        display: inline-block;
+                    }
+                    .dropdown-input {
+                        padding-right: 20px; /* Espaço para a seta */
+                    }
+                    .dropdown-arrow {
+                        position: absolute;
+                        top: 50%;
+                        right: 8px;
+                        transform: translateY(-50%);
+                        pointer-events: none;
+                        font-size: 12px;
+                        color: #333;
+                    }						
+                    .dropdown-options {
+                        display: none;
+                        position: absolute;
+                        width: 100%;
+                        max-height: 300px; /* Altura máxima para rolagem */
+                        overflow-y: auto;
+                    }
+                    .dropdown-option {
+                        padding: 2px;
+                        cursor: pointer;
+                    }
+                    .dropdown-option:hover {
+                        background-color: #f0f0f0;
+                    }
+                    .pagination-buttons {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 2px;
+                        background-color: #f9f9f9;
+                    }
+                    .pagination-button {
+                        font-size: 0.9rem;
+                        padding: 2px 4px;
+                        cursor: pointer;
+                        border: none;
+                        background: none;
+                        color: blue;
+                    }
+                    .pagination-button:disabled {
+                        color: grey;
+                        cursor: not-allowed;
+                    }
                 `;
+
+                const container = document.createElement('div');
+                container.classList.add('dropdown-container');
+
+                this.input = document.createElement('input');
+                this.input.classList.add('dropdown-input');
+                this.input.setAttribute('type', 'text');
+                this.input.setAttribute('placeholder', 'Digite ou selecione...');
+                container.appendChild(this.input);
+
+                this.arrowIcon = document.createElement('span');
+                this.arrowIcon.classList.add('dropdown-arrow');
+                this.arrowIcon.textContent = '▼'; // Seta para baixo
+                container.appendChild(this.arrowIcon);
+
+                this.optionsDiv = document.createElement('div');
+                this.optionsDiv.classList.add('dropdown-options');
+                container.appendChild(this.optionsDiv);
+
+                this.shadowRoot.appendChild(style);
+                this.shadowRoot.appendChild(container);
             }
 
             connectedCallback() {
-                this.input = this.shadowRoot.querySelector('.dropdown-input');
-                this.optionsDiv = this.shadowRoot.querySelector('.dropdown-options');
-
                 this.input.addEventListener('focus', () => this.showOptions());
                 this.input.addEventListener('input', () => this.applyFilter());
                 document.addEventListener('click', (event) => {
@@ -165,12 +182,10 @@
                 const spaceAbove = rect.top;
 
                 if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
-                    // Exibir para cima se houver mais espaço acima
                     this.optionsDiv.style.top = 'auto';
                     this.optionsDiv.style.bottom = '100%';
                     this.optionsDiv.style.maxHeight = `${spaceAbove}px`;
                 } else {
-                    // Exibir para baixo
                     this.optionsDiv.style.top = '100%';
                     this.optionsDiv.style.bottom = 'auto';
                     this.optionsDiv.style.maxHeight = `${spaceBelow}px`;
@@ -190,7 +205,11 @@
         }
 
         customElements.define('paginated-dropdown', PaginatedDropdown);
-        </script>
+        
+        // Adiciona o elemento paginated-dropdown programaticamente
+        const dropdownElement = document.createElement("paginated-dropdown");
+        document.body.appendChild(dropdownElement);
+    </script>
 
-    </body>
+</body>
 </html>
