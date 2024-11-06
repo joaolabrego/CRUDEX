@@ -91,6 +91,20 @@ export default class TGrid {
         this.#Images.Unorder = images.Unorder
         this.#Images.Insert = images.Insert
     }
+    #CalculatePage(relativeY) {
+        let trackHeight = this.#HTML.Scroll.Track.clientHeight,
+            thumbHeight = this.#HTML.Scroll.Thumb.clientHeight,
+            maxTop = trackHeight - thumbHeight
+
+        relativeY = Math.max(0, Math.min(relativeY, maxTop))
+
+        if (this.#PageCount <= 1)
+            return 1
+
+        let pageSize = maxTop / (this.#PageCount - 1)
+
+        return Math.trunc(relativeY / pageSize + 1)
+    }
     #UpdateScrollThumbFromInputs() {
         if (this.#PageCount <= 1) {
             this.#HTML.Scroll.Thumb.style.top = "0px"
@@ -102,7 +116,28 @@ export default class TGrid {
 
         this.#HTML.Scroll.Thumb.style.top = `${scrollPosition}px`
     }
+    #SyncHeightWithContainer() {
+        let containerHeight = this.#HTML.Container.clientHeight,
+            thumbHeight = Math.max((this.#Rows.length / this.#RowCount) * containerHeight, 5) // Mínimo de 5dvmin
 
+        this.#HTML.Scroll.Thumb.style.height = `${thumbHeight}dvmin`
+    }
+    #UpdateScrollbarPosition(newTop) {
+        let trackHeight = this.#HTML.Scroll.Track.clientHeight,
+            thumbHeight = this.#HTML.Scroll.Thumb.clientHeight,
+            maxTop = trackHeight - thumbHeight;
+
+        newTop = Math.max(0, Math.min(newTop, maxTop));
+        this.#HTML.Scroll.Thumb.style.top = `${newTop}px`;
+
+        let pageSize = maxTop / (this.#PageCount - 1);
+
+        this.#IsNavigateByScroll = true;
+        this.#LastPageNumber = this.#PageNumber;
+        this.#PageNumber = newTop / pageSize + 1;
+        this.#HTML.NumberInput.value = Math.trunc(this.#PageNumber);
+        this.#HTML.NumberInput.dispatchEvent(new Event("change"));
+    }
     #CreateGrid() {
         this.#HTML.Table = document.createElement("table")
         this.#HTML.Table.setAttribute('tabindex', '0')
@@ -226,9 +261,17 @@ export default class TGrid {
         this.#HTML.Scroll.Track.appendChild(this.#HTML.Scroll.Thumb)
         this.#HTML.Scroll.Track.onmousemove = (event) => {
             if (event.buttons === 1) {
-                let trackRect = this.#HTML.Scroll.Track.getBoundingClientRect();
-                let newTop = event.clientY - trackRect.top;
-                this.#UpdateScrollbarPosition(newTop);
+                let trackRect = this.#HTML.Scroll.Track.getBoundingClientRect(),
+                    newTop = event.clientY - trackRect.top
+
+                this.#UpdateScrollbarPosition(newTop)
+            }
+            else {
+                let trackRect = this.#HTML.Scroll.Track.getBoundingClientRect(),
+                    relativeY = event.clientY - trackRect.top
+
+                relativeY = Math.max(0, Math.min(relativeY, this.#HTML.Scroll.Track.clientHeight - this.#HTML.Scroll.Thumb.clientHeight))
+                this.#HTML.Scroll.Track.title = `Página ${this.#CalculatePage(relativeY)}`
             }
         }
         this.#HTML.Scroll.Track.onclick = (event) => {
@@ -236,28 +279,6 @@ export default class TGrid {
             const clickPosition = event.clientY - trackRect.top
             this.#UpdateScrollbarPosition(clickPosition - this.#HTML.Scroll.Thumb.offsetHeight / 2)
         }
-    }
-    #SyncHeightWithContainer() {
-        let containerHeight = this.#HTML.Container.clientHeight,
-            thumbHeight = Math.max((this.#Rows.length / this.#RowCount) * containerHeight, 5) // Mínimo de 5dvmin
-
-        this.#HTML.Scroll.Thumb.style.height = `${thumbHeight}dvmin`
-    }
-    #UpdateScrollbarPosition(newTop) {
-        let trackHeight = this.#HTML.Scroll.Track.clientHeight,
-            thumbHeight = this.#HTML.Scroll.Thumb.clientHeight,
-            maxTop = trackHeight - thumbHeight;
-
-        newTop = Math.max(0, Math.min(newTop, maxTop));
-        this.#HTML.Scroll.Thumb.style.top = `${newTop}px`;
-
-        let pageSize = maxTop / (this.#PageCount - 1);
-
-        this.#IsNavigateByScroll = true;
-        this.#LastPageNumber = this.#PageNumber;
-        this.#PageNumber = newTop / pageSize + 1;
-        this.#HTML.NumberInput.value = Math.trunc(this.#PageNumber);
-        this.#HTML.NumberInput.dispatchEvent(new Event("change"));
     }
     SaveFilters(record) {
         for (let key in this.#FilterValues)
@@ -343,7 +364,7 @@ export default class TGrid {
         catch (error) {
             TScreen.ShowError(error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
         }
-        finally{
+        finally {
             this.#IsRendering = false
         }
         /*
@@ -407,7 +428,7 @@ export default class TGrid {
                     if (TConfig.IsEmpty(event.target.IsOrdered)) {
                         this.#OrderBy += columnNameAsc
                         event.target.IsOrdered = false
-                        event.target.innerHTML = `${column.Title}&nbsp;\u25B2` 
+                        event.target.innerHTML = `${column.Title}&nbsp;\u25B2`
                     }
                     else if (event.target.IsOrdered === false) {
                         this.#OrderBy = this.#OrderBy.replace(columnNameAsc, columnNameDesc)
@@ -451,9 +472,9 @@ export default class TGrid {
                     td.appendChild(this.#GetControl(column, row[column.Name]))
                     td.style = `text-align: ${column.Domain.Type.Category.HtmlInputAlign}`
                     tr.appendChild(td)
-            })
+                })
             this.#HTML.Body.appendChild(tr)
-            this,this.#Rows.push(tr)
+            this, this.#Rows.push(tr)
             if (this.#RowNumber === index)
                 tr.click()
         })
