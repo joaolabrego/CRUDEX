@@ -146,8 +146,8 @@
     background-color: darkblue;
     cursor: grab;
     border-radius: var(--border-radius);
-    min-height: 3dvmin;
-    max-height: 3dvmin;
+    min-height: 5dvmin;
+    max-height: 5dvmin;
     top: 0;
 }
 

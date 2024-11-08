@@ -106,21 +106,11 @@ export default class TGrid {
         return Math.trunc(relativeY / pageSize + 1)
     }
     #UpdateScrollThumbFromInputs() {
-        if (this.#PageCount <= 1) {
-            this.#HTML.Scroll.Thumb.style.top = "0px"
-            return
-        }
         let trackHeight = this.#HTML.Scroll.Track.clientHeight,
             maxTop = trackHeight - this.#HTML.Scroll.Thumb.clientHeight,
             scrollPosition = ((this.#PageNumber - 1) / (this.#PageCount - 1)) * maxTop
 
         this.#HTML.Scroll.Thumb.style.top = `${scrollPosition}px`
-    }
-    #SyncHeightWithContainer() {
-        let containerHeight = this.#HTML.Container.clientHeight,
-            thumbHeight = Math.max((this.#Rows.length / this.#RowCount) * containerHeight, 5) // Mínimo de 5dvmin
-
-        this.#HTML.Scroll.Thumb.style.height = `${thumbHeight}dvmin`
     }
     #UpdateScrollbarPosition(newTop) {
         let trackHeight = this.#HTML.Scroll.Track.clientHeight,
@@ -354,7 +344,6 @@ export default class TGrid {
             this.#BuildHtmlHead()
             this.#BuildHtmlBody(this.#Data)
             this.#BuildHtmlFoot()
-            this.#SyncHeightWithContainer()
             TScreen.WithBackgroundImage = true
             TScreen.Main = this.#HTML.Container
             this.#HTML.Table.focus()
