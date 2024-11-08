@@ -488,6 +488,36 @@ CREATE TABLE [dbo].[Operations]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS 
 ALTER TABLE [dbo].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED ([Id])
 
 /**********************************************************************************
+Criar tabela [dbo].[Associations]
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Associations]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Associations]
+CREATE TABLE [dbo].[Associations]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+                                    ,[TableId1] bigint NOT NULL CHECK ([TableId1] >= CAST('1' AS bigint))
+                                    ,[TableId2] bigint NOT NULL CHECK ([TableId2] >= CAST('1' AS bigint))
+                                    ,[IsBidirectional] bit NOT NULL CHECK ([IsBidirectional] >= CAST('1' AS bit))
+                                    ,[CreatedAt] datetime NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
+                                    ,[UpdatedAt] datetime NULL
+                                    ,[UpdatedBy] nvarchar(25) NULL)
+ALTER TABLE [dbo].[Associations] ADD CONSTRAINT PK_Associations PRIMARY KEY CLUSTERED ([Id])
+
+/**********************************************************************************
+Criar tabela [dbo].[Uniques]
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Uniques]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Uniques]
+CREATE TABLE [dbo].[Uniques]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+                                    ,[ColumnId1] bigint NOT NULL
+                                    ,[ColumnId2] bigint NOT NULL
+                                    ,[IsBidirectional] bit NOT NULL
+                                    ,[CreatedAt] datetime NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
+                                    ,[UpdatedAt] datetime NULL
+                                    ,[UpdatedBy] nvarchar(25) NULL)
+ALTER TABLE [dbo].[Uniques] ADD CONSTRAINT PK_Uniques PRIMARY KEY CLUSTERED ([Id])
+
+/**********************************************************************************
 Criar stored procedure [dbo].[Config]
 **********************************************************************************/
 IF(SELECT object_id('[dbo].[Config]', 'P')) IS NULL
@@ -5629,6 +5659,52 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[ParentTableId]
+                                ,[IsLegacy]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('20' AS bigint)
+                                ,CAST('Associations' AS nvarchar(25))
+                                ,CAST('Association' AS nvarchar(25))
+                                ,CAST('Associações entre tabelas' AS nvarchar(50))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bigint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[ParentTableId]
+                                ,[IsLegacy]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('21' AS bigint)
+                                ,CAST('Uniques' AS nvarchar(25))
+                                ,CAST('Unique' AS nvarchar(25))
+                                ,CAST('Unicidades cruzadas' AS nvarchar(50))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bigint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[DatabasesTables]
@@ -5951,6 +6027,40 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('crudex x Operations' AS nvarchar(50))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('20' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('20' AS bigint)
+                                ,CAST('crudex x Associations' AS nvarchar(50))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('21' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('crudex x Uniques' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13539,6 +13649,430 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('144' AS bigint)
+                                ,CAST('20' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID da transação' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('145' AS bigint)
+                                ,CAST('20' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('TableId1' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID da tabela 1' AS nvarchar(50))
+                                ,CAST('Tabela 1' AS nvarchar(25))
+                                ,CAST('Tabela 1' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('146' AS bigint)
+                                ,CAST('20' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('TableId2' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID da tabela 2' AS nvarchar(50))
+                                ,CAST('Tabela 2' AS nvarchar(25))
+                                ,CAST('Tabela 2' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('147' AS bigint)
+                                ,CAST('20' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsBidirectional' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('É bidirecional?' AS nvarchar(50))
+                                ,CAST('Bidirecional?' AS nvarchar(25))
+                                ,CAST('Bidirecional?' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('148' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID da unicidade cruzada' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('149' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('ColumnId1' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID da coluna 1' AS nvarchar(50))
+                                ,CAST('ID da coluna 1' AS nvarchar(25))
+                                ,CAST('Coluna 1' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('150' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST('ColumnId2' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID da coluna 2' AS nvarchar(50))
+                                ,CAST('ID da coluna 2' AS nvarchar(25))
+                                ,CAST('Coluna 2' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('151' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsBidirectional' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('É bidirecional?' AS nvarchar(50))
+                                ,CAST('Bidirecional?' AS nvarchar(25))
+                                ,CAST('Bidirecional?' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Indexes]
@@ -14623,6 +15157,82 @@ GO
 
 
 
+
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Associations]
+**********************************************************************************/
+INSERT INTO [dbo].[Associations] ([Id]
+                                ,[TableId1]
+                                ,[TableId2]
+                                ,[IsBidirectional]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('7' AS bigint)
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Associations] ([Id]
+                                ,[TableId1]
+                                ,[TableId2]
+                                ,[IsBidirectional]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,CAST('5' AS bigint)
+                                ,CAST('10' AS bigint)
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Associations] ([Id]
+                                ,[TableId1]
+                                ,[TableId2]
+                                ,[IsBidirectional]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('3' AS bigint)
+                                ,CAST('10' AS bigint)
+                                ,CAST('12' AS bigint)
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Uniques]
+**********************************************************************************/
+INSERT INTO [dbo].[Uniques] ([Id]
+                                ,[ColumnId1]
+                                ,[ColumnId2]
+                                ,[IsBidirectional]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('87' AS bigint)
+                                ,CAST('88' AS bigint)
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
 
 /**********************************************************************************
 Criar stored procedure [dbo].[CategoryValidate]
@@ -26182,6 +26792,996 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[IsConfirmed]
             FROM [dbo].[Operations] [R]
             WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [ParentOperationId] =  [R].[Id])
+        SET @ReturnValue = @RowCount
+
+        RETURN 0
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+
+/**********************************************************************************
+Criar stored procedure [dbo].[AssociationValidate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[AssociationValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[AssociationValidate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[AssociationValidate](@LoginId BIGINT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName é requerido', 1
+        IF @Action IS NULL
+            THROW 51000, 'Valor de @Action é requerido', 1
+        IF @Action NOT IN ('create', 'update', 'delete')
+            THROW 51000, 'Valor de @Action é inválido', 1
+        IF @ActualRecord IS NULL
+            THROW 51000, 'Valor de @ActualRecord é requerido', 1
+        IF ISJSON(@ActualRecord) = 0
+            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+
+        IF @TransactionId IS NULL
+            THROW 51000, 'Não existe transação para este @LoginId', 1
+        SELECT @IsConfirmed = [IsConfirmed]
+              ,@CreatedBy = [CreatedBy]
+            FROM [dbo].[Transactions]
+            WHERE [Id] = @TransactionId
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1;
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint)
+            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+            IF @Action = 'create'
+                THROW 51000, 'Chave-primária já existe em Associations', 1
+        END ELSE IF @Action <> 'create'
+            THROW 51000, 'Chave-primária não existe em Associations', 1
+        IF @Action <> 'create' BEGIN
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @Action = 'update'
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId1'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId1'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId2'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId2'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsBidirectional'), 'bit') = 1
+                THROW 51000, 'Nenhuma alteração feita no registro', 1
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Associations]
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [TableId1] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId1')
+                                  AND [TableId2] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId2')
+                                  AND [IsBidirectional] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsBidirectional'))
+                THROW 51000, 'Registro de Associations alterado por outro usuário', 1
+        END
+
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_TableId1 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId1') AS bigint)
+                   ,@W_TableId2 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId2') AS bigint)
+                   ,@W_IsBidirectional bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional') AS bit)
+
+            IF @W_TableId1 IS NULL
+                THROW 51000, 'Valor de TableId1 em @ActualRecord é requerido.', 1
+            IF @W_TableId1 < CAST('1' AS bigint)
+                THROW 51000, 'Valor de TableId1 em @ActualRecord deve ser maior que ou igual a 1', 1
+            IF @W_TableId2 IS NULL
+                THROW 51000, 'Valor de TableId2 em @ActualRecord é requerido.', 1
+            IF @W_TableId2 < CAST('1' AS bigint)
+                THROW 51000, 'Valor de TableId2 em @ActualRecord deve ser maior que ou igual a 1', 1
+            IF @W_IsBidirectional IS NULL
+                THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
+            IF @W_IsBidirectional < CAST('1' AS bit)
+                THROW 51000, 'Valor de IsBidirectional em @ActualRecord deve ser maior que ou igual a 1', 1
+        END
+
+        RETURN @TransactionId
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[AssociationPersist]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[AssociationPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[AssociationPersist] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[AssociationPersist](@LoginId BIGINT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
+           ,@ErrorMessage NVARCHAR(255)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @TransactionId BIGINT
+               ,@OperationId BIGINT
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
+               ,@IsConfirmed BIT
+               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        EXEC @TransactionId = [dbo].[AssociationValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
+              ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Columns'
+                  AND [IsConfirmed] IS NULL
+                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+        IF @@ROWCOUNT = 0 BEGIN
+            INSERT INTO [dbo].[Operations] ([TransactionId]
+                                             ,[TableName]
+                                             ,[Action]
+                                             ,[OriginalRecord]
+                                             ,[ActualRecord]
+                                             ,[IsConfirmed]
+                                             ,[CreatedAt]
+                                             ,[CreatedBy])
+                                       VALUES(@TransactionId
+                                             ,'Associations'
+                                             ,@Action
+                                             ,@OriginalRecord
+                                             ,@ActualRecord
+                                             ,NULL
+                                             ,GETDATE()
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        ELSE IF @ActionAux = 'delete'
+            THROW 51000, 'Registro excluído nesta transação', 1
+        ELSE IF @Action = 'create'
+            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'update' BEGIN
+            IF @ActionAux = 'create'
+                EXEC [dbo].[AssociationValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END ELSE IF @ActionAux = 'create' BEGIN
+            UPDATE [dbo].[Operations] 
+                SET [IsConfirmed] = 0
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END ELSE BEGIN
+            UPDATE [dbo].[Operations]
+                SET [Action] = 'delete'
+                   ,[OriginalRecord] = @OriginalRecord
+                   ,[ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
+        COMMIT TRANSACTION
+
+        RETURN CAST(@OperationId AS BIGINT)
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[AssociationCommit]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[AssociationCommit]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[AssociationCommit] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[AssociationCommit](@LoginId BIGINT
+                                             ,@UserName NVARCHAR(25)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@OriginalRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName requerido', 1
+        IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@OriginalRecord = [OriginalRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Associations'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        EXEC @TransactionIdAux = [dbo].[AssociationValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+
+        IF @Action = 'delete'
+            DELETE FROM [dbo].[Associations] WHERE [Id] = @W_Id
+        ELSE BEGIN
+
+            DECLARE @W_TableId1 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId1') AS bigint)
+                   ,@W_TableId2 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId2') AS bigint)
+                   ,@W_IsBidirectional bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional') AS bit)
+
+            IF @Action = 'create'
+                INSERT INTO [dbo].[Associations] ([Id]
+                                                ,[TableId1]
+                                                ,[TableId2]
+                                                ,[IsBidirectional]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
+                                          VALUES (@W_Id
+                                                 ,@W_TableId1
+                                                 ,@W_TableId2
+                                                 ,@W_IsBidirectional
+                                                 ,GETDATE()
+                                                 ,@UserName)
+            ELSE
+                UPDATE [dbo].[Associations] SET [Id] = @W_Id
+                                              ,[TableId1] = @W_TableId1
+                                              ,[TableId2] = @W_TableId2
+                                              ,[IsBidirectional] = @W_IsBidirectional
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
+                    WHERE [Id] = @W_Id
+        END
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+        COMMIT TRANSACTION
+
+        RETURN @TransactionId
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[AssociationsRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[AssociationsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[AssociationsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[AssociationsRead](@LoginId BIGINT
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue BIGINT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
+        IF @RecordFilter IS NULL
+            SET @RecordFilter = '{}'
+        ELSE IF ISJSON(@RecordFilter) = 0
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
+        IF @OrderBy = ''
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
+                                                    FROM [sys].[columns] [#1]
+                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
+                                                    WHERE [#2].[name] = 'Associations') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
+                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
+                                                         ELSE 'ASC'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
+        END
+
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
+
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
+        SELECT [Action] AS [_]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId1') AS bigint) AS [TableId1]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId2') AS bigint) AS [TableId2]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsBidirectional') AS bit) AS [IsBidirectional]
+            INTO [dbo].[#operations]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Associations'
+                  AND [IsConfirmed] IS NULL
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where NVARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
+                   ,@W_TableId1 bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId1') AS bigint)
+                   ,@W_TableId2 bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId2') AS bigint)
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_TableId1 IS NOT NULL BEGIN
+                IF @W_TableId1 < CAST('1' AS bigint)
+                    THROW 51000, 'Valor de TableId1 deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[TableId1] = @TableId1'
+            END
+            IF @W_TableId2 IS NOT NULL BEGIN
+                IF @W_TableId2 < CAST('1' AS bigint)
+                    THROW 51000, 'Valor de TableId2 deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[TableId2] = @TableId2'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Associations] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[T].[Id]
+                                FROM [dbo].[#operations] [T]
+                                WHERE [T].[_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] bigint)
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id bigint
+                               ,@TableId1 bigint
+                               ,@TableId2 bigint'
+                           ,@Id = @W_Id
+                           ,@TableId1 = @W_TableId1
+                           ,@TableId2 = @W_TableId2
+        ELSE
+            EXEC sp_executesql @sql
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS bigint) AS [Id]
+                    ,CAST(NULL AS bigint) AS [TableId1]
+                    ,CAST(NULL AS bigint) AS [TableId2]
+                    ,CAST(NULL AS bit) AS [IsBidirectional]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Association'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[TableId1]
+                              ,[T].[TableId2]
+                              ,[T].[IsBidirectional]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[Associations] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Association'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[TableId1]
+                                  ,[O].[TableId2]
+                                  ,[O].[IsBidirectional]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[TableId1]
+              ,[TableId2]
+              ,[IsBidirectional]
+            FROM [dbo].[#result]
+        SET @ReturnValue = @RowCount
+
+        RETURN 0
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+
+/**********************************************************************************
+Criar stored procedure [dbo].[UniqueValidate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[UniqueValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UniqueValidate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName é requerido', 1
+        IF @Action IS NULL
+            THROW 51000, 'Valor de @Action é requerido', 1
+        IF @Action NOT IN ('create', 'update', 'delete')
+            THROW 51000, 'Valor de @Action é inválido', 1
+        IF @ActualRecord IS NULL
+            THROW 51000, 'Valor de @ActualRecord é requerido', 1
+        IF ISJSON(@ActualRecord) = 0
+            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
+               ,@IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+
+        IF @TransactionId IS NULL
+            THROW 51000, 'Não existe transação para este @LoginId', 1
+        SELECT @IsConfirmed = [IsConfirmed]
+              ,@CreatedBy = [CreatedBy]
+            FROM [dbo].[Transactions]
+            WHERE [Id] = @TransactionId
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1;
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint)
+            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+            IF @Action = 'create'
+                THROW 51000, 'Chave-primária já existe em Uniques', 1
+        END ELSE IF @Action <> 'create'
+            THROW 51000, 'Chave-primária não existe em Uniques', 1
+        IF @Action <> 'create' BEGIN
+            IF @OriginalRecord IS NULL
+                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
+            IF ISJSON(@OriginalRecord) = 0
+                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @Action = 'update'
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId1'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ColumnId1'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId2'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ColumnId2'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsBidirectional'), 'bit') = 1
+                THROW 51000, 'Nenhuma alteração feita no registro', 1
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Uniques]
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
+                                  AND [ColumnId1] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ColumnId1')
+                                  AND [ColumnId2] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ColumnId2')
+                                  AND [IsBidirectional] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsBidirectional'))
+                THROW 51000, 'Registro de Uniques alterado por outro usuário', 1
+        END
+
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_ColumnId1 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId1') AS bigint)
+                   ,@W_ColumnId2 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId2') AS bigint)
+                   ,@W_IsBidirectional bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional') AS bit)
+
+            IF @W_ColumnId1 IS NULL
+                THROW 51000, 'Valor de ColumnId1 em @ActualRecord é requerido.', 1
+            IF @W_ColumnId2 IS NULL
+                THROW 51000, 'Valor de ColumnId2 em @ActualRecord é requerido.', 1
+            IF @W_IsBidirectional IS NULL
+                THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
+        END
+
+        RETURN @TransactionId
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[UniquePersist]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[UniquePersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UniquePersist] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
+           ,@ErrorMessage NVARCHAR(255)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @TransactionId BIGINT
+               ,@OperationId BIGINT
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
+               ,@IsConfirmed BIT
+               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        EXEC @TransactionId = [dbo].[UniqueValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
+              ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Columns'
+                  AND [IsConfirmed] IS NULL
+                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+        IF @@ROWCOUNT = 0 BEGIN
+            INSERT INTO [dbo].[Operations] ([TransactionId]
+                                             ,[TableName]
+                                             ,[Action]
+                                             ,[OriginalRecord]
+                                             ,[ActualRecord]
+                                             ,[IsConfirmed]
+                                             ,[CreatedAt]
+                                             ,[CreatedBy])
+                                       VALUES(@TransactionId
+                                             ,'Uniques'
+                                             ,@Action
+                                             ,@OriginalRecord
+                                             ,@ActualRecord
+                                             ,NULL
+                                             ,GETDATE()
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        ELSE IF @ActionAux = 'delete'
+            THROW 51000, 'Registro excluído nesta transação', 1
+        ELSE IF @Action = 'create'
+            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'update' BEGIN
+            IF @ActionAux = 'create'
+                EXEC [dbo].[UniqueValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END ELSE IF @ActionAux = 'create' BEGIN
+            UPDATE [dbo].[Operations] 
+                SET [IsConfirmed] = 0
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END ELSE BEGIN
+            UPDATE [dbo].[Operations]
+                SET [Action] = 'delete'
+                   ,[OriginalRecord] = @OriginalRecord
+                   ,[ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
+        COMMIT TRANSACTION
+
+        RETURN CAST(@OperationId AS BIGINT)
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[UniqueCommit]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[UniqueCommit]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UniqueCommit] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
+                                             ,@UserName NVARCHAR(25)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@OriginalRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName requerido', 1
+        IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@OriginalRecord = [OriginalRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Uniques'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        EXEC @TransactionIdAux = [dbo].[UniqueValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+
+        IF @Action = 'delete'
+            DELETE FROM [dbo].[Uniques] WHERE [Id] = @W_Id
+        ELSE BEGIN
+
+            DECLARE @W_ColumnId1 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId1') AS bigint)
+                   ,@W_ColumnId2 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId2') AS bigint)
+                   ,@W_IsBidirectional bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional') AS bit)
+
+            IF @Action = 'create'
+                INSERT INTO [dbo].[Uniques] ([Id]
+                                                ,[ColumnId1]
+                                                ,[ColumnId2]
+                                                ,[IsBidirectional]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
+                                          VALUES (@W_Id
+                                                 ,@W_ColumnId1
+                                                 ,@W_ColumnId2
+                                                 ,@W_IsBidirectional
+                                                 ,GETDATE()
+                                                 ,@UserName)
+            ELSE
+                UPDATE [dbo].[Uniques] SET [Id] = @W_Id
+                                              ,[ColumnId1] = @W_ColumnId1
+                                              ,[ColumnId2] = @W_ColumnId2
+                                              ,[IsBidirectional] = @W_IsBidirectional
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
+                    WHERE [Id] = @W_Id
+        END
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+        COMMIT TRANSACTION
+
+        RETURN @TransactionId
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[UniquesRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[UniquesRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UniquesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue BIGINT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
+        IF @RecordFilter IS NULL
+            SET @RecordFilter = '{}'
+        ELSE IF ISJSON(@RecordFilter) = 0
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
+        IF @OrderBy = ''
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
+                                                    FROM [sys].[columns] [#1]
+                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
+                                                    WHERE [#2].[name] = 'Uniques') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
+                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
+                                                         ELSE 'ASC'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
+        END
+
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)
+
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
+        SELECT [Action] AS [_]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ColumnId1') AS bigint) AS [ColumnId1]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ColumnId2') AS bigint) AS [ColumnId2]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsBidirectional') AS bit) AS [IsBidirectional]
+            INTO [dbo].[#operations]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Uniques'
+                  AND [IsConfirmed] IS NULL
+        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([Id])
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where NVARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
+                   ,@W_ColumnId1 bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ColumnId1') AS bigint)
+                   ,@W_ColumnId2 bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ColumnId2') AS bigint)
+                   ,@W_IsBidirectional bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsBidirectional') AS bit)
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_ColumnId1 IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[ColumnId1] = @ColumnId1'
+            END
+            IF @W_ColumnId2 IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[ColumnId2] = @ColumnId2'
+            END
+            IF @W_IsBidirectional IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsBidirectional] = @IsBidirectional'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
+        SET @sql = 'INSERT [dbo].[#table]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Uniques] [T]
+                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[T].[Id]
+                                FROM [dbo].[#operations] [T]
+                                WHERE [T].[_] <> ''delete''' + @Where
+        CREATE TABLE [dbo].[#table]([_] CHAR(1), [Id] bigint)
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id bigint
+                               ,@ColumnId1 bigint
+                               ,@ColumnId2 bigint
+                               ,@IsBidirectional bit'
+                           ,@Id = @W_Id
+                           ,@ColumnId1 = @W_ColumnId1
+                           ,@ColumnId2 = @W_ColumnId2
+                           ,@IsBidirectional = @W_IsBidirectional
+        ELSE
+            EXEC sp_executesql @sql
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+
+        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+                    ,CAST(NULL AS bigint) AS [Id]
+                    ,CAST(NULL AS bigint) AS [ColumnId1]
+                    ,CAST(NULL AS bigint) AS [ColumnId2]
+                    ,CAST(NULL AS bit) AS [IsBidirectional]
+            INTO [dbo].[#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Unique'' AS [ClassName]
+                              ,[T].[Id]
+                              ,[T].[ColumnId1]
+                              ,[T].[ColumnId2]
+                              ,[T].[IsBidirectional]
+                            FROM [dbo].[#table] [#]
+                                INNER JOIN [dbo].[Uniques] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Unique'' AS [ClassName]
+                                  ,[O].[Id]
+                                  ,[O].[ColumnId1]
+                                  ,[O].[ColumnId2]
+                                  ,[O].[IsBidirectional]
+                                FROM [dbo].[#table] [#]
+                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [ClassName]
+              ,[Id]
+              ,[ColumnId1]
+              ,[ColumnId2]
+              ,[IsBidirectional]
+            FROM [dbo].[#result]
         SET @ReturnValue = @RowCount
 
         RETURN 0
