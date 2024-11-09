@@ -16,11 +16,11 @@ BEGIN
 				,[ClientName]
 				,[MaxRetryLogins]
 				,[IsOffAir]
-			INTO [dbo].[#Systems]
+			INTO [#Systems]
 			FROM [dbo].[Systems]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Sistema não cadastrado', 1
-		ALTER TABLE [dbo].[#Systems] ADD PRIMARY KEY CLUSTERED([Id])
+		ALTER TABLE [#Systems] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 2 [[SystemsDatabases]]
 		SELECT 	'SystemDatabase' AS [ClassName]
 				,[SD].[Id]
@@ -30,13 +30,13 @@ BEGIN
 				,[D].[Name] AS [#DatabaseName]
 				,[D].[ConnectionId] AS [#ConnectionId]
 				,[SD].[Name]
-			INTO [dbo].[#SystemsDatabases]
+			INTO [#SystemsDatabases]
 			FROM [dbo].[SystemsDatabases] [SD]
-				INNER JOIN [dbo].[#Systems] [S] ON [S].[Id] = [SD].[SystemId]
+				INNER JOIN [#Systems] [S] ON [S].[Id] = [SD].[SystemId]
 				INNER JOIN [dbo].[Databases] [D] ON [D].[Id] = [SD].[DatabaseId]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Sistemas x Bancos-de-dados não cadastrado(s)', 1
-		ALTER TABLE [dbo].[#SystemsDatabases] ADD PRIMARY KEY CLUSTERED([Id])
+		ALTER TABLE [#SystemsDatabases] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 3 [Connections]
 		SELECT [Id]
 			  ,[Provider]
@@ -49,7 +49,7 @@ BEGIN
 			  ,[Password]
 			  ,[PersistSecurityInfo]
 			  ,[AdditionalParameters]
-		  INTO [dbo].[#Connections]
+		  INTO [#Connections]
 		  FROM [dbo].[Connections]
 		-- 4 [Databases]
 		SELECT 	'Database' AS [ClassName]
@@ -61,12 +61,12 @@ BEGIN
 				,[D].[Folder]
 				,[D].[IsLegacy]
 				,[D].[CurrentOperationId]
-			INTO [dbo].[#Databases]
+			INTO [#Databases]
 			FROM [dbo].[Databases] [D]
-				INNER JOIN [dbo].[#SystemsDatabases] [SD] ON [SD].[DatabaseId] = [D].[Id]
+				INNER JOIN [#SystemsDatabases] [SD] ON [SD].[DatabaseId] = [D].[Id]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Banco(s)-de-dados não cadastrado(s)', 1
-		ALTER TABLE [dbo].[#Databases] ADD PRIMARY KEY CLUSTERED([Id])
+		ALTER TABLE [#Databases] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 5 [DatabasesTables]
 		SELECT 'DatabaseTable' AS [ClassName]
 			  ,[DT].[Id]
@@ -76,11 +76,11 @@ BEGIN
 			  ,[DT].[TableId]
 			  ,[T].[Name] AS [#TableName]
 			  ,[DT].[Name]
-			INTO [dbo].[#DatabasesTables]
+			INTO [#DatabasesTables]
 			FROM [dbo].[DatabasesTables] [DT]
-				INNER JOIN [dbo].[#Databases] [D] ON [D].[Id] = [DT].[DatabaseId]
+				INNER JOIN [#Databases] [D] ON [D].[Id] = [DT].[DatabaseId]
 				INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [DT].[TableId]
-		ALTER TABLE [dbo].[#DatabasesTables] ADD PRIMARY KEY CLUSTERED([Id])
+		ALTER TABLE [#DatabasesTables] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 6 [Tables]
 		SELECT	'Table' AS [ClassName]
 				,[T].[Id]
@@ -91,13 +91,13 @@ BEGIN
 				,[PT].[Name] AS [#ParentTableName]
 				,[T].[IsLegacy]
 				,[T].[CurrentId]
-			INTO [dbo].[#Tables]
+			INTO [#Tables]
 			FROM [dbo].[Tables] [T]
-				INNER JOIN [dbo].[#DatabasesTables] [DT] ON [DT].[TableId] = [T].[Id]
+				INNER JOIN [#DatabasesTables] [DT] ON [DT].[TableId] = [T].[Id]
 				LEFT JOIN [dbo].[Tables] [PT] ON [PT].[Id] = [T].[ParentTableId]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Tabela(s) não cadastrada(s)', 1
-		ALTER TABLE [dbo].[#Tables] ADD PRIMARY KEY CLUSTERED([Id])
+		ALTER TABLE [#Tables] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 7 [Categories]
 		SELECT 	'Category' AS [ClassName]
 				,[C].[Id]
@@ -111,11 +111,11 @@ BEGIN
 				,[C].[AskMinimum]
 				,[C].[AskMaximum]
 				,[C].[AskInWords]
-			INTO [dbo].[#Categories]
+			INTO [#Categories]
 			FROM [dbo].[Categories] [C]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Categoria(s) de tipos não cadastrada(s)', 1
-		ALTER TABLE [dbo].[#Categories] ADD PRIMARY KEY CLUSTERED([Id])
+		ALTER TABLE [#Categories] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 8 [Types]
 		SELECT 	'Type' AS [ClassName]
 				,[T].[Id]
@@ -134,18 +134,18 @@ BEGIN
 				,[T].[AskGridable]
 				,[T].[AskCodification]
 				,[T].[IsActive]
-			INTO [dbo].[#Types]
+			INTO [#Types]
 			FROM [dbo].[Types] [T]
-				INNER JOIN [dbo].[#Categories] [C] ON [C].[Id] = [T].[CategoryId]
+				INNER JOIN [#Categories] [C] ON [C].[Id] = [T].[CategoryId]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Tipos de domínios não cadastrados', 1
-		ALTER TABLE [dbo].[#Types] ADD PRIMARY KEY CLUSTERED([Id])
+		ALTER TABLE [#Types] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 9 [Masks]
 		SELECT 	'Mask' AS [ClassName]
 				,[M].[Id]
 				,[M].[Name]
 				,[M].[Mask]
-			INTO [dbo].[#Masks]
+			INTO [#Masks]
 			FROM [dbo].[Masks] [M]
 		-- 10 [Domains]
 		SELECT	'Domain' AS [ClassName]
@@ -171,14 +171,14 @@ BEGIN
 				,[D].[Minimum]
 				,[D].[Maximum]
 				,[D].[Codification]
-			INTO [dbo].[#Domains]
+			INTO [#Domains]
 			FROM [dbo].[Domains] [D]
-				INNER JOIN [dbo].[#Types] [T] ON [T].[Id] = [D].[TypeId]
-				INNER JOIN [dbo].[#Categories] [C] ON [C].[Id] = [T].[CategoryId]
+				INNER JOIN [#Types] [T] ON [T].[Id] = [D].[TypeId]
+				INNER JOIN [#Categories] [C] ON [C].[Id] = [T].[CategoryId]
 				LEFT JOIN [dbo].[Masks] [M] ON [M].[Id] = [D].[MaskId]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Domínios de colunas não cadastrados', 1
-		ALTER TABLE [dbo].[#Domains] ADD PRIMARY KEY CLUSTERED([Id])
+		ALTER TABLE [#Domains] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 11 [Menus]
 		SELECT 	'Menu' AS [ClassName]
 				,[M].[Id]
@@ -190,13 +190,13 @@ BEGIN
 				,[M].[Action]
 				,[M].[ParentMenuId]
 				,[PM].[Caption] AS [#ParentMenuCaption]
-			INTO [dbo].[#Menus]
+			INTO [#Menus]
 			FROM [dbo].[Menus] [M]
 				LEFT JOIN [dbo].[Menus] [PM] ON [PM].[Id] = [M].[ParentMenuId]
-				INNER JOIN [dbo].[#Systems] [S] ON [S].[Id] = [M].[SystemId]
+				INNER JOIN [#Systems] [S] ON [S].[Id] = [M].[SystemId]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Menu(s) de sistema não cadastrado(s)', 1
-		ALTER TABLE [dbo].[#Menus] ADD PRIMARY KEY CLUSTERED([Id])
+		ALTER TABLE [#Menus] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 12 [SystemsUsers]
 		SELECT 'SystemUser' AS [ClassName] 
 			  ,[SU].[Id]
@@ -205,13 +205,13 @@ BEGIN
 			  ,[SU].[UserId]
 			  ,[U].[Name] AS [#UserName]
 			  ,[SU].[Name]
-			INTO [dbo].[#SystemsUsers] 
+			INTO [#SystemsUsers] 
 			FROM [dbo].[SystemsUsers] [SU]
-				INNER JOIN [dbo].[#Systems] [S] ON [S].[Id] = [SU].[SystemId]
+				INNER JOIN [#Systems] [S] ON [S].[Id] = [SU].[SystemId]
 				INNER JOIN [dbo].[Users] [U] ON [U].[Id] = [SU].[UserId]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Menu(s) de sistema não cadastrado(s)', 1
-		ALTER TABLE [dbo].[#SystemsUsers] ADD PRIMARY KEY NONCLUSTERED([Id])
+		ALTER TABLE [#SystemsUsers] ADD PRIMARY KEY NONCLUSTERED([Id])
 		-- 13 [Users]
 		SELECT 'User' AS [ClassName] 
 			  ,[U].[Id]
@@ -220,10 +220,10 @@ BEGIN
 			  ,[U].[FullName]
 			  ,[U].[RetryLogins]
 			  ,[U].[IsActive]
-			INTO [dbo].[#Users]
+			INTO [#Users]
 			FROM [dbo].[Users] [U]
-				INNER JOIN [dbo].[#SystemsUsers] [SU] ON [SU].[UserId] = [U].[Id]
-		ALTER TABLE [dbo].[#Users] ADD PRIMARY KEY CLUSTERED([Id])
+				INNER JOIN [#SystemsUsers] [SU] ON [SU].[UserId] = [U].[Id]
+		ALTER TABLE [#Users] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 14 [Columns]
 		SELECT 'Column' AS [ClassName]
 			  ,[C].[Id]
@@ -255,14 +255,14 @@ BEGIN
 			  ,[C].[IsGridable]
 			  ,[C].[IsEncrypted]
 			  ,[C].[IsInWords]
-			INTO [dbo].[#Columns]
+			INTO [#Columns]
 			FROM [dbo].[Columns] [C]
-				INNER JOIN [dbo].[#Tables] [T] ON [T].[Id] = [C].[TableId]
-				INNER JOIN [dbo].[#Domains] [D] ON [D].[Id] = [C].[DomainId]
-				LEFT JOIN [dbo].[#Tables] [RT] ON [RT].[Id] = [C].[ReferenceTableId]
+				INNER JOIN [#Tables] [T] ON [T].[Id] = [C].[TableId]
+				INNER JOIN [#Domains] [D] ON [D].[Id] = [C].[DomainId]
+				LEFT JOIN [#Tables] [RT] ON [RT].[Id] = [C].[ReferenceTableId]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Coluna(s) de tabela(s) não cadastrada(s)', 1
-		ALTER TABLE [dbo].[#Columns] ADD PRIMARY KEY CLUSTERED([Id])
+		ALTER TABLE [#Columns] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 15 [Indexes]
 		SELECT 'Index' AS [ClassName]
 			  ,[I].[Id]
@@ -270,10 +270,10 @@ BEGIN
 			  ,[T].[Name] AS [#TableName]
 			  ,[I].[Name]
 			  ,[I].[IsUnique]
-		  INTO [dbo].[#Indexes]
+		  INTO [#Indexes]
 		  FROM [dbo].[Indexes] [I]
-			INNER JOIN [dbo].[#Tables] [T] ON [T].[Id] = [I].[TableId]
-		ALTER TABLE [dbo].[#Indexes] ADD PRIMARY KEY CLUSTERED([Id])
+			INNER JOIN [#Tables] [T] ON [T].[Id] = [I].[TableId]
+		ALTER TABLE [#Indexes] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 16 [Indexkeys]
 		SELECT 'Indexkey' AS [ClassName]
 			  ,[IK].[Id]
@@ -283,11 +283,11 @@ BEGIN
 			  ,[IK].[ColumnId]
 			  ,[C].[Name] AS [#ColumnName]
 			  ,[IK].[IsDescending]
-		  INTO [dbo].[#Indexkeys]
+		  INTO [#Indexkeys]
 		  FROM [dbo].[Indexkeys] [IK]
-			INNER JOIN [dbo].[#Indexes] [I] ON [I].[Id] = [IK].[IndexId]
-			INNER JOIN [dbo].[#Columns] [C] ON [C].[Id] = [IK].[ColumnId]
-		ALTER TABLE [dbo].[#Indexkeys] ADD PRIMARY KEY CLUSTERED([Id])
+			INNER JOIN [#Indexes] [I] ON [I].[Id] = [IK].[IndexId]
+			INNER JOIN [#Columns] [C] ON [C].[Id] = [IK].[ColumnId]
+		ALTER TABLE [#Indexkeys] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 17 [Logins]
 		SELECT TOP 0 'Login' AS [ClassName]
 					,[Id]
@@ -295,14 +295,14 @@ BEGIN
 					,[UserId]
 					,[PublicKey]
 					,[IsLogged]
-			INTO [dbo].[#Logins]
+			INTO [#Logins]
 			FROM [dbo].[Logins]
 		-- 18 [Transactions]
 		SELECT TOP 0 'Transaction' AS [ClassName]
 					,[Id]
 				    ,[LoginId]
 					,[IsConfirmed]
-			INTO [dbo].[#Transactions]
+			INTO [#Transactions]
 			FROM [dbo].[Transactions]
 		-- 19 [Operations]
 		SELECT TOP 0 'Operation' AS [ClassName]
@@ -314,28 +314,28 @@ BEGIN
 					,[OriginalRecord]
 					,[ActualRecord]
 					,[IsConfirmed]
-			INTO [dbo].[#Operations]
+			INTO [#Operations]
 			FROM [dbo].[Operations]
 
-		SELECT * FROM [dbo].[#Categories]
-		SELECT * FROM [dbo].[#Types]
-		SELECT * FROM [dbo].[#Masks]
-		SELECT * FROM [dbo].[#Domains]
-		SELECT * FROM [dbo].[#Systems]
-		SELECT * FROM [dbo].[#Menus] ORDER BY [SystemId], [Sequence]
-		SELECT * FROM [dbo].[#Users]
-		SELECT * FROM [dbo].[#SystemsUsers]
-		SELECT * FROM [dbo].[#Connections]
-		SELECT * FROM [dbo].[#Databases]
-		SELECT * FROM [dbo].[#SystemsDatabases]
-		SELECT * FROM [dbo].[#Tables]
-		SELECT * FROM [dbo].[#DatabasesTables]
-		SELECT * FROM [dbo].[#Columns] ORDER BY [TableId], [Sequence]
-		SELECT * FROM [dbo].[#Indexes]
-		SELECT * FROM [dbo].[#Indexkeys] ORDER BY [IndexId], [Sequence]
-		SELECT * FROM [dbo].[#Logins]
-		SELECT * FROM [dbo].[#Transactions]
-		SELECT * FROM [dbo].[#Operations]
+		SELECT * FROM [#Categories]
+		SELECT * FROM [#Types]
+		SELECT * FROM [#Masks]
+		SELECT * FROM [#Domains]
+		SELECT * FROM [#Systems]
+		SELECT * FROM [#Menus] ORDER BY [SystemId], [Sequence]
+		SELECT * FROM [#Users]
+		SELECT * FROM [#SystemsUsers]
+		SELECT * FROM [#Connections]
+		SELECT * FROM [#Databases]
+		SELECT * FROM [#SystemsDatabases]
+		SELECT * FROM [#Tables]
+		SELECT * FROM [#DatabasesTables]
+		SELECT * FROM [#Columns] ORDER BY [TableId], [Sequence]
+		SELECT * FROM [#Indexes]
+		SELECT * FROM [#Indexkeys] ORDER BY [IndexId], [Sequence]
+		SELECT * FROM [#Logins]
+		SELECT * FROM [#Transactions]
+		SELECT * FROM [#Operations]
 	END TRY
 	BEGIN CATCH
         SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));

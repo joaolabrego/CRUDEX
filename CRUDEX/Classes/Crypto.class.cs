@@ -30,6 +30,16 @@ namespace CRUDA_LIB
 
             return result;
         }
+        public static string GenerateIdetifier(int? length)
+        {
+            var result = "#";
+            var charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_";
+
+            for (var i = 0; i < length; i++)
+                result += charset[Rnd.Next(0, charset.Length)];
+
+            return result;
+        }
         public static bool IsEncrypted(string value)
         {
             return value.Length >= CryptoPrefix.Length && value[..CryptoPrefix.Length] == CryptoPrefix;

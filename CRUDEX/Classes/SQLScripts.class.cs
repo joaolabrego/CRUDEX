@@ -1041,10 +1041,11 @@ namespace crudex.Classes
 
             return result;
         }
-        private static StringBuilder GetReferenceQueries(DataRow reference, TDataRows columns)
+        private static StringBuilder GetReferenceQueries(DataRow reference, TDataRows columns, string tableName = "#result")
         {
             var result = new StringBuilder();
             var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(reference["ReferenceTableId"]));
+            var tmpName = Crypto.GenerateIdetifier(25);
             var firstTime = true;
 
             foreach( var column in columnRows)
@@ -1056,8 +1057,19 @@ namespace crudex.Classes
                 }
                 result.Append($"              ,[R].[{column["Name"]}]\r\n");
             }
-            result.Append($"            FROM [dbo].[{reference["#ReferenceTableName"]}] [R]\r\n");
-            result.Append($"            WHERE EXISTS(SELECT 1 FROM [dbo].[#result] WHERE [{reference["Name"]}] =  [R].[Id])\r\n");
+            result.Append($"            INTO [{tmpName}]\r\n");
+            result.Append($"            FROM [{tableName}] [T]\r\n");
+            result.Append($"                INNER JOIN [dbo].[{reference["#ReferenceTableName"]}] [R] ON [R].[Id] = [T].[{reference["Name"]}]\r\n");
+            result.Append($"            ORDER BY [R].[Id]\r\n");
+            result.Append($"        SELECT * FROM [{tmpName}]\r\n");
+
+            var subReferences = columns.FindAll(row => !Settings.IsNull(row["ReferenceTableId"]) &&
+                                                       Settings.ToLong(row["TableId"]) != Settings.ToLong(row["ReferenceTableId"]) &&
+                                                       Settings.ToLong(row["TableId"]) == Settings.ToLong(reference["ReferenceTableId"]));
+            foreach (var subReference in subReferences)
+            {
+                result.Append(GetReferenceQueries(subReference, columns, tmpName));
+            }
 
             return result;
         }
@@ -1138,12 +1150,12 @@ namespace crudex.Classes
                     }
                     result.Append($"              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
-                result.Append($"            INTO [dbo].[#operations]\r\n");
+                result.Append($"            INTO [#operations]\r\n");
                 result.Append($"            FROM [dbo].[Operations]\r\n");
                 result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                  AND [TableName] = '{table["Name"]}'\r\n");
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
-                result.Append($"        CREATE UNIQUE INDEX [#unqOperations] ON [dbo].[#operations]([{columnRows[0]["Name"]}]");
+                result.Append($"        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([{columnRows[0]["Name"]}]");
                 result.Append($")\r\n");
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))\r\n");
@@ -1186,19 +1198,19 @@ namespace crudex.Classes
                 }
                 result.Append($"        END ELSE\r\n");
                 result.Append($"            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'\r\n");
-                result.Append($"        SET @sql = 'INSERT [dbo].[#table]\r\n");
+                result.Append($"        SET @sql = 'INSERT [#table]\r\n");
                 result.Append($"                        SELECT ''T'' AS [_]\r\n");
                 result.Append($"                              ,[T].[Id]\r\n");
                 result.Append($"                            FROM [dbo].[{table["Name"]}] [T]\r\n");
-                result.Append($"                                LEFT JOIN [dbo].[#operations] [#] ON [#].[Id] = [T].[Id]");
+                result.Append($"                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]");
                 result.Append($"\r\n");
                 result.Append($"                            WHERE [#].[{columnRows[0]["Name"]}] IS NULL' + @Where + '\r\n");
                 result.Append($"                        UNION ALL\r\n");
                 result.Append($"                            SELECT ''O'' AS [_]\r\n");
                 result.Append($"                                  ,[T].[{columnRows[0]["Name"]}]\r\n");
-                result.Append($"                                FROM [dbo].[#operations] [T]\r\n");
+                result.Append($"                                FROM [#operations] [T]\r\n");
                 result.Append($"                                WHERE [T].[_] <> ''delete''' + @Where\r\n");
-                result.Append($"        CREATE TABLE [dbo].[#table]([_] CHAR(1)");
+                result.Append($"        CREATE TABLE [#table]([_] CHAR(1)");
                 result.Append($", [{columnRows[0]["Name"]}] {columnRows[0]["#DataType"]}");
                 result.Append($")\r\n");
                 result.Append($"        IF @_ IS NULL\r\n");
@@ -1226,7 +1238,7 @@ namespace crudex.Classes
                 result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
                 result.Append($"               ,@OffSet INT\r\n");
                 result.Append($"\r\n");
-                result.Append($"        CREATE UNIQUE INDEX [#unqTable] ON [dbo].[#table]([{columnRows[0]["Name"]}]");
+                result.Append($"        CREATE UNIQUE INDEX [#unqTable] ON [#table]([{columnRows[0]["Name"]}]");
                 result.Append($")\r\n");
                 result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
                 result.Append($"            SET @OffSet = 0\r\n");
@@ -1253,21 +1265,21 @@ namespace crudex.Classes
                     }
                     result.Append($"                    ,CAST(NULL AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
-                result.Append($"            INTO [dbo].[#result]\r\n");
+                result.Append($"            INTO [#result]\r\n");
 
                 result.Append($"        SET @sql = 'INSERT #result\r\n");
                 result.Append($"                        SELECT ''{table["Alias"]}'' AS [ClassName]\r\n");
                 foreach (var column in columnRows)
                     result.Append($"                              ,[T].[{column["Name"]}]\r\n");
-                result.Append($"                            FROM [dbo].[#table] [#]\r\n");
+                result.Append($"                            FROM [#table] [#]\r\n");
                 result.Append($"                                INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[Id] = [#].[Id]\r\n");
                 result.Append($"                            WHERE [#].[_] = ''T''\r\n");
                 result.Append($"                        UNION ALL\r\n");
                 result.Append($"                            SELECT ''{table["Alias"]}'' AS [ClassName]\r\n");
                 foreach (var column in columnRows)
                     result.Append($"                                  ,[O].[{column["Name"]}]\r\n");
-                result.Append($"                                FROM [dbo].[#table] [#]\r\n");
-                result.Append($"                                    INNER JOIN [dbo].[#operations] [O] ON [O].[Id] = [#].[Id]\r\n");
+                result.Append($"                                FROM [#table] [#]\r\n");
+                result.Append($"                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]\r\n");
                 result.Append($"                                WHERE [#].[_] = ''O''\r\n");
                 result.Append($"                        ORDER BY ' + @OrderBy + '\r\n");
                 result.Append($"                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
@@ -1283,7 +1295,7 @@ namespace crudex.Classes
                     }
                     result.Append($"              ,[{column["Name"]}]\r\n");
                 }
-                result.Append($"            FROM [dbo].[#result]\r\n");
+                result.Append($"            FROM [#result]\r\n");
 
                 var references = columnRows.FindAll(column => !Settings.IsNull(column["ReferenceTableId"]));
                 foreach (var reference in references)
@@ -1337,7 +1349,7 @@ namespace crudex.Classes
                     result.Append($"            SET @Value = ''\r\n");
 
                     result.Append($"        SELECT [Id]\r\n");
-                    result.Append($"            INTO [dbo].[#query]\r\n");
+                    result.Append($"            INTO [#query]\r\n");
                     result.Append($"            FROM [dbo].[{table["Name"]}]\r\n");
                     result.Append($"            WHERE [{listableColumn["Name"]}] LIKE '%' + @Value + '%'\r\n");
                     result.Append($"            ORDER BY [{listableColumn["Name"]}]\r\n");
@@ -1346,7 +1358,7 @@ namespace crudex.Classes
                     result.Append($"               ,@OffSet INT\r\n");
                     result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
                     result.Append($"\r\n");
-                    result.Append($"        CREATE UNIQUE INDEX [#unqQuery] ON [dbo].[#query]([Id])");
+                    result.Append($"        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])");
                     result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
                     result.Append($"            SET @OffSet = 0\r\n");
                     result.Append($"            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END\r\n");
@@ -1364,7 +1376,7 @@ namespace crudex.Classes
                     result.Append($"        END\r\n");
                     result.Append($"        SET @sql = 'SELECT [T].[Id]\r\n");
                     result.Append($"                          ,[T].[{listableColumn["Name"]}]\r\n");
-                    result.Append($"                       FROM [dbo].[#query] [Q]\r\n");
+                    result.Append($"                       FROM [#query] [Q]\r\n");
                     result.Append($"                           INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[Id] = [Q].[Id]\r\n");
                     result.Append($"                       ORDER BY [T].[{listableColumn["Name"]}]\r\n");
                     result.Append($"                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
