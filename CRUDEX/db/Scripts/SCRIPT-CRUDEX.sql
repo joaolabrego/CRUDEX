@@ -467,6 +467,8 @@ CREATE TABLE [dbo].[Transactions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' A
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED ([Id])
+CREATE  INDEX [UNQ_Transactions_LoginId_IsConfirmed] ON [dbo].[Transactions]([LoginId] ASC, [IsConfirmed] ASC)
+GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Operations]
@@ -486,6 +488,8 @@ CREATE TABLE [dbo].[Operations]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS 
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED ([Id])
+CREATE  INDEX [UNQ_Operations_TransactionId_TableName_IsConfirmed] ON [dbo].[Operations]([TransactionId] ASC, [TableName] ASC, [IsConfirmed] ASC)
+GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Associations]
@@ -501,6 +505,9 @@ CREATE TABLE [dbo].[Associations]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' A
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Associations] ADD CONSTRAINT PK_Associations PRIMARY KEY CLUSTERED ([Id])
+CREATE UNIQUE INDEX [UNQ_Associations_TableId1_TableId2] ON [dbo].[Associations]([TableId1] ASC, [TableId2] ASC)
+CREATE UNIQUE INDEX [UNQ_Associations_TableId2_TableId1] ON [dbo].[Associations]([TableId2] ASC, [TableId1] ASC)
+GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Uniques]
@@ -516,6 +523,9 @@ CREATE TABLE [dbo].[Uniques]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Uniques] ADD CONSTRAINT PK_Uniques PRIMARY KEY CLUSTERED ([Id])
+CREATE UNIQUE INDEX [UNQ_Uniques_ColumnId1_ColumnId2] ON [dbo].[Uniques]([ColumnId1] ASC, [ColumnId2] ASC)
+CREATE UNIQUE INDEX [UNQ_Uniques_ColumnId2_ColumnId1] ON [dbo].[Uniques]([ColumnId2] ASC, [ColumnId1] ASC)
+GO
 
 /**********************************************************************************
 Criar stored procedure [dbo].[Config]
@@ -14485,6 +14495,108 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('25' AS bigint)
+                                ,CAST('18' AS bigint)
+                                ,CAST('UNQ_Transactions_LoginId_IsConfirmed' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('26' AS bigint)
+                                ,CAST('19' AS bigint)
+                                ,CAST('UNQ_Operations_TransactionId_TableName_IsConfirmed' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('27' AS bigint)
+                                ,CAST('20' AS bigint)
+                                ,CAST('UNQ_Associations_TableId1_TableId2' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('28' AS bigint)
+                                ,CAST('20' AS bigint)
+                                ,CAST('UNQ_Associations_TableId2_TableId1' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('29' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('UNQ_Uniques_ColumnId1_ColumnId2' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexes] ([Id]
+                                ,[TableId]
+                                ,[Name]
+                                ,[IsUnique]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('30' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('UNQ_Uniques_ColumnId2_ColumnId1' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Indexkeys]
@@ -15148,6 +15260,253 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                                 ,CAST('24' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('132' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('36' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('134' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('37' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('135' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('38' AS bigint)
+                                ,CAST('26' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('137' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('39' AS bigint)
+                                ,CAST('26' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('138' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('40' AS bigint)
+                                ,CAST('26' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('143' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('41' AS bigint)
+                                ,CAST('27' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('145' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('42' AS bigint)
+                                ,CAST('27' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('146' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('43' AS bigint)
+                                ,CAST('28' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('146' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('44' AS bigint)
+                                ,CAST('28' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('145' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('45' AS bigint)
+                                ,CAST('29' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('149' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('46' AS bigint)
+                                ,CAST('29' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('150' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('47' AS bigint)
+                                ,CAST('30' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('150' AS bigint)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Indexkeys] ([Id]
+                                ,[IndexId]
+                                ,[Sequence]
+                                ,[ColumnId]
+                                ,[IsDescending]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('48' AS bigint)
+                                ,CAST('30' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('149' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -26898,6 +27257,16 @@ ALTER PROCEDURE [dbo].[AssociationValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
             IF @W_IsBidirectional < CAST('1' AS bit)
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord deve ser maior que ou igual a 1', 1
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId1] = @W_TableId1 AND [TableId2] = @W_TableId2)
+                    THROW 51000, 'Chave única de UNQ_Associations_TableId1_TableId2 já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId2] = @W_TableId2 AND [TableId1] = @W_TableId1)
+                    THROW 51000, 'Chave única de UNQ_Associations_TableId2_TableId1 já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId1] = @W_TableId1 AND [TableId2] = @W_TableId2 AND [Id] <> @W_Id)
+                THROW 51000, 'Chave única de UNQ_Associations_TableId1_TableId2 já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId2] = @W_TableId2 AND [TableId1] = @W_TableId1 AND [Id] <> @W_Id)
+                THROW 51000, 'Chave única de UNQ_Associations_TableId2_TableId1 já existe', 1
+            END
         END
 
         RETURN @TransactionId
@@ -27389,6 +27758,16 @@ ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de ColumnId2 em @ActualRecord é requerido.', 1
             IF @W_IsBidirectional IS NULL
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
+            IF @Action = 'create' BEGIN
+                IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2)
+                    THROW 51000, 'Chave única de UNQ_Uniques_ColumnId1_ColumnId2 já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1)
+                    THROW 51000, 'Chave única de UNQ_Uniques_ColumnId2_ColumnId1 já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2 AND [Id] <> @W_Id)
+                THROW 51000, 'Chave única de UNQ_Uniques_ColumnId1_ColumnId2 já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1 AND [Id] <> @W_Id)
+                THROW 51000, 'Chave única de UNQ_Uniques_ColumnId2_ColumnId1 já existe', 1
+            END
         END
 
         RETURN @TransactionId
