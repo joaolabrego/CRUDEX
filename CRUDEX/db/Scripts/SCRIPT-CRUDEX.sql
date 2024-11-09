@@ -781,6 +781,7 @@ BEGIN
 				INTO [#Indexkeys]
 				FROM [dbo].[Indexkeys] [IK]
 					INNER JOIN [#Indexes] [I] ON [I].[Id] = [IK].IndexId
+			
 			-- 11 [Masks]
 			SELECT 	'Mask' AS [ClassName]
 					,[M].[Id]
@@ -789,12 +790,30 @@ BEGIN
 				INTO [#Masks]
 				FROM [dbo].[Masks] [M]
 				WHERE EXISTS(SELECT TOP 1 1 FROM [#Domains] WHERE [MaskId] = [M].[Id])
+			
+			-- 12 [Associations]
+			SELECT 'Association' AS [ClassName]
+				   ,[A].[Id]
+				   ,[A].[TableId1]
+				   ,[A].[TableId2]
+				   ,[A].[IsBidirectional]
+				INTO [#Associations]
+				FROM [dbo].[Associations] [A]
+					INNER JOIN [#Tables] [T] ON [T].[Id] IN ([A].[TableId1], [A].[TableId2])
+			-- 13 [Uniques]
+			SELECT 'Unique' AS [ClassName]
+				   ,[U].[Id]
+				   ,[U].[ColumnId1]
+				   ,[U].[ColumnId2]
+				   ,[U].[IsBidirectional]
+				INTO [#Uniques]
+				FROM [dbo].[Uniques] [U]
+					INNER JOIN [#Columns] [T] ON [T].[Id] IN ([U].[ColumnId1], [U].[ColumnId2])
 		END
 
 		-- Results
 		SELECT * FROM [#Systems] ORDER BY [Name] -- 0 [#Systems]
 		IF @DatabaseName IS NULL BEGIN
-			
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 1 [#Databases]
 			SELECT * FROM [#Tables] ORDER BY [DatabaseId], [Name] -- 2 [#Tables]
 			SELECT * FROM [#Columns] ORDER BY [TableId], [Sequence] -- 3 [#Columns]
@@ -805,6 +824,8 @@ BEGIN
 			SELECT * FROM [#Indexes] ORDER BY [Name] -- 8 [#Indexes]
 			SELECT * FROM [#Indexkeys] ORDER BY [IndexId], [Sequence] -- 9 [#Indexkeys]
 			SELECT * FROM [#Masks] ORDER BY [Id] -- 10 [#Masks]
+			SELECT * FROM [#Associations] ORDER BY [Id] -- 11 [#Associations]
+			SELECT * FROM [#Uniques] ORDER BY [Id] -- 12 [#Uniques]
 		END ELSE BEGIN
 			SELECT * FROM [#Connections] ORDER BY [Id] -- 1 [#Connections]]
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]
@@ -5502,7 +5523,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Tabelas de bancos-de-dados' AS nvarchar(50))
                                 ,CAST('10' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('19' AS bigint)
+                                ,CAST('21' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5525,7 +5546,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Bancos-de-Dados x Tabelas' AS nvarchar(50))
                                 ,CAST('10' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('19' AS bigint)
+                                ,CAST('21' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5548,7 +5569,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Colunas de tabelas' AS nvarchar(50))
                                 ,CAST('12' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('143' AS bigint)
+                                ,CAST('151' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5571,7 +5592,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Índices de tabelas' AS nvarchar(50))
                                 ,CAST('12' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('24' AS bigint)
+                                ,CAST('30' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5594,7 +5615,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Chaves de índices' AS nvarchar(50))
                                 ,CAST('15' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('35' AS bigint)
+                                ,CAST('48' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5686,7 +5707,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Associações entre tabelas' AS nvarchar(50))
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bigint)
+                                ,CAST('3' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5709,7 +5730,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Unicidades cruzadas' AS nvarchar(50))
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bigint)
+                                ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -16957,11 +16978,11 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
               ,[R].[AskMinimum]
               ,[R].[AskMaximum]
               ,[R].[AskInWords]
-            INTO [#fr1dITh0s1wOsvlWD7_Uc_lqH]
+            INTO [#ahiM5SY970_dWt0dUtxUQcZgk]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#fr1dITh0s1wOsvlWD7_Uc_lqH]
+        SELECT * FROM [#ahiM5SY970_dWt0dUtxUQcZgk]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -18119,11 +18140,11 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
               ,[R].[AskGridable]
               ,[R].[AskCodification]
               ,[R].[IsActive]
-            INTO [#6X3LL64TfcUjb7fv7jQTTMc2x]
+            INTO [#qsPuBY09Evt2ShUOoGwSoug7G]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#6X3LL64TfcUjb7fv7jQTTMc2x]
+        SELECT * FROM [#qsPuBY09Evt2ShUOoGwSoug7G]
         SELECT 'Category' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -18136,20 +18157,20 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
               ,[R].[AskMinimum]
               ,[R].[AskMaximum]
               ,[R].[AskInWords]
-            INTO [#4n73kbLZ1OmEAhxPxrRDa9rWb]
-            FROM [#6X3LL64TfcUjb7fv7jQTTMc2x] [T]
+            INTO [#njr3xpjxe8xjsdwlm7cKjGSro]
+            FROM [#qsPuBY09Evt2ShUOoGwSoug7G] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#4n73kbLZ1OmEAhxPxrRDa9rWb]
+        SELECT * FROM [#njr3xpjxe8xjsdwlm7cKjGSro]
         SELECT 'Mask' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Mask]
-            INTO [#6a24fRbB3dmU5DStV6lm3j5v9]
+            INTO [#Uc1Vs3XoS7SN52vQ_zUeybe4M]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#6a24fRbB3dmU5DStV6lm3j5v9]
+        SELECT * FROM [#Uc1Vs3XoS7SN52vQ_zUeybe4M]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -19363,11 +19384,11 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#ZkkGRSHf8YADvY5Lp7z1R6Agq]
+            INTO [#B_N54HdCEH5OXv2XoiipbZglX]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#ZkkGRSHf8YADvY5Lp7z1R6Agq]
+        SELECT * FROM [#B_N54HdCEH5OXv2XoiipbZglX]
         SELECT 'Menu' AS ClassName
               ,[R].[Id]
               ,[R].[SystemId]
@@ -19376,11 +19397,11 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
               ,[R].[Message]
               ,[R].[Action]
               ,[R].[ParentMenuId]
-            INTO [#aERD_dmcz6g2PMsC0tmQYyUfM]
+            INTO [#atgozjeD3Mb2KufjeazMyFvdx]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Menus] [R] ON [R].[Id] = [T].[ParentMenuId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#aERD_dmcz6g2PMsC0tmQYyUfM]
+        SELECT * FROM [#atgozjeD3Mb2KufjeazMyFvdx]
         SELECT 'System' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -19388,11 +19409,11 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#DmU4DH5p9cf3iCklBZy8hKNfu]
-            FROM [#aERD_dmcz6g2PMsC0tmQYyUfM] [T]
+            INTO [#a8zVK1CLg85THWyuiqyXb34vF]
+            FROM [#atgozjeD3Mb2KufjeazMyFvdx] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#DmU4DH5p9cf3iCklBZy8hKNfu]
+        SELECT * FROM [#a8zVK1CLg85THWyuiqyXb34vF]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -20511,11 +20532,11 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#ND1yP0cuGQYBy7F56krR9Ok78]
+            INTO [#1DfPh0Rck4KcIAyU4mSCxNqN5]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#ND1yP0cuGQYBy7F56krR9Ok78]
+        SELECT * FROM [#1DfPh0Rck4KcIAyU4mSCxNqN5]
         SELECT 'User' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -20523,11 +20544,11 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
               ,[R].[FullName]
               ,[R].[RetryLogins]
               ,[R].[IsActive]
-            INTO [#PDzoBVB97dgECtXHDP8PVuWDU]
+            INTO [#B7MAjKtWCuKbCAY1U96Sbgfo5]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#PDzoBVB97dgECtXHDP8PVuWDU]
+        SELECT * FROM [#B7MAjKtWCuKbCAY1U96Sbgfo5]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -21764,11 +21785,11 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
               ,[R].[Password]
               ,[R].[PersistSecurityInfo]
               ,[R].[AdditionalParameters]
-            INTO [#a5Lnz6zMom7FrDBTsF3vHAQqh]
+            INTO [#_teW2zNhw40Ke5mlQdggBH268]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#a5Lnz6zMom7FrDBTsF3vHAQqh]
+        SELECT * FROM [#_teW2zNhw40Ke5mlQdggBH268]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -22353,11 +22374,11 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#2lJFtjxdmRFcFATkF1oRdqtmO]
+            INTO [#X9F0WNf5qnmKrENyqj6Q7VslC]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#2lJFtjxdmRFcFATkF1oRdqtmO]
+        SELECT * FROM [#X9F0WNf5qnmKrENyqj6Q7VslC]
         SELECT 'Database' AS ClassName
               ,[R].[Id]
               ,[R].[ConnectionId]
@@ -22367,11 +22388,11 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,[R].[Folder]
               ,[R].[IsLegacy]
               ,[R].[CurrentOperationId]
-            INTO [#G7HZ3XUzAuxGA8rOOy_IJfKW9]
+            INTO [#wCXY8QDObnwcz7olwDFo1fxVG]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Databases] [R] ON [R].[Id] = [T].[DatabaseId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#G7HZ3XUzAuxGA8rOOy_IJfKW9]
+        SELECT * FROM [#wCXY8QDObnwcz7olwDFo1fxVG]
         SELECT 'Connection' AS ClassName
               ,[R].[Id]
               ,[R].[Provider]
@@ -22384,11 +22405,11 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,[R].[Password]
               ,[R].[PersistSecurityInfo]
               ,[R].[AdditionalParameters]
-            INTO [#2lnwVTomZkA65TuHxINHIrsoL]
-            FROM [#G7HZ3XUzAuxGA8rOOy_IJfKW9] [T]
+            INTO [#NGKGpW0OdgWfZlwNGcLANFM9e]
+            FROM [#wCXY8QDObnwcz7olwDFo1fxVG] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#2lnwVTomZkA65TuHxINHIrsoL]
+        SELECT * FROM [#NGKGpW0OdgWfZlwNGcLANFM9e]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -23593,11 +23614,11 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,[R].[Folder]
               ,[R].[IsLegacy]
               ,[R].[CurrentOperationId]
-            INTO [#phr7PTSbQUn7VX3yhfTSMf5zj]
+            INTO [#fu9s0jAU3rWrVyC29KA7sLa_l]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Databases] [R] ON [R].[Id] = [T].[DatabaseId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#phr7PTSbQUn7VX3yhfTSMf5zj]
+        SELECT * FROM [#fu9s0jAU3rWrVyC29KA7sLa_l]
         SELECT 'Connection' AS ClassName
               ,[R].[Id]
               ,[R].[Provider]
@@ -23610,11 +23631,11 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,[R].[Password]
               ,[R].[PersistSecurityInfo]
               ,[R].[AdditionalParameters]
-            INTO [#vCLOV7SxdHZV4Bw7NunOGNkRr]
-            FROM [#phr7PTSbQUn7VX3yhfTSMf5zj] [T]
+            INTO [#qy272HyYXpqt5k_IC0lAEClLN]
+            FROM [#fu9s0jAU3rWrVyC29KA7sLa_l] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#vCLOV7SxdHZV4Bw7NunOGNkRr]
+        SELECT * FROM [#qy272HyYXpqt5k_IC0lAEClLN]
         SELECT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -23623,11 +23644,11 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#ZGkcwRDSeUCz7TmgAPlZOUa5n]
+            INTO [#vkpePI_aBeDjk2196TRwrOI06]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#ZGkcwRDSeUCz7TmgAPlZOUa5n]
+        SELECT * FROM [#vkpePI_aBeDjk2196TRwrOI06]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -24510,11 +24531,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#moKpKbPIFsUbxbh9fbxVReXgf]
+            INTO [#veLuaPIwcIuYi_J3v134Ens_5]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#moKpKbPIFsUbxbh9fbxVReXgf]
+        SELECT * FROM [#veLuaPIwcIuYi_J3v134Ens_5]
         SELECT 'Domain' AS ClassName
               ,[R].[Id]
               ,[R].[TypeId]
@@ -24527,11 +24548,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[Minimum]
               ,[R].[Maximum]
               ,[R].[Codification]
-            INTO [#QrHLfue9qhtskhBmG6fGxfylj]
+            INTO [#WT0hiVYzsIKzznEqitVNV4b31]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#QrHLfue9qhtskhBmG6fGxfylj]
+        SELECT * FROM [#WT0hiVYzsIKzznEqitVNV4b31]
         SELECT 'Type' AS ClassName
               ,[R].[Id]
               ,[R].[CategoryId]
@@ -24547,11 +24568,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[AskGridable]
               ,[R].[AskCodification]
               ,[R].[IsActive]
-            INTO [#hPldBUJSgeJ5GOAqD5QFSZqvp]
-            FROM [#QrHLfue9qhtskhBmG6fGxfylj] [T]
+            INTO [#yO22UH6NZTdh76PEKT7A2U9KC]
+            FROM [#WT0hiVYzsIKzznEqitVNV4b31] [T]
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#hPldBUJSgeJ5GOAqD5QFSZqvp]
+        SELECT * FROM [#yO22UH6NZTdh76PEKT7A2U9KC]
         SELECT 'Category' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -24564,20 +24585,20 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[AskMinimum]
               ,[R].[AskMaximum]
               ,[R].[AskInWords]
-            INTO [#Lf92KbJru9labzNY3QoaLOJPF]
-            FROM [#hPldBUJSgeJ5GOAqD5QFSZqvp] [T]
+            INTO [#W6cS_ClDHpFLvnfJ_hOj04ZBS]
+            FROM [#yO22UH6NZTdh76PEKT7A2U9KC] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#Lf92KbJru9labzNY3QoaLOJPF]
+        SELECT * FROM [#W6cS_ClDHpFLvnfJ_hOj04ZBS]
         SELECT 'Mask' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Mask]
-            INTO [#nm0VprUOoJRbMX5xmO_53jWBR]
-            FROM [#QrHLfue9qhtskhBmG6fGxfylj] [T]
+            INTO [#YQjpcaaFMdiSo7PBkwqB9n2u7]
+            FROM [#WT0hiVYzsIKzznEqitVNV4b31] [T]
                 INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#nm0VprUOoJRbMX5xmO_53jWBR]
+        SELECT * FROM [#YQjpcaaFMdiSo7PBkwqB9n2u7]
         SELECT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -24586,11 +24607,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#PdpXWg_SMXqs0s15XT8wrpMDy]
+            INTO [#twTG4_kYtES6U0gTusK1g_ILA]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ReferenceTableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#PdpXWg_SMXqs0s15XT8wrpMDy]
+        SELECT * FROM [#twTG4_kYtES6U0gTusK1g_ILA]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -25107,11 +25128,11 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#xHO8fR63l25hJCWqiqhNKTXlB]
+            INTO [#GKuh7AAGZkgrPp0p7sGnaU2N0]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#xHO8fR63l25hJCWqiqhNKTXlB]
+        SELECT * FROM [#GKuh7AAGZkgrPp0p7sGnaU2N0]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -25710,11 +25731,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[TableId]
               ,[R].[Name]
               ,[R].[IsUnique]
-            INTO [#wjkOV3DoPHSm0p9mgoCqdN5dF]
+            INTO [#glbzXTq40_1Cmyyx1KoXl4zig]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Indexes] [R] ON [R].[Id] = [T].[IndexId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#wjkOV3DoPHSm0p9mgoCqdN5dF]
+        SELECT * FROM [#glbzXTq40_1Cmyyx1KoXl4zig]
         SELECT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -25723,11 +25744,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#hZnKYrJeWCyD8CjQoooMvADKq]
-            FROM [#wjkOV3DoPHSm0p9mgoCqdN5dF] [T]
+            INTO [#GTzmZFxFyYN2665g0N79NtbSf]
+            FROM [#glbzXTq40_1Cmyyx1KoXl4zig] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#hZnKYrJeWCyD8CjQoooMvADKq]
+        SELECT * FROM [#GTzmZFxFyYN2665g0N79NtbSf]
         SELECT 'Column' AS ClassName
               ,[R].[Id]
               ,[R].[TableId]
@@ -25751,11 +25772,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[IsGridable]
               ,[R].[IsEncrypted]
               ,[R].[IsInWords]
-            INTO [#3sH37jcY96TvKsQZotLvCwmxh]
+            INTO [#BtEfbETLsXb5aaNalqXmx0lQl]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#3sH37jcY96TvKsQZotLvCwmxh]
+        SELECT * FROM [#BtEfbETLsXb5aaNalqXmx0lQl]
         SELECT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -25764,11 +25785,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#EMlvqFUHNUcHwXnxD1zVaoMGJ]
-            FROM [#3sH37jcY96TvKsQZotLvCwmxh] [T]
+            INTO [#YyYlBI2kB_NwZXQk8xV0gyYYP]
+            FROM [#BtEfbETLsXb5aaNalqXmx0lQl] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#EMlvqFUHNUcHwXnxD1zVaoMGJ]
+        SELECT * FROM [#YyYlBI2kB_NwZXQk8xV0gyYYP]
         SELECT 'Domain' AS ClassName
               ,[R].[Id]
               ,[R].[TypeId]
@@ -25781,11 +25802,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[Minimum]
               ,[R].[Maximum]
               ,[R].[Codification]
-            INTO [#7VcDI0VKQku79QA1vkN074vat]
-            FROM [#3sH37jcY96TvKsQZotLvCwmxh] [T]
+            INTO [#EDq9ESXwhO0DVHO4AWr3D2lz8]
+            FROM [#BtEfbETLsXb5aaNalqXmx0lQl] [T]
                 INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#7VcDI0VKQku79QA1vkN074vat]
+        SELECT * FROM [#EDq9ESXwhO0DVHO4AWr3D2lz8]
         SELECT 'Type' AS ClassName
               ,[R].[Id]
               ,[R].[CategoryId]
@@ -25801,11 +25822,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[AskGridable]
               ,[R].[AskCodification]
               ,[R].[IsActive]
-            INTO [#E5OKspe93OtO9qVGwAWNsJrlW]
-            FROM [#7VcDI0VKQku79QA1vkN074vat] [T]
+            INTO [#cS36IHReAbZldMfYl9wpGHTrt]
+            FROM [#EDq9ESXwhO0DVHO4AWr3D2lz8] [T]
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#E5OKspe93OtO9qVGwAWNsJrlW]
+        SELECT * FROM [#cS36IHReAbZldMfYl9wpGHTrt]
         SELECT 'Category' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -25818,20 +25839,20 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[AskMinimum]
               ,[R].[AskMaximum]
               ,[R].[AskInWords]
-            INTO [#vrXY9mu3HrMrN592l2x8XDz2r]
-            FROM [#E5OKspe93OtO9qVGwAWNsJrlW] [T]
+            INTO [#otuZJbjehmRkwOW5ThenM9IGO]
+            FROM [#cS36IHReAbZldMfYl9wpGHTrt] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#vrXY9mu3HrMrN592l2x8XDz2r]
+        SELECT * FROM [#otuZJbjehmRkwOW5ThenM9IGO]
         SELECT 'Mask' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Mask]
-            INTO [#SHvbbbm_OBVSdTOGPcpdFDScR]
-            FROM [#7VcDI0VKQku79QA1vkN074vat] [T]
+            INTO [#Fcj63P8guV4N1RFV3sd09qEjI]
+            FROM [#EDq9ESXwhO0DVHO4AWr3D2lz8] [T]
                 INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#SHvbbbm_OBVSdTOGPcpdFDScR]
+        SELECT * FROM [#Fcj63P8guV4N1RFV3sd09qEjI]
         SELECT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -25840,11 +25861,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#Qpu4DTEYRVCv8pzSmPGzQ9h7p]
-            FROM [#3sH37jcY96TvKsQZotLvCwmxh] [T]
+            INTO [#zs_k3kbp7uETvNbdeIkB_vtG6]
+            FROM [#BtEfbETLsXb5aaNalqXmx0lQl] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ReferenceTableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#Qpu4DTEYRVCv8pzSmPGzQ9h7p]
+        SELECT * FROM [#zs_k3kbp7uETvNbdeIkB_vtG6]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -26374,11 +26395,11 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#w3RZtp574p_Lz8qTBvM5ysLyb]
+            INTO [#ArnSMSxFMxiDWRCJ3i9yYb1Ko]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#w3RZtp574p_Lz8qTBvM5ysLyb]
+        SELECT * FROM [#ArnSMSxFMxiDWRCJ3i9yYb1Ko]
         SELECT 'User' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -26386,11 +26407,11 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
               ,[R].[FullName]
               ,[R].[RetryLogins]
               ,[R].[IsActive]
-            INTO [#aHS3E_gDutXDWCurM9QnF5Suy]
+            INTO [#OXI7IPKH0fo3Aprl6ITOpbkW2]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#aHS3E_gDutXDWCurM9QnF5Suy]
+        SELECT * FROM [#OXI7IPKH0fo3Aprl6ITOpbkW2]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -26867,11 +26888,11 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
               ,[R].[UserId]
               ,[R].[PublicKey]
               ,[R].[IsLogged]
-            INTO [#eMBsM9MZj_q8S0qxa9XeK6Pmr]
+            INTO [#5O6Cvo3DRPSZvP273piurWhra]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Logins] [R] ON [R].[Id] = [T].[LoginId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#eMBsM9MZj_q8S0qxa9XeK6Pmr]
+        SELECT * FROM [#5O6Cvo3DRPSZvP273piurWhra]
         SELECT 'System' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -26879,11 +26900,11 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#3pPGf1ag_b4hMArow5BKmZ7jG]
-            FROM [#eMBsM9MZj_q8S0qxa9XeK6Pmr] [T]
+            INTO [#LTczeUB6eLX3IzSi7S1YtQ1R2]
+            FROM [#5O6Cvo3DRPSZvP273piurWhra] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#3pPGf1ag_b4hMArow5BKmZ7jG]
+        SELECT * FROM [#LTczeUB6eLX3IzSi7S1YtQ1R2]
         SELECT 'User' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -26891,11 +26912,11 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
               ,[R].[FullName]
               ,[R].[RetryLogins]
               ,[R].[IsActive]
-            INTO [#sawBe3dOHfwx972gYAD7DXE3F]
-            FROM [#eMBsM9MZj_q8S0qxa9XeK6Pmr] [T]
+            INTO [#2jNQmq_yaZ7bSM4In6aMZ_jqr]
+            FROM [#5O6Cvo3DRPSZvP273piurWhra] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#sawBe3dOHfwx972gYAD7DXE3F]
+        SELECT * FROM [#2jNQmq_yaZ7bSM4In6aMZ_jqr]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -27436,22 +27457,22 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[Id]
               ,[R].[LoginId]
               ,[R].[IsConfirmed]
-            INTO [#g2obx8QUh7vFENkgYmqI_raYB]
+            INTO [#MlL3AIEXr1xB36V4hi8_9zHMB]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Transactions] [R] ON [R].[Id] = [T].[TransactionId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#g2obx8QUh7vFENkgYmqI_raYB]
+        SELECT * FROM [#MlL3AIEXr1xB36V4hi8_9zHMB]
         SELECT 'Login' AS ClassName
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[UserId]
               ,[R].[PublicKey]
               ,[R].[IsLogged]
-            INTO [#UDvAoFdg9AdhaoNI55DFdu2Yb]
-            FROM [#g2obx8QUh7vFENkgYmqI_raYB] [T]
+            INTO [#BIF9TvmA2p1c41L9buRM9wkLS]
+            FROM [#MlL3AIEXr1xB36V4hi8_9zHMB] [T]
                 INNER JOIN [dbo].[Logins] [R] ON [R].[Id] = [T].[LoginId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#UDvAoFdg9AdhaoNI55DFdu2Yb]
+        SELECT * FROM [#BIF9TvmA2p1c41L9buRM9wkLS]
         SELECT 'System' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -27459,11 +27480,11 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#JMoTt6yIk6cO9tf4zgLy2pv0S]
-            FROM [#UDvAoFdg9AdhaoNI55DFdu2Yb] [T]
+            INTO [#eVVCoUcxY7xnvZX2vyWua7KJB]
+            FROM [#BIF9TvmA2p1c41L9buRM9wkLS] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#JMoTt6yIk6cO9tf4zgLy2pv0S]
+        SELECT * FROM [#eVVCoUcxY7xnvZX2vyWua7KJB]
         SELECT 'User' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -27471,11 +27492,11 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[FullName]
               ,[R].[RetryLogins]
               ,[R].[IsActive]
-            INTO [#JdoQo_nxqX3klmaUl40EWB1S1]
-            FROM [#UDvAoFdg9AdhaoNI55DFdu2Yb] [T]
+            INTO [#1Di2xPe3iHeEZ2hLR0M5CPKFx]
+            FROM [#BIF9TvmA2p1c41L9buRM9wkLS] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#JdoQo_nxqX3klmaUl40EWB1S1]
+        SELECT * FROM [#1Di2xPe3iHeEZ2hLR0M5CPKFx]
         SELECT 'Operation' AS ClassName
               ,[R].[Id]
               ,[R].[TransactionId]
@@ -27485,31 +27506,31 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[OriginalRecord]
               ,[R].[ActualRecord]
               ,[R].[IsConfirmed]
-            INTO [#tkPBh89qZrQ7BRlgC3hWE1L2Z]
+            INTO [#iHStfjx50VNvatntgivnfGqP7]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Operations] [R] ON [R].[Id] = [T].[ParentOperationId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#tkPBh89qZrQ7BRlgC3hWE1L2Z]
+        SELECT * FROM [#iHStfjx50VNvatntgivnfGqP7]
         SELECT 'Transaction' AS ClassName
               ,[R].[Id]
               ,[R].[LoginId]
               ,[R].[IsConfirmed]
-            INTO [#YJsxqCoePnAh4_qTOnWJek_zu]
-            FROM [#tkPBh89qZrQ7BRlgC3hWE1L2Z] [T]
+            INTO [#YK0TE8xfVIBRN3SkkxqfXgxjP]
+            FROM [#iHStfjx50VNvatntgivnfGqP7] [T]
                 INNER JOIN [dbo].[Transactions] [R] ON [R].[Id] = [T].[TransactionId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#YJsxqCoePnAh4_qTOnWJek_zu]
+        SELECT * FROM [#YK0TE8xfVIBRN3SkkxqfXgxjP]
         SELECT 'Login' AS ClassName
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[UserId]
               ,[R].[PublicKey]
               ,[R].[IsLogged]
-            INTO [#_cAvFdKwttCh0dJD59Bfjtp9e]
-            FROM [#YJsxqCoePnAh4_qTOnWJek_zu] [T]
+            INTO [#_edfmudyhDHLXl6IuKmx9cze2]
+            FROM [#YK0TE8xfVIBRN3SkkxqfXgxjP] [T]
                 INNER JOIN [dbo].[Logins] [R] ON [R].[Id] = [T].[LoginId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#_cAvFdKwttCh0dJD59Bfjtp9e]
+        SELECT * FROM [#_edfmudyhDHLXl6IuKmx9cze2]
         SELECT 'System' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -27517,11 +27538,11 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#RnJmI5oBPxUROBsKYa4jqG1Z6]
-            FROM [#_cAvFdKwttCh0dJD59Bfjtp9e] [T]
+            INTO [#C2h3FR8wGjdoWdwgAwujunQzd]
+            FROM [#_edfmudyhDHLXl6IuKmx9cze2] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#RnJmI5oBPxUROBsKYa4jqG1Z6]
+        SELECT * FROM [#C2h3FR8wGjdoWdwgAwujunQzd]
         SELECT 'User' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -27529,11 +27550,11 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[FullName]
               ,[R].[RetryLogins]
               ,[R].[IsActive]
-            INTO [#KqeqwDzrgsEFT5yn0XrocDQzC]
-            FROM [#_cAvFdKwttCh0dJD59Bfjtp9e] [T]
+            INTO [#7XIwfhZP4DzKx5ckBZpDEJ59c]
+            FROM [#_edfmudyhDHLXl6IuKmx9cze2] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#KqeqwDzrgsEFT5yn0XrocDQzC]
+        SELECT * FROM [#7XIwfhZP4DzKx5ckBZpDEJ59c]
         SET @ReturnValue = @RowCount
 
         RETURN 0

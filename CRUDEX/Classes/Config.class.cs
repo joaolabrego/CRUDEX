@@ -39,6 +39,8 @@ namespace CRUDA_LIB
                     Indexes = result.DataSet.Tables[8].Rows[0].Table,
                     Indexkeys = result.DataSet.Tables[9].Rows[0].Table,
                     Masks = result.DataSet.Tables[10].Rows[0].Table,
+                    Associations = result.DataSet.Tables[11].Rows[0].Table,
+                    Uniques = result.DataSet.Tables[12].Rows[0].Table,
                 };
                 config.Styles = new Styles();
                 config.Images = new Images(config.Data.System.Rows[0]["ClientName"]);

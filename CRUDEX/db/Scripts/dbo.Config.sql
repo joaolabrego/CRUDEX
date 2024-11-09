@@ -249,6 +249,7 @@ BEGIN
 				INTO [#Indexkeys]
 				FROM [dbo].[Indexkeys] [IK]
 					INNER JOIN [#Indexes] [I] ON [I].[Id] = [IK].IndexId
+			
 			-- 11 [Masks]
 			SELECT 	'Mask' AS [ClassName]
 					,[M].[Id]
@@ -257,12 +258,30 @@ BEGIN
 				INTO [#Masks]
 				FROM [dbo].[Masks] [M]
 				WHERE EXISTS(SELECT TOP 1 1 FROM [#Domains] WHERE [MaskId] = [M].[Id])
+			
+			-- 12 [Associations]
+			SELECT 'Association' AS [ClassName]
+				   ,[A].[Id]
+				   ,[A].[TableId1]
+				   ,[A].[TableId2]
+				   ,[A].[IsBidirectional]
+				INTO [#Associations]
+				FROM [dbo].[Associations] [A]
+					INNER JOIN [#Tables] [T] ON [T].[Id] IN ([A].[TableId1], [A].[TableId2])
+			-- 13 [Uniques]
+			SELECT 'Unique' AS [ClassName]
+				   ,[U].[Id]
+				   ,[U].[ColumnId1]
+				   ,[U].[ColumnId2]
+				   ,[U].[IsBidirectional]
+				INTO [#Uniques]
+				FROM [dbo].[Uniques] [U]
+					INNER JOIN [#Columns] [T] ON [T].[Id] IN ([U].[ColumnId1], [U].[ColumnId2])
 		END
 
 		-- Results
 		SELECT * FROM [#Systems] ORDER BY [Name] -- 0 [#Systems]
 		IF @DatabaseName IS NULL BEGIN
-			
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 1 [#Databases]
 			SELECT * FROM [#Tables] ORDER BY [DatabaseId], [Name] -- 2 [#Tables]
 			SELECT * FROM [#Columns] ORDER BY [TableId], [Sequence] -- 3 [#Columns]
@@ -273,6 +292,8 @@ BEGIN
 			SELECT * FROM [#Indexes] ORDER BY [Name] -- 8 [#Indexes]
 			SELECT * FROM [#Indexkeys] ORDER BY [IndexId], [Sequence] -- 9 [#Indexkeys]
 			SELECT * FROM [#Masks] ORDER BY [Id] -- 10 [#Masks]
+			SELECT * FROM [#Associations] ORDER BY [Id] -- 11 [#Associations]
+			SELECT * FROM [#Uniques] ORDER BY [Id] -- 12 [#Uniques]
 		END ELSE BEGIN
 			SELECT * FROM [#Connections] ORDER BY [Id] -- 1 [#Connections]]
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]
