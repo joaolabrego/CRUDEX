@@ -1358,7 +1358,7 @@ namespace crudex.Classes
                     result.Append($"               ,@OffSet INT\r\n");
                     result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
                     result.Append($"\r\n");
-                    result.Append($"        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])");
+                    result.Append($"        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])\r\n");
                     result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
                     result.Append($"            SET @OffSet = 0\r\n");
                     result.Append($"            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END\r\n");
