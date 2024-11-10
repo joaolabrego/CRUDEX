@@ -260,23 +260,23 @@ BEGIN
 				WHERE EXISTS(SELECT TOP 1 1 FROM [#Domains] WHERE [MaskId] = [M].[Id])
 			
 			-- 12 [Associations]
-			SELECT 'Association' AS [ClassName]
-				   ,[A].[Id]
-				   ,[A].[TableId1]
-				   ,[A].[TableId2]
-				   ,[A].[IsBidirectional]
+			SELECT DISTINCT 'Association' AS [ClassName]
+						   ,[A].[Id]
+						   ,[A].[TableId1]
+						   ,[A].[TableId2]
+						   ,[A].[IsBidirectional]
 				INTO [#Associations]
 				FROM [dbo].[Associations] [A]
 					INNER JOIN [#Tables] [T] ON [T].[Id] IN ([A].[TableId1], [A].[TableId2])
 			-- 13 [Uniques]
-			SELECT 'Unique' AS [ClassName]
-				   ,[U].[Id]
-				   ,[U].[ColumnId1]
-				   ,[U].[ColumnId2]
-				   ,[U].[IsBidirectional]
+			SELECT DISTINCT 'Unique' AS [ClassName]
+						   ,[U].[Id]
+						   ,[U].[ColumnId1]
+						   ,[U].[ColumnId2]
+						   ,[U].[IsBidirectional]
 				INTO [#Uniques]
 				FROM [dbo].[Uniques] [U]
-					INNER JOIN [#Columns] [T] ON [T].[Id] IN ([U].[ColumnId1], [U].[ColumnId2])
+					INNER JOIN [dbo].[#Columns] [C] ON [C].[Id] IN ([U].[ColumnId1], [U].[ColumnId2])
 		END
 
 		-- Results
