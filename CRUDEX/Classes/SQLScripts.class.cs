@@ -10,6 +10,7 @@ namespace crudex.Classes
     public class SQLScripts
     {
         static readonly string DirectoryScripts = Path.Combine(Settings.Builder.Environment.ContentRootPath, Settings.Get("DIRECTORY_SCRIPTS"));
+        static readonly string ReservedColumnNames = ";Data;ClassName;";
         public static async Task Generate(string systemName = "crudex", string databaseName = "crudex", bool saveInDisk = true, bool? isExcel = null, bool withInsertData = true)
         {
             var result = new StringBuilder();
@@ -371,6 +372,8 @@ namespace crudex.Classes
                         result.Append($"CREATE TABLE [dbo].[{table["Name"]}]({definition}\r\n");
                         firstTime = false;
                     }
+                    else if (ReservedColumnNames.Contains($";{Settings.ToString(column["Name"])};", StringComparison.InvariantCultureIgnoreCase))
+                        throw new Exception($"Nome de coluna {column["Name"]} é reservado.");
                     else
                     {
                         var message = $"Demais colunas definidas na tabela '{table["Name"]}' ";
@@ -1088,13 +1091,12 @@ namespace crudex.Classes
             result.Append($"            ORDER BY [R].[Id]\r\n");
             result.Append($"        SELECT * FROM [{tmpName}]\r\n");
 
-            var subReferences = columns.FindAll(row => !Settings.IsNull(row["ReferenceTableId"]) &&
-                                                       Settings.ToLong(row["TableId"]) != Settings.ToLong(row["ReferenceTableId"]) &&
-                                                       Settings.ToLong(row["TableId"]) == Settings.ToLong(reference["ReferenceTableId"]));
+            var subReferences = columns.FindAll(column => !Settings.IsNull(column["ReferenceTableId"]) &&
+                                                          Settings.ToLong(column["TableId"]) != Settings.ToLong(column["ReferenceTableId"]) &&
+                                                          Settings.ToLong(column["TableId"]) == Settings.ToLong(reference["ReferenceTableId"]));
+
             foreach (var subReference in subReferences)
-            {
                 result.Append(GetReferenceQueries(subReference, columns, tmpName));
-            }
 
             return result;
         }

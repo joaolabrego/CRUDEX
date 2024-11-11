@@ -50,13 +50,13 @@ export default class TForm {
             DatabaseName: this.#Grid.Table.Database.Name,
             TableName: this.#Grid.Table.Name,
             Action: TActions.READ,
-            InputParams: {
+            InParams: {
                 LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(this.#Grid.Primarykeys),
                 OrderBy: null,
                 PaddingGridLastPage: false,
             },
-            OutputParams: {},
+            OutParams: {},
             IOParams: {
                 PageNumber: 0,
                 LimitRows: 0,

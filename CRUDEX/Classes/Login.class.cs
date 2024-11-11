@@ -21,7 +21,7 @@ namespace CRUDA_LIB
                         Settings.Get("LOGIN_PROCEDURE"),
                         Config.ToDictionary(new
                         {
-                            InputParams = new
+                            InParams = new
                             {
                                 Parameters = JsonConvert.SerializeObject(new
                                 {
@@ -47,7 +47,7 @@ namespace CRUDA_LIB
                 Settings.Get("PUBLICKEY_PROCEDURE"),
                 Config.ToDictionary(new
                 {
-                    InputParams = new
+                    InParams = new
                     {
                         LoginId = loginId,
                     }

@@ -307,13 +307,13 @@ export default class TGrid {
             DatabaseName: this.#Table.Database.Name,
             TableName: this.#Table.Name,
             Action: TActions.READ,
-            InputParams: {
+            InParams: {
                 LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(this.#FilterValues),
                 OrderBy: this.OrderBy,
                 PaddingGridLastPage: TSystem.PaddingGridLastPage,
             },
-            OutputParams: {},
+            OutParams: {},
             IOParams: {
                 PageNumber: pageNumber,
                 LimitRows: TSystem.RowsPerPage,

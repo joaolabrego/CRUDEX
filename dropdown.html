@@ -8,13 +8,13 @@
 <body>
 
     <script>
-        class PaginatedDropdown extends HTMLElement {
+        class TDropdown extends HTMLElement {
             constructor() {
                 super();
                 this.attachShadow({ mode: 'open' });
 
                 this.page = 1;
-                this.optionsPerPage = parseInt(this.getAttribute('options-per-page')) || 10;
+                this.optionsPerPage = parseInt(this.getAttribute('options-per-page')) || 5;
                 this.options = [
                     { id: 1, name: 'Apple' },
                     { id: 2, name: 'Banana' },
@@ -54,9 +54,9 @@
                         top: 50%;
                         right: 8px;
                         transform: translateY(-50%);
-                        pointer-events: none;
                         font-size: 12px;
                         color: #333;
+                        cursor: pointer; /* Indicador de que a seta é clicável */
                     }						
                     .dropdown-options {
                         display: none;
@@ -115,8 +115,16 @@
             }
 
             connectedCallback() {
-                this.input.addEventListener('focus', () => this.showOptions());
+                // Evento para exibir a lista apenas ao clicar na seta
+                this.arrowIcon.addEventListener('click', (event) => {
+                    event.stopPropagation(); // Impede que o clique feche a lista
+                    this.toggleOptions();
+                });
+
+                // Evento no input apenas para aplicar filtro, sem abrir a lista
                 this.input.addEventListener('input', () => this.applyFilter());
+
+                // Fechar a lista ao clicar fora dela
                 document.addEventListener('click', (event) => {
                     if (!this.contains(event.target)) {
                         this.optionsDiv.style.display = 'none';
@@ -138,6 +146,14 @@
                 this.paginationDiv.classList.add('pagination-buttons');
                 this.paginationDiv.appendChild(this.prevPageButton);
                 this.paginationDiv.appendChild(this.nextPageButton);
+            }
+
+            toggleOptions() {
+                if (this.optionsDiv.style.display === 'block') {
+                    this.optionsDiv.style.display = 'none';
+                } else {
+                    this.showOptions();
+                }
             }
 
             showOptions() {
@@ -167,12 +183,15 @@
                     });
                     this.optionsDiv.appendChild(optionDiv);
                 });
-
                 this.optionsDiv.appendChild(this.paginationDiv);
                 this.optionsDiv.style.display = 'block';
-
-                this.prevPageButton.disabled = this.page === 1;
-                this.nextPageButton.disabled = end >= filteredOptions.length;
+				if (filteredOptions.length > this.optionsPerPage){
+					this.prevPageButton.style.display = this.nextPageButton.style.display = 'initial'
+					this.prevPageButton.disabled = this.page === 1;
+					this.nextPageButton.disabled = end >= filteredOptions.length;
+				}
+				else
+					this.prevPageButton.style.display = this.nextPageButton.style.display = 'none';
             }
 
             positionOptions() {
@@ -204,7 +223,7 @@
             }
         }
 
-        customElements.define('paginated-dropdown', PaginatedDropdown);
+        customElements.define('paginated-dropdown', TDropdown);
         
         // Adiciona o elemento paginated-dropdown programaticamente
         const dropdownElement = document.createElement("paginated-dropdown");

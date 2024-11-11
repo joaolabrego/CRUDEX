@@ -13,8 +13,11 @@ export default class TDatabase {
             throw new Error("Argumento table não é do tipo TTable.")
         this.#Tables.push(table)
     }
-    GetTable(tablename) {
-        return this.#Tables.find(table => table.Name === tablename)
+    GetTable(tableNameOrId) {
+        if (typeof tableNameOrId === "string")
+            return this.#Tables.find(table => table.Name === tableNameOrId)
+
+        return this.#Tables.find(table => table.Id === tableNameOrId)
     }
     get Tables() {
         return this.#Tables

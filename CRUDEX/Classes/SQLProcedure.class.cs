@@ -19,11 +19,11 @@ namespace CRUDA_LIB
 
             if (parameters != null)
             {
-                foreach (var item in parameters.Where(item => "InputParams;OutputParams;IOParams".Contains(item.Key)))
+                foreach (var item in parameters.Where(item => "InParams;OutParams;IOParams".Contains(item.Key)))
                 {
                     var listParameters = parameters[item.Key];
-                    var direction = item.Key == "InputParams" ? ParameterDirection.Input :
-                        item.Key == "OutputParams" ? ParameterDirection.Output : ParameterDirection.InputOutput;
+                    var direction = item.Key == "InParams" ? ParameterDirection.Input :
+                        item.Key == "OutParams" ? ParameterDirection.Output : ParameterDirection.InputOutput;
 
                     if (listParameters != null)
                         foreach (var subItem in listParameters)
@@ -41,7 +41,7 @@ namespace CRUDA_LIB
         {
             var parameters = Config.ToDictionary(new
             {
-                InputParams = new
+                InParams = new
                 {
                     SystemName = systemName,
                     DatabaseName = databaseName,

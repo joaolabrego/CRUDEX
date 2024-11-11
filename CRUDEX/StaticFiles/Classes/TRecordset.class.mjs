@@ -10,16 +10,11 @@ export default class TRecordSet {
     #PageNumber = 1
     #PageCount = 0
     #RowNumber = 0
-    #Data = null
     #OrderBy = ""
-    #Reference = {
-        Tables: [],
-        Columns: [],
-        CurrentRecords: [],
-        Records: [],
-    }
+    #Data = []
+    #References = []
     constructor(table) {
-        if (grid.ClassName !== "TTable")
+        if (table.ClassName !== "TTable")
             throw new Error("Argumento table não é do tipo TTable.")
         this.#Table = table
         this.#Table.Columns.filter(column => column.IsFilterable)
@@ -31,18 +26,18 @@ export default class TRecordSet {
                 this.#Reference.CurrentRecords.push(null)
             })
     }
-    async #ReadPage(databaseName, tableName, pageNumber) {
+    async #ReadPage(pageNumber) {
         let parameters = {
-            DatabaseName: databaseName,
-            TableName: tableName,
+            DatabaseName: this.#Table.Database.Name,
+            TableName: this.#Table.Name,
             Action: TActions.READ,
-            InputParams: {
+            InParams: {
                 LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(this.#FilterValues),
                 OrderBy: this.OrderBy,
                 PaddingGridLastPage: TSystem.PaddingGridLastPage,
             },
-            OutputParams: {},
+            OutParams: {},
             IOParams: {
                 PageNumber: pageNumber,
                 LimitRows: TSystem.RowsPerPage,
@@ -55,12 +50,12 @@ export default class TRecordSet {
         this.#RowCount = result.Parameters.ReturnValue
         this.#PageNumber = result.Parameters.PageNumber
         this.#PageCount = result.Parameters.MaxPage
-        this.#ReferenceRecords.length = 0
+        this.#References.length = 0
         Object.entries(result.DataSet).forEach(([, table], index) => {
             if (index) {
-                table.forEach(rowTable => {
-                    if (!this.#ReferenceRecords.find(row => row.ClassName === rowTable.ClassName && row.Id === rowTable.Id)) {
-                        this.#Reference.Records.push(rowTable);
+                table.forEach(tableRow => {
+                    if (!this.#References.find(referenceRow => referenceRow.ClassName === tableRow.ClassName && referenceRow.Id === tableRow.Id)) {
+                        this.#References.push(tableRow);
                     }
                 });
             }
@@ -68,7 +63,10 @@ export default class TRecordSet {
         if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
             this.#RowNumber = result.Parameters.ReturnValue - 1
 
-        return result.DataSet.Table
+        return this.#Data = result.DataSet.Table
+    }
+    GetReferenceRow(tableAlias, recordId) {
+        return this.#References.find(referenceRow => referenceRow.ClassName === tableAlias && referenceRow.Id === recordId)
     }
     GoNextRow() {
         if (this.#RowNumber === this.#Data.length - 1) {
@@ -134,13 +132,13 @@ export default class TRecordSet {
             DatabaseName: databaseName,
             TableName: tableName,
             Action: TActions.READ,
-            InputParams: {
+            InParams: {
                 LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(this.Primarykeys),
                 OrderBy: null,
                 PaddingGridLastPage: false,
             },
-            OutputParams: {},
+            OutParams: {},
             IOParams: {
                 PageNumber: 0,
                 LimitRows: 0,
@@ -167,6 +165,9 @@ export default class TRecordSet {
     }
     get Table() {
         return this.#Table
+    }
+    get Record() {
+        return this.#Data[this.#RowNumber]
     }
     get RowCount() {
         return this.#RowCount

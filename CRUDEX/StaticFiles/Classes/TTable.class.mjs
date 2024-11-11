@@ -24,10 +24,25 @@ export default class TTable {
             throw new Error("Argumento column não é do tipo TColumn.")
         this.#Columns.push(column)
     }
+    GetColumn(columnNameOrAliasOrId) {
+        if (typeof columnName === "string")
+            return this.#Columns.find(column => column.Name === columnNameOrId || column.Alias === columnNameOrAliasOrId)
+
+        return this.#Columns.find(column => column.Id === columnNameOrId)
+    }
     AddIndex(index) {
         if (index.ClassName !== "TIndex")
             throw new Error("Argumento index não é do tipo TIndex.")
         this.#Indexes.push(index)
+    }
+    GetColumn(indexNameOrId) {
+        if (typeof indexNameOrId === "string")
+            return this.#Indexes.find(index => index.Name === indexNameOrId)
+
+        return this.#Indexes.find(index => index.Id === indexNameOrId)
+    }
+    GetListableColumn() {
+        return this.#Columns.find(column => column.IsListable)
     }
     get Columns() {
         return this.#Columns
