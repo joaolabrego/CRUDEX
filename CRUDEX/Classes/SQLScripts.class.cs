@@ -980,7 +980,6 @@ namespace crudex.Classes
                         result.Append($"                THROW 51000, 'Valor de {column["Name"]} em @ActualRecord inexiste em {referenceTable["Name"]}', 1\r\n");
                     }
                 }
-
                 var uniqueRows = uniques.FindAll(unique => Settings.ToLong(unique["#TableId1"]) == Settings.ToLong(table["Id"]) ||
                                                            (Settings.ToBoolean(unique["IsBidirectional"]) &&
                                                             Settings.ToLong(unique["#TableId2"]) == Settings.ToLong(table["Id"])));
@@ -1009,10 +1008,10 @@ namespace crudex.Classes
                         result.Append($")\r\n");
                         result.Append($"                    THROW 51000, 'Chave única de {index["Name"]} já existe', 1\r\n");
                     }
-                    foreach (var unique in uniques)
+                    foreach (var unique in uniqueRows)
                     {
                         result.Append($"                IF EXISTS(SELECT 1 FROM [dbo].[{unique["#TableName1"]}] WHERE [{unique["#ColumnName1"]}] = @W_{unique["#ColumnName2"]})\r\n");
-                        result.Append($"                    THROW 51000, 'Unicidade cruzada de {unique["#ColumnName1"]}] => [{unique["#ColumnName2"]}] já existe', 1\r\n");
+                        result.Append($"                    THROW 51000, 'Unicidade cruzada de [{unique["#TableAlias1"]}].[{unique["#ColumnName1"]}] => [{unique["#TableAlias2"]}].[{unique["#ColumnName2"]}] já existe', 1\r\n");
                         if (Settings.ToBoolean(unique["IsBidirectional"]))
                         {
                             result.Append($"                IF EXISTS(SELECT 1 FROM [dbo].[{unique["#TableName2"]}] WHERE [{unique["#ColumnName2"]}] = @W_{unique["#ColumnName1"]})\r\n");
@@ -1040,10 +1039,10 @@ namespace crudex.Classes
                         result.Append($")\r\n");
                         result.Append($"                THROW 51000, 'Chave única de {index["Name"]} já existe', 1\r\n");
                     }
-                    foreach (var unique in uniques)
+                    foreach (var unique in uniqueRows)
                     {
                         result.Append($"            ELSE IF EXISTS(SELECT 1 FROM [dbo].[{unique["#TableName1"]}] WHERE [{unique["#ColumnName1"]}] = @W_{unique["#ColumnName2"]} AND [Id] <> @W_Id)\r\n");
-                        result.Append($"                THROW 51000, 'Unicidade cruzada de {unique["#ColumnName1"]}] => [{unique["#ColumnName2"]}] já existe', 1\r\n");
+                        result.Append($"                THROW 51000, 'Unicidade cruzada de [{unique["#TableAlias1"]}].[{unique["#ColumnName1"]}] => [{unique["#TableAlias2"]}].[{unique["#ColumnName2"]}] já existe', 1\r\n");
                         if (Settings.ToBoolean(unique["IsBidirectional"]))
                         {
                             result.Append($"            ELSE IF EXISTS(SELECT 1 FROM [dbo].[{unique["#TableName2"]}] WHERE [{unique["#ColumnName2"]}] = @W_{unique["#ColumnName1"]} AND [Id] <> @W_Id)\r\n");
