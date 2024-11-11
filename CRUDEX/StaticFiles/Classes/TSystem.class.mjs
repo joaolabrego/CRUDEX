@@ -29,6 +29,8 @@ export default class TSystem {
     static #Columns = []
     static #Categories = []
     static #Masks = []
+    static #Associations = []
+    static #Uniques = []
 
     static Run(withBackgroundImage = true) {
         TConfig.GetAPI(TActions.CONFIG)
@@ -45,11 +47,11 @@ export default class TSystem {
                 TConfig.IdleTimeInMinutesLimit = config.IdleTimeInMinutesLimit
                 TLogin.Initialize(config.Styles)
                 TDialog.Initialize(config.Styles, config.Images)
+                TSpinner.Initialize(config.Styles)
                 TScreen.Initialize(config.Styles, config.Images, withBackgroundImage)
                 TMenu.Initialize(config.Styles, config.Data.Menus)
                 TGrid.Initialize(config.Styles, config.Images)
                 TForm.Initialize(config.Styles, config.Images)
-                TSpinner.Initialize(config.Styles)
                 config.Data.Categories.forEach(row => this.#Categories.push(new TCategory(row)))
                 config.Data.Types.forEach(row => this.#Types.push(new TType(row)))
                 config.Data.Domains.forEach(row => this.#Domains.push(new TDomain(row)))

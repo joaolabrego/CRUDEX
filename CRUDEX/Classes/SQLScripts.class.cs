@@ -25,6 +25,8 @@ namespace crudex.Classes
             var categories = (dataSet.Tables["Categories"] ?? throw new Exception("Tabela Categories não existe.")).AsEnumerable().ToList();
             var types = (dataSet.Tables["Types"] ?? throw new Exception("Tabela Types não existe.")).AsEnumerable().ToList();
             var tables = (dataSet.Tables["Tables"] ?? throw new Exception("Tabela Tables não existe.")).AsEnumerable().ToList();
+            var associations = (dataSet.Tables["Associations"] ?? throw new Exception("Tabela Associations não existe.")).AsEnumerable().ToList();
+            var uniques = (dataSet.Tables["Uniques"] ?? throw new Exception("Tabela Uniques não existe.")).AsEnumerable().ToList();
             var databaseTables = (dataSet.Tables["DatabasesTables"] ?? throw new Exception("Tabela DatabasesTables não existe.")).AsEnumerable().ToList()
                 .FindAll(row => Settings.ToLong(row["DatabaseId"]) == Settings.ToLong(database["Id"]));
             var references = new TDataRows();
@@ -61,7 +63,7 @@ namespace crudex.Classes
             {
                 var table = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(databaseTable["TableId"]));
 
-                result.AppendLine(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys).ToString());
+                result.AppendLine(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys, uniques).ToString());
                 result.AppendLine(GetScriptPersistTable(table, columns).ToString());
                 result.AppendLine(GetScriptCommitTable(table, columns).ToString());
                 result.AppendLine(GetScriptReadTable(table, columns, domains, types).ToString());
@@ -801,7 +803,7 @@ namespace crudex.Classes
 
             return result;
         }
-        private static StringBuilder GetScriptValidateTable(DataRow table, TDataRows tables, TDataRows columns, TDataRows domains, TDataRows types, TDataRows indexes, TDataRows indexkeys)
+        private static StringBuilder GetScriptValidateTable(DataRow table, TDataRows tables, TDataRows columns, TDataRows domains, TDataRows types, TDataRows indexes, TDataRows indexkeys, TDataRows uniques)
         {
             var result = new StringBuilder();
             var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
@@ -979,9 +981,12 @@ namespace crudex.Classes
                     }
                 }
 
+                var uniqueRows = uniques.FindAll(unique => Settings.ToLong(unique["#TableId1"]) == Settings.ToLong(table["Id"]) ||
+                                                           (Settings.ToBoolean(unique["IsBidirectional"]) &&
+                                                            Settings.ToLong(unique["#TableId2"]) == Settings.ToLong(table["Id"])));
                 var uniqueIndexRows = indexes.FindAll(index => Settings.ToLong(index["TableId"]) == Settings.ToLong(table["Id"]) && Settings.ToBoolean(index["IsUnique"]));
 
-                if (uniqueIndexRows.Count > 0)
+                if (uniqueIndexRows.Count > 0 || uniqueRows.Count > 0)
                 {
                     result.Append($"            IF @Action = 'create' BEGIN\r\n");
                     foreach (var index in uniqueIndexRows)
@@ -1004,6 +1009,16 @@ namespace crudex.Classes
                         result.Append($")\r\n");
                         result.Append($"                    THROW 51000, 'Chave única de {index["Name"]} já existe', 1\r\n");
                     }
+                    foreach (var unique in uniques)
+                    {
+                        result.Append($"                IF EXISTS(SELECT 1 FROM [dbo].[{unique["#TableName1"]}] WHERE [{unique["#ColumnName1"]}] = @W_{unique["#ColumnName2"]})\r\n");
+                        result.Append($"                    THROW 51000, 'Unicidade cruzada de {unique["#ColumnName1"]}] => [{unique["#ColumnName2"]}] já existe', 1\r\n");
+                        if (Settings.ToBoolean(unique["IsBidirectional"]))
+                        {
+                            result.Append($"                IF EXISTS(SELECT 1 FROM [dbo].[{unique["#TableName2"]}] WHERE [{unique["#ColumnName2"]}] = @W_{unique["#ColumnName1"]})\r\n");
+                            result.Append($"                    THROW 51000, 'Unicidade cruzada de [{unique["#TableAlias2"]}].[{unique["#ColumnName2"]}] => [{unique["#TableAlias1"]}].[{unique["#ColumnName1"]}] já existe', 1\r\n");
+                        }
+                    }
                     foreach (var index in uniqueIndexRows)
                     {
                         var indexkeyRows = indexkeys.FindAll(indexkey => Settings.ToLong(indexkey["IndexId"]) == Settings.ToLong(index["Id"]));
@@ -1021,10 +1036,21 @@ namespace crudex.Classes
                             else
                                 result.Append($" AND [{column["Name"]}] = @W_{column["Name"]}");
                         }
-                        result.Append($" AND [{columnRows[0]["Name"]}] <> @W_{columnRows[0]["Name"]}");
+                        result.Append($" AND [Id] <> @W_Id");
                         result.Append($")\r\n");
                         result.Append($"                THROW 51000, 'Chave única de {index["Name"]} já existe', 1\r\n");
                     }
+                    foreach (var unique in uniques)
+                    {
+                        result.Append($"            ELSE IF EXISTS(SELECT 1 FROM [dbo].[{unique["#TableName1"]}] WHERE [{unique["#ColumnName1"]}] = @W_{unique["#ColumnName2"]} AND [Id] <> @W_Id)\r\n");
+                        result.Append($"                THROW 51000, 'Unicidade cruzada de {unique["#ColumnName1"]}] => [{unique["#ColumnName2"]}] já existe', 1\r\n");
+                        if (Settings.ToBoolean(unique["IsBidirectional"]))
+                        {
+                            result.Append($"            ELSE IF EXISTS(SELECT 1 FROM [dbo].[{unique["#TableName2"]}] WHERE [{unique["#ColumnName2"]}] = @W_{unique["#ColumnName1"]} AND [Id] <> @W_Id)\r\n");
+                            result.Append($"                THROW 51000, 'Unicidade cruzada de [{unique["#TableAlias2"]}].[{unique["#ColumnName2"]}] => [{unique["#TableAlias1"]}].[{unique["#ColumnName1"]}] já existe', 1\r\n");
+                        }
+                    }
+
                     result.Append($"            END\r\n");
                 }
                 result.Append($"        END\r\n");

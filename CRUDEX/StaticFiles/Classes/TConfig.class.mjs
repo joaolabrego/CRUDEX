@@ -99,6 +99,9 @@ export default class TConfig {
 
         return target
     }
+    static Evaluate(JSexpression) {
+        return eval(JSexpression)
+    }
     static get Locale() {
         if (this.#Locale)
             return this.#Locale

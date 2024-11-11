@@ -55,7 +55,7 @@ BEGIN
 			FROM [dbo].[Databases] [D]
 				INNER JOIN [dbo].[SystemsDatabases] [SD] ON [SD].[DatabaseId] = [D].[id]
 				INNER JOIN [#Systems] [S] ON [S].[Id] = [SD].[SystemId]
-			WHERE [D].[Name] = ISNULL(@DatabaseName, [D].[Name])
+			WHERE @DatabaseName IS NULL OR [D].[Name] = @DatabaseName
 		IF @@ROWCOUNT = 0 BEGIN
 			SET @ErrorMessage = 'Banco(s)-de-dados não cadastrado(s).';
 			THROW 51000, @ErrorMessage, 1
@@ -100,7 +100,7 @@ BEGIN
 			FROM [dbo].[Tables] [T]
 				INNER JOIN [dbo].[DatabasesTables] [DT] ON [DT].[TableId] = [T].[Id]
 				INNER JOIN [#Databases] [D] ON [D].[Id] = [DT].[DatabaseId]
-			WHERE [T].[Name] = ISNULL(@TableName, [T].[Name])
+			WHERE @TableName IS NULL OR [T].[Name] = @TableName
 		IF @@ROWCOUNT = 0 BEGIN
 			SET @ErrorMessage = 'Tabela(s) não cadastrada(s).';
 			THROW 51000, @ErrorMessage, 1
@@ -260,23 +260,24 @@ BEGIN
 				WHERE EXISTS(SELECT TOP 1 1 FROM [#Domains] WHERE [MaskId] = [M].[Id])
 			
 			-- 12 [Associations]
-			SELECT DISTINCT 'Association' AS [ClassName]
-						   ,[A].[Id]
-						   ,[A].[TableId1]
-						   ,[A].[TableId2]
-						   ,[A].[IsBidirectional]
+			SELECT 'Association' AS [ClassName]
+					,[A].[Id]
+					,[A].[TableId1]
+					,[A].[TableId2]
+					,[A].[IsBidirectional]
 				INTO [#Associations]
 				FROM [dbo].[Associations] [A]
-					INNER JOIN [#Tables] [T] ON [T].[Id] IN ([A].[TableId1], [A].[TableId2])
+				WHERE EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] IN ([A].[TableId1], [A].[TableId2]))
+			
 			-- 13 [Uniques]
-			SELECT DISTINCT 'Unique' AS [ClassName]
-						   ,[U].[Id]
-						   ,[U].[ColumnId1]
-						   ,[U].[ColumnId2]
-						   ,[U].[IsBidirectional]
+			SELECT 'Unique' AS [ClassName]
+					,[U].[Id]
+					,[U].[ColumnId1]
+					,[U].[ColumnId2]
+					,[U].[IsBidirectional]
 				INTO [#Uniques]
 				FROM [dbo].[Uniques] [U]
-					INNER JOIN [dbo].[#Columns] [C] ON [C].[Id] IN ([U].[ColumnId1], [U].[ColumnId2])
+				WHERE EXISTS(SELECT 1 FROM [dbo].[#Columns] WHERE [Id] IN ([U].[ColumnId1], [U].[ColumnId2]))
 		END
 
 		-- Results

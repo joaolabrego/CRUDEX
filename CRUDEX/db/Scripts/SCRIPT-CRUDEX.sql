@@ -587,7 +587,7 @@ BEGIN
 			FROM [dbo].[Databases] [D]
 				INNER JOIN [dbo].[SystemsDatabases] [SD] ON [SD].[DatabaseId] = [D].[id]
 				INNER JOIN [#Systems] [S] ON [S].[Id] = [SD].[SystemId]
-			WHERE [D].[Name] = ISNULL(@DatabaseName, [D].[Name])
+			WHERE @DatabaseName IS NULL OR [D].[Name] = @DatabaseName
 		IF @@ROWCOUNT = 0 BEGIN
 			SET @ErrorMessage = 'Banco(s)-de-dados não cadastrado(s).';
 			THROW 51000, @ErrorMessage, 1
@@ -632,7 +632,7 @@ BEGIN
 			FROM [dbo].[Tables] [T]
 				INNER JOIN [dbo].[DatabasesTables] [DT] ON [DT].[TableId] = [T].[Id]
 				INNER JOIN [#Databases] [D] ON [D].[Id] = [DT].[DatabaseId]
-			WHERE [T].[Name] = ISNULL(@TableName, [T].[Name])
+			WHERE @TableName IS NULL OR [T].[Name] = @TableName
 		IF @@ROWCOUNT = 0 BEGIN
 			SET @ErrorMessage = 'Tabela(s) não cadastrada(s).';
 			THROW 51000, @ErrorMessage, 1
@@ -792,23 +792,24 @@ BEGIN
 				WHERE EXISTS(SELECT TOP 1 1 FROM [#Domains] WHERE [MaskId] = [M].[Id])
 			
 			-- 12 [Associations]
-			SELECT DISTINCT 'Association' AS [ClassName]
-						   ,[A].[Id]
-						   ,[A].[TableId1]
-						   ,[A].[TableId2]
-						   ,[A].[IsBidirectional]
+			SELECT 'Association' AS [ClassName]
+					,[A].[Id]
+					,[A].[TableId1]
+					,[A].[TableId2]
+					,[A].[IsBidirectional]
 				INTO [#Associations]
 				FROM [dbo].[Associations] [A]
-					INNER JOIN [#Tables] [T] ON [T].[Id] IN ([A].[TableId1], [A].[TableId2])
+				WHERE EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] IN ([A].[TableId1], [A].[TableId2]))
+			
 			-- 13 [Uniques]
-			SELECT DISTINCT 'Unique' AS [ClassName]
-						   ,[U].[Id]
-						   ,[U].[ColumnId1]
-						   ,[U].[ColumnId2]
-						   ,[U].[IsBidirectional]
+			SELECT 'Unique' AS [ClassName]
+					,[U].[Id]
+					,[U].[ColumnId1]
+					,[U].[ColumnId2]
+					,[U].[IsBidirectional]
 				INTO [#Uniques]
 				FROM [dbo].[Uniques] [U]
-					INNER JOIN [dbo].[#Columns] [C] ON [C].[Id] IN ([U].[ColumnId1], [U].[ColumnId2])
+				WHERE EXISTS(SELECT 1 FROM [dbo].[#Columns] WHERE [Id] IN ([U].[ColumnId1], [U].[ColumnId2]))
 		END
 
 		-- Results
@@ -2376,6 +2377,52 @@ ALTER TABLE [dbo].[Operations] WITH CHECK
     REFERENCES [dbo].[Operations] ([Id])
 GO
 ALTER TABLE [dbo].[Operations] CHECK CONSTRAINT [FK_Operations_Operations]
+GO
+/**********************************************************************************
+Criar referências de [dbo].[Associations]
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Associations_Tables')
+    ALTER TABLE [dbo].[Associations] DROP CONSTRAINT FK_Associations_Tables
+GO
+ALTER TABLE [dbo].[Associations] WITH CHECK 
+    ADD CONSTRAINT [FK_Associations_Tables] 
+    FOREIGN KEY([TableId1]) 
+    REFERENCES [dbo].[Tables] ([Id])
+GO
+ALTER TABLE [dbo].[Associations] CHECK CONSTRAINT [FK_Associations_Tables]
+GO
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Associations_Tables')
+    ALTER TABLE [dbo].[Associations] DROP CONSTRAINT FK_Associations_Tables
+GO
+ALTER TABLE [dbo].[Associations] WITH CHECK 
+    ADD CONSTRAINT [FK_Associations_Tables] 
+    FOREIGN KEY([TableId2]) 
+    REFERENCES [dbo].[Tables] ([Id])
+GO
+ALTER TABLE [dbo].[Associations] CHECK CONSTRAINT [FK_Associations_Tables]
+GO
+/**********************************************************************************
+Criar referências de [dbo].[Uniques]
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Uniques_Columns')
+    ALTER TABLE [dbo].[Uniques] DROP CONSTRAINT FK_Uniques_Columns
+GO
+ALTER TABLE [dbo].[Uniques] WITH CHECK 
+    ADD CONSTRAINT [FK_Uniques_Columns] 
+    FOREIGN KEY([ColumnId1]) 
+    REFERENCES [dbo].[Columns] ([Id])
+GO
+ALTER TABLE [dbo].[Uniques] CHECK CONSTRAINT [FK_Uniques_Columns]
+GO
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Uniques_Columns')
+    ALTER TABLE [dbo].[Uniques] DROP CONSTRAINT FK_Uniques_Columns
+GO
+ALTER TABLE [dbo].[Uniques] WITH CHECK 
+    ADD CONSTRAINT [FK_Uniques_Columns] 
+    FOREIGN KEY([ColumnId2]) 
+    REFERENCES [dbo].[Columns] ([Id])
+GO
+ALTER TABLE [dbo].[Uniques] CHECK CONSTRAINT [FK_Uniques_Columns]
 GO
 
 /**********************************************************************************
@@ -13801,7 +13848,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('20' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
+                                ,CAST('12' AS bigint)
                                 ,CAST('TableId1' AS nvarchar(25))
                                 ,NULL
                                 ,CAST('ID da tabela 1' AS nvarchar(50))
@@ -13854,7 +13901,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('20' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
+                                ,CAST('12' AS bigint)
                                 ,CAST('TableId2' AS nvarchar(25))
                                 ,NULL
                                 ,CAST('ID da tabela 2' AS nvarchar(50))
@@ -14013,7 +14060,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('21' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
+                                ,CAST('14' AS bigint)
                                 ,CAST('ColumnId1' AS nvarchar(25))
                                 ,NULL
                                 ,CAST('ID da coluna 1' AS nvarchar(50))
@@ -14066,7 +14113,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('21' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
+                                ,CAST('14' AS bigint)
                                 ,CAST('ColumnId2' AS nvarchar(25))
                                 ,NULL
                                 ,CAST('ID da coluna 2' AS nvarchar(50))
@@ -15777,8 +15824,16 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_Categories_Name já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Categories_Name já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -16483,8 +16538,16 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_Types_Name já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Types_Name já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -17017,11 +17080,11 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
               ,[R].[AskMinimum]
               ,[R].[AskMaximum]
               ,[R].[AskInWords]
-            INTO [#xIYWlkATQvdP6F3V1JWwYoR3A]
+            INTO [#2ou1TE2e8gYxqk09g8z5ZouxR]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#xIYWlkATQvdP6F3V1JWwYoR3A]
+        SELECT * FROM [#2ou1TE2e8gYxqk09g8z5ZouxR]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -17184,8 +17247,16 @@ ALTER PROCEDURE [dbo].[MaskValidate](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_Masks_Name já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Masks_Name já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -17692,8 +17763,16 @@ ALTER PROCEDURE [dbo].[DomainValidate](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_Domains_Name já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Domains_Name já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -18180,11 +18259,11 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
               ,[R].[AskGridable]
               ,[R].[AskCodification]
               ,[R].[IsActive]
-            INTO [#x0EUQbJ4jOmWBv8GxTRSGo8FO]
+            INTO [#s1PfK4RmgqE0earfSejlz6nDY]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#x0EUQbJ4jOmWBv8GxTRSGo8FO]
+        SELECT * FROM [#s1PfK4RmgqE0earfSejlz6nDY]
         SELECT 'Category' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -18197,20 +18276,20 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
               ,[R].[AskMinimum]
               ,[R].[AskMaximum]
               ,[R].[AskInWords]
-            INTO [#r2_bag_H8dJvfbXuw4CbiY2Ka]
-            FROM [#x0EUQbJ4jOmWBv8GxTRSGo8FO] [T]
+            INTO [#GbfAH2t8OBSFuJzTNBm2PreTS]
+            FROM [#s1PfK4RmgqE0earfSejlz6nDY] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#r2_bag_H8dJvfbXuw4CbiY2Ka]
+        SELECT * FROM [#GbfAH2t8OBSFuJzTNBm2PreTS]
         SELECT 'Mask' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Mask]
-            INTO [#UxY83PxG1CVpZYiaB7ZZppa0i]
+            INTO [#OTO5MiWHISddvm60YrihYCePO]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#UxY83PxG1CVpZYiaB7ZZppa0i]
+        SELECT * FROM [#OTO5MiWHISddvm60YrihYCePO]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -18398,8 +18477,16 @@ ALTER PROCEDURE [dbo].[SystemValidate](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_Systems_Name já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Systems_Name já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -18998,10 +19085,18 @@ ALTER PROCEDURE [dbo].[MenuValidate](@LoginId BIGINT
                     THROW 51000, 'Chave única de UNQ_Menus_SystemId_Sequence já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Caption] = @W_Caption)
                     THROW 51000, 'Chave única de UNQ_Menus_SystemId_Caption já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Menus_SystemId_Sequence já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Caption] = @W_Caption AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Menus_SystemId_Caption já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -19426,11 +19521,11 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#CEDjxuZeHa_kX87YTyMk4zpqA]
+            INTO [#tZR5fSsSDODu9durWp3a1SgUV]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#CEDjxuZeHa_kX87YTyMk4zpqA]
+        SELECT * FROM [#tZR5fSsSDODu9durWp3a1SgUV]
         SELECT 'Menu' AS ClassName
               ,[R].[Id]
               ,[R].[SystemId]
@@ -19439,11 +19534,11 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
               ,[R].[Message]
               ,[R].[Action]
               ,[R].[ParentMenuId]
-            INTO [#Us98XxmNUcG4ZJK6eCyySfOi3]
+            INTO [#i6cEoP5855JBXllEA7AyzDjDF]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Menus] [R] ON [R].[Id] = [T].[ParentMenuId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#Us98XxmNUcG4ZJK6eCyySfOi3]
+        SELECT * FROM [#i6cEoP5855JBXllEA7AyzDjDF]
         SELECT 'System' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -19451,11 +19546,11 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#JAaw_LYKC7pfAUuPBx6CRIELK]
-            FROM [#Us98XxmNUcG4ZJK6eCyySfOi3] [T]
+            INTO [#GXBZoTciM0Xi5RLmMYHuJqeMf]
+            FROM [#i6cEoP5855JBXllEA7AyzDjDF] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#JAaw_LYKC7pfAUuPBx6CRIELK]
+        SELECT * FROM [#GXBZoTciM0Xi5RLmMYHuJqeMf]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -19576,8 +19671,16 @@ ALTER PROCEDURE [dbo].[UserValidate](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_Users_Name já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Users_Name já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -20166,10 +20269,18 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@LoginId BIGINT
                     THROW 51000, 'Chave única de UNQ_SystemsUsers_SystemId_UserId já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_SystemsUsers_Name já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_SystemsUsers_SystemId_UserId já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_SystemsUsers_Name já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -20575,11 +20686,11 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#GOnw22mbm5QNRgmNu9FSQfoGA]
+            INTO [#c5yJzbHInncWdOX4SQBGoSuNz]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#GOnw22mbm5QNRgmNu9FSQfoGA]
+        SELECT * FROM [#c5yJzbHInncWdOX4SQBGoSuNz]
         SELECT 'User' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -20587,11 +20698,11 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
               ,[R].[FullName]
               ,[R].[RetryLogins]
               ,[R].[IsActive]
-            INTO [#JdAJzL_G8yg8bKl2hN86F8bPA]
+            INTO [#Y8wLq2J3Zef0wtNogDOd_JC5p]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#JdAJzL_G8yg8bKl2hN86F8bPA]
+        SELECT * FROM [#Y8wLq2J3Zef0wtNogDOd_JC5p]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -21381,10 +21492,18 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId BIGINT
                     THROW 51000, 'Chave única de UNQ_Databases_Name já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Alias] = @W_Alias)
                     THROW 51000, 'Chave única de UNQ_Databases_Alias já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Databases_Name já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Alias] = @W_Alias AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Databases_Alias já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -21829,11 +21948,11 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
               ,[R].[Password]
               ,[R].[PersistSecurityInfo]
               ,[R].[AdditionalParameters]
-            INTO [#nljctglc42wbWlayZKAs0Wr7D]
+            INTO [#ahEJp0iHEZEc3KtQgrjQAnLwA]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#nljctglc42wbWlayZKAs0Wr7D]
+        SELECT * FROM [#ahEJp0iHEZEc3KtQgrjQAnLwA]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -22010,10 +22129,18 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@LoginId BIGINT
                     THROW 51000, 'Chave única de UNQ_SystemsDatabases_SystemId_DatabaseId já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_SystemsDatabases_Name já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_SystemsDatabases_SystemId_DatabaseId já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_SystemsDatabases_Name já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -22419,11 +22546,11 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#hlbX5j0Kse3WAQ3jkMh395NSL]
+            INTO [#jfYMFAEH3NGdW7TRt_mmF38UH]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#hlbX5j0Kse3WAQ3jkMh395NSL]
+        SELECT * FROM [#jfYMFAEH3NGdW7TRt_mmF38UH]
         SELECT 'Database' AS ClassName
               ,[R].[Id]
               ,[R].[ConnectionId]
@@ -22433,11 +22560,11 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,[R].[Folder]
               ,[R].[IsLegacy]
               ,[R].[CurrentOperationId]
-            INTO [#IwNIScyYQOGzWhEeiitP_U_yP]
+            INTO [#SZbRQbKmpaYMlzuIVFXxqwZTz]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Databases] [R] ON [R].[Id] = [T].[DatabaseId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#IwNIScyYQOGzWhEeiitP_U_yP]
+        SELECT * FROM [#SZbRQbKmpaYMlzuIVFXxqwZTz]
         SELECT 'Connection' AS ClassName
               ,[R].[Id]
               ,[R].[Provider]
@@ -22450,11 +22577,11 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,[R].[Password]
               ,[R].[PersistSecurityInfo]
               ,[R].[AdditionalParameters]
-            INTO [#Igs8aXfJk2PwcnHbSKBxVp3zs]
-            FROM [#IwNIScyYQOGzWhEeiitP_U_yP] [T]
+            INTO [#dDKR0xJzU6BG7HB0AVkplx5OJ]
+            FROM [#SZbRQbKmpaYMlzuIVFXxqwZTz] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#Igs8aXfJk2PwcnHbSKBxVp3zs]
+        SELECT * FROM [#dDKR0xJzU6BG7HB0AVkplx5OJ]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -22621,6 +22748,10 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Columns', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [TableId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Indexes', 1
+            IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId1] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Associations', 1
+            IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId2] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Associations', 1
         END ELSE BEGIN
 
             DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
@@ -22649,10 +22780,18 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId BIGINT
                     THROW 51000, 'Chave única de UNQ_Tables_Name já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias)
                     THROW 51000, 'Chave única de UNQ_Tables_Alias já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Tables_Name já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Tables_Alias já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -23250,10 +23389,18 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@LoginId BIGINT
                     THROW 51000, 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_DatabasesTables_Name já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId AND [TableId] = @W_TableId AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_DatabasesTables_Name já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -23661,11 +23808,11 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,[R].[Folder]
               ,[R].[IsLegacy]
               ,[R].[CurrentOperationId]
-            INTO [#k3CZXePRRvnxULCzjdlQwHjTe]
+            INTO [#hFDxgqEe6bLXt3o0xvlYHJshY]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Databases] [R] ON [R].[Id] = [T].[DatabaseId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#k3CZXePRRvnxULCzjdlQwHjTe]
+        SELECT * FROM [#hFDxgqEe6bLXt3o0xvlYHJshY]
         SELECT 'Connection' AS ClassName
               ,[R].[Id]
               ,[R].[Provider]
@@ -23678,11 +23825,11 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,[R].[Password]
               ,[R].[PersistSecurityInfo]
               ,[R].[AdditionalParameters]
-            INTO [#fSEjGMOX3BMH6FOxVmvjBW7Jp]
-            FROM [#k3CZXePRRvnxULCzjdlQwHjTe] [T]
+            INTO [#lt0bMYpqgbtTtG3dfJqkFaHjI]
+            FROM [#hFDxgqEe6bLXt3o0xvlYHJshY] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#fSEjGMOX3BMH6FOxVmvjBW7Jp]
+        SELECT * FROM [#lt0bMYpqgbtTtG3dfJqkFaHjI]
         SELECT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -23691,11 +23838,11 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#LyP0KlBgp6feQyYdLzGjHujkm]
+            INTO [#ZkDoFuzghaxri4vOinBgia6OM]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#LyP0KlBgp6feQyYdLzGjHujkm]
+        SELECT * FROM [#ZkDoFuzghaxri4vOinBgia6OM]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -23886,6 +24033,10 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId BIGINT
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [ColumnId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Indexkeys', 1
+            IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId1] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Uniques', 1
+            IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId2] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Uniques', 1
         END ELSE BEGIN
 
             DECLARE @W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS bigint)
@@ -23945,10 +24096,18 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId BIGINT
                     THROW 51000, 'Chave única de UNQ_Columns_TableId_Name já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence)
                     THROW 51000, 'Chave única de UNQ_Columns_TableId_Sequence já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Columns_TableId_Name já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Columns_TableId_Sequence já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -24579,11 +24738,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#523sHmFyUthvyY54Q7SWTuYZS]
+            INTO [#kiKUAGgpOhR6TRblIIFNb6Qiu]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#523sHmFyUthvyY54Q7SWTuYZS]
+        SELECT * FROM [#kiKUAGgpOhR6TRblIIFNb6Qiu]
         SELECT 'Domain' AS ClassName
               ,[R].[Id]
               ,[R].[TypeId]
@@ -24596,11 +24755,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[Minimum]
               ,[R].[Maximum]
               ,[R].[Codification]
-            INTO [#iZ40v2mo677PKDYyMHGHDbNVx]
+            INTO [#M7PzUd4okiYMTQd6vVhaT73O3]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#iZ40v2mo677PKDYyMHGHDbNVx]
+        SELECT * FROM [#M7PzUd4okiYMTQd6vVhaT73O3]
         SELECT 'Type' AS ClassName
               ,[R].[Id]
               ,[R].[CategoryId]
@@ -24616,11 +24775,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[AskGridable]
               ,[R].[AskCodification]
               ,[R].[IsActive]
-            INTO [#J_tnxufxpAxBnagtSkiVJux0f]
-            FROM [#iZ40v2mo677PKDYyMHGHDbNVx] [T]
+            INTO [#4awDOCSR74rieXzSgFAj8qNxF]
+            FROM [#M7PzUd4okiYMTQd6vVhaT73O3] [T]
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#J_tnxufxpAxBnagtSkiVJux0f]
+        SELECT * FROM [#4awDOCSR74rieXzSgFAj8qNxF]
         SELECT 'Category' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -24633,20 +24792,20 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[AskMinimum]
               ,[R].[AskMaximum]
               ,[R].[AskInWords]
-            INTO [#MT5hyljO1009HzGG5swTzs66L]
-            FROM [#J_tnxufxpAxBnagtSkiVJux0f] [T]
+            INTO [#x9m6_pCRYCmRp3YT5Q67bNF9Z]
+            FROM [#4awDOCSR74rieXzSgFAj8qNxF] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#MT5hyljO1009HzGG5swTzs66L]
+        SELECT * FROM [#x9m6_pCRYCmRp3YT5Q67bNF9Z]
         SELECT 'Mask' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Mask]
-            INTO [#o3wMpq0N6dSk9uTsG7Zg227eb]
-            FROM [#iZ40v2mo677PKDYyMHGHDbNVx] [T]
+            INTO [#Hjz9ZwkYGDBKZ0gzTQqhghThC]
+            FROM [#M7PzUd4okiYMTQd6vVhaT73O3] [T]
                 INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#o3wMpq0N6dSk9uTsG7Zg227eb]
+        SELECT * FROM [#Hjz9ZwkYGDBKZ0gzTQqhghThC]
         SELECT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -24655,11 +24814,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#E1b5y26dOoSyK2exp7rIOlikG]
+            INTO [#wG9I9iAgZZTOF1JJTlNNMU8g0]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ReferenceTableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#E1b5y26dOoSyK2exp7rIOlikG]
+        SELECT * FROM [#wG9I9iAgZZTOF1JJTlNNMU8g0]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -24770,8 +24929,16 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId BIGINT
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_Indexes_Name já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Indexes_Name já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -25176,11 +25343,11 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#VkOiOY4gagYlCNR1Cj5YAk1A4]
+            INTO [#0nvntaWa59d2dPYbxeN7sa9_Z]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#VkOiOY4gagYlCNR1Cj5YAk1A4]
+        SELECT * FROM [#0nvntaWa59d2dPYbxeN7sa9_Z]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -25364,10 +25531,18 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId BIGINT
                     THROW 51000, 'Chave única de UNQ_Indexkeys_IndexId_Sequence já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId)
                     THROW 51000, 'Chave única de UNQ_Indexkeys_IndexId_ColumnId já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Indexkeys_IndexId_Sequence já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Indexkeys_IndexId_ColumnId já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -25780,11 +25955,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[TableId]
               ,[R].[Name]
               ,[R].[IsUnique]
-            INTO [#Gz7Vx56PXLshouDOyqkpzh_IB]
+            INTO [#_k5DB1SFyB1XoVNCZ8I_e8sk0]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Indexes] [R] ON [R].[Id] = [T].[IndexId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#Gz7Vx56PXLshouDOyqkpzh_IB]
+        SELECT * FROM [#_k5DB1SFyB1XoVNCZ8I_e8sk0]
         SELECT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -25793,11 +25968,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#NlJ5LlkzS0BbEe_6CkBWFn9ZS]
-            FROM [#Gz7Vx56PXLshouDOyqkpzh_IB] [T]
+            INTO [#AkWNFDO2XSQhXLQGFmHQJ5VU8]
+            FROM [#_k5DB1SFyB1XoVNCZ8I_e8sk0] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#NlJ5LlkzS0BbEe_6CkBWFn9ZS]
+        SELECT * FROM [#AkWNFDO2XSQhXLQGFmHQJ5VU8]
         SELECT 'Column' AS ClassName
               ,[R].[Id]
               ,[R].[TableId]
@@ -25821,11 +25996,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[IsGridable]
               ,[R].[IsEncrypted]
               ,[R].[IsInWords]
-            INTO [#y5ktNHZ47UWGCdbikOBXgsZzw]
+            INTO [#F3BxPx3idxi2Edq8akAQ5N2Ag]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#y5ktNHZ47UWGCdbikOBXgsZzw]
+        SELECT * FROM [#F3BxPx3idxi2Edq8akAQ5N2Ag]
         SELECT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -25834,11 +26009,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#UQSndVDj346T0lb6Z4Ts8Hnlk]
-            FROM [#y5ktNHZ47UWGCdbikOBXgsZzw] [T]
+            INTO [#ZCmDpgOgDuFtoLLhA6NgsAcni]
+            FROM [#F3BxPx3idxi2Edq8akAQ5N2Ag] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#UQSndVDj346T0lb6Z4Ts8Hnlk]
+        SELECT * FROM [#ZCmDpgOgDuFtoLLhA6NgsAcni]
         SELECT 'Domain' AS ClassName
               ,[R].[Id]
               ,[R].[TypeId]
@@ -25851,11 +26026,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[Minimum]
               ,[R].[Maximum]
               ,[R].[Codification]
-            INTO [#u0_SEHJIpHkF7gi9DOPgaNwQ4]
-            FROM [#y5ktNHZ47UWGCdbikOBXgsZzw] [T]
+            INTO [#YsnstzgPhetTaxmMR8DUJ5aJG]
+            FROM [#F3BxPx3idxi2Edq8akAQ5N2Ag] [T]
                 INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#u0_SEHJIpHkF7gi9DOPgaNwQ4]
+        SELECT * FROM [#YsnstzgPhetTaxmMR8DUJ5aJG]
         SELECT 'Type' AS ClassName
               ,[R].[Id]
               ,[R].[CategoryId]
@@ -25871,11 +26046,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[AskGridable]
               ,[R].[AskCodification]
               ,[R].[IsActive]
-            INTO [#u0D84hceEI1JoOmxthouLTNBV]
-            FROM [#u0_SEHJIpHkF7gi9DOPgaNwQ4] [T]
+            INTO [#ymHVJZmt3fC9roBLHKNlOtqK3]
+            FROM [#YsnstzgPhetTaxmMR8DUJ5aJG] [T]
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#u0D84hceEI1JoOmxthouLTNBV]
+        SELECT * FROM [#ymHVJZmt3fC9roBLHKNlOtqK3]
         SELECT 'Category' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -25888,20 +26063,20 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[AskMinimum]
               ,[R].[AskMaximum]
               ,[R].[AskInWords]
-            INTO [#aVq7cJBNKJJaL21n2Loe7lXlL]
-            FROM [#u0D84hceEI1JoOmxthouLTNBV] [T]
+            INTO [#pNsdG8LsllQOB9kjzKMJV0gzp]
+            FROM [#ymHVJZmt3fC9roBLHKNlOtqK3] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#aVq7cJBNKJJaL21n2Loe7lXlL]
+        SELECT * FROM [#pNsdG8LsllQOB9kjzKMJV0gzp]
         SELECT 'Mask' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Mask]
-            INTO [#v5rFl1f15TnKhg2PiWWgU5ed3]
-            FROM [#u0_SEHJIpHkF7gi9DOPgaNwQ4] [T]
+            INTO [#nAEGImgqOvDbvvG1M9oXGKUjE]
+            FROM [#YsnstzgPhetTaxmMR8DUJ5aJG] [T]
                 INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#v5rFl1f15TnKhg2PiWWgU5ed3]
+        SELECT * FROM [#nAEGImgqOvDbvvG1M9oXGKUjE]
         SELECT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -25910,11 +26085,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#XxxMqzfessgdlPGasqn1yDuXC]
-            FROM [#y5ktNHZ47UWGCdbikOBXgsZzw] [T]
+            INTO [#y8BS3PgPFRGHi8yOMQI04ffjY]
+            FROM [#F3BxPx3idxi2Edq8akAQ5N2Ag] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ReferenceTableId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#XxxMqzfessgdlPGasqn1yDuXC]
+        SELECT * FROM [#y8BS3PgPFRGHi8yOMQI04ffjY]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -26444,11 +26619,11 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#bp4bGiOpU5yTviC14IzKTqgtN]
+            INTO [#9DnFj_xN3n6AifOagbNvHkfP5]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#bp4bGiOpU5yTviC14IzKTqgtN]
+        SELECT * FROM [#9DnFj_xN3n6AifOagbNvHkfP5]
         SELECT 'User' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -26456,11 +26631,11 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
               ,[R].[FullName]
               ,[R].[RetryLogins]
               ,[R].[IsActive]
-            INTO [#RRaNIwumL_61gZKmHmAzUCSce]
+            INTO [#9tS0hPUlA9ynm8dmyRUXWEuK2]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#RRaNIwumL_61gZKmHmAzUCSce]
+        SELECT * FROM [#9tS0hPUlA9ynm8dmyRUXWEuK2]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -26937,11 +27112,11 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
               ,[R].[UserId]
               ,[R].[PublicKey]
               ,[R].[IsLogged]
-            INTO [#EGP024BDYkoKC28gHvjVTFBbg]
+            INTO [#ljIlJwTUB8sFLoBug0J2yZDJH]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Logins] [R] ON [R].[Id] = [T].[LoginId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#EGP024BDYkoKC28gHvjVTFBbg]
+        SELECT * FROM [#ljIlJwTUB8sFLoBug0J2yZDJH]
         SELECT 'System' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -26949,11 +27124,11 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#0WG0H5pRL5HwIyvid8dsKgs5N]
-            FROM [#EGP024BDYkoKC28gHvjVTFBbg] [T]
+            INTO [#qJjfF9vxHxUysCIeruFShms0z]
+            FROM [#ljIlJwTUB8sFLoBug0J2yZDJH] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#0WG0H5pRL5HwIyvid8dsKgs5N]
+        SELECT * FROM [#qJjfF9vxHxUysCIeruFShms0z]
         SELECT 'User' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -26961,11 +27136,11 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
               ,[R].[FullName]
               ,[R].[RetryLogins]
               ,[R].[IsActive]
-            INTO [#btcxm90meR1ZPqfkc3pCWe8QZ]
-            FROM [#EGP024BDYkoKC28gHvjVTFBbg] [T]
+            INTO [#rbw7g_8iL0OTJMuIQ7vxyx7AX]
+            FROM [#ljIlJwTUB8sFLoBug0J2yZDJH] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#btcxm90meR1ZPqfkc3pCWe8QZ]
+        SELECT * FROM [#rbw7g_8iL0OTJMuIQ7vxyx7AX]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -27506,22 +27681,22 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[Id]
               ,[R].[LoginId]
               ,[R].[IsConfirmed]
-            INTO [#0zmvK48W5BmgHb_VVssh1eLUD]
+            INTO [#GEeDvZ6QtCMt38zsF33B56sUe]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Transactions] [R] ON [R].[Id] = [T].[TransactionId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#0zmvK48W5BmgHb_VVssh1eLUD]
+        SELECT * FROM [#GEeDvZ6QtCMt38zsF33B56sUe]
         SELECT 'Login' AS ClassName
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[UserId]
               ,[R].[PublicKey]
               ,[R].[IsLogged]
-            INTO [#5KPkB9fj5Dox0YG8_xxVpSGJj]
-            FROM [#0zmvK48W5BmgHb_VVssh1eLUD] [T]
+            INTO [#yKePVSidxYrClZnp7972uJOB3]
+            FROM [#GEeDvZ6QtCMt38zsF33B56sUe] [T]
                 INNER JOIN [dbo].[Logins] [R] ON [R].[Id] = [T].[LoginId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#5KPkB9fj5Dox0YG8_xxVpSGJj]
+        SELECT * FROM [#yKePVSidxYrClZnp7972uJOB3]
         SELECT 'System' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -27529,11 +27704,11 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#q1QaEDAJUmwJV4C_7Fz9617hZ]
-            FROM [#5KPkB9fj5Dox0YG8_xxVpSGJj] [T]
+            INTO [#autMeMH7nWrwnwTlPF8PepOvI]
+            FROM [#yKePVSidxYrClZnp7972uJOB3] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#q1QaEDAJUmwJV4C_7Fz9617hZ]
+        SELECT * FROM [#autMeMH7nWrwnwTlPF8PepOvI]
         SELECT 'User' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -27541,11 +27716,11 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[FullName]
               ,[R].[RetryLogins]
               ,[R].[IsActive]
-            INTO [#fzWyWmxPpZG4gNMP6IEFHEjQB]
-            FROM [#5KPkB9fj5Dox0YG8_xxVpSGJj] [T]
+            INTO [#jBobWRA41_VKXcGeQIRgo7YMk]
+            FROM [#yKePVSidxYrClZnp7972uJOB3] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#fzWyWmxPpZG4gNMP6IEFHEjQB]
+        SELECT * FROM [#jBobWRA41_VKXcGeQIRgo7YMk]
         SELECT 'Operation' AS ClassName
               ,[R].[Id]
               ,[R].[TransactionId]
@@ -27555,31 +27730,31 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[OriginalRecord]
               ,[R].[ActualRecord]
               ,[R].[IsConfirmed]
-            INTO [#Jijw1qVQcXwkLGtcG8XQD7g8K]
+            INTO [#WBxGn_xJg36Lt9UQIA2vfsuoH]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Operations] [R] ON [R].[Id] = [T].[ParentOperationId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#Jijw1qVQcXwkLGtcG8XQD7g8K]
+        SELECT * FROM [#WBxGn_xJg36Lt9UQIA2vfsuoH]
         SELECT 'Transaction' AS ClassName
               ,[R].[Id]
               ,[R].[LoginId]
               ,[R].[IsConfirmed]
-            INTO [#NA4vwf0CAwfkSyl07zH7cTo4V]
-            FROM [#Jijw1qVQcXwkLGtcG8XQD7g8K] [T]
+            INTO [#qiHJAn2ReVRVKaWjbX1rfbSR0]
+            FROM [#WBxGn_xJg36Lt9UQIA2vfsuoH] [T]
                 INNER JOIN [dbo].[Transactions] [R] ON [R].[Id] = [T].[TransactionId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#NA4vwf0CAwfkSyl07zH7cTo4V]
+        SELECT * FROM [#qiHJAn2ReVRVKaWjbX1rfbSR0]
         SELECT 'Login' AS ClassName
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[UserId]
               ,[R].[PublicKey]
               ,[R].[IsLogged]
-            INTO [#dalNxpO0Trxy6APLk3joOVkAX]
-            FROM [#NA4vwf0CAwfkSyl07zH7cTo4V] [T]
+            INTO [#qD7GYcHbxE5dQQKtGG28ojBws]
+            FROM [#qiHJAn2ReVRVKaWjbX1rfbSR0] [T]
                 INNER JOIN [dbo].[Logins] [R] ON [R].[Id] = [T].[LoginId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#dalNxpO0Trxy6APLk3joOVkAX]
+        SELECT * FROM [#qD7GYcHbxE5dQQKtGG28ojBws]
         SELECT 'System' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -27587,11 +27762,11 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#eqwvGQ2abHmKeMpPiT3w5E8XU]
-            FROM [#dalNxpO0Trxy6APLk3joOVkAX] [T]
+            INTO [#71ePQuFyddgYZxtL71bkXwJAy]
+            FROM [#qD7GYcHbxE5dQQKtGG28ojBws] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#eqwvGQ2abHmKeMpPiT3w5E8XU]
+        SELECT * FROM [#71ePQuFyddgYZxtL71bkXwJAy]
         SELECT 'User' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -27599,11 +27774,11 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[FullName]
               ,[R].[RetryLogins]
               ,[R].[IsActive]
-            INTO [#_01ztggnV81tYrVwOCwqVshpl]
-            FROM [#dalNxpO0Trxy6APLk3joOVkAX] [T]
+            INTO [#T6UstScBAvUaKjkwaD65IDtBO]
+            FROM [#qD7GYcHbxE5dQQKtGG28ojBws] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        SELECT * FROM [#_01ztggnV81tYrVwOCwqVshpl]
+        SELECT * FROM [#T6UstScBAvUaKjkwaD65IDtBO]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -27702,10 +27877,14 @@ ALTER PROCEDURE [dbo].[AssociationValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de TableId1 em @ActualRecord é requerido.', 1
             IF @W_TableId1 < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId1 em @ActualRecord deve ser maior que ou igual a 1', 1
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId1)
+                THROW 51000, 'Valor de TableId1 em @ActualRecord inexiste em Tables', 1
             IF @W_TableId2 IS NULL
                 THROW 51000, 'Valor de TableId2 em @ActualRecord é requerido.', 1
             IF @W_TableId2 < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId2 em @ActualRecord deve ser maior que ou igual a 1', 1
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId2)
+                THROW 51000, 'Valor de TableId2 em @ActualRecord inexiste em Tables', 1
             IF @W_IsBidirectional IS NULL
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
             IF @W_IsBidirectional < CAST('1' AS bit)
@@ -27715,10 +27894,18 @@ ALTER PROCEDURE [dbo].[AssociationValidate](@LoginId BIGINT
                     THROW 51000, 'Chave única de UNQ_Associations_TableId1_TableId2 já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId2] = @W_TableId2 AND [TableId1] = @W_TableId1)
                     THROW 51000, 'Chave única de UNQ_Associations_TableId2_TableId1 já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId1] = @W_TableId1 AND [TableId2] = @W_TableId2 AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Associations_TableId1_TableId2 já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId2] = @W_TableId2 AND [TableId1] = @W_TableId1 AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Associations_TableId2_TableId1 já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -28111,6 +28298,32 @@ ALTER PROCEDURE [dbo].[AssociationsRead](@LoginId BIGINT
               ,[TableId2]
               ,[IsBidirectional]
             FROM [#result]
+        SELECT 'Table' AS ClassName
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[ParentTableId]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentId]
+            INTO [#e7M1jSVhW2aieSiB3FEFZaMQx]
+            FROM [#result] [T]
+                INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId1]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#e7M1jSVhW2aieSiB3FEFZaMQx]
+        SELECT 'Table' AS ClassName
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[ParentTableId]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentId]
+            INTO [#XXHuMmpbBasjvoRjfI1NM2k0v]
+            FROM [#result] [T]
+                INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId2]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#XXHuMmpbBasjvoRjfI1NM2k0v]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -28207,8 +28420,12 @@ ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
 
             IF @W_ColumnId1 IS NULL
                 THROW 51000, 'Valor de ColumnId1 em @ActualRecord é requerido.', 1
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId1)
+                THROW 51000, 'Valor de ColumnId1 em @ActualRecord inexiste em Columns', 1
             IF @W_ColumnId2 IS NULL
                 THROW 51000, 'Valor de ColumnId2 em @ActualRecord é requerido.', 1
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId2)
+                THROW 51000, 'Valor de ColumnId2 em @ActualRecord inexiste em Columns', 1
             IF @W_IsBidirectional IS NULL
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
             IF @Action = 'create' BEGIN
@@ -28216,10 +28433,18 @@ ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
                     THROW 51000, 'Chave única de UNQ_Uniques_ColumnId1_ColumnId2 já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1)
                     THROW 51000, 'Chave única de UNQ_Uniques_ColumnId2_ColumnId1 já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
+                    THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2 AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Uniques_ColumnId1_ColumnId2 já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1 AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Uniques_ColumnId2_ColumnId1 já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de Name] => [Alias] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
             END
         END
 
@@ -28614,6 +28839,240 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
               ,[ColumnId2]
               ,[IsBidirectional]
             FROM [#result]
+        SELECT 'Column' AS ClassName
+              ,[R].[Id]
+              ,[R].[TableId]
+              ,[R].[Sequence]
+              ,[R].[DomainId]
+              ,[R].[ReferenceTableId]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[Title]
+              ,[R].[Caption]
+              ,[R].[Default]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[IsPrimarykey]
+              ,[R].[IsAutoIncrement]
+              ,[R].[IsRequired]
+              ,[R].[IsListable]
+              ,[R].[IsFilterable]
+              ,[R].[IsEditable]
+              ,[R].[IsGridable]
+              ,[R].[IsEncrypted]
+              ,[R].[IsInWords]
+            INTO [#NkLFcNWTuyjotRJAiPoJkYKDO]
+            FROM [#result] [T]
+                INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId1]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#NkLFcNWTuyjotRJAiPoJkYKDO]
+        SELECT 'Table' AS ClassName
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[ParentTableId]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentId]
+            INTO [#NULGpyjqYYfwZUD7D_mwov5yR]
+            FROM [#NkLFcNWTuyjotRJAiPoJkYKDO] [T]
+                INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#NULGpyjqYYfwZUD7D_mwov5yR]
+        SELECT 'Domain' AS ClassName
+              ,[R].[Id]
+              ,[R].[TypeId]
+              ,[R].[MaskId]
+              ,[R].[Name]
+              ,[R].[Length]
+              ,[R].[Decimals]
+              ,[R].[ValidValues]
+              ,[R].[Default]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[Codification]
+            INTO [#1m201VcqA01NKkjUf5jJUhC19]
+            FROM [#NkLFcNWTuyjotRJAiPoJkYKDO] [T]
+                INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#1m201VcqA01NKkjUf5jJUhC19]
+        SELECT 'Type' AS ClassName
+              ,[R].[Id]
+              ,[R].[CategoryId]
+              ,[R].[Name]
+              ,[R].[MaxLength]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[AskLength]
+              ,[R].[AskDecimals]
+              ,[R].[AskPrimarykey]
+              ,[R].[AskAutoincrement]
+              ,[R].[AskFilterable]
+              ,[R].[AskGridable]
+              ,[R].[AskCodification]
+              ,[R].[IsActive]
+            INTO [#nmb6sSaFUkpDanyytG7Ckg8fg]
+            FROM [#1m201VcqA01NKkjUf5jJUhC19] [T]
+                INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#nmb6sSaFUkpDanyytG7Ckg8fg]
+        SELECT 'Category' AS ClassName
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[HtmlInputType]
+              ,[R].[HtmlInputAlign]
+              ,[R].[AskEncrypted]
+              ,[R].[AskMask]
+              ,[R].[AskListable]
+              ,[R].[AskDefault]
+              ,[R].[AskMinimum]
+              ,[R].[AskMaximum]
+              ,[R].[AskInWords]
+            INTO [#n6vgl24VmqJsSFWEV10JGGrOi]
+            FROM [#nmb6sSaFUkpDanyytG7Ckg8fg] [T]
+                INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#n6vgl24VmqJsSFWEV10JGGrOi]
+        SELECT 'Mask' AS ClassName
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Mask]
+            INTO [#EQ9YKJs6uPB1q4qiXN5PxKPE8]
+            FROM [#1m201VcqA01NKkjUf5jJUhC19] [T]
+                INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#EQ9YKJs6uPB1q4qiXN5PxKPE8]
+        SELECT 'Table' AS ClassName
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[ParentTableId]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentId]
+            INTO [#jZ71llTYNjqeoyuMLdA15CLUg]
+            FROM [#NkLFcNWTuyjotRJAiPoJkYKDO] [T]
+                INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ReferenceTableId]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#jZ71llTYNjqeoyuMLdA15CLUg]
+        SELECT 'Column' AS ClassName
+              ,[R].[Id]
+              ,[R].[TableId]
+              ,[R].[Sequence]
+              ,[R].[DomainId]
+              ,[R].[ReferenceTableId]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[Title]
+              ,[R].[Caption]
+              ,[R].[Default]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[IsPrimarykey]
+              ,[R].[IsAutoIncrement]
+              ,[R].[IsRequired]
+              ,[R].[IsListable]
+              ,[R].[IsFilterable]
+              ,[R].[IsEditable]
+              ,[R].[IsGridable]
+              ,[R].[IsEncrypted]
+              ,[R].[IsInWords]
+            INTO [#XveQ07u0RhMKsy_8wJHdl2fHP]
+            FROM [#result] [T]
+                INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId2]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#XveQ07u0RhMKsy_8wJHdl2fHP]
+        SELECT 'Table' AS ClassName
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[ParentTableId]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentId]
+            INTO [#NfWOxGBXVVbcx3DXko31NUBIA]
+            FROM [#XveQ07u0RhMKsy_8wJHdl2fHP] [T]
+                INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#NfWOxGBXVVbcx3DXko31NUBIA]
+        SELECT 'Domain' AS ClassName
+              ,[R].[Id]
+              ,[R].[TypeId]
+              ,[R].[MaskId]
+              ,[R].[Name]
+              ,[R].[Length]
+              ,[R].[Decimals]
+              ,[R].[ValidValues]
+              ,[R].[Default]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[Codification]
+            INTO [#ra5ExWahuYEKnXpOmaQsP6YbP]
+            FROM [#XveQ07u0RhMKsy_8wJHdl2fHP] [T]
+                INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#ra5ExWahuYEKnXpOmaQsP6YbP]
+        SELECT 'Type' AS ClassName
+              ,[R].[Id]
+              ,[R].[CategoryId]
+              ,[R].[Name]
+              ,[R].[MaxLength]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[AskLength]
+              ,[R].[AskDecimals]
+              ,[R].[AskPrimarykey]
+              ,[R].[AskAutoincrement]
+              ,[R].[AskFilterable]
+              ,[R].[AskGridable]
+              ,[R].[AskCodification]
+              ,[R].[IsActive]
+            INTO [#J9novVq3HdpccosRtoqUwDy2B]
+            FROM [#ra5ExWahuYEKnXpOmaQsP6YbP] [T]
+                INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#J9novVq3HdpccosRtoqUwDy2B]
+        SELECT 'Category' AS ClassName
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[HtmlInputType]
+              ,[R].[HtmlInputAlign]
+              ,[R].[AskEncrypted]
+              ,[R].[AskMask]
+              ,[R].[AskListable]
+              ,[R].[AskDefault]
+              ,[R].[AskMinimum]
+              ,[R].[AskMaximum]
+              ,[R].[AskInWords]
+            INTO [#a00yZLFfOlY2JeHaE3BzzWYIz]
+            FROM [#J9novVq3HdpccosRtoqUwDy2B] [T]
+                INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#a00yZLFfOlY2JeHaE3BzzWYIz]
+        SELECT 'Mask' AS ClassName
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Mask]
+            INTO [#8_FxeZkdC6RNO9_E0Hp0TyZBO]
+            FROM [#ra5ExWahuYEKnXpOmaQsP6YbP] [T]
+                INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#8_FxeZkdC6RNO9_E0Hp0TyZBO]
+        SELECT 'Table' AS ClassName
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[ParentTableId]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentId]
+            INTO [#Bpwo8H9_rZikEGqrq7PC2_0yX]
+            FROM [#XveQ07u0RhMKsy_8wJHdl2fHP] [T]
+                INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ReferenceTableId]
+            ORDER BY [R].[Id]
+        SELECT * FROM [#Bpwo8H9_rZikEGqrq7PC2_0yX]
         SET @ReturnValue = @RowCount
 
         RETURN 0

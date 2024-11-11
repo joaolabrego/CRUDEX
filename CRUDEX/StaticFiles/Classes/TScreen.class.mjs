@@ -5,7 +5,6 @@ import TDialog from "./TDialog.class.mjs"
 import TLogin from "./TLogin.class.mjs"
 import TSpinner from "./TSpinner.class.mjs"
 import TSystem from "./TSystem.class.mjs"
-
 export default class TScreen {
     static #LastMessage = ""
     static #Message = ""
@@ -19,6 +18,8 @@ export default class TScreen {
         Title: null,
         Time: null,
         Main: null,
+        Iframe: null,
+        Slot: null,
         Message: null,
     }
 
@@ -65,6 +66,12 @@ export default class TScreen {
 
         this.#HTML.Main = document.createElement("main")
         this.#HTML.Main.className = "box main"
+        this.#HTML.Main.appendChild(TDialog.Container)
+        this.#HTML.Main.appendChild(TSpinner.Container)
+
+        this.#HTML.Slot = document.createElement("slot")
+        this.#HTML.Main.appendChild(this.#HTML.Slot)
+
         this.#HTML.Container.appendChild(this.#HTML.Main)
 
         this.#BackgroundImage = withBackgroundImage ? images.Background : null
@@ -78,7 +85,6 @@ export default class TScreen {
     }
 
     static Renderize() {
-        document.body.innerHTML = null
         document.body.appendChild(this.#HTML.Container)
         this.Message = ""
         this.#Update()
@@ -116,10 +122,8 @@ export default class TScreen {
         TDialog.Show("error", message, okAction, null, timeout)
     }
     static set Main(container) {
-        this.#HTML.Main.innerHTML = null
-        this.#HTML.Main.appendChild(TDialog.Container)
-        this.#HTML.Main.appendChild(TSpinner.Container)
-        this.#HTML.Main.appendChild(container)
+        this.#HTML.Slot.innerHTML = null
+        this.#HTML.Slot.appendChild(container)
     }
     static get Main() {
         return this.#HTML.Main
@@ -166,5 +170,8 @@ export default class TScreen {
      */
     static set WithBackgroundImage(value) {
         this.#HTML.Main.style.backgroundImage = value ? this.#BackgroundImage : null
+    }
+    static get Iframe() {
+        return this.#HTML.Iframe
     }
 }
