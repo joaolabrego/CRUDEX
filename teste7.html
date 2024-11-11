@@ -14,7 +14,7 @@
                 this.attachShadow({ mode: 'open' });
 
                 this.page = 1;
-                this.optionsPerPage = parseInt(this.getAttribute('options-per-page')) || 5;
+                this.optionsPerPage = parseInt(this.getAttribute('options-per-page')) || 10;
                 this.options = [
                     { id: 1, name: 'Apple' },
                     { id: 2, name: 'Banana' },
@@ -161,7 +161,7 @@
                     optionDiv.classList.add('dropdown-option');
                     optionDiv.dataset.id = option.id;
                     optionDiv.addEventListener('click', () => {
-                        this.input.value = option.name;
+                        this.input.value = this.filterQuery = option.name;
                         this.input.dataset.id = option.id;
                         this.optionsDiv.style.display = 'none';
                     });
@@ -184,11 +184,11 @@
                 if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
                     this.optionsDiv.style.top = 'auto';
                     this.optionsDiv.style.bottom = '100%';
-                    this.optionsDiv.style.maxHeight = `${spaceAbove}px`;
+                    this.optionsDiv.style.maxHeight = `${dropdownHeight}px`;
                 } else {
                     this.optionsDiv.style.top = '100%';
                     this.optionsDiv.style.bottom = 'auto';
-                    this.optionsDiv.style.maxHeight = `${spaceBelow}px`;
+                    this.optionsDiv.style.maxHeight = `${dropdownHeight}px`;
                 }
             }
 

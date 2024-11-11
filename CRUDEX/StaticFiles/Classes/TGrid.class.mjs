@@ -267,6 +267,19 @@ export default class TGrid {
                 this.#HTML.Scroll.Track.title = `Página ${pageNumber}${pageNumber === this.#PageCount ? " (última)" : ""}`
             }
         }
+        this.#HTML.Scroll.Track.addEventListener("wheel", (event) => {
+            event.preventDefault();
+
+            let delta = event.deltaY,
+                currentTop = parseFloat(this.#HTML.Scroll.Thumb.style.top) || 0,
+                trackHeight = this.#HTML.Scroll.Track.clientHeight,
+                thumbHeight = this.#HTML.Scroll.Thumb.clientHeight,
+                maxTop = trackHeight - thumbHeight,
+                scrollStep = maxTop / (this.#PageCount - 1),
+                newTop = currentTop + (delta > 0 ? scrollStep : -scrollStep);
+
+            this.#UpdateScrollbarPosition(newTop);
+        });
         this.#HTML.Scroll.Track.onclick = (event) => {
             const trackRect = this.#HTML.Scroll.Track.getBoundingClientRect()
             const clickPosition = event.clientY - trackRect.top
