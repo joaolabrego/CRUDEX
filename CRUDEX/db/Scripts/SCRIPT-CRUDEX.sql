@@ -2230,6 +2230,19 @@ GO
 ALTER TABLE [dbo].[SystemsDatabases] CHECK CONSTRAINT [FK_SystemsDatabases_Databases]
 GO
 /**********************************************************************************
+Criar referências de [dbo].[Tables]
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Tables_Tables')
+    ALTER TABLE [dbo].[Tables] DROP CONSTRAINT FK_Tables_Tables
+GO
+ALTER TABLE [dbo].[Tables] WITH CHECK 
+    ADD CONSTRAINT [FK_Tables_Tables] 
+    FOREIGN KEY([ParentTableId]) 
+    REFERENCES [dbo].[Tables] ([Id])
+GO
+ALTER TABLE [dbo].[Tables] CHECK CONSTRAINT [FK_Tables_Tables]
+GO
+/**********************************************************************************
 Criar referências de [dbo].[DatabasesTables]
 **********************************************************************************/
 IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_DatabasesTables_Databases')
@@ -10935,7 +10948,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('12' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
+                                ,CAST('12' AS bigint)
                                 ,CAST('ParentTableId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST('Id da tabela-pai' AS nvarchar(50))
@@ -16146,12 +16159,12 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskMinimum') AS bit) AS [AskMinimum]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskInWords') AS bit) AS [AskInWords]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Categories'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -16199,18 +16212,18 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Categories] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] tinyint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] tinyint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id tinyint
@@ -16237,7 +16250,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -16279,7 +16292,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
                               ,[T].[AskMinimum]
                               ,[T].[AskMaximum]
                               ,[T].[AskInWords]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Categories] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -16295,8 +16308,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
                                   ,[O].[AskMinimum]
                                   ,[O].[AskMaximum]
                                   ,[O].[AskInWords]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -16867,12 +16880,12 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskGridable') AS bit) AS [AskGridable]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskCodification') AS bit) AS [AskCodification]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Types'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -16924,18 +16937,18 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Types] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] tinyint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] tinyint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id tinyint
@@ -16964,7 +16977,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -17012,7 +17025,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
                               ,[T].[AskGridable]
                               ,[T].[AskCodification]
                               ,[T].[IsActive]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Types] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -17031,8 +17044,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
                                   ,[O].[AskGridable]
                                   ,[O].[AskCodification]
                                   ,[O].[IsActive]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -17066,12 +17079,12 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
               ,[R].[AskMinimum]
               ,[R].[AskMaximum]
               ,[R].[AskInWords]
-            INTO [#x6zVPPuWnMORKhlrYAb35fDQL]
+            INTO [#Categories]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#x6zVPPuWnMORKhlrYAb35fDQL] ON [#x6zVPPuWnMORKhlrYAb35fDQL](Id)
-        SELECT * FROM [#x6zVPPuWnMORKhlrYAb35fDQL] AS [Categories]
+        CREATE UNIQUE INDEX [#Categories] ON [#Categories](Id)
+        SELECT [Categories].* FROM [#Categories] AS [Categories]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -17514,12 +17527,12 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Mask') AS nvarchar(max)) AS [Mask]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Masks'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -17537,18 +17550,18 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Masks] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -17561,7 +17574,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -17587,7 +17600,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[Mask]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Masks] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -17595,8 +17608,8 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[Mask]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -18062,12 +18075,12 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(max)) AS [Minimum]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(max)) AS [Maximum]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Codification') AS nvarchar(5)) AS [Codification]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Domains'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -18105,18 +18118,18 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Domains] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -18137,7 +18150,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -18179,7 +18192,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
                               ,[T].[Minimum]
                               ,[T].[Maximum]
                               ,[T].[Codification]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Domains] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -18195,8 +18208,8 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
                                   ,[O].[Minimum]
                                   ,[O].[Maximum]
                                   ,[O].[Codification]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -18230,11 +18243,11 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
               ,[R].[AskGridable]
               ,[R].[AskCodification]
               ,[R].[IsActive]
-            INTO [#k7vg6fToM_5lY8TN7VeL3hXg3]
+            INTO [#Types]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#k7vg6fToM_5lY8TN7VeL3hXg3] ON [#k7vg6fToM_5lY8TN7VeL3hXg3](Id)
+        CREATE UNIQUE INDEX [#Types] ON [#Types](Id)
         SELECT DISTINCT 'Category' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -18247,23 +18260,23 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
               ,[R].[AskMinimum]
               ,[R].[AskMaximum]
               ,[R].[AskInWords]
-            INTO [#OIOiKW4o2MwFf01qG0yv8mCwi]
-            FROM [#k7vg6fToM_5lY8TN7VeL3hXg3] [T]
+            INTO [#Categories]
+            FROM [#Types] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#OIOiKW4o2MwFf01qG0yv8mCwi] ON [#OIOiKW4o2MwFf01qG0yv8mCwi](Id)
+        CREATE UNIQUE INDEX [#Categories] ON [#Categories](Id)
         SELECT DISTINCT 'Mask' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Mask]
-            INTO [#ER4BDNlJwMHd3DJieOpmhenRm]
+            INTO [#Masks]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#ER4BDNlJwMHd3DJieOpmhenRm] ON [#ER4BDNlJwMHd3DJieOpmhenRm](Id)
-        SELECT * FROM [#k7vg6fToM_5lY8TN7VeL3hXg3] AS [Types]
-        SELECT * FROM [#OIOiKW4o2MwFf01qG0yv8mCwi] AS [Categories]
-        SELECT * FROM [#ER4BDNlJwMHd3DJieOpmhenRm] AS [Masks]
+        CREATE UNIQUE INDEX [#Masks] ON [#Masks](Id)
+        SELECT [Types].* FROM [#Types] AS [Types]
+        SELECT [Categories].* FROM [#Categories] AS [Categories]
+        SELECT [Masks].* FROM [#Masks] AS [Masks]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -18746,12 +18759,12 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ClientName') AS nvarchar(15)) AS [ClientName]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsOffAir') AS bit) AS [IsOffAir]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Systems'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -18775,18 +18788,18 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Systems] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -18801,7 +18814,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -18833,7 +18846,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
                               ,[T].[ClientName]
                               ,[T].[MaxRetryLogins]
                               ,[T].[IsOffAir]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Systems] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -18844,8 +18857,8 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
                                   ,[O].[ClientName]
                                   ,[O].[MaxRetryLogins]
                                   ,[O].[IsOffAir]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -19353,12 +19366,12 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Message') AS nvarchar(50)) AS [Message]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Action') AS nvarchar(50)) AS [Action]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ParentMenuId') AS bigint) AS [ParentMenuId]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Menus'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -19384,18 +19397,18 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Menus] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -19410,7 +19423,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -19444,7 +19457,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
                               ,[T].[Message]
                               ,[T].[Action]
                               ,[T].[ParentMenuId]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Menus] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -19456,8 +19469,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
                                   ,[O].[Message]
                                   ,[O].[Action]
                                   ,[O].[ParentMenuId]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -19479,11 +19492,11 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#PSJM_svzudEbL0jRjketIUPLg]
+            INTO [#Systems]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#PSJM_svzudEbL0jRjketIUPLg] ON [#PSJM_svzudEbL0jRjketIUPLg](Id)
+        CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
         SELECT DISTINCT 'Menu' AS ClassName
               ,[R].[Id]
               ,[R].[SystemId]
@@ -19492,25 +19505,13 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
               ,[R].[Message]
               ,[R].[Action]
               ,[R].[ParentMenuId]
-            INTO [#KURghpoVmqjoQdKq16aXBPasf]
+            INTO [#Menus]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Menus] [R] ON [R].[Id] = [T].[ParentMenuId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#KURghpoVmqjoQdKq16aXBPasf] ON [#KURghpoVmqjoQdKq16aXBPasf](Id)
-        INSERT INTO [#PSJM_svzudEbL0jRjketIUPLg]
-            SELECT DISTINCT 'System' AS ClassName
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Description]
-                  ,[R].[ClientName]
-                  ,[R].[MaxRetryLogins]
-                  ,[R].[IsOffAir]
-                FROM [#KURghpoVmqjoQdKq16aXBPasf] [T]
-                    INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#PSJM_svzudEbL0jRjketIUPLg] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
-        SELECT * FROM [#PSJM_svzudEbL0jRjketIUPLg] AS [Systems]
-        SELECT * FROM [#KURghpoVmqjoQdKq16aXBPasf] AS [Menus]
+        CREATE UNIQUE INDEX [#Menus] ON [#Menus](Id)
+        SELECT [Systems].* FROM [#Systems] AS [Systems]
+        SELECT [Menus].* FROM [#Menus] AS [Menus]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -19926,12 +19927,12 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.FullName') AS nvarchar(50)) AS [FullName]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.RetryLogins') AS tinyint) AS [RetryLogins]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Users'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -19959,18 +19960,18 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Users] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -19987,7 +19988,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -20019,7 +20020,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
                               ,[T].[FullName]
                               ,[T].[RetryLogins]
                               ,[T].[IsActive]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Users] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -20030,8 +20031,8 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
                                   ,[O].[FullName]
                                   ,[O].[RetryLogins]
                                   ,[O].[IsActive]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -20508,12 +20509,12 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.UserId') AS bigint) AS [UserId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'SystemsUsers'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -20545,18 +20546,18 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[SystemsUsers] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -20573,7 +20574,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -20601,7 +20602,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
                               ,[T].[SystemId]
                               ,[T].[UserId]
                               ,[T].[Name]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[SystemsUsers] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -20610,8 +20611,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
                                   ,[O].[SystemId]
                                   ,[O].[UserId]
                                   ,[O].[Name]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -20630,11 +20631,11 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#nb2RWgejVeyi7DcXfd9K3gf47]
+            INTO [#Systems]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#nb2RWgejVeyi7DcXfd9K3gf47] ON [#nb2RWgejVeyi7DcXfd9K3gf47](Id)
+        CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
         SELECT DISTINCT 'User' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -20642,13 +20643,13 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
               ,[R].[FullName]
               ,[R].[RetryLogins]
               ,[R].[IsActive]
-            INTO [#X8snIS89W1aEbc0EkZssmFU0E]
+            INTO [#Users]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#X8snIS89W1aEbc0EkZssmFU0E] ON [#X8snIS89W1aEbc0EkZssmFU0E](Id)
-        SELECT * FROM [#nb2RWgejVeyi7DcXfd9K3gf47] AS [Systems]
-        SELECT * FROM [#X8snIS89W1aEbc0EkZssmFU0E] AS [Users]
+        CREATE UNIQUE INDEX [#Users] ON [#Users](Id)
+        SELECT [Systems].* FROM [#Systems] AS [Systems]
+        SELECT [Users].* FROM [#Users] AS [Users]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -21159,12 +21160,12 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.PersistSecurityInfo') AS bit) AS [PersistSecurityInfo]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AdditionalParameters') AS nvarchar(max)) AS [AdditionalParameters]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Connections'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -21196,18 +21197,18 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Connections] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -21226,7 +21227,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -21268,7 +21269,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
                               ,[T].[Password]
                               ,[T].[PersistSecurityInfo]
                               ,[T].[AdditionalParameters]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Connections] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -21284,8 +21285,8 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
                                   ,[O].[Password]
                                   ,[O].[PersistSecurityInfo]
                                   ,[O].[AdditionalParameters]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -21745,12 +21746,12 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Folder') AS nvarchar(256)) AS [Folder]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsLegacy') AS bit) AS [IsLegacy]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.CurrentOperationId') AS bigint) AS [CurrentOperationId]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Databases'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -21780,18 +21781,18 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Databases] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -21808,7 +21809,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -21844,7 +21845,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
                               ,[T].[Folder]
                               ,[T].[IsLegacy]
                               ,[T].[CurrentOperationId]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Databases] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -21857,8 +21858,8 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
                                   ,[O].[Folder]
                                   ,[O].[IsLegacy]
                                   ,[O].[CurrentOperationId]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -21886,12 +21887,12 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
               ,[R].[Password]
               ,[R].[PersistSecurityInfo]
               ,[R].[AdditionalParameters]
-            INTO [#bBwZzrDkHIJ28FP_pGg2QAxIl]
+            INTO [#Connections]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#bBwZzrDkHIJ28FP_pGg2QAxIl] ON [#bBwZzrDkHIJ28FP_pGg2QAxIl](Id)
-        SELECT * FROM [#bBwZzrDkHIJ28FP_pGg2QAxIl] AS [Connections]
+        CREATE UNIQUE INDEX [#Connections] ON [#Connections](Id)
+        SELECT [Connections].* FROM [#Connections] AS [Connections]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -22355,12 +22356,12 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'SystemsDatabases'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -22392,18 +22393,18 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[SystemsDatabases] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -22420,7 +22421,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -22448,7 +22449,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
                               ,[T].[SystemId]
                               ,[T].[DatabaseId]
                               ,[T].[Name]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[SystemsDatabases] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -22457,8 +22458,8 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
                                   ,[O].[SystemId]
                                   ,[O].[DatabaseId]
                                   ,[O].[Name]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -22477,11 +22478,11 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#yLZpOKae9BnmULrpH5QmrcnMZ]
+            INTO [#Systems]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#yLZpOKae9BnmULrpH5QmrcnMZ] ON [#yLZpOKae9BnmULrpH5QmrcnMZ](Id)
+        CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
         SELECT DISTINCT 'Database' AS ClassName
               ,[R].[Id]
               ,[R].[ConnectionId]
@@ -22491,11 +22492,11 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,[R].[Folder]
               ,[R].[IsLegacy]
               ,[R].[CurrentOperationId]
-            INTO [#TtPVY_ZHllDjaQvDe16gkEO3T]
+            INTO [#Databases]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Databases] [R] ON [R].[Id] = [T].[DatabaseId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#TtPVY_ZHllDjaQvDe16gkEO3T] ON [#TtPVY_ZHllDjaQvDe16gkEO3T](Id)
+        CREATE UNIQUE INDEX [#Databases] ON [#Databases](Id)
         SELECT DISTINCT 'Connection' AS ClassName
               ,[R].[Id]
               ,[R].[Provider]
@@ -22508,14 +22509,14 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,[R].[Password]
               ,[R].[PersistSecurityInfo]
               ,[R].[AdditionalParameters]
-            INTO [#TH9bmtluTjS7r2o1qeqhh91TD]
-            FROM [#TtPVY_ZHllDjaQvDe16gkEO3T] [T]
+            INTO [#Connections]
+            FROM [#Databases] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#TH9bmtluTjS7r2o1qeqhh91TD] ON [#TH9bmtluTjS7r2o1qeqhh91TD](Id)
-        SELECT * FROM [#yLZpOKae9BnmULrpH5QmrcnMZ] AS [Systems]
-        SELECT * FROM [#TtPVY_ZHllDjaQvDe16gkEO3T] AS [Databases]
-        SELECT * FROM [#TH9bmtluTjS7r2o1qeqhh91TD] AS [Connections]
+        CREATE UNIQUE INDEX [#Connections] ON [#Connections](Id)
+        SELECT [Systems].* FROM [#Systems] AS [Systems]
+        SELECT [Databases].* FROM [#Databases] AS [Databases]
+        SELECT [Connections].* FROM [#Connections] AS [Connections]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -22674,6 +22675,8 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId BIGINT
         END
 
         IF @Action = 'delete' BEGIN
+            IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [ParentTableId] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Tables', 1
             IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [TableId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em DatabasesTables', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_Id)
@@ -22703,6 +22706,8 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de Description em @ActualRecord é requerido.', 1
             IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('0' AS bigint)
                 THROW 51000, 'Valor de ParentTableId em @ActualRecord deve ser maior que ou igual a 0', 1
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ParentTableId)
+                THROW 51000, 'Valor de ParentTableId em @ActualRecord inexiste em Tables', 1
             IF @W_IsLegacy IS NULL
                 THROW 51000, 'Valor de IsLegacy em @ActualRecord é requerido.', 1
             IF @W_CurrentId IS NULL
@@ -23024,12 +23029,12 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ParentTableId') AS bigint) AS [ParentTableId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsLegacy') AS bit) AS [IsLegacy]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.CurrentId') AS bigint) AS [CurrentId]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Tables'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -23057,18 +23062,18 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Tables] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -23085,7 +23090,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -23119,7 +23124,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
                               ,[T].[ParentTableId]
                               ,[T].[IsLegacy]
                               ,[T].[CurrentId]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -23131,8 +23136,8 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
                                   ,[O].[ParentTableId]
                                   ,[O].[IsLegacy]
                                   ,[O].[CurrentId]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -23147,6 +23152,20 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
               ,[IsLegacy]
               ,[CurrentId]
             FROM [#result]
+        SELECT DISTINCT 'Table' AS ClassName
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[ParentTableId]
+              ,[R].[IsLegacy]
+              ,[R].[CurrentId]
+            INTO [#Tables]
+            FROM [#result] [T]
+                INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
+        SELECT [Tables].* FROM [#Tables] AS [Tables]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -23610,12 +23629,12 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS bigint) AS [TableId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'DatabasesTables'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -23647,18 +23666,18 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[DatabasesTables] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -23675,7 +23694,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -23703,7 +23722,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
                               ,[T].[DatabaseId]
                               ,[T].[TableId]
                               ,[T].[Name]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[DatabasesTables] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -23712,8 +23731,8 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
                                   ,[O].[DatabaseId]
                                   ,[O].[TableId]
                                   ,[O].[Name]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -23734,11 +23753,11 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,[R].[Folder]
               ,[R].[IsLegacy]
               ,[R].[CurrentOperationId]
-            INTO [#qE1Jk_9yb_wPnaoprYtN5RfNX]
+            INTO [#Databases]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Databases] [R] ON [R].[Id] = [T].[DatabaseId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#qE1Jk_9yb_wPnaoprYtN5RfNX] ON [#qE1Jk_9yb_wPnaoprYtN5RfNX](Id)
+        CREATE UNIQUE INDEX [#Databases] ON [#Databases](Id)
         SELECT DISTINCT 'Connection' AS ClassName
               ,[R].[Id]
               ,[R].[Provider]
@@ -23751,11 +23770,11 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,[R].[Password]
               ,[R].[PersistSecurityInfo]
               ,[R].[AdditionalParameters]
-            INTO [#sntBJaxCUX9aOpt1XLlNh_7O6]
-            FROM [#qE1Jk_9yb_wPnaoprYtN5RfNX] [T]
+            INTO [#Connections]
+            FROM [#Databases] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#sntBJaxCUX9aOpt1XLlNh_7O6] ON [#sntBJaxCUX9aOpt1XLlNh_7O6](Id)
+        CREATE UNIQUE INDEX [#Connections] ON [#Connections](Id)
         SELECT DISTINCT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -23764,14 +23783,27 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#emm6b33fYV2N5CtBoRozJfV8M]
+            INTO [#Tables]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#emm6b33fYV2N5CtBoRozJfV8M] ON [#emm6b33fYV2N5CtBoRozJfV8M](Id)
-        SELECT * FROM [#qE1Jk_9yb_wPnaoprYtN5RfNX] AS [Databases]
-        SELECT * FROM [#sntBJaxCUX9aOpt1XLlNh_7O6] AS [Connections]
-        SELECT * FROM [#emm6b33fYV2N5CtBoRozJfV8M] AS [Tables]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
+        INSERT INTO [#Tables]
+            SELECT DISTINCT 'Table' AS ClassName
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Alias]
+                  ,[R].[Description]
+                  ,[R].[ParentTableId]
+                  ,[R].[IsLegacy]
+                  ,[R].[CurrentId]
+                FROM [#Tables] [T]
+                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
+        SELECT [Databases].* FROM [#Databases] AS [Databases]
+        SELECT [Connections].* FROM [#Connections] AS [Connections]
+        SELECT [Tables].* FROM [#Tables] AS [Tables]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -24402,12 +24434,12 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsInWords') AS bit) AS [IsInWords]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -24481,18 +24513,18 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Columns] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -24529,7 +24561,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -24593,7 +24625,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
                               ,[T].[IsGridable]
                               ,[T].[IsEncrypted]
                               ,[T].[IsInWords]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Columns] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -24620,8 +24652,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
                                   ,[O].[IsGridable]
                                   ,[O].[IsEncrypted]
                                   ,[O].[IsInWords]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -24659,11 +24691,24 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#zgFdlbRVc34FxOqTbVUQNqm2f]
+            INTO [#Tables]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#zgFdlbRVc34FxOqTbVUQNqm2f] ON [#zgFdlbRVc34FxOqTbVUQNqm2f](Id)
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
+        INSERT INTO [#Tables]
+            SELECT DISTINCT 'Table' AS ClassName
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Alias]
+                  ,[R].[Description]
+                  ,[R].[ParentTableId]
+                  ,[R].[IsLegacy]
+                  ,[R].[CurrentId]
+                FROM [#Tables] [T]
+                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
         SELECT DISTINCT 'Domain' AS ClassName
               ,[R].[Id]
               ,[R].[TypeId]
@@ -24676,11 +24721,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[Minimum]
               ,[R].[Maximum]
               ,[R].[Codification]
-            INTO [#WPoocFn0Ty0nQqDKR_ZUsIxd8]
+            INTO [#Domains]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#WPoocFn0Ty0nQqDKR_ZUsIxd8] ON [#WPoocFn0Ty0nQqDKR_ZUsIxd8](Id)
+        CREATE UNIQUE INDEX [#Domains] ON [#Domains](Id)
         SELECT DISTINCT 'Type' AS ClassName
               ,[R].[Id]
               ,[R].[CategoryId]
@@ -24696,11 +24741,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[AskGridable]
               ,[R].[AskCodification]
               ,[R].[IsActive]
-            INTO [#niM1MDpoD7bK0w4sYPG66kexu]
-            FROM [#WPoocFn0Ty0nQqDKR_ZUsIxd8] [T]
+            INTO [#Types]
+            FROM [#Domains] [T]
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#niM1MDpoD7bK0w4sYPG66kexu] ON [#niM1MDpoD7bK0w4sYPG66kexu](Id)
+        CREATE UNIQUE INDEX [#Types] ON [#Types](Id)
         SELECT DISTINCT 'Category' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -24713,12 +24758,12 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
               ,[R].[AskMinimum]
               ,[R].[AskMaximum]
               ,[R].[AskInWords]
-            INTO [#K9qWNTdLQkx940sH6Sa4y9Kse]
-            FROM [#niM1MDpoD7bK0w4sYPG66kexu] [T]
+            INTO [#Categories]
+            FROM [#Types] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#K9qWNTdLQkx940sH6Sa4y9Kse] ON [#K9qWNTdLQkx940sH6Sa4y9Kse](Id)
-        INSERT INTO [#zgFdlbRVc34FxOqTbVUQNqm2f]
+        CREATE UNIQUE INDEX [#Categories] ON [#Categories](Id)
+        INSERT INTO [#Tables]
             SELECT DISTINCT 'Table' AS ClassName
                   ,[R].[Id]
                   ,[R].[Name]
@@ -24729,12 +24774,25 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
                   ,[R].[CurrentId]
                 FROM [#result] [T]
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ReferenceTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#zgFdlbRVc34FxOqTbVUQNqm2f] WHERE [Id] = [R].[Id])
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        SELECT * FROM [#zgFdlbRVc34FxOqTbVUQNqm2f] AS [Tables]
-        SELECT * FROM [#WPoocFn0Ty0nQqDKR_ZUsIxd8] AS [Domains]
-        SELECT * FROM [#niM1MDpoD7bK0w4sYPG66kexu] AS [Types]
-        SELECT * FROM [#K9qWNTdLQkx940sH6Sa4y9Kse] AS [Categories]
+        INSERT INTO [#Tables]
+            SELECT DISTINCT 'Table' AS ClassName
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Alias]
+                  ,[R].[Description]
+                  ,[R].[ParentTableId]
+                  ,[R].[IsLegacy]
+                  ,[R].[CurrentId]
+                FROM [#Tables] [T]
+                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
+        SELECT [Tables].* FROM [#Tables] AS [Tables]
+        SELECT [Domains].* FROM [#Domains] AS [Domains]
+        SELECT [Types].* FROM [#Types] AS [Types]
+        SELECT [Categories].* FROM [#Categories] AS [Categories]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -25130,12 +25188,12 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS bigint) AS [TableId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Indexes'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -25165,18 +25223,18 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Indexes] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -25193,7 +25251,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -25221,7 +25279,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
                               ,[T].[TableId]
                               ,[T].[Name]
                               ,[T].[IsUnique]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Indexes] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -25230,8 +25288,8 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
                                   ,[O].[TableId]
                                   ,[O].[Name]
                                   ,[O].[IsUnique]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -25251,12 +25309,25 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#cqay5NU9Dux7NQzZZ8nic0XQP]
+            INTO [#Tables]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#cqay5NU9Dux7NQzZZ8nic0XQP] ON [#cqay5NU9Dux7NQzZZ8nic0XQP](Id)
-        SELECT * FROM [#cqay5NU9Dux7NQzZZ8nic0XQP] AS [Tables]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
+        INSERT INTO [#Tables]
+            SELECT DISTINCT 'Table' AS ClassName
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Alias]
+                  ,[R].[Description]
+                  ,[R].[ParentTableId]
+                  ,[R].[IsLegacy]
+                  ,[R].[CurrentId]
+                FROM [#Tables] [T]
+                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
+        SELECT [Tables].* FROM [#Tables] AS [Tables]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -25732,12 +25803,12 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ColumnId') AS bigint) AS [ColumnId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsDescending') AS bit) AS [IsDescending]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Indexkeys'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -25769,18 +25840,18 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Indexkeys] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -25797,7 +25868,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -25827,7 +25898,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
                               ,[T].[Sequence]
                               ,[T].[ColumnId]
                               ,[T].[IsDescending]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Indexkeys] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -25837,8 +25908,8 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
                                   ,[O].[Sequence]
                                   ,[O].[ColumnId]
                                   ,[O].[IsDescending]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -25856,11 +25927,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[TableId]
               ,[R].[Name]
               ,[R].[IsUnique]
-            INTO [#4m960guWBruUz8Ppu7wXwiYOK]
+            INTO [#Indexes]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Indexes] [R] ON [R].[Id] = [T].[IndexId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#4m960guWBruUz8Ppu7wXwiYOK] ON [#4m960guWBruUz8Ppu7wXwiYOK](Id)
+        CREATE UNIQUE INDEX [#Indexes] ON [#Indexes](Id)
         SELECT DISTINCT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -25869,11 +25940,24 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#OuaqeFSoYwtxBtR6ZXqJ7toUH]
-            FROM [#4m960guWBruUz8Ppu7wXwiYOK] [T]
+            INTO [#Tables]
+            FROM [#Indexes] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#OuaqeFSoYwtxBtR6ZXqJ7toUH] ON [#OuaqeFSoYwtxBtR6ZXqJ7toUH](Id)
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
+        INSERT INTO [#Tables]
+            SELECT DISTINCT 'Table' AS ClassName
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Alias]
+                  ,[R].[Description]
+                  ,[R].[ParentTableId]
+                  ,[R].[IsLegacy]
+                  ,[R].[CurrentId]
+                FROM [#Tables] [T]
+                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
         SELECT DISTINCT 'Column' AS ClassName
               ,[R].[Id]
               ,[R].[TableId]
@@ -25897,12 +25981,12 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
               ,[R].[IsGridable]
               ,[R].[IsEncrypted]
               ,[R].[IsInWords]
-            INTO [#XzJb75DS5frcR7D42whFZq2Ow]
+            INTO [#Columns]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#XzJb75DS5frcR7D42whFZq2Ow] ON [#XzJb75DS5frcR7D42whFZq2Ow](Id)
-        INSERT INTO [#OuaqeFSoYwtxBtR6ZXqJ7toUH]
+        CREATE UNIQUE INDEX [#Columns] ON [#Columns](Id)
+        INSERT INTO [#Tables]
             SELECT DISTINCT 'Table' AS ClassName
                   ,[R].[Id]
                   ,[R].[Name]
@@ -25911,13 +25995,26 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
                   ,[R].[ParentTableId]
                   ,[R].[IsLegacy]
                   ,[R].[CurrentId]
-                FROM [#XzJb75DS5frcR7D42whFZq2Ow] [T]
+                FROM [#Columns] [T]
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#OuaqeFSoYwtxBtR6ZXqJ7toUH] WHERE [Id] = [R].[Id])
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        SELECT * FROM [#4m960guWBruUz8Ppu7wXwiYOK] AS [Indexes]
-        SELECT * FROM [#OuaqeFSoYwtxBtR6ZXqJ7toUH] AS [Tables]
-        SELECT * FROM [#XzJb75DS5frcR7D42whFZq2Ow] AS [Columns]
+        INSERT INTO [#Tables]
+            SELECT DISTINCT 'Table' AS ClassName
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Alias]
+                  ,[R].[Description]
+                  ,[R].[ParentTableId]
+                  ,[R].[IsLegacy]
+                  ,[R].[CurrentId]
+                FROM [#Tables] [T]
+                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
+        SELECT [Indexes].* FROM [#Indexes] AS [Indexes]
+        SELECT [Tables].* FROM [#Tables] AS [Tables]
+        SELECT [Columns].* FROM [#Columns] AS [Columns]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -26321,12 +26418,12 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.UserId') AS bigint) AS [UserId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.PublicKey') AS nvarchar(256)) AS [PublicKey]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsLogged') AS bit) AS [IsLogged]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Logins'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -26358,18 +26455,18 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Logins] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -26386,7 +26483,7 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -26416,7 +26513,7 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
                               ,[T].[UserId]
                               ,[T].[PublicKey]
                               ,[T].[IsLogged]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Logins] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -26426,8 +26523,8 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
                                   ,[O].[UserId]
                                   ,[O].[PublicKey]
                                   ,[O].[IsLogged]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -26447,11 +26544,11 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#lTiQcniUj9lUNCafNVjA0lSnZ]
+            INTO [#Systems]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#lTiQcniUj9lUNCafNVjA0lSnZ] ON [#lTiQcniUj9lUNCafNVjA0lSnZ](Id)
+        CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
         SELECT DISTINCT 'User' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -26459,13 +26556,13 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
               ,[R].[FullName]
               ,[R].[RetryLogins]
               ,[R].[IsActive]
-            INTO [#AievTjJZZKJKF1RpW4Qa8a6Aa]
+            INTO [#Users]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#AievTjJZZKJKF1RpW4Qa8a6Aa] ON [#AievTjJZZKJKF1RpW4Qa8a6Aa](Id)
-        SELECT * FROM [#lTiQcniUj9lUNCafNVjA0lSnZ] AS [Systems]
-        SELECT * FROM [#AievTjJZZKJKF1RpW4Qa8a6Aa] AS [Users]
+        CREATE UNIQUE INDEX [#Users] ON [#Users](Id)
+        SELECT [Systems].* FROM [#Systems] AS [Systems]
+        SELECT [Users].* FROM [#Users] AS [Users]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -26847,12 +26944,12 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.LoginId') AS bigint) AS [LoginId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsConfirmed') AS bit) AS [IsConfirmed]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Transactions'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -26868,18 +26965,18 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Transactions] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint'
@@ -26890,7 +26987,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -26916,7 +27013,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
                               ,[T].[Id]
                               ,[T].[LoginId]
                               ,[T].[IsConfirmed]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Transactions] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -26924,8 +27021,8 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
                                   ,[O].[Id]
                                   ,[O].[LoginId]
                                   ,[O].[IsConfirmed]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -26942,11 +27039,11 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
               ,[R].[UserId]
               ,[R].[PublicKey]
               ,[R].[IsLogged]
-            INTO [#TI9KAsyvONI7KxxN_XyRzw2q7]
+            INTO [#Logins]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Logins] [R] ON [R].[Id] = [T].[LoginId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#TI9KAsyvONI7KxxN_XyRzw2q7] ON [#TI9KAsyvONI7KxxN_XyRzw2q7](Id)
+        CREATE UNIQUE INDEX [#Logins] ON [#Logins](Id)
         SELECT DISTINCT 'System' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -26954,13 +27051,13 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#usXXeS7Qmz7DuF_1zsHWFnTBE]
-            FROM [#TI9KAsyvONI7KxxN_XyRzw2q7] [T]
+            INTO [#Systems]
+            FROM [#Logins] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#usXXeS7Qmz7DuF_1zsHWFnTBE] ON [#usXXeS7Qmz7DuF_1zsHWFnTBE](Id)
-        SELECT * FROM [#TI9KAsyvONI7KxxN_XyRzw2q7] AS [Logins]
-        SELECT * FROM [#usXXeS7Qmz7DuF_1zsHWFnTBE] AS [Systems]
+        CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
+        SELECT [Logins].* FROM [#Logins] AS [Logins]
+        SELECT [Systems].* FROM [#Systems] AS [Systems]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -27388,12 +27485,12 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.OriginalRecord') AS nvarchar(max)) AS [OriginalRecord]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ActualRecord') AS nvarchar(max)) AS [ActualRecord]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsConfirmed') AS bit) AS [IsConfirmed]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Operations'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -27409,18 +27506,18 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Operations] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint'
@@ -27431,7 +27528,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -27467,7 +27564,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
                               ,[T].[OriginalRecord]
                               ,[T].[ActualRecord]
                               ,[T].[IsConfirmed]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Operations] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -27480,8 +27577,8 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
                                   ,[O].[OriginalRecord]
                                   ,[O].[ActualRecord]
                                   ,[O].[IsConfirmed]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -27501,22 +27598,22 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[Id]
               ,[R].[LoginId]
               ,[R].[IsConfirmed]
-            INTO [#evWCgDnSAC2bZfjGFdAssHQAW]
+            INTO [#Transactions]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Transactions] [R] ON [R].[Id] = [T].[TransactionId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#evWCgDnSAC2bZfjGFdAssHQAW] ON [#evWCgDnSAC2bZfjGFdAssHQAW](Id)
+        CREATE UNIQUE INDEX [#Transactions] ON [#Transactions](Id)
         SELECT DISTINCT 'Login' AS ClassName
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[UserId]
               ,[R].[PublicKey]
               ,[R].[IsLogged]
-            INTO [#mSzsJZ4JFhoCefREPuABnwPdu]
-            FROM [#evWCgDnSAC2bZfjGFdAssHQAW] [T]
+            INTO [#Logins]
+            FROM [#Transactions] [T]
                 INNER JOIN [dbo].[Logins] [R] ON [R].[Id] = [T].[LoginId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#mSzsJZ4JFhoCefREPuABnwPdu] ON [#mSzsJZ4JFhoCefREPuABnwPdu](Id)
+        CREATE UNIQUE INDEX [#Logins] ON [#Logins](Id)
         SELECT DISTINCT 'System' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -27524,11 +27621,11 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[ClientName]
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
-            INTO [#WbEjoBzWaL02AxxSLAiduxJJq]
-            FROM [#mSzsJZ4JFhoCefREPuABnwPdu] [T]
+            INTO [#Systems]
+            FROM [#Logins] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#WbEjoBzWaL02AxxSLAiduxJJq] ON [#WbEjoBzWaL02AxxSLAiduxJJq](Id)
+        CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
         SELECT DISTINCT 'Operation' AS ClassName
               ,[R].[Id]
               ,[R].[TransactionId]
@@ -27538,47 +27635,15 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[OriginalRecord]
               ,[R].[ActualRecord]
               ,[R].[IsConfirmed]
-            INTO [#uyq0u7Qdlur0rXJ709EnGfx9x]
+            INTO [#Operations]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Operations] [R] ON [R].[Id] = [T].[ParentOperationId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#uyq0u7Qdlur0rXJ709EnGfx9x] ON [#uyq0u7Qdlur0rXJ709EnGfx9x](Id)
-        INSERT INTO [#evWCgDnSAC2bZfjGFdAssHQAW]
-            SELECT DISTINCT 'Transaction' AS ClassName
-                  ,[R].[Id]
-                  ,[R].[LoginId]
-                  ,[R].[IsConfirmed]
-                FROM [#uyq0u7Qdlur0rXJ709EnGfx9x] [T]
-                    INNER JOIN [dbo].[Transactions] [R] ON [R].[Id] = [T].[TransactionId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#evWCgDnSAC2bZfjGFdAssHQAW] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
-        INSERT INTO [#mSzsJZ4JFhoCefREPuABnwPdu]
-            SELECT DISTINCT 'Login' AS ClassName
-                  ,[R].[Id]
-                  ,[R].[SystemId]
-                  ,[R].[UserId]
-                  ,[R].[PublicKey]
-                  ,[R].[IsLogged]
-                FROM [#evWCgDnSAC2bZfjGFdAssHQAW] [T]
-                    INNER JOIN [dbo].[Logins] [R] ON [R].[Id] = [T].[LoginId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#mSzsJZ4JFhoCefREPuABnwPdu] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
-        INSERT INTO [#WbEjoBzWaL02AxxSLAiduxJJq]
-            SELECT DISTINCT 'System' AS ClassName
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Description]
-                  ,[R].[ClientName]
-                  ,[R].[MaxRetryLogins]
-                  ,[R].[IsOffAir]
-                FROM [#mSzsJZ4JFhoCefREPuABnwPdu] [T]
-                    INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#WbEjoBzWaL02AxxSLAiduxJJq] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
-        SELECT * FROM [#evWCgDnSAC2bZfjGFdAssHQAW] AS [Transactions]
-        SELECT * FROM [#mSzsJZ4JFhoCefREPuABnwPdu] AS [Logins]
-        SELECT * FROM [#WbEjoBzWaL02AxxSLAiduxJJq] AS [Systems]
-        SELECT * FROM [#uyq0u7Qdlur0rXJ709EnGfx9x] AS [Operations]
+        CREATE UNIQUE INDEX [#Operations] ON [#Operations](Id)
+        SELECT [Transactions].* FROM [#Transactions] AS [Transactions]
+        SELECT [Logins].* FROM [#Logins] AS [Logins]
+        SELECT [Systems].* FROM [#Systems] AS [Systems]
+        SELECT [Operations].* FROM [#Operations] AS [Operations]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -27981,12 +28046,12 @@ ALTER PROCEDURE [dbo].[AssociationsRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId1') AS bigint) AS [TableId1]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId2') AS bigint) AS [TableId2]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsBidirectional') AS bit) AS [IsBidirectional]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Associations'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -28014,18 +28079,18 @@ ALTER PROCEDURE [dbo].[AssociationsRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Associations] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -28040,7 +28105,7 @@ ALTER PROCEDURE [dbo].[AssociationsRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -28068,7 +28133,7 @@ ALTER PROCEDURE [dbo].[AssociationsRead](@LoginId BIGINT
                               ,[T].[TableId1]
                               ,[T].[TableId2]
                               ,[T].[IsBidirectional]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Associations] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -28077,8 +28142,8 @@ ALTER PROCEDURE [dbo].[AssociationsRead](@LoginId BIGINT
                                   ,[O].[TableId1]
                                   ,[O].[TableId2]
                                   ,[O].[IsBidirectional]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -28098,12 +28163,25 @@ ALTER PROCEDURE [dbo].[AssociationsRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#uITyLmEdrVqzDh4MvPErejqye]
+            INTO [#Tables]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId1]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#uITyLmEdrVqzDh4MvPErejqye] ON [#uITyLmEdrVqzDh4MvPErejqye](Id)
-        INSERT INTO [#uITyLmEdrVqzDh4MvPErejqye]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
+        INSERT INTO [#Tables]
+            SELECT DISTINCT 'Table' AS ClassName
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Alias]
+                  ,[R].[Description]
+                  ,[R].[ParentTableId]
+                  ,[R].[IsLegacy]
+                  ,[R].[CurrentId]
+                FROM [#Tables] [T]
+                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
+        INSERT INTO [#Tables]
             SELECT DISTINCT 'Table' AS ClassName
                   ,[R].[Id]
                   ,[R].[Name]
@@ -28114,9 +28192,22 @@ ALTER PROCEDURE [dbo].[AssociationsRead](@LoginId BIGINT
                   ,[R].[CurrentId]
                 FROM [#result] [T]
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId2]
-                WHERE NOT EXISTS(SELECT 1 FROM [#uITyLmEdrVqzDh4MvPErejqye] WHERE [Id] = [R].[Id])
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        SELECT * FROM [#uITyLmEdrVqzDh4MvPErejqye] AS [Tables]
+        INSERT INTO [#Tables]
+            SELECT DISTINCT 'Table' AS ClassName
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Alias]
+                  ,[R].[Description]
+                  ,[R].[ParentTableId]
+                  ,[R].[IsLegacy]
+                  ,[R].[CurrentId]
+                FROM [#Tables] [T]
+                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
+        SELECT [Tables].* FROM [#Tables] AS [Tables]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -28513,12 +28604,12 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ColumnId1') AS bigint) AS [ColumnId1]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ColumnId2') AS bigint) AS [ColumnId2]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsBidirectional') AS bit) AS [IsBidirectional]
-            INTO [#operations]
+            INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Uniques'
                   AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([Id])
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
         DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
@@ -28546,18 +28637,18 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#table]
+        SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
                             FROM [dbo].[Uniques] [T]
-                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
                             SELECT ''O'' AS [_]
                                   ,[T].[Id]
-                                FROM [#operations] [T]
+                                FROM [#tmpOperations] [T]
                                 WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#table]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
@@ -28574,7 +28665,7 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
 
-        CREATE UNIQUE INDEX [#unqTable] ON [#table]([Id])
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -28602,7 +28693,7 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
                               ,[T].[ColumnId1]
                               ,[T].[ColumnId2]
                               ,[T].[IsBidirectional]
-                            FROM [#table] [#]
+                            FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Uniques] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
@@ -28611,8 +28702,8 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
                                   ,[O].[ColumnId1]
                                   ,[O].[ColumnId2]
                                   ,[O].[IsBidirectional]
-                                FROM [#table] [#]
-                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
                         ORDER BY ' + @OrderBy + '
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
@@ -28647,11 +28738,11 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
               ,[R].[IsGridable]
               ,[R].[IsEncrypted]
               ,[R].[IsInWords]
-            INTO [#pdZofS9bNgSR3q710Zr4GXAJ_]
+            INTO [#Columns]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId1]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#pdZofS9bNgSR3q710Zr4GXAJ_] ON [#pdZofS9bNgSR3q710Zr4GXAJ_](Id)
+        CREATE UNIQUE INDEX [#Columns] ON [#Columns](Id)
         SELECT DISTINCT 'Table' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -28660,12 +28751,25 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
               ,[R].[ParentTableId]
               ,[R].[IsLegacy]
               ,[R].[CurrentId]
-            INTO [#f9X3MnUmmXbu07RPmfN1nA2HA]
-            FROM [#pdZofS9bNgSR3q710Zr4GXAJ_] [T]
+            INTO [#Tables]
+            FROM [#Columns] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#f9X3MnUmmXbu07RPmfN1nA2HA] ON [#f9X3MnUmmXbu07RPmfN1nA2HA](Id)
-        INSERT INTO [#pdZofS9bNgSR3q710Zr4GXAJ_]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
+        INSERT INTO [#Tables]
+            SELECT DISTINCT 'Table' AS ClassName
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Alias]
+                  ,[R].[Description]
+                  ,[R].[ParentTableId]
+                  ,[R].[IsLegacy]
+                  ,[R].[CurrentId]
+                FROM [#Tables] [T]
+                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
+        INSERT INTO [#Columns]
             SELECT DISTINCT 'Column' AS ClassName
                   ,[R].[Id]
                   ,[R].[TableId]
@@ -28691,9 +28795,9 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
                   ,[R].[IsInWords]
                 FROM [#result] [T]
                     INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId2]
-                WHERE NOT EXISTS(SELECT 1 FROM [#pdZofS9bNgSR3q710Zr4GXAJ_] WHERE [Id] = [R].[Id])
+                WHERE NOT EXISTS(SELECT 1 FROM [#Columns] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        INSERT INTO [#f9X3MnUmmXbu07RPmfN1nA2HA]
+        INSERT INTO [#Tables]
             SELECT DISTINCT 'Table' AS ClassName
                   ,[R].[Id]
                   ,[R].[Name]
@@ -28702,12 +28806,25 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
                   ,[R].[ParentTableId]
                   ,[R].[IsLegacy]
                   ,[R].[CurrentId]
-                FROM [#pdZofS9bNgSR3q710Zr4GXAJ_] [T]
+                FROM [#Columns] [T]
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#f9X3MnUmmXbu07RPmfN1nA2HA] WHERE [Id] = [R].[Id])
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        SELECT * FROM [#pdZofS9bNgSR3q710Zr4GXAJ_] AS [Columns]
-        SELECT * FROM [#f9X3MnUmmXbu07RPmfN1nA2HA] AS [Tables]
+        INSERT INTO [#Tables]
+            SELECT DISTINCT 'Table' AS ClassName
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Alias]
+                  ,[R].[Description]
+                  ,[R].[ParentTableId]
+                  ,[R].[IsLegacy]
+                  ,[R].[CurrentId]
+                FROM [#Tables] [T]
+                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
+        SELECT [Columns].* FROM [#Columns] AS [Columns]
+        SELECT [Tables].* FROM [#Tables] AS [Tables]
         SET @ReturnValue = @RowCount
 
         RETURN 0

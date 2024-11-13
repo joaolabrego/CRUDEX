@@ -1085,8 +1085,8 @@ namespace crudex.Classes
                 spaces = new string(' ', 4);
             }
             else
-                tmpNames.Add(referenceTableName, tmpName = Crypto.GenerateIdetifier(25));
-
+                tmpNames.Add(referenceTableName, tmpName = $"#{referenceTableName}");
+            ProcessedTableIds.Add(Settings.ToLong(reference["TableId"]));
             foreach ( var column in columnRows)
             {
                 if (firstTime)
@@ -1117,7 +1117,6 @@ namespace crudex.Classes
                 if (!ProcessedTableIds.Contains(Settings.ToLong(subReference["TableId"])))
                 {
                     result.Append(GetReferenceQueries(subReference, columns, tmpNames, tmpName));
-                    ProcessedTableIds.Add(Settings.ToLong(subReference["TableId"]));
                 }
             }
 
@@ -1200,12 +1199,12 @@ namespace crudex.Classes
                     }
                     result.Append($"              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
-                result.Append($"            INTO [#operations]\r\n");
+                result.Append($"            INTO [#tmpOperations]\r\n");
                 result.Append($"            FROM [dbo].[Operations]\r\n");
                 result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                  AND [TableName] = '{table["Name"]}'\r\n");
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
-                result.Append($"        CREATE UNIQUE INDEX [#unqOperations] ON [#operations]([{columnRows[0]["Name"]}]");
+                result.Append($"        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([{columnRows[0]["Name"]}]");
                 result.Append($")\r\n");
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))\r\n");
@@ -1248,19 +1247,19 @@ namespace crudex.Classes
                 }
                 result.Append($"        END ELSE\r\n");
                 result.Append($"            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'\r\n");
-                result.Append($"        SET @sql = 'INSERT [#table]\r\n");
+                result.Append($"        SET @sql = 'INSERT [#tmpTable]\r\n");
                 result.Append($"                        SELECT ''T'' AS [_]\r\n");
                 result.Append($"                              ,[T].[Id]\r\n");
                 result.Append($"                            FROM [dbo].[{table["Name"]}] [T]\r\n");
-                result.Append($"                                LEFT JOIN [#operations] [#] ON [#].[Id] = [T].[Id]");
+                result.Append($"                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]");
                 result.Append($"\r\n");
                 result.Append($"                            WHERE [#].[{columnRows[0]["Name"]}] IS NULL' + @Where + '\r\n");
                 result.Append($"                        UNION ALL\r\n");
                 result.Append($"                            SELECT ''O'' AS [_]\r\n");
                 result.Append($"                                  ,[T].[{columnRows[0]["Name"]}]\r\n");
-                result.Append($"                                FROM [#operations] [T]\r\n");
+                result.Append($"                                FROM [#tmpOperations] [T]\r\n");
                 result.Append($"                                WHERE [T].[_] <> ''delete''' + @Where\r\n");
-                result.Append($"        CREATE TABLE [#table]([_] CHAR(1)");
+                result.Append($"        CREATE TABLE [#tmpTable]([_] CHAR(1)");
                 result.Append($", [{columnRows[0]["Name"]}] {columnRows[0]["#DataType"]}");
                 result.Append($")\r\n");
                 result.Append($"        IF @_ IS NULL\r\n");
@@ -1288,7 +1287,7 @@ namespace crudex.Classes
                 result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
                 result.Append($"               ,@OffSet INT\r\n");
                 result.Append($"\r\n");
-                result.Append($"        CREATE UNIQUE INDEX [#unqTable] ON [#table]([{columnRows[0]["Name"]}]");
+                result.Append($"        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([{columnRows[0]["Name"]}]");
                 result.Append($")\r\n");
                 result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
                 result.Append($"            SET @OffSet = 0\r\n");
@@ -1321,15 +1320,15 @@ namespace crudex.Classes
                 result.Append($"                        SELECT ''{table["Alias"]}'' AS [ClassName]\r\n");
                 foreach (var column in columnRows)
                     result.Append($"                              ,[T].[{column["Name"]}]\r\n");
-                result.Append($"                            FROM [#table] [#]\r\n");
+                result.Append($"                            FROM [#tmpTable] [#]\r\n");
                 result.Append($"                                INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[Id] = [#].[Id]\r\n");
                 result.Append($"                            WHERE [#].[_] = ''T''\r\n");
                 result.Append($"                        UNION ALL\r\n");
                 result.Append($"                            SELECT ''{table["Alias"]}'' AS [ClassName]\r\n");
                 foreach (var column in columnRows)
                     result.Append($"                                  ,[O].[{column["Name"]}]\r\n");
-                result.Append($"                                FROM [#table] [#]\r\n");
-                result.Append($"                                    INNER JOIN [#operations] [O] ON [O].[Id] = [#].[Id]\r\n");
+                result.Append($"                                FROM [#tmpTable] [#]\r\n");
+                result.Append($"                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]\r\n");
                 result.Append($"                                WHERE [#].[_] = ''O''\r\n");
                 result.Append($"                        ORDER BY ' + @OrderBy + '\r\n");
                 result.Append($"                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
@@ -1356,7 +1355,7 @@ namespace crudex.Classes
                     result.Append(GetReferenceQueries(reference, columns, tmpTemps));
                 }
                 foreach (var item in tmpTemps)
-                    result.Append($"        SELECT * FROM [{item.Value}] AS [{item.Key}]\r\n");
+                    result.Append($"        SELECT [{item.Key}].* FROM [{item.Value}] AS [{item.Key}]\r\n");
                 
                 result.Append($"        SET @ReturnValue = @RowCount\r\n");
                 result.Append($"\r\n");
