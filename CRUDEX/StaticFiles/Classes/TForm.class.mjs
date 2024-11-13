@@ -281,8 +281,7 @@ export default class TForm {
                 this.#Grid.SaveFilters(this.#Record);
             }
             try {
-                TSystem.Action = `grid/crudex/Columns`
-                //this.#Grid.Renderize();
+                this.#Grid.Renderize();
             } catch (error) {
                 TScreen.ShowError(error.Message, error.Action || this.#ReturnAction);
             }
@@ -297,8 +296,7 @@ export default class TForm {
             this.#HTML.CancelButton.style.backgroundImage = TForm.#Images.Cancel
             this.#HTML.CancelButton.onclick = () => {
                 try {
-                    TSystem.Action = `grid/crudex/Columns`
-                    //this.#Grid.Renderize();
+                    this.#Grid.Renderize();
                 } catch (error) {
                     TScreen.ShowError(error.Message, error.Action || this.#ReturnAction);
                 }
