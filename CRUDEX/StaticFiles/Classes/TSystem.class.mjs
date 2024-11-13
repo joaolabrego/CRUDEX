@@ -130,13 +130,13 @@ export default class TSystem {
     /**
      * @param {string | number} value
      */
-    static GetTable(aliasOrId) {
+    static GetTable(tableNameOrAliasOrId) {
         let result
 
-        if (typeof aliasOrId === "number")
-            result = this.#Tables.find(table => table.Id === aliasOrId)
+        if (typeof tableNameOrAliasOrId === "number")
+            result = this.#Tables.find(table => table.Id === tableNameOrAliasOrId)
         else
-            result = this.#Tables.find(table => table.Alias === aliasOrId)
+            result = this.#Tables.find(table => table.Name === tableNameOrAliasOrId || table.Alias === tableNameOrAliasOrId)
 
         return result
     }

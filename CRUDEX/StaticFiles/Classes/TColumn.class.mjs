@@ -18,10 +18,10 @@ export default class TColumn {
         this.#Table = table
         this.#Domain = TSystem.GetDomain(rowColumn.DomainId)
     }
-    set OriginalValue(value) {
+    set LatValue(value) {
         this.#LastValue = value
     }
-    get OriginalValue() {
+    get LatValue() {
         return this.#LastValue
     }
     set Value(value) {

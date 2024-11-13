@@ -19,12 +19,6 @@ export default class TRecordSet {
         this.#Table = table
         this.#Table.Columns.filter(column => column.IsFilterable)
             .forEach(column => this.#FilterValues[column.Name] = null)
-        table.Columns.filter(column => !TConfig.IsEmpty(column.ReferenceTableId))
-            .forEach(column => {
-                this.#Reference.Tables.push(TSystem.GetTable(column.ReferenceTableId))
-                this.#Reference.Columns.push(column)
-                this.#Reference.CurrentRecords.push(null)
-            })
     }
     async #ReadPage(pageNumber) {
         let parameters = {

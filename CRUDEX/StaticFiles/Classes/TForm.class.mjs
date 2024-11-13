@@ -293,9 +293,9 @@ export default class TForm {
             this.#HTML.CancelButton.className = "button box"
             this.#HTML.CancelButton.type = "reset"
             this.#HTML.CancelButton.style.backgroundImage = TForm.#Images.Cancel
-            this.#HTML.CancelButton.onclick = async () => {
+            this.#HTML.CancelButton.onclick = () => {
                 try {
-                    await this.#Grid.Renderize();
+                    this.#Grid.Renderize();
                 } catch (error) {
                     TScreen.ShowError(error.Message, error.Action || this.#ReturnAction);
                 }
