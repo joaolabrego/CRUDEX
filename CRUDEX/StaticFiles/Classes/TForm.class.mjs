@@ -276,12 +276,12 @@ export default class TForm {
             this.#HTML.ConfirmButton.style.backgroundImage = TForm.#Images.Confirm
         }
         this.#HTML.ConfirmButton.type = "button"
-        this.#HTML.ConfirmButton.onclick = () => {
+        this.#HTML.ConfirmButton.onclick = async () => {
             if (this.#Action === TActions.FILTER) {
                 this.#Grid.SaveFilters(this.#Record);
             }
             try {
-                this.#Grid.Renderize();
+                await this.#Grid.Renderize();
             } catch (error) {
                 TScreen.ShowError(error.Message, error.Action || this.#ReturnAction);
             }
@@ -294,9 +294,9 @@ export default class TForm {
             this.#HTML.CancelButton.className = "button box"
             this.#HTML.CancelButton.type = "reset"
             this.#HTML.CancelButton.style.backgroundImage = TForm.#Images.Cancel
-            this.#HTML.CancelButton.onclick = () => {
+            this.#HTML.CancelButton.onclick = async () => {
                 try {
-                    this.#Grid.Renderize();
+                    await this.#Grid.Renderize();
                 } catch (error) {
                     TScreen.ShowError(error.Message, error.Action || this.#ReturnAction);
                 }
