@@ -1069,34 +1069,57 @@ namespace crudex.Classes
 
             return result;
         }
-        private static StringBuilder GetReferenceQueries(DataRow reference, TDataRows columns, string tableName = "#result")
+        private static readonly List<long> ProcessedTableIds = [];
+        private static StringBuilder GetReferenceQueries(DataRow reference, TDataRows columns, TDictionary tmpNames, string tableName = "#result")
         {
             var result = new StringBuilder();
             var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(reference["ReferenceTableId"]));
-            var tmpName = Crypto.GenerateIdetifier(25);
             var firstTime = true;
+            var referenceTableName = Settings.ToString(reference["#ReferenceTableName"]);
+            var spaces = "";
+            string tmpName;
 
-            foreach( var column in columnRows)
+            if (tmpNames.TryGetValue(referenceTableName, out dynamic? value))
+            {
+                tmpName = Settings.ToString(value);
+                spaces = new string(' ', 4);
+            }
+            else
+                tmpNames.Add(referenceTableName, tmpName = Crypto.GenerateIdetifier(25));
+
+            foreach ( var column in columnRows)
             {
                 if (firstTime)
                 {
-                    result.Append($"        SELECT '{column["#TableAlias"]}' AS ClassName\r\n");
+                    if (spaces != "")
+                        result.Append($"        INSERT INTO [{tmpName}]\r\n");
+                        
+                    result.Append($"{spaces}        SELECT DISTINCT '{column["#TableAlias"]}' AS ClassName\r\n");
                     firstTime = false;
                 }
-                result.Append($"              ,[R].[{column["Name"]}]\r\n");
+                result.Append($"{spaces}              ,[R].[{column["Name"]}]\r\n");
             }
-            result.Append($"            INTO [{tmpName}]\r\n");
-            result.Append($"            FROM [{tableName}] [T]\r\n");
-            result.Append($"                INNER JOIN [dbo].[{reference["#ReferenceTableName"]}] [R] ON [R].[Id] = [T].[{reference["Name"]}]\r\n");
-            result.Append($"            ORDER BY [R].[Id]\r\n");
-            result.Append($"        SELECT * FROM [{tmpName}]\r\n");
+            if (spaces == "")
+                result.Append($"{spaces}            INTO [{tmpName}]\r\n");
+            result.Append($"{spaces}            FROM [{tableName}] [T]\r\n");
+            result.Append($"{spaces}                INNER JOIN [dbo].[{referenceTableName}] [R] ON [R].[Id] = [T].[{reference["Name"]}]\r\n");
+            if (spaces != "")
+                result.Append($"{spaces}            WHERE NOT EXISTS(SELECT 1 FROM [{tmpName}] WHERE [Id] = [R].[Id])\r\n");
+            result.Append($"{spaces}            ORDER BY [R].[Id]\r\n");
+            if (spaces == "")
+                result.Append($"        CREATE UNIQUE INDEX [{tmpName}] ON [{tmpName}](Id)\r\n");
 
             var subReferences = columns.FindAll(column => !Settings.IsNull(column["ReferenceTableId"]) &&
-                                                          Settings.ToLong(column["TableId"]) != Settings.ToLong(column["ReferenceTableId"]) &&
                                                           Settings.ToLong(column["TableId"]) == Settings.ToLong(reference["ReferenceTableId"]));
 
             foreach (var subReference in subReferences)
-                result.Append(GetReferenceQueries(subReference, columns, tmpName));
+            {
+                if (!ProcessedTableIds.Contains(Settings.ToLong(subReference["TableId"])))
+                {
+                    result.Append(GetReferenceQueries(subReference, columns, tmpNames, tmpName));
+                    ProcessedTableIds.Add(Settings.ToLong(subReference["TableId"]));
+                }
+            }
 
             return result;
         }
@@ -1325,9 +1348,16 @@ namespace crudex.Classes
                 result.Append($"            FROM [#result]\r\n");
 
                 var references = columnRows.FindAll(column => !Settings.IsNull(column["ReferenceTableId"]));
-                foreach (var reference in references)
-                    result.Append(GetReferenceQueries(reference, columns));
+                var tmpTemps = new TDictionary();
 
+                foreach (var reference in references)
+                {
+                    ProcessedTableIds.Clear();
+                    result.Append(GetReferenceQueries(reference, columns, tmpTemps));
+                }
+                foreach (var item in tmpTemps)
+                    result.Append($"        SELECT * FROM [{item.Value}] AS [{item.Key}]\r\n");
+                
                 result.Append($"        SET @ReturnValue = @RowCount\r\n");
                 result.Append($"\r\n");
                 result.Append($"        RETURN 0\r\n");

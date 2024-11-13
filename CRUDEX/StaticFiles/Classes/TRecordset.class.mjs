@@ -1,5 +1,7 @@
 ﻿"use strict"
 
+import TField from "./TField.class.mjs"
+import TRecord from "./TRecord.class.mjs"
 import TSystem from "./TSystem.class.mjs"
 
 export default class TRecordSet {
@@ -44,23 +46,32 @@ export default class TRecordSet {
         this.#RowCount = result.Parameters.ReturnValue
         this.#PageNumber = result.Parameters.PageNumber
         this.#PageCount = result.Parameters.MaxPage
+        if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
+            this.#RowNumber = result.Parameters.ReturnValue - 1
         this.#References.length = 0
-        Object.entries(result.DataSet).forEach(([, table], index) => {
+
+        Object.entries(result.DataSet).forEach(([, data], index) => {
             if (index) {
-                table.forEach(tableRow => {
-                    if (!this.#References.find(referenceRow => referenceRow.ClassName === tableRow.ClassName && referenceRow.Id === tableRow.Id)) {
-                        this.#References.push(tableRow);
-                    }
+                data.forEach(dataRow => {
+                    references.push(dataRow);
+
+                    let table = TSystem.GetTable(dataRow.ClassName),
+                        record = new TRecord(table)
+
+                    table.Columns.forEach(column => {
+                        let field = new TField(column, dataRow[column.Name])
+
+                        record.AddField(field)
+                    })
+                    this.this.#References[table.Id].push(record)
                 });
             }
         });
-        if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
-            this.#RowNumber = result.Parameters.ReturnValue - 1
 
         return this.#Data = result.DataSet.Table
     }
-    GetReferenceRow(tableAlias, recordId) {
-        return this.#References.find(referenceRow => referenceRow.ClassName === tableAlias && referenceRow.Id === recordId)
+    GetReferenceRow(tableId, valueId) {
+        return this.#References[tableId].find(referenceRow => referenceRow.Id === valueId)
     }
     GoNextRow() {
         if (this.#RowNumber === this.#Data.length - 1) {
