@@ -179,6 +179,7 @@ export default class TGrid {
             else {
                 switch (event.key) {
                     case "ArrowUp":
+                        event.preventDefault()
                         if (this.#HTML.SelectedRow.rowIndex > 1)
                             this.#Rows[this.#HTML.SelectedRow.rowIndex - 2].click()
                         else if (Math.trunc(this.#PageNumber) === 1) {
@@ -191,6 +192,7 @@ export default class TGrid {
                         }
                         break
                     case "ArrowDown":
+                        event.preventDefault()
                         if (this.#HTML.SelectedRow.rowIndex < this.#Rows.length)
                             this.#Rows[this.#HTML.SelectedRow.rowIndex].click()
                         else if (Math.trunc(this.#PageNumber) === this.#PageCount) {
@@ -203,19 +205,26 @@ export default class TGrid {
                         }
                         break
                     case "PageUp":
+                        event.preventDefault()
                         if (this.#PageNumber > 1)
                             this.Renderize(this.#PageNumber - 1)
                         else
                             this.Renderize(this.#PageCount)
                         break
                     case "PageDown":
+                        event.preventDefault()
                         if (this.#PageNumber < this.#PageCount)
                             this.Renderize(this.#PageNumber + 1)
                         else
                             this.Renderize(1)
                         break
                     case "Enter":
+                        event.preventDefault()
                         this.#HTML.UpdateButton.click()
+                        break
+                    case "Escape":
+                        event.preventDefault()
+                        this.#HTML.ExitButton.click()
                         break
                 }
             }

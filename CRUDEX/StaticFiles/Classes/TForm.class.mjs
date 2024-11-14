@@ -4,8 +4,6 @@ import TActions from "./TActions.class.mjs"
 import TScreen from "./TScreen.class.mjs"
 import TConfig from "./TConfig.class.mjs"
 import TLogin from "./TLogin.class.mjs"
-import TSystem from "./TSystem.class.mjs"
-
 export default class TForm {
     #Action = ""
     #ReturnAction = ""
@@ -174,6 +172,7 @@ export default class TForm {
                     focusableElements[0].focus()
             }
             else if (event.key === "Escape") {
+                event.preventDefault()
                 if (this.#Action == TActions.QUERY)
                     this.#HTML.ConfirmButton.click()
                 else
