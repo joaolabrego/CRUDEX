@@ -20,8 +20,6 @@ export default class TGrid {
     #Data = null
     #References = []
     #Table = null
-    #CurrentTr = null
-    #Recordset = null
 
     #OrderBy = ""
 
