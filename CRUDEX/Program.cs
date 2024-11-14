@@ -1,3 +1,4 @@
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using crudex.Classes;
 using crudex.Classes.Models;
@@ -94,10 +95,13 @@ namespace CRUDA_LIB
                 }
                 else
                 {
-                    var response = new Crypto(context.Request.Headers["PublicKey"]).EncryptDecrypt(JsonConvert.SerializeObject(new Error(ex.Message, Actions.LOGIN)));
+                    var response = JsonConvert.SerializeObject(new Error(ex.Message, Actions.LOGIN));
+                    var publicKey = context.Request.Headers["PublicKey"];
 
+                    if (string.IsNullOrEmpty(publicKey))
+                        publicKey = await Login.GetPublicKey(Convert.ToInt64(context.Request.Headers["LoginId"]));
                     context.Response.Headers.ContentType = "application/json";
-                    await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response }), Encoding.UTF8);
+                    await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(publicKey).EncryptDecrypt(response), }), Encoding.UTF8);
                 }
             }
         }

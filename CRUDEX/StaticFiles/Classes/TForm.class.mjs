@@ -131,6 +131,16 @@ export default class TForm {
             control
 
         legend.innerText = column.Caption
+        if (column.IsRequired) {
+            let span = document.createElement("span");
+
+            span.textContent = " *"
+            span.style.color = "red"
+            span.style.fontSize = "1.5dvmin"
+            span.style.fontWeight = "bold"
+            span.title = "Indica valor requerido"
+            legend.appendChild(span)
+        }
         fieldset.appendChild(legend)
         switch (column.Domain.Type.Category.HtmlInputType) {
             case "checkbox":
@@ -183,8 +193,8 @@ export default class TForm {
         if (!this.#HTML.FirstInput)
             this.#HTML.FirstInput = control
         fieldset.appendChild(control)
-        if (column.IsRequired)
-            fieldset.appendChild(document.createTextNode(" *"))
+        //if (column.IsRequired)
+        //    fieldset.appendChild(document.createTextNode(" *"))
 
         return fieldset
     }
@@ -283,7 +293,7 @@ export default class TForm {
             try {
                 await this.#Grid.Renderize();
             } catch (error) {
-                TScreen.ShowError(error.Message, error.Action || this.#ReturnAction);
+                TScreen.ShowError(error.message, error.Action || this.#ReturnAction);
             }
         }
         this.#HTML.ButtonsBar.appendChild(this.#HTML.ConfirmButton)
@@ -298,7 +308,7 @@ export default class TForm {
                 try {
                     await this.#Grid.Renderize();
                 } catch (error) {
-                    TScreen.ShowError(error.Message, error.Action || this.#ReturnAction);
+                    TScreen.ShowError(error.message, error.Action || this.#ReturnAction);
                 }
             }
             this.#HTML.ButtonsBar.appendChild(this.#HTML.CancelButton)

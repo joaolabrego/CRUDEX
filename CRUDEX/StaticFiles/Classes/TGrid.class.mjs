@@ -20,6 +20,7 @@ export default class TGrid {
     #Data = null
     #References = []
     #Table = null
+    #CurrentTr = null
     #Recordset = null
 
     #OrderBy = ""
@@ -327,7 +328,7 @@ export default class TGrid {
         this.#PageNumber = result.Parameters.PageNumber
         this.#PageCount = result.Parameters.MaxPage
         if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
-            this.#RowNumber = tr.rowIndex - 1
+            this.#RowNumber = result.Parameters.ReturnValue - 1
         this.#References.length = 0
         Object.entries(result.DataSet).forEach(([, table], index) => {
             if (index) {
@@ -367,7 +368,7 @@ export default class TGrid {
                 this.#HTML.Scroll.Container.classList.remove('invisible');
         }
         catch (error) {
-            TScreen.ShowError(error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
+            TScreen.ShowError(error.message || error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
         }
         finally {
             this.#IsRendering = false
