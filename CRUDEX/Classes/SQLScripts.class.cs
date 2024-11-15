@@ -355,14 +355,16 @@ namespace crudex.Classes
                     var autoIncrement = $"{(constraints.TryGetValue("AutoIncrement", out value) ? value : "")}";
                     var defaultValue = $"{(constraints.TryGetValue("Default", out value) ? value : "")}";
                     var range = $"{(constraints.TryGetValue("Range", out value) ? value : "")}";
-                    var definition = $"[{column["Name"]}] {column["#DataType"]}{required}{defaultValue}{range}";
 
                     if (firstTime)
                     {
+                        var definition = $"[Id] {column["#DataType"]}{required}{defaultValue}{range}";
                         var message = $"Primeira coluna definida na tabela '{table["Name"]}' ";
 
-                        if (!Settings.ToString(column["Name"]).Equals("Id"))
+                        if (!Settings.ToString(column["Name"]).ToLower().Equals("id"))
                             throw new Exception(message + "deve ter nome 'Id'.");
+                        if (!Settings.ToString(column["#CategoryName"]).Equals("numeric"))
+                            throw new Exception(message + "deve ser de categoria 'numeric'.");
                         if (!Settings.ToBoolean(constraints["AskPrimarykey"]))
                             throw new Exception(message + "deve permitir 'primary key'.");
                         if (!Settings.ToBoolean(column["IsPrimarykey"]))
@@ -376,6 +378,7 @@ namespace crudex.Classes
                         throw new Exception($"Nome de coluna {column["Name"]} é reservado.");
                     else
                     {
+                        var definition = $"[{column["Name"]}] {column["#DataType"]}{required}{defaultValue}{range}";
                         var message = $"Demais colunas definidas na tabela '{table["Name"]}' ";
 
                         if (Settings.ToString(column["Name"]).ToLower().Equals("id"))
@@ -400,7 +403,7 @@ namespace crudex.Classes
                 result.Append($"                                    ,[CreatedBy] nvarchar(25) NOT NULL\r\n");
                 result.Append($"                                    ,[UpdatedAt] datetime NULL\r\n");
                 result.Append($"                                    ,[UpdatedBy] nvarchar(25) NULL)\r\n");
-                result.Append($"ALTER TABLE [dbo].[{table["Name"]}] ADD CONSTRAINT PK_{table["Name"]} PRIMARY KEY CLUSTERED ([{columns[0]["Name"]}])\r\n");
+                result.Append($"ALTER TABLE [dbo].[{table["Name"]}] ADD CONSTRAINT PK_{table["Name"]} PRIMARY KEY CLUSTERED ([Id])\r\n");
 
                 var indexRows = indexes.FindAll(index => Settings.ToLong(index["TableId"]) == Settings.ToLong(table["Id"]));
 
@@ -862,7 +865,7 @@ namespace crudex.Classes
                 var constraints = GetConstraints(columnRows[0], domains, types);
 
                 result.Append($"        IF @W_Id IS NULL BEGIN\r\n");
-                result.Append($"            SET @ErrorMessage = 'Valor de {columnRows[0]["Name"]} em @ActualRecord é requerido.';\r\n");
+                result.Append($"            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
                 result.Append($"        END\r\n");
                 if (constraints.TryGetValue("Minimum", out dynamic? value))
@@ -931,7 +934,7 @@ namespace crudex.Classes
                     result.Append($"        IF @Action = 'delete' BEGIN\r\n");
                     foreach (var reference in referenceRows)
                     {
-                        result.Append($"            IF EXISTS(SELECT 1 FROM [dbo].[{reference["#TableName"]}] WHERE [{reference["Name"]}] = @W_{columnRows[0]["Name"]})\r\n");
+                        result.Append($"            IF EXISTS(SELECT 1 FROM [dbo].[{reference["#TableName"]}] WHERE [{reference["Name"]}] = @W_Id)\r\n");
                         result.Append($"                THROW 51000, 'Chave-primária referenciada em {reference["#TableName"]}', 1\r\n");
                     }
                     result.Append($"        END ELSE BEGIN\r\n");
@@ -977,9 +980,8 @@ namespace crudex.Classes
                     if (!Settings.IsNull(column["ReferenceTableId"]))
                     {
                         var referenceTable = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(column["ReferenceTableId"]));
-                        var pkColumn = columns.First(col => Settings.ToLong(col["TableId"]) == Settings.ToLong(referenceTable["Id"]) && Settings.ToBoolean(col["IsPrimarykey"]));
 
-                        result.Append($"            IF NOT EXISTS(SELECT 1 FROM [dbo].[{referenceTable["Name"]}] WHERE [{pkColumn["Name"]}] = @W_{column["Name"]})\r\n");
+                        result.Append($"            IF NOT EXISTS(SELECT 1 FROM [dbo].[{referenceTable["Name"]}] WHERE [Id] = @W_Id)\r\n");
                         result.Append($"                THROW 51000, 'Valor de {column["Name"]} em @ActualRecord inexiste em {referenceTable["Name"]}', 1\r\n");
                     }
                 }
@@ -1204,8 +1206,7 @@ namespace crudex.Classes
                 result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                  AND [TableName] = '{table["Name"]}'\r\n");
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
-                result.Append($"        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([{columnRows[0]["Name"]}]");
-                result.Append($")\r\n");
+                result.Append($"        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])\r\n");
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))\r\n");
                 result.Append($"               ,@Where NVARCHAR(MAX) = ''\r\n");
@@ -1253,15 +1254,13 @@ namespace crudex.Classes
                 result.Append($"                            FROM [dbo].[{table["Name"]}] [T]\r\n");
                 result.Append($"                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]");
                 result.Append($"\r\n");
-                result.Append($"                            WHERE [#].[{columnRows[0]["Name"]}] IS NULL' + @Where + '\r\n");
+                result.Append($"                            WHERE [#].[Id] IS NULL' + @Where + '\r\n");
                 result.Append($"                        UNION ALL\r\n");
                 result.Append($"                            SELECT ''O'' AS [_]\r\n");
-                result.Append($"                                  ,[T].[{columnRows[0]["Name"]}]\r\n");
+                result.Append($"                                  ,[T].[Id]\r\n");
                 result.Append($"                                FROM [#tmpOperations] [T]\r\n");
                 result.Append($"                                WHERE [T].[_] <> ''delete''' + @Where\r\n");
-                result.Append($"        CREATE TABLE [#tmpTable]([_] CHAR(1)");
-                result.Append($", [{columnRows[0]["Name"]}] {columnRows[0]["#DataType"]}");
-                result.Append($")\r\n");
+                result.Append($"        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] {columnRows[0]["#DataType"]})\r\n");
                 result.Append($"        IF @_ IS NULL\r\n");
                 firstTime = true;
                 foreach (var column in filterableColumns)
@@ -1287,7 +1286,7 @@ namespace crudex.Classes
                 result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
                 result.Append($"               ,@OffSet INT\r\n");
                 result.Append($"\r\n");
-                result.Append($"        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([{columnRows[0]["Name"]}]");
+                result.Append($"        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id]");
                 result.Append($")\r\n");
                 result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
                 result.Append($"            SET @OffSet = 0\r\n");

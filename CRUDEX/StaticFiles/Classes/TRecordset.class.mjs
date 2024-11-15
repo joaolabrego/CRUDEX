@@ -14,7 +14,7 @@ export default class TRecordSet {
     #RowNumber = 0
     #OrderBy = ""
     #Data = []
-    #References = []
+    #References = {}
     constructor(table) {
         if (table.ClassName !== "TTable")
             throw new Error("Argumento table não é do tipo TTable.")
@@ -52,29 +52,53 @@ export default class TRecordSet {
 
         Object.entries(result.DataSet).forEach(([, data], index) => {
             if (index) {
-                data.forEach(dataRow => {
-                    references.push(dataRow);
-
+                data.forEach(datarow => {
                     let table = TSystem.GetTable(dataRow.ClassName),
-                        record = new TRecord(table)
+                        record = new TRecord(this, datarow)
 
-                    table.Columns.forEach(column => {
-                        let field = new TField(column, dataRow[column.Name])
-
-                        record.AddField(field)
-                    })
-                    this.this.#References[table.Id].push(record)
+                    if (this.this.#References[table.Alias] === undefined)
+                        this.this.#References[table.Alias] = []
+                    this.this.#References[table.Alias].push(record)
                 });
             }
         });
+        globalThis.$ = new Proxy(this.#Table, {
+            get: (target, key) => {
+                const getColumn = (table, columnName) => {
+                    let column = table.GetColumn(columnName)
+
+                    if (column)
+                        return column
+                    if (table.ParentTableId)
+                        return getColumn(TSystem.GetTable(table.ParentTableId), columnName)
+                    throw new Error(`Nome de coluna '${columnName}' não existe.`)
+                }
+
+                return getColumn(target, key).Value
+            },
+            set: (target, key, value) => {
+                let column = target.GetColumn(key)
+
+                return column.Value = value
+            }
+        })
+
 
         return this.#Data = result.DataSet.Table
     }
     GetReferenceRow(tableId, valueId) {
         return this.#References[tableId].find(referenceRow => referenceRow.Id === valueId)
     }
-    GoNextRow() {
-        if (this.#RowNumber === this.#Data.length - 1) {
+    GoTop() {
+        if (this.#PageNumber > 1)
+            this.#ReadPage(1)
+        this.RowNumber = this.#RowCount ? 1 : -1
+    }
+    GoNext() {
+        this.#RowNumber++
+        if (this.#RowNumber === this.#RowCount)
+            this.GoTop()
+        else if (this.#RowNumber === this.#Data.length) {
             this.#ReadPage(this.#PageNumber < this.#PageCount ? this.#PageNumber + 1 : 1)
             this.#RowNumber = 0
         }
@@ -83,7 +107,10 @@ export default class TRecordSet {
 
         return this.#RowNumber
     }
-    GoPriorRow() {
+    GoBottom() {
+        if (this.)
+    }
+    GoPrior() {
         if (this.#RowNumber === 0) {
             this.ReadPage(this.#PageNumber > 1 ? this.#PageNumber - 1 : this.#PageCount)
             this.#RowNumber = TSystem.RowsPerPage - 1
@@ -152,6 +179,12 @@ export default class TRecordSet {
         }
 
         return (await TConfig.GetAPI(TActions.EXECUTE, parameters)).DataSet.Table[0]
+    }
+    get BOF() {
+        return this.RowNumber < 0
+    }
+    get EOF() {
+        return this.RowNumber > this.#RowCount
     }
     get OrderBy() {
         return this.#OrderBy.slice(0, -1)

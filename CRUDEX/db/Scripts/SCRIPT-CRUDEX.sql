@@ -16520,7 +16520,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId BIGINT
 
             IF @W_CategoryId IS NULL
                 THROW 51000, 'Valor de CategoryId em @ActualRecord é requerido.', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_CategoryId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de CategoryId em @ActualRecord inexiste em Categories', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -17742,9 +17742,9 @@ ALTER PROCEDURE [dbo].[DomainValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de TypeId em @ActualRecord é requerido.', 1
             IF @W_TypeId < CAST('1' AS tinyint)
                 THROW 51000, 'Valor de TypeId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_TypeId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de TypeId em @ActualRecord inexiste em Types', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_MaskId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de MaskId em @ActualRecord inexiste em Masks', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -19045,7 +19045,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
@@ -19057,7 +19057,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de Message em @ActualRecord é requerido.', 1
             IF @W_ParentMenuId IS NOT NULL AND @W_ParentMenuId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de ParentMenuId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_ParentMenuId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de ParentMenuId em @ActualRecord inexiste em Menus', 1
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence)
@@ -20207,13 +20207,13 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_UserId IS NULL
                 THROW 51000, 'Valor de UserId em @ActualRecord é requerido.', 1
             IF @W_UserId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de UserId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de UserId em @ActualRecord inexiste em Users', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -21420,7 +21420,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de ConnectionId em @ActualRecord é requerido.', 1
             IF @W_ConnectionId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de ConnectionId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Connections] WHERE [Id] = @W_ConnectionId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Connections] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de ConnectionId em @ActualRecord inexiste em Connections', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -22054,13 +22054,13 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_DatabaseId IS NULL
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord é requerido.', 1
             IF @W_DatabaseId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord inexiste em Databases', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -22706,7 +22706,7 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de Description em @ActualRecord é requerido.', 1
             IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('0' AS bigint)
                 THROW 51000, 'Valor de ParentTableId em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ParentTableId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de ParentTableId em @ActualRecord inexiste em Tables', 1
             IF @W_IsLegacy IS NULL
                 THROW 51000, 'Valor de IsLegacy em @ActualRecord é requerido.', 1
@@ -23327,13 +23327,13 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord é requerido.', 1
             IF @W_DatabaseId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord inexiste em Databases', 1
             IF @W_TableId IS NULL
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -24026,7 +24026,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
@@ -24036,11 +24036,11 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de DomainId em @ActualRecord é requerido.', 1
             IF @W_DomainId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de DomainId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de DomainId em @ActualRecord inexiste em Domains', 1
             IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de ReferenceTableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ReferenceTableId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de ReferenceTableId em @ActualRecord inexiste em Tables', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -24894,7 +24894,7 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -25492,7 +25492,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de IndexId em @ActualRecord é requerido.', 1
             IF @W_IndexId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de IndexId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de IndexId em @ActualRecord inexiste em Indexes', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
@@ -25502,7 +25502,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de ColumnId em @ActualRecord é requerido.', 1
             IF @W_ColumnId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de ColumnId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de ColumnId em @ActualRecord inexiste em Columns', 1
             IF @W_IsDescending IS NULL
                 THROW 51000, 'Valor de IsDescending em @ActualRecord é requerido.', 1
@@ -26119,13 +26119,13 @@ ALTER PROCEDURE [dbo].[LoginValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_UserId IS NULL
                 THROW 51000, 'Valor de UserId em @ActualRecord é requerido.', 1
             IF @W_UserId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de UserId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de UserId em @ActualRecord inexiste em Users', 1
             IF @W_PublicKey IS NULL
                 THROW 51000, 'Valor de PublicKey em @ActualRecord é requerido.', 1
@@ -26661,7 +26661,7 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de LoginId em @ActualRecord é requerido.', 1
             IF @W_LoginId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de LoginId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Logins] WHERE [Id] = @W_LoginId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Logins] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de LoginId em @ActualRecord inexiste em Logins', 1
             IF @W_IsConfirmed IS NULL
                 THROW 51000, 'Valor de IsConfirmed em @ActualRecord é requerido.', 1
@@ -27171,13 +27171,13 @@ ALTER PROCEDURE [dbo].[OperationValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de TransactionId em @ActualRecord é requerido.', 1
             IF @W_TransactionId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TransactionId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @W_TransactionId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de TransactionId em @ActualRecord inexiste em Transactions', 1
             IF @W_TableName IS NULL
                 THROW 51000, 'Valor de TableName em @ActualRecord é requerido.', 1
             IF @W_ParentOperationId IS NOT NULL AND @W_ParentOperationId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de ParentOperationId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Operations] WHERE [Id] = @W_ParentOperationId)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Operations] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de ParentOperationId em @ActualRecord inexiste em Operations', 1
             IF @W_Action IS NULL
                 THROW 51000, 'Valor de Action em @ActualRecord é requerido.', 1
@@ -27742,13 +27742,13 @@ ALTER PROCEDURE [dbo].[AssociationValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de TableId1 em @ActualRecord é requerido.', 1
             IF @W_TableId1 < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId1 em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId1)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de TableId1 em @ActualRecord inexiste em Tables', 1
             IF @W_TableId2 IS NULL
                 THROW 51000, 'Valor de TableId2 em @ActualRecord é requerido.', 1
             IF @W_TableId2 < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId2 em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId2)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de TableId2 em @ActualRecord inexiste em Tables', 1
             IF @W_IsBidirectional IS NULL
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
@@ -28304,11 +28304,11 @@ ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
 
             IF @W_ColumnId1 IS NULL
                 THROW 51000, 'Valor de ColumnId1 em @ActualRecord é requerido.', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId1)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de ColumnId1 em @ActualRecord inexiste em Columns', 1
             IF @W_ColumnId2 IS NULL
                 THROW 51000, 'Valor de ColumnId2 em @ActualRecord é requerido.', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId2)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de ColumnId2 em @ActualRecord inexiste em Columns', 1
             IF @W_IsBidirectional IS NULL
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
