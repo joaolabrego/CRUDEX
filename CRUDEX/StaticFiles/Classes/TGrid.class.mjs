@@ -465,6 +465,17 @@ export default class TGrid {
     }
     #BuildHtmlBody(dataPage) {
         this.#HTML.Body.innerHTML = null
+        this.#HTML.Body.onwheel = event => {
+            let key = event.ctrlKey ? event.deltaY > 0 ? "PageDown" : "PageUp" : event.deltaY > 0 ? "ArrowDown" : "ArrowUp"
+
+            event.preventDefault()
+            this.#HTML.SelectedRow.dispatchEvent(new KeyboardEvent("keydown", {
+                key, // Nome da tecla (e.g., "ArrowUp", "Enter", "a", etc.)
+                code: key, // Código da tecla
+                bubbles: true,   // Permite que o evento se propague na árvore DOM
+                cancelable: true // Permite que o evento seja cancelado
+            }))
+        }
         this.#Rows.length = 0
         dataPage.forEach((row, index) => {
             let tr = document.createElement("tr")
