@@ -466,7 +466,7 @@ export default class TGrid {
     #BuildHtmlBody(dataPage) {
         this.#HTML.Body.innerHTML = null
         this.#HTML.Body.onwheel = event => {
-            let key = `${event.altKey ? "Page" : "Arrow"}${event.deltaY > 0 ? "Down" : "Up"}`
+            let key = `${event.ctrlKey ? "Page" : "Arrow"}${event.deltaY > 0 ? "Down" : "Up"}`
 
             event.preventDefault()
             this.#HTML.SelectedRow.dispatchEvent(new KeyboardEvent("keydown", {

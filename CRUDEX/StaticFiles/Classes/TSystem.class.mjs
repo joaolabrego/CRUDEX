@@ -39,7 +39,13 @@ export default class TSystem {
                     get: function ClassName() {
                         return this.constructor.name
                     }
-                });
+                })
+                document.addEventListener("wheel", event => {
+                        if (event.ctrlKey)
+                            event.preventDefault()
+                    },
+                    { passive: false }
+                );
                 document.body.style = config.Styles.Body
                 TConfig.CreateProperties(config.Data.System[0], this)
                 this.#RowsPerPage = config.RowsPerPage
