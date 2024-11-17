@@ -1,22 +1,21 @@
 ﻿"use strict"
 
-import TField from "./TField.class.mjs"
+import TColumn from "./TColumn.class.mjs"
 export default class TRecord {
-    #Recordset = null
-    #Fields = []
+    #Table = null
+    #Columns = []
 
-    constructor(recordset, datarow) {
-        if (recordset.ClassName !== "TRecordset")
-            throw new Error("Argumento recordset não é do tipo TRecordset.")
-        if (datarow.ClassName === recordset.Table.Alias)
-            throw new Error("Argumento datarow não é do mesmo tipo da tabela.")
-        this.#Recordset = recordset
-        recordset.Table.Columns.forEach(column => this.#Fields.push(new TField(column, datarow[column.Name])))
+    constructor(table, datarow) {
+        if (table.ClassName !== "TTable")
+            throw new Error("Argumento table não é do tipo TTable.")
+        if (datarow.ClassName === table.Alias)
+            throw new Error("Argumento datarow não é do mesmo tipo de tabela.")
+        this.#Table = table
     }
-    get Recordset() {
-        return this.#Recordset
+    get Table() {
+        return this.#Table
     }
-    get Fields() {
-        return this.#Fields
+    get Columns() {
+        return this.#Columns
     }
 }

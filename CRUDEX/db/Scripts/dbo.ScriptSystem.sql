@@ -311,7 +311,7 @@ BEGIN
 					,[TableName]
 					,[ParentOperationId]
 					,[Action]
-					,[OriginalRecord]
+					,[LastRecord]
 					,[ActualRecord]
 					,[IsConfirmed]
 			INTO [#Operations]

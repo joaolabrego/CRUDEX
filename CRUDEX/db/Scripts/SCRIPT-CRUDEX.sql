@@ -480,7 +480,7 @@ CREATE TABLE [dbo].[Operations]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS 
                                     ,[TableName] nvarchar(25) NOT NULL
                                     ,[ParentOperationId] bigint NULL CHECK ([ParentOperationId] >= CAST('1' AS bigint))
                                     ,[Action] nvarchar(15) NOT NULL
-                                    ,[OriginalRecord] nvarchar(max) NULL
+                                    ,[LastRecord] nvarchar(max) NULL
                                     ,[ActualRecord] nvarchar(max) NOT NULL
                                     ,[IsConfirmed] bit NULL
                                     ,[CreatedAt] datetime NOT NULL
@@ -1457,7 +1457,7 @@ BEGIN
 					,[TableName]
 					,[ParentOperationId]
 					,[Action]
-					,[OriginalRecord]
+					,[LastRecord]
 					,[ActualRecord]
 					,[IsConfirmed]
 			INTO [#Operations]
@@ -13652,11 +13652,11 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('30' AS smallint)
                                 ,CAST('12' AS bigint)
                                 ,NULL
-                                ,CAST('OriginalRecord' AS nvarchar(25))
+                                ,CAST('LastRecord' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('Registro original' AS nvarchar(50))
-                                ,CAST('Registro original' AS nvarchar(25))
-                                ,CAST('Registro original' AS nvarchar(25))
+                                ,CAST('Último registro' AS nvarchar(50))
+                                ,CAST('Último registro' AS nvarchar(25))
+                                ,CAST('Último registro' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -15723,7 +15723,7 @@ GO
 ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -15771,36 +15771,36 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Categories', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputType'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.HtmlInputType'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputAlign'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskEncrypted'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskEncrypted'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMask'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskMask'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskListable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskListable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDefault'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskDefault'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskMinimum'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskMaximum'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskInWords'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskInWords'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputType'), [crudex].[JSON_EXTRACT](@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputAlign'), [crudex].[JSON_EXTRACT](@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskEncrypted'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskEncrypted'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMask'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMask'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskListable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskListable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDefault'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDefault'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMinimum'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMaximum'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskInWords'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskInWords'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Categories]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([HtmlInputType], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.HtmlInputType'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([HtmlInputAlign], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
-                                  AND [AskEncrypted] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskEncrypted')
-                                  AND [AskMask] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskMask')
-                                  AND [AskListable] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskListable')
-                                  AND [AskDefault] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskDefault')
-                                  AND [AskMinimum] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskMinimum')
-                                  AND [AskMaximum] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskMaximum')
-                                  AND [AskInWords] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskInWords'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [crudex].[IS_EQUAL]([HtmlInputType], [crudex].[JSON_EXTRACT](@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
+                                  AND [crudex].[IS_EQUAL]([HtmlInputAlign], [crudex].[JSON_EXTRACT](@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
+                                  AND [AskEncrypted] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskEncrypted')
+                                  AND [AskMask] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMask')
+                                  AND [AskListable] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskListable')
+                                  AND [AskDefault] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDefault')
+                                  AND [AskMinimum] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMinimum')
+                                  AND [AskMaximum] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMaximum')
+                                  AND [AskInWords] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskInWords'))
                 THROW 51000, 'Registro de Categories alterado por outro usuário', 1
         END
 
@@ -15862,7 +15862,7 @@ GO
 ALTER PROCEDURE [dbo].[CategoryPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -15880,7 +15880,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -15894,7 +15894,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -15902,7 +15902,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Categories'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -15934,7 +15934,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -15976,7 +15976,7 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -15992,7 +15992,7 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -16007,7 +16007,7 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[CategoryValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
@@ -16412,7 +16412,7 @@ GO
 ALTER PROCEDURE [dbo].[TypeValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -16460,42 +16460,42 @@ ALTER PROCEDURE [dbo].[TypeValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Types', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CategoryId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.CategoryId'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxLength'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.MaxLength'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskLength'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskLength'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDecimals'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskDecimals'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskPrimarykey'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskPrimarykey'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskAutoincrement'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskAutoincrement'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskFilterable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskFilterable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskGridable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskGridable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskCodification'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskCodification'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsActive'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CategoryId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.CategoryId'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxLength'), [crudex].[JSON_EXTRACT](@LastRecord, '$.MaxLength'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskLength'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskLength'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDecimals'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDecimals'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskPrimarykey'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskPrimarykey'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskAutoincrement'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskAutoincrement'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskFilterable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskFilterable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskGridable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskGridable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskCodification'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskCodification'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsActive'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Types]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [CategoryId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.CategoryId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([MaxLength], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.MaxLength'), 'int') = 1
-                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                                  AND [AskLength] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskLength')
-                                  AND [AskDecimals] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskDecimals')
-                                  AND [AskPrimarykey] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskPrimarykey')
-                                  AND [AskAutoincrement] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskAutoincrement')
-                                  AND [AskFilterable] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskFilterable')
-                                  AND [AskGridable] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskGridable')
-                                  AND [AskCodification] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AskCodification')
-                                  AND [IsActive] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsActive'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [CategoryId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.CategoryId')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [crudex].[IS_EQUAL]([MaxLength], [crudex].[JSON_EXTRACT](@LastRecord, '$.MaxLength'), 'int') = 1
+                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [AskLength] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskLength')
+                                  AND [AskDecimals] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDecimals')
+                                  AND [AskPrimarykey] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskPrimarykey')
+                                  AND [AskAutoincrement] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskAutoincrement')
+                                  AND [AskFilterable] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskFilterable')
+                                  AND [AskGridable] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskGridable')
+                                  AND [AskCodification] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskCodification')
+                                  AND [IsActive] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsActive'))
                 THROW 51000, 'Registro de Types alterado por outro usuário', 1
         END
 
@@ -16568,7 +16568,7 @@ GO
 ALTER PROCEDURE [dbo].[TypePersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -16586,7 +16586,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -16600,7 +16600,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -16608,7 +16608,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Types'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -16640,7 +16640,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -16682,7 +16682,7 @@ ALTER PROCEDURE [dbo].[TypeCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -16698,7 +16698,7 @@ ALTER PROCEDURE [dbo].[TypeCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -16713,7 +16713,7 @@ ALTER PROCEDURE [dbo].[TypeCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[TypeValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
@@ -17169,7 +17169,7 @@ GO
 ALTER PROCEDURE [dbo].[MaskValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -17215,20 +17215,20 @@ ALTER PROCEDURE [dbo].[MaskValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Masks', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Mask'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Mask'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Mask'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Mask'), 'nvarchar(max)') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Masks]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
-                                  AND [Mask] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Mask'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [Mask] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Mask'))
                 THROW 51000, 'Registro de Masks alterado por outro usuário', 1
         END
 
@@ -17270,7 +17270,7 @@ GO
 ALTER PROCEDURE [dbo].[MaskPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -17288,7 +17288,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -17302,7 +17302,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -17310,7 +17310,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Masks'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -17342,7 +17342,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -17384,7 +17384,7 @@ ALTER PROCEDURE [dbo].[MaskCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -17400,7 +17400,7 @@ ALTER PROCEDURE [dbo].[MaskCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -17415,7 +17415,7 @@ ALTER PROCEDURE [dbo].[MaskCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[MaskValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -17641,7 +17641,7 @@ GO
 ALTER PROCEDURE [dbo].[DomainValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -17689,36 +17689,36 @@ ALTER PROCEDURE [dbo].[DomainValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Domains', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TypeId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TypeId'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaskId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.MaskId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Length'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Length'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Decimals'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Decimals'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ValidValues'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ValidValues'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Default'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Codification'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Codification'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TypeId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TypeId'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaskId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.MaskId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Length'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Length'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Decimals'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Decimals'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ValidValues'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Codification'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Codification'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Domains]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [TypeId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TypeId')
-                                  AND [crudex].[IS_EQUAL]([MaskId], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.MaskId'), 'bigint') = 1
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([Length], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Length'), 'smallint') = 1
-                                  AND [crudex].[IS_EQUAL]([Decimals], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Decimals'), 'tinyint') = 1
-                                  AND [crudex].[IS_EQUAL]([ValidValues], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ValidValues'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Default], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Default'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Codification], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Codification'), 'nvarchar') = 1)
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [TypeId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TypeId')
+                                  AND [crudex].[IS_EQUAL]([MaskId], [crudex].[JSON_EXTRACT](@LastRecord, '$.MaskId'), 'bigint') = 1
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [crudex].[IS_EQUAL]([Length], [crudex].[JSON_EXTRACT](@LastRecord, '$.Length'), 'smallint') = 1
+                                  AND [crudex].[IS_EQUAL]([Decimals], [crudex].[JSON_EXTRACT](@LastRecord, '$.Decimals'), 'tinyint') = 1
+                                  AND [crudex].[IS_EQUAL]([ValidValues], [crudex].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Default], [crudex].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Codification], [crudex].[JSON_EXTRACT](@LastRecord, '$.Codification'), 'nvarchar') = 1)
                 THROW 51000, 'Registro de Domains alterado por outro usuário', 1
         END
 
@@ -17778,7 +17778,7 @@ GO
 ALTER PROCEDURE [dbo].[DomainPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -17796,7 +17796,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -17810,7 +17810,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -17818,7 +17818,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Domains'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -17850,7 +17850,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -17892,7 +17892,7 @@ ALTER PROCEDURE [dbo].[DomainCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -17908,7 +17908,7 @@ ALTER PROCEDURE [dbo].[DomainCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -17923,7 +17923,7 @@ ALTER PROCEDURE [dbo].[DomainCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DomainValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -18361,7 +18361,7 @@ GO
 ALTER PROCEDURE [dbo].[SystemValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -18409,26 +18409,26 @@ ALTER PROCEDURE [dbo].[SystemValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Systems', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ClientName'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ClientName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxRetryLogins'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.MaxRetryLogins'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsOffAir'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsOffAir'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ClientName'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ClientName'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxRetryLogins'), [crudex].[JSON_EXTRACT](@LastRecord, '$.MaxRetryLogins'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsOffAir'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsOffAir'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Systems]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
-                                  AND [Description] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description')
-                                  AND [ClientName] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ClientName')
-                                  AND [MaxRetryLogins] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.MaxRetryLogins')
-                                  AND [IsOffAir] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsOffAir'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [Description] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Description')
+                                  AND [ClientName] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ClientName')
+                                  AND [MaxRetryLogins] = [crudex].[JSON_EXTRACT](@LastRecord, '$.MaxRetryLogins')
+                                  AND [IsOffAir] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsOffAir'))
                 THROW 51000, 'Registro de Systems alterado por outro usuário', 1
         END
 
@@ -18487,7 +18487,7 @@ GO
 ALTER PROCEDURE [dbo].[SystemPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -18505,7 +18505,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -18519,7 +18519,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -18527,7 +18527,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Systems'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -18559,7 +18559,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -18601,7 +18601,7 @@ ALTER PROCEDURE [dbo].[SystemCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -18617,7 +18617,7 @@ ALTER PROCEDURE [dbo].[SystemCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -18632,7 +18632,7 @@ ALTER PROCEDURE [dbo].[SystemCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SystemValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -18956,7 +18956,7 @@ GO
 ALTER PROCEDURE [dbo].[MenuValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -19004,28 +19004,28 @@ ALTER PROCEDURE [dbo].[MenuValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Menus', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Sequence'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Caption'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Message'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Message'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Action'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentMenuId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ParentMenuId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Caption'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Message'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Message'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentMenuId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentMenuId'), 'bigint') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Menus]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId')
-                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Sequence')
-                                  AND [Caption] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Caption')
-                                  AND [Message] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Message')
-                                  AND [crudex].[IS_EQUAL]([Action], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Action'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([ParentMenuId], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ParentMenuId'), 'bigint') = 1)
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
+                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence')
+                                  AND [Caption] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Caption')
+                                  AND [Message] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Message')
+                                  AND [crudex].[IS_EQUAL]([Action], [crudex].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar') = 1
+                                  AND [crudex].[IS_EQUAL]([ParentMenuId], [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentMenuId'), 'bigint') = 1)
                 THROW 51000, 'Registro de Menus alterado por outro usuário', 1
         END
 
@@ -19089,7 +19089,7 @@ GO
 ALTER PROCEDURE [dbo].[MenuPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -19107,7 +19107,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -19121,7 +19121,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -19129,7 +19129,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Menus'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -19161,7 +19161,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -19203,7 +19203,7 @@ ALTER PROCEDURE [dbo].[MenuCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -19219,7 +19219,7 @@ ALTER PROCEDURE [dbo].[MenuCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -19234,7 +19234,7 @@ ALTER PROCEDURE [dbo].[MenuCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[MenuValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -19533,7 +19533,7 @@ GO
 ALTER PROCEDURE [dbo].[UserValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -19581,26 +19581,26 @@ ALTER PROCEDURE [dbo].[UserValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Users', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Password'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.FullName'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.FullName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.RetryLogins'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.RetryLogins'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsActive'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.FullName'), [crudex].[JSON_EXTRACT](@LastRecord, '$.FullName'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.RetryLogins'), [crudex].[JSON_EXTRACT](@LastRecord, '$.RetryLogins'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsActive'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Users]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
-                                  AND [Password] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Password')
-                                  AND [FullName] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.FullName')
-                                  AND [RetryLogins] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.RetryLogins')
-                                  AND [IsActive] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsActive'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [Password] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Password')
+                                  AND [FullName] = [crudex].[JSON_EXTRACT](@LastRecord, '$.FullName')
+                                  AND [RetryLogins] = [crudex].[JSON_EXTRACT](@LastRecord, '$.RetryLogins')
+                                  AND [IsActive] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsActive'))
                 THROW 51000, 'Registro de Users alterado por outro usuário', 1
         END
 
@@ -19655,7 +19655,7 @@ GO
 ALTER PROCEDURE [dbo].[UserPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -19673,7 +19673,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[UserValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[UserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -19687,7 +19687,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -19695,7 +19695,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Users'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -19727,7 +19727,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -19769,7 +19769,7 @@ ALTER PROCEDURE [dbo].[UserCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -19785,7 +19785,7 @@ ALTER PROCEDURE [dbo].[UserCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -19800,7 +19800,7 @@ ALTER PROCEDURE [dbo].[UserCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[UserValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[UserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -20130,7 +20130,7 @@ GO
 ALTER PROCEDURE [dbo].[SystemUserValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -20178,22 +20178,22 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em SystemsUsers', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.UserId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[SystemsUsers]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId')
-                                  AND [UserId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.UserId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
+                                  AND [UserId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'))
                 THROW 51000, 'Registro de SystemsUsers alterado por outro usuário', 1
         END
 
@@ -20247,7 +20247,7 @@ GO
 ALTER PROCEDURE [dbo].[SystemUserPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -20265,7 +20265,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -20279,7 +20279,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -20287,7 +20287,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'SystemsUsers'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -20319,7 +20319,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -20361,7 +20361,7 @@ ALTER PROCEDURE [dbo].[SystemUserCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -20377,7 +20377,7 @@ ALTER PROCEDURE [dbo].[SystemUserCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -20392,7 +20392,7 @@ ALTER PROCEDURE [dbo].[SystemUserCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SystemUserValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -20734,7 +20734,7 @@ GO
 ALTER PROCEDURE [dbo].[ConnectionValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -20780,36 +20780,36 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Connections', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Provider'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Provider'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HostName'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.HostName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Port'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Port'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IntegratedSecurity'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IntegratedSecurity'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionTimeout'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ConnectionTimeout'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ExtendedProperties'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ExtendedProperties'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserID'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.UserID'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Password'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.PersistSecurityInfo'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.PersistSecurityInfo'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AdditionalParameters'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AdditionalParameters'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Provider'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Provider'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HostName'), [crudex].[JSON_EXTRACT](@LastRecord, '$.HostName'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Port'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Port'), 'int') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IntegratedSecurity'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IntegratedSecurity'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionTimeout'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ConnectionTimeout'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ExtendedProperties'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ExtendedProperties'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserID'), [crudex].[JSON_EXTRACT](@LastRecord, '$.UserID'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.PersistSecurityInfo'), [crudex].[JSON_EXTRACT](@LastRecord, '$.PersistSecurityInfo'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AdditionalParameters'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AdditionalParameters'), 'nvarchar(max)') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Connections]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [Provider] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Provider')
-                                  AND [HostName] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.HostName')
-                                  AND [Port] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Port')
-                                  AND [IntegratedSecurity] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IntegratedSecurity')
-                                  AND [ConnectionTimeout] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ConnectionTimeout')
-                                  AND [crudex].[IS_EQUAL]([ExtendedProperties], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ExtendedProperties'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([UserID], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.UserID'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([Password], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Password'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([PersistSecurityInfo], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.PersistSecurityInfo'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([AdditionalParameters], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.AdditionalParameters'), 'nvarchar(max)') = 1)
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [Provider] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Provider')
+                                  AND [HostName] = [crudex].[JSON_EXTRACT](@LastRecord, '$.HostName')
+                                  AND [Port] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Port')
+                                  AND [IntegratedSecurity] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IntegratedSecurity')
+                                  AND [ConnectionTimeout] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ConnectionTimeout')
+                                  AND [crudex].[IS_EQUAL]([ExtendedProperties], [crudex].[JSON_EXTRACT](@LastRecord, '$.ExtendedProperties'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([UserID], [crudex].[JSON_EXTRACT](@LastRecord, '$.UserID'), 'nvarchar') = 1
+                                  AND [crudex].[IS_EQUAL]([Password], [crudex].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar') = 1
+                                  AND [crudex].[IS_EQUAL]([PersistSecurityInfo], [crudex].[JSON_EXTRACT](@LastRecord, '$.PersistSecurityInfo'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([AdditionalParameters], [crudex].[JSON_EXTRACT](@LastRecord, '$.AdditionalParameters'), 'nvarchar(max)') = 1)
                 THROW 51000, 'Registro de Connections alterado por outro usuário', 1
         END
 
@@ -20863,7 +20863,7 @@ GO
 ALTER PROCEDURE [dbo].[ConnectionPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -20881,7 +20881,7 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[ConnectionValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[ConnectionValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -20895,7 +20895,7 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -20903,7 +20903,7 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Connections'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -20935,7 +20935,7 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -20977,7 +20977,7 @@ ALTER PROCEDURE [dbo].[ConnectionCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -20993,7 +20993,7 @@ ALTER PROCEDURE [dbo].[ConnectionCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -21008,7 +21008,7 @@ ALTER PROCEDURE [dbo].[ConnectionCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[ConnectionValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[ConnectionValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -21326,7 +21326,7 @@ GO
 ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -21374,30 +21374,30 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Databases', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ConnectionId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Folder'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Folder'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsLegacy'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentOperationId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.CurrentOperationId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ConnectionId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Folder'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Folder'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLegacy'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentOperationId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.CurrentOperationId'), 'bigint') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Databases]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [ConnectionId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ConnectionId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
-                                  AND [Alias] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias')
-                                  AND [Description] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description')
-                                  AND [crudex].[IS_EQUAL]([Folder], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Folder'), 'nvarchar') = 1
-                                  AND [IsLegacy] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsLegacy')
-                                  AND [CurrentOperationId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.CurrentOperationId'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [ConnectionId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ConnectionId')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [Alias] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias')
+                                  AND [Description] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Description')
+                                  AND [crudex].[IS_EQUAL]([Folder], [crudex].[JSON_EXTRACT](@LastRecord, '$.Folder'), 'nvarchar') = 1
+                                  AND [IsLegacy] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLegacy')
+                                  AND [CurrentOperationId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.CurrentOperationId'))
                 THROW 51000, 'Registro de Databases alterado por outro usuário', 1
         END
 
@@ -21464,7 +21464,7 @@ GO
 ALTER PROCEDURE [dbo].[DatabasePersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -21482,7 +21482,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -21496,7 +21496,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -21504,7 +21504,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Databases'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -21536,7 +21536,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -21578,7 +21578,7 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -21594,7 +21594,7 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -21609,7 +21609,7 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -21977,7 +21977,7 @@ GO
 ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -22025,22 +22025,22 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em SystemsDatabases', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DatabaseId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[SystemsDatabases]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId')
-                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DatabaseId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
+                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'))
                 THROW 51000, 'Registro de SystemsDatabases alterado por outro usuário', 1
         END
 
@@ -22094,7 +22094,7 @@ GO
 ALTER PROCEDURE [dbo].[SystemDatabasePersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -22112,7 +22112,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -22126,7 +22126,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -22134,7 +22134,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'SystemsDatabases'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -22166,7 +22166,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -22208,7 +22208,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -22224,7 +22224,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -22239,7 +22239,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SystemDatabaseValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -22601,7 +22601,7 @@ GO
 ALTER PROCEDURE [dbo].[TableValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -22649,28 +22649,28 @@ ALTER PROCEDURE [dbo].[TableValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Tables', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ParentTableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsLegacy'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.CurrentId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentTableId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLegacy'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.CurrentId'), 'bigint') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Tables]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
-                                  AND [Alias] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias')
-                                  AND [Description] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description')
-                                  AND [crudex].[IS_EQUAL]([ParentTableId], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ParentTableId'), 'bigint') = 1
-                                  AND [IsLegacy] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsLegacy')
-                                  AND [CurrentId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.CurrentId'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [Alias] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias')
+                                  AND [Description] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Description')
+                                  AND [crudex].[IS_EQUAL]([ParentTableId], [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentTableId'), 'bigint') = 1
+                                  AND [IsLegacy] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLegacy')
+                                  AND [CurrentId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.CurrentId'))
                 THROW 51000, 'Registro de Tables alterado por outro usuário', 1
         END
 
@@ -22752,7 +22752,7 @@ GO
 ALTER PROCEDURE [dbo].[TablePersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -22770,7 +22770,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[TableValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[TableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -22784,7 +22784,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -22792,7 +22792,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Tables'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -22824,7 +22824,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -22866,7 +22866,7 @@ ALTER PROCEDURE [dbo].[TableCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -22882,7 +22882,7 @@ ALTER PROCEDURE [dbo].[TableCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -22897,7 +22897,7 @@ ALTER PROCEDURE [dbo].[TableCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[TableValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[TableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -23250,7 +23250,7 @@ GO
 ALTER PROCEDURE [dbo].[DatabaseTableValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -23298,22 +23298,22 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em DatabasesTables', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DatabaseId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[DatabasesTables]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DatabaseId')
-                                  AND [TableId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId')
+                                  AND [TableId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'))
                 THROW 51000, 'Registro de DatabasesTables alterado por outro usuário', 1
         END
 
@@ -23367,7 +23367,7 @@ GO
 ALTER PROCEDURE [dbo].[DatabaseTablePersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -23385,7 +23385,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -23399,7 +23399,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -23407,7 +23407,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'DatabasesTables'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -23439,7 +23439,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -23481,7 +23481,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -23497,7 +23497,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -23512,7 +23512,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DatabaseTableValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -23888,7 +23888,7 @@ GO
 ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -23936,58 +23936,58 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Columns', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Sequence'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DomainId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DomainId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ReferenceTableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Title'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Title'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Caption'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Default'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsPrimarykey'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsPrimarykey'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsAutoIncrement'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsAutoIncrement'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsRequired'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsRequired'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsListable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsListable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsFilterable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsFilterable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEditable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsEditable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsGridable'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsGridable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsEncrypted'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsInWords'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsInWords'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DomainId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.DomainId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ReferenceTableId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Title'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Title'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Caption'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsPrimarykey'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsPrimarykey'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsAutoIncrement'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsRequired'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsRequired'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsListable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsListable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsFilterable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsFilterable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEditable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEditable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsGridable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsGridable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEncrypted'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsInWords'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsInWords'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Columns]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [TableId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId')
-                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Sequence')
-                                  AND [DomainId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.DomainId')
-                                  AND [crudex].[IS_EQUAL]([ReferenceTableId], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ReferenceTableId'), 'bigint') = 1
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([Alias], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Alias'), 'nvarchar') = 1
-                                  AND [Description] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Description')
-                                  AND [Title] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Title')
-                                  AND [Caption] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Caption')
-                                  AND [crudex].[IS_EQUAL]([Default], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Default'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([IsPrimarykey], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsPrimarykey'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsAutoIncrement], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsAutoIncrement'), 'bit') = 1
-                                  AND [IsRequired] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsRequired')
-                                  AND [crudex].[IS_EQUAL]([IsListable], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsListable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsFilterable], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsFilterable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsEditable], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsEditable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsGridable], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsGridable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsEncrypted], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsEncrypted'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsInWords], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsInWords'), 'bit') = 1)
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [TableId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId')
+                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence')
+                                  AND [DomainId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.DomainId')
+                                  AND [crudex].[IS_EQUAL]([ReferenceTableId], [crudex].[JSON_EXTRACT](@LastRecord, '$.ReferenceTableId'), 'bigint') = 1
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [crudex].[IS_EQUAL]([Alias], [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar') = 1
+                                  AND [Description] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Description')
+                                  AND [Title] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Title')
+                                  AND [Caption] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Caption')
+                                  AND [crudex].[IS_EQUAL]([Default], [crudex].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([IsPrimarykey], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsPrimarykey'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsAutoIncrement], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
+                                  AND [IsRequired] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsRequired')
+                                  AND [crudex].[IS_EQUAL]([IsListable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsListable'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsFilterable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsFilterable'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsEditable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEditable'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsGridable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsGridable'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsEncrypted], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEncrypted'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsInWords], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsInWords'), 'bit') = 1)
                 THROW 51000, 'Registro de Columns alterado por outro usuário', 1
         END
 
@@ -24082,7 +24082,7 @@ GO
 ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -24100,7 +24100,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -24114,7 +24114,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -24122,7 +24122,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Columns'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -24154,7 +24154,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -24196,7 +24196,7 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -24212,7 +24212,7 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -24227,7 +24227,7 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[ColumnValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -24814,7 +24814,7 @@ GO
 ALTER PROCEDURE [dbo].[IndexValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -24862,22 +24862,22 @@ ALTER PROCEDURE [dbo].[IndexValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Indexes', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsUnique'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsUnique'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsUnique'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsUnique'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Indexes]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [TableId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Name')
-                                  AND [IsUnique] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsUnique'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [TableId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId')
+                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
+                                  AND [IsUnique] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsUnique'))
                 THROW 51000, 'Registro de Indexes alterado por outro usuário', 1
         END
 
@@ -24926,7 +24926,7 @@ GO
 ALTER PROCEDURE [dbo].[IndexPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -24944,7 +24944,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -24958,7 +24958,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -24966,7 +24966,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Indexes'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -24998,7 +24998,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -25040,7 +25040,7 @@ ALTER PROCEDURE [dbo].[IndexCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -25056,7 +25056,7 @@ ALTER PROCEDURE [dbo].[IndexCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -25071,7 +25071,7 @@ ALTER PROCEDURE [dbo].[IndexCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[IndexValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -25412,7 +25412,7 @@ GO
 ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -25460,24 +25460,24 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Indexkeys', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IndexId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IndexId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Sequence'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ColumnId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsDescending'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsDescending'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IndexId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IndexId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsDescending'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsDescending'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Indexkeys]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [IndexId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IndexId')
-                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Sequence')
-                                  AND [ColumnId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ColumnId')
-                                  AND [IsDescending] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsDescending'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [IndexId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IndexId')
+                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence')
+                                  AND [ColumnId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId')
+                                  AND [IsDescending] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsDescending'))
                 THROW 51000, 'Registro de Indexkeys alterado por outro usuário', 1
         END
 
@@ -25536,7 +25536,7 @@ GO
 ALTER PROCEDURE [dbo].[IndexkeyPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -25554,7 +25554,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -25568,7 +25568,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -25576,7 +25576,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Indexkeys'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -25608,7 +25608,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -25650,7 +25650,7 @@ ALTER PROCEDURE [dbo].[IndexkeyCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -25666,7 +25666,7 @@ ALTER PROCEDURE [dbo].[IndexkeyCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -25681,7 +25681,7 @@ ALTER PROCEDURE [dbo].[IndexkeyCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[IndexkeyValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -26036,7 +26036,7 @@ GO
 ALTER PROCEDURE [dbo].[LoginValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -26084,24 +26084,24 @@ ALTER PROCEDURE [dbo].[LoginValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Logins', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.UserId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.PublicKey'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.PublicKey'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLogged'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsLogged'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.PublicKey'), [crudex].[JSON_EXTRACT](@LastRecord, '$.PublicKey'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLogged'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLogged'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Logins]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.SystemId')
-                                  AND [UserId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.UserId')
-                                  AND [PublicKey] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.PublicKey')
-                                  AND [IsLogged] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsLogged'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
+                                  AND [UserId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId')
+                                  AND [PublicKey] = [crudex].[JSON_EXTRACT](@LastRecord, '$.PublicKey')
+                                  AND [IsLogged] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLogged'))
                 THROW 51000, 'Registro de Logins alterado por outro usuário', 1
         END
 
@@ -26151,7 +26151,7 @@ GO
 ALTER PROCEDURE [dbo].[LoginPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -26169,7 +26169,7 @@ ALTER PROCEDURE [dbo].[LoginPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -26183,7 +26183,7 @@ ALTER PROCEDURE [dbo].[LoginPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -26191,7 +26191,7 @@ ALTER PROCEDURE [dbo].[LoginPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Logins'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -26223,7 +26223,7 @@ ALTER PROCEDURE [dbo].[LoginPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -26265,7 +26265,7 @@ ALTER PROCEDURE [dbo].[LoginCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -26281,7 +26281,7 @@ ALTER PROCEDURE [dbo].[LoginCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -26296,7 +26296,7 @@ ALTER PROCEDURE [dbo].[LoginCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[LoginValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -26584,7 +26584,7 @@ GO
 ALTER PROCEDURE [dbo].[TransactionValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -26632,20 +26632,20 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Transactions', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.LoginId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.LoginId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsConfirmed'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.LoginId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.LoginId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsConfirmed'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Transactions]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [LoginId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.LoginId')
-                                  AND [IsConfirmed] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsConfirmed'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [LoginId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.LoginId')
+                                  AND [IsConfirmed] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsConfirmed'))
                 THROW 51000, 'Registro de Transactions alterado por outro usuário', 1
         END
 
@@ -26687,7 +26687,7 @@ GO
 ALTER PROCEDURE [dbo].[TransactionPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -26705,7 +26705,7 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[TransactionValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[TransactionValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -26719,7 +26719,7 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -26727,7 +26727,7 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Transactions'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -26759,7 +26759,7 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -26801,7 +26801,7 @@ ALTER PROCEDURE [dbo].[TransactionCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -26817,7 +26817,7 @@ ALTER PROCEDURE [dbo].[TransactionCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -26832,7 +26832,7 @@ ALTER PROCEDURE [dbo].[TransactionCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[TransactionValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[TransactionValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -27079,7 +27079,7 @@ GO
 ALTER PROCEDURE [dbo].[OperationValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -27127,30 +27127,30 @@ ALTER PROCEDURE [dbo].[OperationValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Operations', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TransactionId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TransactionId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableName'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentOperationId'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ParentOperationId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Action'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.OriginalRecord'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.OriginalRecord'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ActualRecord'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ActualRecord'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsConfirmed'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TransactionId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TransactionId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableName'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableName'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentOperationId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentOperationId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.LastRecord'), [crudex].[JSON_EXTRACT](@LastRecord, '$.LastRecord'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ActualRecord'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ActualRecord'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsConfirmed'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Operations]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [TransactionId] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TransactionId')
-                                  AND [TableName] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableName')
-                                  AND [crudex].[IS_EQUAL]([ParentOperationId], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ParentOperationId'), 'bigint') = 1
-                                  AND [Action] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Action')
-                                  AND [crudex].[IS_EQUAL]([OriginalRecord], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.OriginalRecord'), 'nvarchar(max)') = 1
-                                  AND [ActualRecord] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ActualRecord')
-                                  AND [crudex].[IS_EQUAL]([IsConfirmed], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsConfirmed'), 'bit') = 1)
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [TransactionId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TransactionId')
+                                  AND [TableName] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableName')
+                                  AND [crudex].[IS_EQUAL]([ParentOperationId], [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentOperationId'), 'bigint') = 1
+                                  AND [Action] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Action')
+                                  AND [crudex].[IS_EQUAL]([LastRecord], [crudex].[JSON_EXTRACT](@LastRecord, '$.LastRecord'), 'nvarchar(max)') = 1
+                                  AND [ActualRecord] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ActualRecord')
+                                  AND [crudex].[IS_EQUAL]([IsConfirmed], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsConfirmed'), 'bit') = 1)
                 THROW 51000, 'Registro de Operations alterado por outro usuário', 1
         END
 
@@ -27163,7 +27163,7 @@ ALTER PROCEDURE [dbo].[OperationValidate](@LoginId BIGINT
                    ,@W_TableName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableName') AS nvarchar(25))
                    ,@W_ParentOperationId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentOperationId') AS bigint)
                    ,@W_Action nvarchar(15) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action') AS nvarchar(15))
-                   ,@W_OriginalRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.OriginalRecord') AS nvarchar(max))
+                   ,@W_LastRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.LastRecord') AS nvarchar(max))
                    ,@W_ActualRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ActualRecord') AS nvarchar(max))
                    ,@W_IsConfirmed bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed') AS bit)
 
@@ -27203,7 +27203,7 @@ GO
 ALTER PROCEDURE [dbo].[OperationPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -27221,7 +27221,7 @@ ALTER PROCEDURE [dbo].[OperationPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[OperationValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[OperationValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -27235,7 +27235,7 @@ ALTER PROCEDURE [dbo].[OperationPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -27243,7 +27243,7 @@ ALTER PROCEDURE [dbo].[OperationPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Operations'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -27275,7 +27275,7 @@ ALTER PROCEDURE [dbo].[OperationPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -27317,7 +27317,7 @@ ALTER PROCEDURE [dbo].[OperationCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -27333,7 +27333,7 @@ ALTER PROCEDURE [dbo].[OperationCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -27348,7 +27348,7 @@ ALTER PROCEDURE [dbo].[OperationCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[OperationValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[OperationValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -27361,7 +27361,7 @@ ALTER PROCEDURE [dbo].[OperationCommit](@LoginId BIGINT
                    ,@W_TableName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableName') AS nvarchar(25))
                    ,@W_ParentOperationId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentOperationId') AS bigint)
                    ,@W_Action nvarchar(15) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action') AS nvarchar(15))
-                   ,@W_OriginalRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.OriginalRecord') AS nvarchar(max))
+                   ,@W_LastRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.LastRecord') AS nvarchar(max))
                    ,@W_ActualRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ActualRecord') AS nvarchar(max))
                    ,@W_IsConfirmed bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed') AS bit)
 
@@ -27371,7 +27371,7 @@ ALTER PROCEDURE [dbo].[OperationCommit](@LoginId BIGINT
                                                 ,[TableName]
                                                 ,[ParentOperationId]
                                                 ,[Action]
-                                                ,[OriginalRecord]
+                                                ,[LastRecord]
                                                 ,[ActualRecord]
                                                 ,[IsConfirmed]
                                                 ,[CreatedAt]
@@ -27381,7 +27381,7 @@ ALTER PROCEDURE [dbo].[OperationCommit](@LoginId BIGINT
                                                  ,@W_TableName
                                                  ,@W_ParentOperationId
                                                  ,@W_Action
-                                                 ,@W_OriginalRecord
+                                                 ,@W_LastRecord
                                                  ,@W_ActualRecord
                                                  ,@W_IsConfirmed
                                                  ,GETDATE()
@@ -27392,7 +27392,7 @@ ALTER PROCEDURE [dbo].[OperationCommit](@LoginId BIGINT
                                               ,[TableName] = @W_TableName
                                               ,[ParentOperationId] = @W_ParentOperationId
                                               ,[Action] = @W_Action
-                                              ,[OriginalRecord] = @W_OriginalRecord
+                                              ,[LastRecord] = @W_LastRecord
                                               ,[ActualRecord] = @W_ActualRecord
                                               ,[IsConfirmed] = @W_IsConfirmed
                                               ,[UpdatedAt] = GETDATE()
@@ -27482,7 +27482,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableName') AS nvarchar(25)) AS [TableName]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ParentOperationId') AS bigint) AS [ParentOperationId]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Action') AS nvarchar(15)) AS [Action]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.OriginalRecord') AS nvarchar(max)) AS [OriginalRecord]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.LastRecord') AS nvarchar(max)) AS [LastRecord]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ActualRecord') AS nvarchar(max)) AS [ActualRecord]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsConfirmed') AS bit) AS [IsConfirmed]
             INTO [#tmpOperations]
@@ -27550,7 +27550,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
                     ,CAST(NULL AS nvarchar(25)) AS [TableName]
                     ,CAST(NULL AS bigint) AS [ParentOperationId]
                     ,CAST(NULL AS nvarchar(15)) AS [Action]
-                    ,CAST(NULL AS nvarchar(max)) AS [OriginalRecord]
+                    ,CAST(NULL AS nvarchar(max)) AS [LastRecord]
                     ,CAST(NULL AS nvarchar(max)) AS [ActualRecord]
                     ,CAST(NULL AS bit) AS [IsConfirmed]
             INTO [#result]
@@ -27561,7 +27561,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
                               ,[T].[TableName]
                               ,[T].[ParentOperationId]
                               ,[T].[Action]
-                              ,[T].[OriginalRecord]
+                              ,[T].[LastRecord]
                               ,[T].[ActualRecord]
                               ,[T].[IsConfirmed]
                             FROM [#tmpTable] [#]
@@ -27574,7 +27574,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
                                   ,[O].[TableName]
                                   ,[O].[ParentOperationId]
                                   ,[O].[Action]
-                                  ,[O].[OriginalRecord]
+                                  ,[O].[LastRecord]
                                   ,[O].[ActualRecord]
                                   ,[O].[IsConfirmed]
                                 FROM [#tmpTable] [#]
@@ -27590,7 +27590,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[TableName]
               ,[ParentOperationId]
               ,[Action]
-              ,[OriginalRecord]
+              ,[LastRecord]
               ,[ActualRecord]
               ,[IsConfirmed]
             FROM [#result]
@@ -27632,7 +27632,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
               ,[R].[TableName]
               ,[R].[ParentOperationId]
               ,[R].[Action]
-              ,[R].[OriginalRecord]
+              ,[R].[LastRecord]
               ,[R].[ActualRecord]
               ,[R].[IsConfirmed]
             INTO [#Operations]
@@ -27665,7 +27665,7 @@ GO
 ALTER PROCEDURE [dbo].[AssociationValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -27713,22 +27713,22 @@ ALTER PROCEDURE [dbo].[AssociationValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Associations', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId1'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId1'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId2'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId2'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsBidirectional'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId1'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId1'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId2'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId2'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsBidirectional'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Associations]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [TableId1] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId1')
-                                  AND [TableId2] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.TableId2')
-                                  AND [IsBidirectional] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsBidirectional'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [TableId1] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId1')
+                                  AND [TableId2] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId2')
+                                  AND [IsBidirectional] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsBidirectional'))
                 THROW 51000, 'Registro de Associations alterado por outro usuário', 1
         END
 
@@ -27784,7 +27784,7 @@ GO
 ALTER PROCEDURE [dbo].[AssociationPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -27802,7 +27802,7 @@ ALTER PROCEDURE [dbo].[AssociationPersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[AssociationValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[AssociationValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -27816,7 +27816,7 @@ ALTER PROCEDURE [dbo].[AssociationPersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -27824,7 +27824,7 @@ ALTER PROCEDURE [dbo].[AssociationPersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Associations'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -27856,7 +27856,7 @@ ALTER PROCEDURE [dbo].[AssociationPersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -27898,7 +27898,7 @@ ALTER PROCEDURE [dbo].[AssociationCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -27914,7 +27914,7 @@ ALTER PROCEDURE [dbo].[AssociationCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -27929,7 +27929,7 @@ ALTER PROCEDURE [dbo].[AssociationCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[AssociationValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[AssociationValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
@@ -28229,7 +28229,7 @@ GO
 ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
-                                               ,@OriginalRecord NVARCHAR(max)
+                                               ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -28277,22 +28277,22 @@ ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
         END ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Uniques', 1
         IF @Action <> 'create' BEGIN
-            IF @OriginalRecord IS NULL
-                THROW 51000, 'Valor de @OriginalRecord é requerido', 1
-            IF ISJSON(@OriginalRecord) = 0
-                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId1'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ColumnId1'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId2'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ColumnId2'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsBidirectional'), 'bit') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId1'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId1'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId2'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId2'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsBidirectional'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Uniques]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.Id')
-                                  AND [ColumnId1] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ColumnId1')
-                                  AND [ColumnId2] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.ColumnId2')
-                                  AND [IsBidirectional] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.IsBidirectional'))
+                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
+                                  AND [ColumnId1] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId1')
+                                  AND [ColumnId2] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId2')
+                                  AND [IsBidirectional] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsBidirectional'))
                 THROW 51000, 'Registro de Uniques alterado por outro usuário', 1
         END
 
@@ -28342,7 +28342,7 @@ GO
 ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
-                                              ,@OriginalRecord NVARCHAR(max)
+                                              ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
            ,@ErrorMessage NVARCHAR(255)
@@ -28360,7 +28360,7 @@ ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[UniqueValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[UniqueValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -28374,7 +28374,7 @@ ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
                                              ,[Action]
-                                             ,[OriginalRecord]
+                                             ,[LastRecord]
                                              ,[ActualRecord]
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
@@ -28382,7 +28382,7 @@ ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
                                        VALUES(@TransactionId
                                              ,'Uniques'
                                              ,@Action
-                                             ,@OriginalRecord
+                                             ,@LastRecord
                                              ,@ActualRecord
                                              ,NULL
                                              ,GETDATE()
@@ -28414,7 +28414,7 @@ ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
         END ELSE BEGIN
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
-                   ,[OriginalRecord] = @OriginalRecord
+                   ,[LastRecord] = @LastRecord
                    ,[ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
@@ -28456,7 +28456,7 @@ ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
                ,@CreatedBy NVARCHAR(25)
-               ,@OriginalRecord NVARCHAR(max)
+               ,@LastRecord NVARCHAR(max)
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
@@ -28472,7 +28472,7 @@ ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
                ,@TableName = [TableName]
                ,@Action = [Action]
                ,@CreatedBy = [CreatedBy]
-               ,@OriginalRecord = [OriginalRecord]
+               ,@LastRecord = [LastRecord]
                ,@ActualRecord = [ActualRecord]
                ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
@@ -28487,7 +28487,7 @@ ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[UniqueValidate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[UniqueValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)

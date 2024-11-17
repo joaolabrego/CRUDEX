@@ -561,7 +561,7 @@ namespace crudex.Classes
                 result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Persist](@LoginId BIGINT\r\n");
                 result.Append($"                                              ,@UserName NVARCHAR(25)\r\n");
                 result.Append($"                                              ,@Action NVARCHAR(15)\r\n");
-                result.Append($"                                              ,@OriginalRecord NVARCHAR(max)\r\n");
+                result.Append($"                                              ,@LastRecord NVARCHAR(max)\r\n");
                 result.Append($"                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN\r\n");
                 result.Append($"    DECLARE @TRANCOUNT INT = @@TRANCOUNT\r\n");
                 result.Append($"           ,@ErrorMessage NVARCHAR(255)\r\n");
@@ -579,7 +579,7 @@ namespace crudex.Classes
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
                 result.Append($"        SAVE TRANSACTION [SavePoint]\r\n");
-                result.Append($"        EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord\r\n");
+                result.Append($"        EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
                 result.Append($"        SELECT @OperationId = [Id]\r\n");
                 result.Append($"              ,@CreatedBy = [CreatedBy]\r\n");
                 result.Append($"              ,@ActionAux = [Action]\r\n");
@@ -593,7 +593,7 @@ namespace crudex.Classes
                 result.Append($"            INSERT INTO [dbo].[Operations] ([TransactionId]\r\n");
                 result.Append($"                                             ,[TableName]\r\n");
                 result.Append($"                                             ,[Action]\r\n");
-                result.Append($"                                             ,[OriginalRecord]\r\n");
+                result.Append($"                                             ,[LastRecord]\r\n");
                 result.Append($"                                             ,[ActualRecord]\r\n");
                 result.Append($"                                             ,[IsConfirmed]\r\n");
                 result.Append($"                                             ,[CreatedAt]\r\n");
@@ -601,7 +601,7 @@ namespace crudex.Classes
                 result.Append($"                                       VALUES(@TransactionId\r\n");
                 result.Append($"                                             ,'{table["Name"]}'\r\n");
                 result.Append($"                                             ,@Action\r\n");
-                result.Append($"                                             ,@OriginalRecord\r\n");
+                result.Append($"                                             ,@LastRecord\r\n");
                 result.Append($"                                             ,@ActualRecord\r\n");
                 result.Append($"                                             ,NULL\r\n");
                 result.Append($"                                             ,GETDATE()\r\n");
@@ -633,7 +633,7 @@ namespace crudex.Classes
                 result.Append($"        END ELSE BEGIN\r\n");
                 result.Append($"            UPDATE [dbo].[Operations]\r\n");
                 result.Append($"                SET [Action] = 'delete'\r\n");
-                result.Append($"                   ,[OriginalRecord] = @OriginalRecord\r\n");
+                result.Append($"                   ,[LastRecord] = @LastRecord\r\n");
                 result.Append($"                   ,[ActualRecord] = @ActualRecord\r\n");
                 result.Append($"                   ,[UpdatedAt] = GETDATE()\r\n");
                 result.Append($"                   ,[UpdatedBy] = @UserName\r\n");
@@ -685,7 +685,7 @@ namespace crudex.Classes
                 result.Append($"               ,@TableName NVARCHAR(25)\r\n");
                 result.Append($"               ,@Action NVARCHAR(15)\r\n");
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
-                result.Append($"               ,@OriginalRecord NVARCHAR(max)\r\n");
+                result.Append($"               ,@LastRecord NVARCHAR(max)\r\n");
                 result.Append($"               ,@ActualRecord NVARCHAR(max)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
                 result.Append($"\r\n");
@@ -701,7 +701,7 @@ namespace crudex.Classes
                 result.Append($"               ,@TableName = [TableName]\r\n");
                 result.Append($"               ,@Action = [Action]\r\n");
                 result.Append($"               ,@CreatedBy = [CreatedBy]\r\n");
-                result.Append($"               ,@OriginalRecord = [OriginalRecord]\r\n");
+                result.Append($"               ,@LastRecord = [LastRecord]\r\n");
                 result.Append($"               ,@ActualRecord = [ActualRecord]\r\n");
                 result.Append($"               ,@IsConfirmed = [IsConfirmed]\r\n");
                 result.Append($"            FROM [dbo].[Operations]\r\n");
@@ -716,7 +716,7 @@ namespace crudex.Classes
                 result.Append($"        END\r\n");
                 result.Append($"        IF @UserName <> @CreatedBy\r\n");
                 result.Append($"            THROW 51000, 'Erro grave de segurança', 1\r\n");
-                result.Append($"        EXEC @TransactionIdAux = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @OriginalRecord, @ActualRecord\r\n");
+                result.Append($"        EXEC @TransactionIdAux = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
                 result.Append($"        IF @TransactionId <> @TransactionIdAux\r\n");
                 result.Append($"            THROW 51000, 'Transação da operação é inválida', 1\r\n");
                 result.Append($"        DECLARE @W_Id {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
@@ -825,7 +825,7 @@ namespace crudex.Classes
                 result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Validate](@LoginId BIGINT\r\n");
                 result.Append($"                                               ,@UserName NVARCHAR(25)\r\n");
                 result.Append($"                                               ,@Action NVARCHAR(15)\r\n");
-                result.Append($"                                               ,@OriginalRecord NVARCHAR(max)\r\n");
+                result.Append($"                                               ,@LastRecord NVARCHAR(max)\r\n");
                 result.Append($"                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN\r\n");
                 result.Append($"    DECLARE @ErrorMessage NVARCHAR(MAX)\r\n");
                 result.Append($"\r\n");
@@ -885,10 +885,10 @@ namespace crudex.Classes
                 result.Append($"        END ELSE IF @Action <> 'create'\r\n");
                 result.Append($"            THROW 51000, 'Chave-primária não existe em {table["Name"]}', 1\r\n");
                 result.Append($"        IF @Action <> 'create' BEGIN\r\n");
-                result.Append($"            IF @OriginalRecord IS NULL\r\n");
-                result.Append($"                THROW 51000, 'Valor de @OriginalRecord é requerido', 1\r\n");
-                result.Append($"            IF ISJSON(@OriginalRecord) = 0\r\n");
-                result.Append($"                THROW 51000, 'Valor de @OriginalRecord não está no formato JSON', 1\r\n");
+                result.Append($"            IF @LastRecord IS NULL\r\n");
+                result.Append($"                THROW 51000, 'Valor de @LastRecord é requerido', 1\r\n");
+                result.Append($"            IF ISJSON(@LastRecord) = 0\r\n");
+                result.Append($"                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1\r\n");
 
                 var firstTime = true;
 
@@ -899,7 +899,7 @@ namespace crudex.Classes
                         result.Append($"            IF @Action = 'update'\r\n");
                         firstTime = false;
                     }
-                    result.Append($"                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}'), [crudex].[JSON_EXTRACT](@OriginalRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1\r\n");
+                    result.Append($"                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}'), [crudex].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1\r\n");
                 }
                 result.Append($"                THROW 51000, 'Nenhuma alteração feita no registro', 1\r\n");
                 firstTime = true;
@@ -918,9 +918,9 @@ namespace crudex.Classes
                         result.Append($"                                  AND ");
                     }
                     if (Settings.ToBoolean(column["IsRequired"]))
-                        result.Append($"[{column["Name"]}] = [crudex].[JSON_EXTRACT](@OriginalRecord, '$.{column["Name"]}')");
+                        result.Append($"[{column["Name"]}] = [crudex].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}')");
                     else
-                        result.Append($"[crudex].[IS_EQUAL]([{column["Name"]}], [crudex].[JSON_EXTRACT](@OriginalRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1");
+                        result.Append($"[crudex].[IS_EQUAL]([{column["Name"]}], [crudex].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1");
                 }
                 result.Append($")\r\n");
                 result.Append($"                THROW 51000, 'Registro de {table["Name"]} alterado por outro usuário', 1\r\n");

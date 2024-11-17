@@ -9,7 +9,7 @@ export default class TTable {
     #Database = null
     #Columns = []
     #Indexes = []
-    #ReferenceTables = null
+    #References = []
 
     constructor(database, rowTable) {
         if (database.ClassName !== "TDatabase")
@@ -47,16 +47,16 @@ export default class TTable {
     get Columns() {
         return this.#Columns
     }
-    get ReferenceTables() {
-        if (this.#ReferenceTables === null) {
-            this.#ReferenceTables = []
+    get References() {
+        if (this.#References === null) {
+            this.#References = []
             this.#Columns.filter(column => !TConfig.IsEmpty(column.ReferenceTableId))
                 .forEach(column => {
-                    this.#ReferenceTables.push(TSystem.GetTable(column.ReferenceTableId))
+                    this.#References.push(TSystem.GetTable(column.ReferenceTableId))
                 })
         }
 
-        return this.#ReferenceTables
+        return this.#References
     }
     get Database() {
         return this.#Database
