@@ -1,6 +1,7 @@
 ﻿.form {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* Altere para 5 para cinco colunas */
+    grid-template-columns: repeat(4, 1fr);
+    /* Altere para 5 para cinco colunas */
     gap: 2dvmin;
     justify-items: center;
     align-items: start;
@@ -12,7 +13,8 @@
     color: black;
     font-size: 1.5dvmin;
     text-align: left;
-    width: 100%; /* Ajusta o tamanho do fieldset para preencher a célula da grade */
+    width: 100%;
+    /* Ajusta o tamanho do fieldset para preencher a célula da grade */
 }
 
 .form input[type="checkbox"] {
@@ -30,7 +32,8 @@
 }
 
 .buttonsBar {
-    grid-column: span 4; /* Ajusta para 5 caso use cinco colunas */
+    grid-column: span 4;
+    /* Ajusta para 5 caso use cinco colunas */
     text-align: center;
     margin-top: 2dvmin;
 }

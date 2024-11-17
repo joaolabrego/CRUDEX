@@ -1,26 +1,26 @@
-﻿"use strict"
+﻿"use strict";
 
-import TField from "./TField.class.mjs"
-import TRecord from "./TRecord.class.mjs"
-import TSystem from "./TSystem.class.mjs"
+import TField from "./TField.class.mjs";
+import TRecord from "./TRecord.class.mjs";
+import TSystem from "./TSystem.class.mjs";
 
 export default class TRecordSet {
-    #Table = null
-    #FixedFilter = {}
-    #FilterValues = {}
-    #RowCount = 0
-    #PageNumber = 1
-    #PageCount = 0
-    #RowNumber = 0
-    #OrderBy = ""
-    #Data = []
-    #References = {}
+    #Table = null;
+    #FixedFilter = {};
+    #FilterValues = {};
+    #RowCount = 0;
+    #PageNumber = 1;
+    #PageCount = 0;
+    #RowNumber = 0;
+    #OrderBy = "";
+    #Data = [];
+    #References = {};
     constructor(table) {
         if (table.ClassName !== "TTable")
-            throw new Error("Argumento table não é do tipo TTable.")
-        this.#Table = table
+            throw new Error("Argumento table não é do tipo TTable.");
+        this.#Table = table;
         this.#Table.Columns.filter(column => column.IsFilterable)
-            .forEach(column => this.#FilterValues[column.Name] = null)
+            .forEach(column => this.#FilterValues[column.Name] = null);
     }
     async #ReadPage(pageNumber) {
         let parameters = {
@@ -39,123 +39,123 @@ export default class TRecordSet {
                 LimitRows: TSystem.RowsPerPage,
                 MaxPage: 0,
             },
-        }
+        };
 
-        let result = await TConfig.GetAPI(TActions.EXECUTE, parameters)
+        let result = await TConfig.GetAPI(TActions.EXECUTE, parameters);
 
-        this.#RowCount = result.Parameters.ReturnValue
-        this.#PageNumber = result.Parameters.PageNumber
-        this.#PageCount = result.Parameters.MaxPage
+        this.#RowCount = result.Parameters.ReturnValue;
+        this.#PageNumber = result.Parameters.PageNumber;
+        this.#PageCount = result.Parameters.MaxPage;
         if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
-            this.#RowNumber = result.Parameters.ReturnValue - 1
-        this.#References.length = 0
+            this.#RowNumber = result.Parameters.ReturnValue - 1;
+        this.#References.length = 0;
 
         Object.entries(result.DataSet).forEach(([, data], index) => {
             if (index) {
                 data.forEach(datarow => {
                     let table = TSystem.GetTable(dataRow.ClassName),
-                        record = new TRecord(this, datarow)
+                        record = new TRecord(this, datarow);
 
                     if (this.this.#References[table.Alias] === undefined)
-                        this.this.#References[table.Alias] = []
-                    this.this.#References[table.Alias].push(record)
+                        this.this.#References[table.Alias] = [];
+                    this.this.#References[table.Alias].push(record);
                 });
             }
         });
         globalThis.$ = new Proxy(this.#Table, {
             get: (target, key) => {
                 const getColumn = (table, columnName) => {
-                    let column = table.GetColumn(columnName)
+                    let column = table.GetColumn(columnName);
 
                     if (column)
-                        return column
+                        return column;
                     if (table.ParentTableId)
-                        return getColumn(TSystem.GetTable(table.ParentTableId), columnName)
-                    throw new Error(`Nome de coluna '${columnName}' não existe.`)
-                }
+                        return getColumn(TSystem.GetTable(table.ParentTableId), columnName);
+                    throw new Error(`Nome de coluna '${columnName}' não existe.`);
+                };
 
-                return getColumn(target, key).Value
+                return getColumn(target, key).Value;
             },
             set: (target, key, value) => {
-                let column = target.GetColumn(key)
+                let column = target.GetColumn(key);
 
-                return column.Value = value
+                return column.Value = value;
             }
-        })
+        });
 
 
-        return this.#Data = result.DataSet.Table
+        return this.#Data = result.DataSet.Table;
     }
     GetReferenceRow(tableId, valueId) {
-        return this.#References[tableId].find(referenceRow => referenceRow.Id === valueId)
+        return this.#References[tableId].find(referenceRow => referenceRow.Id === valueId);
     }
     GoTop() {
         if (this.#PageNumber > 1)
-            this.#ReadPage(1)
-        this.RowNumber = this.#RowCount ? 1 : -1
+            this.#ReadPage(1);
+        this.RowNumber = this.#RowCount ? 1 : -1;
     }
     GoNext() {
-        this.#RowNumber++
+        this.#RowNumber++;
         if (this.#RowNumber === this.#RowCount)
-            this.GoTop()
+            this.GoTop();
         else if (this.#RowNumber === this.#Data.length) {
-            this.#ReadPage(this.#PageNumber < this.#PageCount ? this.#PageNumber + 1 : 1)
-            this.#RowNumber = 0
+            this.#ReadPage(this.#PageNumber < this.#PageCount ? this.#PageNumber + 1 : 1);
+            this.#RowNumber = 0;
         }
         else
-            ++this.#RowNumber
+            ++this.#RowNumber;
 
-        return this.#RowNumber
+        return this.#RowNumber;
     }
     GoBottom() {
         if (this.)
     }
     GoPrior() {
         if (this.#RowNumber === 0) {
-            this.ReadPage(this.#PageNumber > 1 ? this.#PageNumber - 1 : this.#PageCount)
-            this.#RowNumber = TSystem.RowsPerPage - 1
+            this.ReadPage(this.#PageNumber > 1 ? this.#PageNumber - 1 : this.#PageCount);
+            this.#RowNumber = TSystem.RowsPerPage - 1;
         }
         else
-            --this.#RowNumber
+            --this.#RowNumber;
 
-        return this.#RowNumber
+        return this.#RowNumber;
     }
     GoLastRow() {
-        --this.#RowNumber
+        --this.#RowNumber;
     }
     ClearOrderBy() {
-        this.#OrderBy = ""
+        this.#OrderBy = "";
     }
     ToggleOrderDirection(column) {
         let ascendingColumnName = "[" + column.Name + "] ASC,",
             descendingColumnName = "[" + column.Name + "] DESC,",
-            orderDirection = this.#OrderBy.includes(ascendingColumnName) ? false : this.#OrderBy.includes(descendingColumnName) ? true : null
+            orderDirection = this.#OrderBy.includes(ascendingColumnName) ? false : this.#OrderBy.includes(descendingColumnName) ? true : null;
 
         if (TConfig.IsEmpty(orderDirection)) {
-            this.#OrderBy += ascendingColumnName
-            orderDirection = false
+            this.#OrderBy += ascendingColumnName;
+            orderDirection = false;
         }
         else if (orderDirection === false) {
-            this.#OrderBy = this.#OrderBy.replace(ascendingColumnName, descendingColumnName)
-            orderDirection = true
+            this.#OrderBy = this.#OrderBy.replace(ascendingColumnName, descendingColumnName);
+            orderDirection = true;
         }
         else {
-            this.#OrderBy = this.#OrderBy.replace(descendingColumnName, "")
-            orderDirection = null
+            this.#OrderBy = this.#OrderBy.replace(descendingColumnName, "");
+            orderDirection = null;
         }
 
-        return orderDirection
+        return orderDirection;
     }
     ClearFilters() {
-        Object.keys(this.#FilterValues).forEach(key => { this.#FilterValues[key] = this.#FixedFilter.hasOwnProperty(key) ? this.#FixedFilter[key] : null })
+        Object.keys(this.#FilterValues).forEach(key => { this.#FilterValues[key] = this.#FixedFilter.hasOwnProperty(key) ? this.#FixedFilter[key] : null; });
     }
     SaveFilters(record) {
-        Object.keys(this.#FilterValues).forEach(key => { this.#FilterValues[key] = record.hasOwnProperty(key) ? record[key] : null })
+        Object.keys(this.#FilterValues).forEach(key => { this.#FilterValues[key] = record.hasOwnProperty(key) ? record[key] : null; });
     }
     IsFiltered() {
         for (let key in Object.keys(this.#FilterValues))
             if (!(this.#FixedFilter.hasOwnProperty(key) || this.#FilterValues[key] === null))
-                return true
+                return true;
 
         return false;
     }
@@ -176,53 +176,53 @@ export default class TRecordSet {
                 LimitRows: 0,
                 MaxPage: 0,
             },
-        }
+        };
 
-        return (await TConfig.GetAPI(TActions.EXECUTE, parameters)).DataSet.Table[0]
+        return (await TConfig.GetAPI(TActions.EXECUTE, parameters)).DataSet.Table[0];
     }
     get BOF() {
-        return this.RowNumber < 0
+        return this.RowNumber < 0;
     }
     get EOF() {
-        return this.RowNumber > this.#RowCount
+        return this.RowNumber > this.#RowCount;
     }
     get OrderBy() {
-        return this.#OrderBy.slice(0, -1)
+        return this.#OrderBy.slice(0, -1);
     }
     get Filter() {
-        var filter = ""
+        var filter = "";
 
         for (let key in this.#FilterValues) {
-            let value = this.#FilterValues[key]
+            let value = this.#FilterValues[key];
 
             if (value !== null)
-                filter += `${(filter === "" ? "" : " AND ")}${key} = '${value}'`
+                filter += `${(filter === "" ? "" : " AND ")}${key} = '${value}'`;
         }
 
         return filter;
     }
     get Table() {
-        return this.#Table
+        return this.#Table;
     }
     get Record() {
-        return this.#Data[this.#RowNumber]
+        return this.#Data[this.#RowNumber];
     }
     get RowCount() {
-        return this.#RowCount
+        return this.#RowCount;
     }
     get PageNumber() {
-        return this.#PageNumber
+        return this.#PageNumber;
     }
     get PageCount() {
-        return this.#PageCount
+        return this.#PageCount;
     }
     get RowNumber() {
-        return this.#RowNumber
+        return this.#RowNumber;
     }
     get Data() {
-        return this.#Data
+        return this.#Data;
     }
     get OrderBy() {
-        return this.#OrderBy.slice(0, -1)
+        return this.#OrderBy.slice(0, -1);
     }
 }

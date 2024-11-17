@@ -39,9 +39,9 @@
     text-align: right;
 }
 
-    .grid td.real::before {
-        content: 'R$ ';
-    }
+.grid td.real::before {
+    content: 'R$ ';
+}
 
 .grid thead tr,
 .grid tfoot tr {
@@ -111,9 +111,11 @@
 
 .container {
     display: grid;
-    grid-template-columns: 1fr auto; /* Grid com scroll ao lado */
+    grid-template-columns: 1fr auto;
+    /* Grid com scroll ao lado */
     width: 100dvmax;
-    height: calc(100dvmin - 13dvmin); /* Ajuste conforme a altura do cabeçalho e rodapé */
+    height: calc(100dvmin - 13dvmin);
+    /* Ajuste conforme a altura do cabeçalho e rodapé */
     position: relative;
     overflow: hidden;
 }
@@ -153,9 +155,11 @@
 
 .grid-container {
     flex: 1;
-    overflow-y: auto; /* Permite que o grid role verticalmente */
+    overflow-y: auto;
+    /* Permite que o grid role verticalmente */
     position: relative;
 }
+
 .invisible {
     display: none;
 }

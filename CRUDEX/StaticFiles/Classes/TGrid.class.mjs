@@ -1,27 +1,27 @@
-﻿"use strict"
+﻿"use strict";
 
-import TActions from "./TActions.class.mjs"
-import TForm from "./TForm.class.mjs"
-import TLogin from "./TLogin.class.mjs"
-import TScreen from "./TScreen.class.mjs"
-import TSystem from "./TSystem.class.mjs"
-import TConfig from "./TConfig.class.mjs"
+import TActions from "./TActions.class.mjs";
+import TForm from "./TForm.class.mjs";
+import TLogin from "./TLogin.class.mjs";
+import TScreen from "./TScreen.class.mjs";
+import TSystem from "./TSystem.class.mjs";
+import TConfig from "./TConfig.class.mjs";
 
 export default class TGrid {
-    #FilterValues = {}
-    #RowCount = 0
-    #LastPageNumber = 1
-    #PageNumber = 1
-    #PageCount = 0
-    #RowNumber = 0
-    #IsRendering = false
-    #IsNavigateByScroll = false
-    #Rows = []
-    #Data = null
-    #References = []
-    #Table = null
+    #FilterValues = {};
+    #RowCount = 0;
+    #LastPageNumber = 1;
+    #PageNumber = 1;
+    #PageCount = 0;
+    #RowNumber = 0;
+    #IsRendering = false;
+    #IsNavigateByScroll = false;
+    #Rows = [];
+    #Data = null;
+    #References = [];
+    #Table = null;
 
-    #OrderBy = ""
+    #OrderBy = "";
 
     #HTML = {
         Container: null,
@@ -44,9 +44,9 @@ export default class TGrid {
             Track: null,
             Thumb: null,
         },
-    }
+    };
 
-    static #Style = ""
+    static #Style = "";
     static #Images = {
         Insert: "",
         Edit: "",
@@ -56,60 +56,60 @@ export default class TGrid {
         Delete: "",
         Query: "",
         Exit: "",
-    }
+    };
     constructor(databaseName, tableName) {
-        let database = TSystem.GetDatabase(databaseName)
+        let database = TSystem.GetDatabase(databaseName);
 
         if (!database)
-            throw new Error("Banco-de-dados não encontrado.")
-        this.#Table = database.GetTable(tableName)
+            throw new Error("Banco-de-dados não encontrado.");
+        this.#Table = database.GetTable(tableName);
         if (!this.#Table)
-            throw new Error("Tabela de banco-de-dados não encontrada.")
-        this.#HTML.Container = document.createElement("div")
-        this.#HTML.Container.className = "container"
-        this.#HTML.GridWrapper = document.createElement("div")
-        this.#HTML.GridWrapper.className = "grid-wrapper"
-        this.#CreateGrid()
-        this.#CreateScrollBar()
-        this.#HTML.Container.appendChild(this.#HTML.GridWrapper)
-        this.#HTML.Container.appendChild(this.#HTML.Scroll.Container)
-        this.#Table.Columns.filter(column => column.IsFilterable).forEach(column => this.#FilterValues[column.Name] = null)
+            throw new Error("Tabela de banco-de-dados não encontrada.");
+        this.#HTML.Container = document.createElement("div");
+        this.#HTML.Container.className = "container";
+        this.#HTML.GridWrapper = document.createElement("div");
+        this.#HTML.GridWrapper.className = "grid-wrapper";
+        this.#CreateGrid();
+        this.#CreateScrollBar();
+        this.#HTML.Container.appendChild(this.#HTML.GridWrapper);
+        this.#HTML.Container.appendChild(this.#HTML.Scroll.Container);
+        this.#Table.Columns.filter(column => column.IsFilterable).forEach(column => this.#FilterValues[column.Name] = null);
     }
     static Initialize(styles, images) {
         if (styles.ClassName !== "Styles")
-            throw new Error("Argumento styles não são do tipo Styles.")
+            throw new Error("Argumento styles não são do tipo Styles.");
         if (images.ClassName !== "Images")
-            throw new Error("Argumento images não são do tipo Images.")
-        this.#Style = styles.Grid
-        this.#Images.Delete = images.Delete
-        this.#Images.Query = images.Query
-        this.#Images.Edit = images.Edit
-        this.#Images.Exit = images.Exit
-        this.#Images.Filter = images.Filter
-        this.#Images.Unfilter = images.Unfilter
-        this.#Images.Unorder = images.Unorder
-        this.#Images.Insert = images.Insert
+            throw new Error("Argumento images não são do tipo Images.");
+        this.#Style = styles.Grid;
+        this.#Images.Delete = images.Delete;
+        this.#Images.Query = images.Query;
+        this.#Images.Edit = images.Edit;
+        this.#Images.Exit = images.Exit;
+        this.#Images.Filter = images.Filter;
+        this.#Images.Unfilter = images.Unfilter;
+        this.#Images.Unorder = images.Unorder;
+        this.#Images.Insert = images.Insert;
     }
     #CalculatePage(relativeY) {
         let trackHeight = this.#HTML.Scroll.Track.clientHeight,
             thumbHeight = this.#HTML.Scroll.Thumb.clientHeight,
-            maxTop = trackHeight - thumbHeight
+            maxTop = trackHeight - thumbHeight;
 
-        relativeY = Math.max(0, Math.min(relativeY, maxTop))
+        relativeY = Math.max(0, Math.min(relativeY, maxTop));
 
         if (this.#PageCount <= 1)
-            return 1
+            return 1;
 
-        let pageSize = maxTop / (this.#PageCount - 1)
+        let pageSize = maxTop / (this.#PageCount - 1);
 
-        return Math.trunc(relativeY / pageSize + 1)
+        return Math.trunc(relativeY / pageSize + 1);
     }
     #UpdateScrollThumbFromInputs() {
         let trackHeight = this.#HTML.Scroll.Track.clientHeight,
             maxTop = trackHeight - this.#HTML.Scroll.Thumb.clientHeight,
-            scrollPosition = ((this.#PageNumber - 1) / (this.#PageCount - 1)) * maxTop
+            scrollPosition = ((this.#PageNumber - 1) / (this.#PageCount - 1)) * maxTop;
 
-        this.#HTML.Scroll.Thumb.style.top = `${scrollPosition}px`
+        this.#HTML.Scroll.Thumb.style.top = `${scrollPosition}px`;
     }
     #UpdateScrollbarPosition(newTop) {
         let trackHeight = this.#HTML.Scroll.Track.clientHeight,
@@ -128,153 +128,153 @@ export default class TGrid {
         this.#HTML.NumberInput.dispatchEvent(new Event("change"));
     }
     #CreateGrid() {
-        this.#HTML.Table = document.createElement("table")
-        this.#HTML.Table.setAttribute('tabindex', '0')
-        this.#HTML.Table.className = "grid box"
+        this.#HTML.Table = document.createElement("table");
+        this.#HTML.Table.setAttribute('tabindex', '0');
+        this.#HTML.Table.className = "grid box";
         this.#HTML.Table.onkeydown = event => {
             if (event.ctrlKey) {
                 switch (event.key) {
                     case "i":
-                        event.preventDefault()
+                        event.preventDefault();
                         if (!this.#HTML.CreateButton.hidden)
-                            this.#HTML.CreateButton.click()
-                        break
+                            this.#HTML.CreateButton.click();
+                        break;
                     case "a":
-                        event.preventDefault()
+                        event.preventDefault();
                         if (!this.#HTML.UpdateButton.hidden)
-                            this.#HTML.UpdateButton.click()
-                        break
+                            this.#HTML.UpdateButton.click();
+                        break;
                     case "e":
-                        event.preventDefault()
+                        event.preventDefault();
                         if (!this.#HTML.DeleteButton.hidden)
-                            this.#HTML.DeleteButton.click()
-                        break
+                            this.#HTML.DeleteButton.click();
+                        break;
                     case "v":
-                        event.preventDefault()
+                        event.preventDefault();
                         if (!this.#HTML.QueryButton.hidden)
-                            this.#HTML.QueryButton.click()
-                        break
+                            this.#HTML.QueryButton.click();
+                        break;
                     case "f":
-                        event.preventDefault()
+                        event.preventDefault();
                         if (!this.#HTML.FilterButton.hidden)
-                            this.#HTML.FilterButton.click()
-                        break
+                            this.#HTML.FilterButton.click();
+                        break;
                     case "l":
-                        event.preventDefault()
+                        event.preventDefault();
                         if (!this.#HTML.UnfilterButton.hidden)
-                            this.#HTML.UnfilterButton.click()
-                        break
+                            this.#HTML.UnfilterButton.click();
+                        break;
                     case "o":
-                        event.preventDefault()
+                        event.preventDefault();
                         if (!this.#HTML.UnorderButton.hidden)
-                            this.#HTML.UnorderButton.click()
-                        break
+                            this.#HTML.UnorderButton.click();
+                        break;
                     case "r":
-                        event.preventDefault()
+                        event.preventDefault();
                         if (!this.#HTML.ExitButton.hidden)
-                            this.#HTML.ExitButton.click()
-                        break
+                            this.#HTML.ExitButton.click();
+                        break;
                 }
             }
             else {
                 switch (event.key) {
                     case "ArrowUp":
-                        event.preventDefault()
+                        event.preventDefault();
                         if (this.#HTML.SelectedRow.rowIndex > 1)
-                            this.#Rows[this.#HTML.SelectedRow.rowIndex - 2].click()
+                            this.#Rows[this.#HTML.SelectedRow.rowIndex - 2].click();
                         else if (Math.trunc(this.#PageNumber) === 1) {
-                            this.Renderize(this.#PageCount)
-                            this.#Rows[this.#Rows.length - 1].click()
+                            this.Renderize(this.#PageCount);
+                            this.#Rows[this.#Rows.length - 1].click();
                         }
                         else {
-                            this.Renderize(this.#PageNumber - 1)
-                            this.#Rows[this.#Rows.length - 1].click()
+                            this.Renderize(this.#PageNumber - 1);
+                            this.#Rows[this.#Rows.length - 1].click();
                         }
-                        break
+                        break;
                     case "ArrowDown":
-                        event.preventDefault()
+                        event.preventDefault();
                         if (this.#HTML.SelectedRow.rowIndex < this.#Rows.length)
-                            this.#Rows[this.#HTML.SelectedRow.rowIndex].click()
+                            this.#Rows[this.#HTML.SelectedRow.rowIndex].click();
                         else if (Math.trunc(this.#PageNumber) === this.#PageCount) {
-                            this.Renderize(1)
-                            this.#Rows[0].click()
+                            this.Renderize(1);
+                            this.#Rows[0].click();
                         }
                         else {
-                            this.Renderize(this.#PageNumber + 1)
-                            this.#Rows[0].click()
+                            this.Renderize(this.#PageNumber + 1);
+                            this.#Rows[0].click();
                         }
-                        break
+                        break;
                     case "PageUp":
-                        event.preventDefault()
+                        event.preventDefault();
                         if (this.#PageNumber > 1)
-                            this.Renderize(this.#PageNumber - 1)
+                            this.Renderize(this.#PageNumber - 1);
                         else
-                            this.Renderize(this.#PageCount)
-                        break
+                            this.Renderize(this.#PageCount);
+                        break;
                     case "PageDown":
-                        event.preventDefault()
+                        event.preventDefault();
                         if (this.#PageNumber < this.#PageCount)
-                            this.Renderize(this.#PageNumber + 1)
+                            this.Renderize(this.#PageNumber + 1);
                         else
-                            this.Renderize(1)
-                        break
+                            this.Renderize(1);
+                        break;
                     case "Enter":
-                        event.preventDefault()
-                        this.#HTML.UpdateButton.click()
-                        break
+                        event.preventDefault();
+                        this.#HTML.UpdateButton.click();
+                        break;
                     case "Escape":
-                        event.preventDefault()
-                        this.#HTML.ExitButton.click()
-                        break
+                        event.preventDefault();
+                        this.#HTML.ExitButton.click();
+                        break;
                 }
             }
-        }
+        };
 
-        let style = document.createElement("style")
+        let style = document.createElement("style");
 
-        style.textContent = TGrid.#Style
-        this.#HTML.Table.appendChild(style)
+        style.textContent = TGrid.#Style;
+        this.#HTML.Table.appendChild(style);
 
-        this.#HTML.Head = document.createElement("thead")
-        this.#HTML.Table.appendChild(this.#HTML.Head)
+        this.#HTML.Head = document.createElement("thead");
+        this.#HTML.Table.appendChild(this.#HTML.Head);
 
-        this.#HTML.Body = document.createElement("tbody")
-        this.#HTML.Table.appendChild(this.#HTML.Body)
+        this.#HTML.Body = document.createElement("tbody");
+        this.#HTML.Table.appendChild(this.#HTML.Body);
 
-        this.#HTML.Foot = document.createElement("tfoot")
-        this.#HTML.Table.appendChild(this.#HTML.Foot)
+        this.#HTML.Foot = document.createElement("tfoot");
+        this.#HTML.Table.appendChild(this.#HTML.Foot);
 
-        this.#HTML.GridWrapper.appendChild(this.#HTML.Table)
+        this.#HTML.GridWrapper.appendChild(this.#HTML.Table);
     }
     #CreateScrollBar() {
-        this.#HTML.Scroll.Container = document.createElement("div")
-        this.#HTML.Scroll.Container.className = "scroll-container"
+        this.#HTML.Scroll.Container = document.createElement("div");
+        this.#HTML.Scroll.Container.className = "scroll-container";
 
-        this.#HTML.Scroll.Track = document.createElement("div")
-        this.#HTML.Scroll.Track.className = "scroll-track"
-        this.#HTML.Scroll.Container.appendChild(this.#HTML.Scroll.Track)
+        this.#HTML.Scroll.Track = document.createElement("div");
+        this.#HTML.Scroll.Track.className = "scroll-track";
+        this.#HTML.Scroll.Container.appendChild(this.#HTML.Scroll.Track);
 
-        this.#HTML.Scroll.Thumb = document.createElement("div")
-        this.#HTML.Scroll.Thumb.className = "scroll-thumb"
-        this.#HTML.Scroll.Track.appendChild(this.#HTML.Scroll.Thumb)
+        this.#HTML.Scroll.Thumb = document.createElement("div");
+        this.#HTML.Scroll.Thumb.className = "scroll-thumb";
+        this.#HTML.Scroll.Track.appendChild(this.#HTML.Scroll.Thumb);
         this.#HTML.Scroll.Track.onmousemove = (event) => {
             if (event.buttons === 1) {
                 let trackRect = this.#HTML.Scroll.Track.getBoundingClientRect(),
-                    newTop = event.clientY - trackRect.top
+                    newTop = event.clientY - trackRect.top;
 
-                this.#UpdateScrollbarPosition(newTop)
+                this.#UpdateScrollbarPosition(newTop);
             }
             else {
                 let trackRect = this.#HTML.Scroll.Track.getBoundingClientRect(),
-                    relativeY = event.clientY - trackRect.top
+                    relativeY = event.clientY - trackRect.top;
 
-                relativeY = Math.max(0, Math.min(relativeY, this.#HTML.Scroll.Track.clientHeight - this.#HTML.Scroll.Thumb.clientHeight))
+                relativeY = Math.max(0, Math.min(relativeY, this.#HTML.Scroll.Track.clientHeight - this.#HTML.Scroll.Thumb.clientHeight));
 
-                let pageNumber = this.#CalculatePage(relativeY)
+                let pageNumber = this.#CalculatePage(relativeY);
 
-                this.#HTML.Scroll.Track.title = `Página ${pageNumber}${pageNumber === this.#PageCount ? " (última)" : ""}`
+                this.#HTML.Scroll.Track.title = `Página ${pageNumber}${pageNumber === this.#PageCount ? " (última)" : ""}`;
             }
-        }
+        };
         this.#HTML.Scroll.Track.addEventListener("wheel", (event) => {
             event.preventDefault();
 
@@ -289,26 +289,26 @@ export default class TGrid {
             this.#UpdateScrollbarPosition(newTop);
         });
         this.#HTML.Scroll.Track.onclick = (event) => {
-            const trackRect = this.#HTML.Scroll.Track.getBoundingClientRect()
-            const clickPosition = event.clientY - trackRect.top
-            this.#UpdateScrollbarPosition(clickPosition - this.#HTML.Scroll.Thumb.offsetHeight / 2)
-        }
+            const trackRect = this.#HTML.Scroll.Track.getBoundingClientRect();
+            const clickPosition = event.clientY - trackRect.top;
+            this.#UpdateScrollbarPosition(clickPosition - this.#HTML.Scroll.Thumb.offsetHeight / 2);
+        };
     }
     SaveFilters(record) {
         for (let key in this.#FilterValues)
             if (record.hasOwnProperty(key))
-                this.#FilterValues[key] = TConfig.IsEmpty(record[key]) ? null : record[key]
+                this.#FilterValues[key] = TConfig.IsEmpty(record[key]) ? null : record[key];
     }
     ClearFilters() {
         for (let key in this.#FilterValues)
-            this.#FilterValues[key] = null
+            this.#FilterValues[key] = null;
     }
     IsFiltered() {
         for (let key in this.#FilterValues)
             if (this.#FilterValues[key] != null)
-                return true
+                return true;
 
-        return false
+        return false;
     }
     async #ReadDataPage(pageNumber) {
         let parameters = {
@@ -327,16 +327,16 @@ export default class TGrid {
                 LimitRows: TSystem.RowsPerPage,
                 MaxPage: 0,
             },
-        }
+        };
 
-        let result = await TConfig.GetAPI(TActions.EXECUTE, parameters)
+        let result = await TConfig.GetAPI(TActions.EXECUTE, parameters);
 
-        this.#RowCount = result.Parameters.ReturnValue
-        this.#PageNumber = result.Parameters.PageNumber
-        this.#PageCount = result.Parameters.MaxPage
+        this.#RowCount = result.Parameters.ReturnValue;
+        this.#PageNumber = result.Parameters.PageNumber;
+        this.#PageCount = result.Parameters.MaxPage;
         if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
-            this.#RowNumber = result.Parameters.ReturnValue - 1
-        this.#References.length = 0
+            this.#RowNumber = result.Parameters.ReturnValue - 1;
+        this.#References.length = 0;
         Object.entries(result.DataSet).forEach(([, table], index) => {
             if (index) {
                 table.forEach(rowTable => {
@@ -347,38 +347,38 @@ export default class TGrid {
             }
         });
 
-        return result.DataSet.Table
+        return result.DataSet.Table;
     }
     async Renderize(pageNumber = this.#PageNumber) {
         if (this.#IsRendering)
-            return
-        this.#IsRendering = true
+            return;
+        this.#IsRendering = true;
         try {
-            this.#Data = await this.#ReadDataPage(pageNumber)
-            this.#PageNumber = pageNumber
-            this.#HTML.Scroll.Thumb.title = `Página ${Math.floor(pageNumber)}${pageNumber === this.#PageCount ? " (última)" : ""}`
+            this.#Data = await this.#ReadDataPage(pageNumber);
+            this.#PageNumber = pageNumber;
+            this.#HTML.Scroll.Thumb.title = `Página ${Math.floor(pageNumber)}${pageNumber === this.#PageCount ? " (última)" : ""}`;
             if (this.#RowCount > 1)
-                TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar."
+                TScreen.LastMessage = TScreen.Message = "Clique na linha que deseja selecionar.";
             else
-                TScreen.LastMessage = TScreen.Message = "Clique em um dos botões."
-            TScreen.Title = `Manutenção de ${this.#Table.Description}`
-            this.#BuildHtmlHead()
-            this.#BuildHtmlBody(this.#Data)
-            this.#BuildHtmlFoot()
-            TScreen.WithBackgroundImage = true
-            TScreen.Main = this.#HTML.Container
-            this.#HTML.Table.focus()
-            this.#UpdateScrollThumbFromInputs()
+                TScreen.LastMessage = TScreen.Message = "Clique em um dos botões.";
+            TScreen.Title = `Manutenção de ${this.#Table.Description}`;
+            this.#BuildHtmlHead();
+            this.#BuildHtmlBody(this.#Data);
+            this.#BuildHtmlFoot();
+            TScreen.WithBackgroundImage = true;
+            TScreen.Main = this.#HTML.Container;
+            this.#HTML.Table.focus();
+            this.#UpdateScrollThumbFromInputs();
             if (this.#RowCount <= TSystem.RowsPerPage)
                 this.#HTML.Scroll.Container.classList.add('invisible');
             else
                 this.#HTML.Scroll.Container.classList.remove('invisible');
         }
         catch (error) {
-            TScreen.ShowError(error.message || error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`)
+            TScreen.ShowError(error.message || error.Message, error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`);
         }
         finally {
-            this.#IsRendering = false
+            this.#IsRendering = false;
         }
         /*
         globalThis.$ = new Proxy(this.#Table, {
@@ -405,286 +405,286 @@ export default class TGrid {
     }
     #GetControl(column, value) {
         let control,
-            htmlInputType = column.Domain.Type.Category.HtmlInputType
+            htmlInputType = column.Domain.Type.Category.HtmlInputType;
 
         if (htmlInputType === "checkbox") {
-            control = document.createElement("input")
+            control = document.createElement("input");
             if (TConfig.IsEmpty(value))
-                control.hidden = "hidden"
+                control.hidden = "hidden";
             else {
-                control.type = htmlInputType
-                control.checked = value
-                control.title = value ? "sim" : "não"
-                control.readOnly = true
-                control.onclick = () => false
+                control.type = htmlInputType;
+                control.checked = value;
+                control.title = value ? "sim" : "não";
+                control.readOnly = true;
+                control.onclick = () => false;
             }
         }
         else {
-            control = document.createTextNode(value ?? "")
+            control = document.createTextNode(value ?? "");
         }
 
-        return control
+        return control;
     }
     #BuildHtmlHead() {
-        let tr = document.createElement("tr")
+        let tr = document.createElement("tr");
 
         this.#Table.Columns.filter(column => column.IsGridable)
             .forEach(column => {
                 let th = document.createElement("th"),
                     columnNameAsc = "[" + column.Name + "] ASC,",
-                    columnNameDesc = "[" + column.Name + "] DESC,"
+                    columnNameDesc = "[" + column.Name + "] DESC,";
 
-                th.Name = column.Name
-                th.IsOrdered = this.#OrderBy.includes(columnNameAsc) ? false : this.#OrderBy.includes(columnNameDesc) ? true : null
-                th.innerHTML = column.Title + (th.IsOrdered === null ? "" : th.IsOrdered ? "&nbsp;\u25BC" : "&nbsp;\u25B2")
+                th.Name = column.Name;
+                th.IsOrdered = this.#OrderBy.includes(columnNameAsc) ? false : this.#OrderBy.includes(columnNameDesc) ? true : null;
+                th.innerHTML = column.Title + (th.IsOrdered === null ? "" : th.IsOrdered ? "&nbsp;\u25BC" : "&nbsp;\u25B2");
                 th.onclick = (event) => {
                     if (TConfig.IsEmpty(event.target.IsOrdered)) {
-                        this.#OrderBy += columnNameAsc
-                        event.target.IsOrdered = false
-                        event.target.innerHTML = `${column.Title}&nbsp;\u25B2`
+                        this.#OrderBy += columnNameAsc;
+                        event.target.IsOrdered = false;
+                        event.target.innerHTML = `${column.Title}&nbsp;\u25B2`;
                     }
                     else if (event.target.IsOrdered === false) {
-                        this.#OrderBy = this.#OrderBy.replace(columnNameAsc, columnNameDesc)
-                        event.target.IsOrdered = true
-                        event.target.innerHTML = `${column.Title}&nbsp;\u25BC`
+                        this.#OrderBy = this.#OrderBy.replace(columnNameAsc, columnNameDesc);
+                        event.target.IsOrdered = true;
+                        event.target.innerHTML = `${column.Title}&nbsp;\u25BC`;
                     }
                     else {
-                        this.#OrderBy = this.#OrderBy.replace(columnNameDesc, "")
-                        event.target.IsOrdered = null
-                        event.target.innerHTML = column.Title
+                        this.#OrderBy = this.#OrderBy.replace(columnNameDesc, "");
+                        event.target.IsOrdered = null;
+                        event.target.innerHTML = column.Title;
                     }
-                    this.Renderize()
-                }
-                tr.appendChild(th)
+                    this.Renderize();
+                };
+                tr.appendChild(th);
                 //if (column.ReferenceTableId && !this.#ReferenceRecordsets[column.ReferenceTableId])
                 //   this.#ReferenceRecordsets[column.ReferenceTableId] = TSystem.GetTable(column.ReferenceTableId).ListTableRows()
-            })
-        this.#HTML.Head.innerHTML = null
-        tr.title = "Clique no cabeçalho da coluna para ordenar"
-        this.#HTML.Head.appendChild(tr)
+            });
+        this.#HTML.Head.innerHTML = null;
+        tr.title = "Clique no cabeçalho da coluna para ordenar";
+        this.#HTML.Head.appendChild(tr);
     }
     #BuildHtmlBody(dataPage) {
-        this.#HTML.Body.innerHTML = null
+        this.#HTML.Body.innerHTML = null;
         this.#HTML.Body.onwheel = event => {
-            let key = `${event.ctrlKey ? "Page" : "Arrow"}${event.deltaY > 0 ? "Down" : "Up"}`
+            let key = `${event.ctrlKey ? "Page" : "Arrow"}${event.deltaY > 0 ? "Down" : "Up"}`;
 
-            event.preventDefault()
+            event.preventDefault();
             this.#HTML.SelectedRow.dispatchEvent(new KeyboardEvent("keydown", {
                 key, // Nome da tecla (e.g., "ArrowUp", "Enter", "a", etc.)
                 code: key, // Código da tecla
                 bubbles: true,   // Permite que o evento se propague na árvore DOM
                 cancelable: true // Permite que o evento seja cancelado
-            }))
-        }
-        this.#Rows.length = 0
+            }));
+        };
+        this.#Rows.length = 0;
         dataPage.forEach((row, index) => {
-            let tr = document.createElement("tr")
+            let tr = document.createElement("tr");
 
-            tr.title = JSON.stringify(row).replace(/,/g, ",\n")
+            tr.title = JSON.stringify(row).replace(/,/g, ",\n");
             tr.onclick = (event) => {
-                this.#RowNumber = tr.rowIndex - 1
+                this.#RowNumber = tr.rowIndex - 1;
                 if (this.#HTML.SelectedRow)
-                    this.#HTML.SelectedRow.removeAttribute("style")
-                this.#HTML.SelectedRow = event.currentTarget
-                this.#HTML.SelectedRow.style = "background-color: var(--background-color-control);"
-            }
-            tr.ondblclick = () => this.#HTML.UpdateButton.click()
+                    this.#HTML.SelectedRow.removeAttribute("style");
+                this.#HTML.SelectedRow = event.currentTarget;
+                this.#HTML.SelectedRow.style = "background-color: var(--background-color-control);";
+            };
+            tr.ondblclick = () => this.#HTML.UpdateButton.click();
             this.#Table.Columns.filter(column => column.IsGridable)
                 .forEach(column => {
-                    const td = document.createElement("td")
+                    const td = document.createElement("td");
 
-                    td.appendChild(this.#GetControl(column, row[column.Name]))
-                    td.style = `text-align: ${column.Domain.Type.Category.HtmlInputAlign}`
-                    tr.appendChild(td)
-                })
-            this.#HTML.Body.appendChild(tr)
-            this, this.#Rows.push(tr)
+                    td.appendChild(this.#GetControl(column, row[column.Name]));
+                    td.style = `text-align: ${column.Domain.Type.Category.HtmlInputAlign}`;
+                    tr.appendChild(td);
+                });
+            this.#HTML.Body.appendChild(tr);
+            this, this.#Rows.push(tr);
             if (this.#RowNumber === index)
-                tr.click()
-        })
+                tr.click();
+        });
     }
     #BuildHtmlFoot() {
         let tr = document.createElement("tr"),
             th = document.createElement("th"),
             filtered = this.IsFiltered(),
-            label
+            label;
 
-        th.colSpan = this.#Table.Columns.length.toString()
-        label = document.createElement("label")
-        label.style.float = "left"
-        label.innerHTML = "Página:&nbsp;&nbsp;"
-        label.hidden = this.#RowCount <= TSystem.RowsPerPage
+        th.colSpan = this.#Table.Columns.length.toString();
+        label = document.createElement("label");
+        label.style.float = "left";
+        label.innerHTML = "Página:&nbsp;&nbsp;";
+        label.hidden = this.#RowCount <= TSystem.RowsPerPage;
 
-        th.appendChild(label)
+        th.appendChild(label);
 
-        this.#HTML.NumberInput = document.createElement("input")
-        this.#HTML.NumberInput.style.float = "left"
-        this.#HTML.NumberInput.className = "numberInput"
-        this.#HTML.NumberInput.type = "number"
-        this.#HTML.NumberInput.value = Math.floor(this.#PageNumber).toString()
-        this.#HTML.NumberInput.title = "Ir para página..."
-        this.#HTML.NumberInput.hidden = this.#RowCount <= TSystem.RowsPerPage
-        this.#HTML.NumberInput.min = "1"
-        this.#HTML.NumberInput.max = this.#PageCount.toString()
+        this.#HTML.NumberInput = document.createElement("input");
+        this.#HTML.NumberInput.style.float = "left";
+        this.#HTML.NumberInput.className = "numberInput";
+        this.#HTML.NumberInput.type = "number";
+        this.#HTML.NumberInput.value = Math.floor(this.#PageNumber).toString();
+        this.#HTML.NumberInput.title = "Ir para página...";
+        this.#HTML.NumberInput.hidden = this.#RowCount <= TSystem.RowsPerPage;
+        this.#HTML.NumberInput.min = "1";
+        this.#HTML.NumberInput.max = this.#PageCount.toString();
         this.#HTML.NumberInput.onchange = (event) => {
-            let value = Number(event.target.value)
+            let value = Number(event.target.value);
 
             if (value > this.#PageCount)
-                value = this.#PageCount
+                value = this.#PageCount;
             else if (value < 1)
-                value = 1
+                value = 1;
             if (this.#IsNavigateByScroll) {
                 if (Math.floor(this.#PageNumber) !== Math.floor(this.#LastPageNumber))
-                    this.Renderize(this.#PageNumber)
-                this.#IsNavigateByScroll = false
+                    this.Renderize(this.#PageNumber);
+                this.#IsNavigateByScroll = false;
             }
             else
-                this.Renderize(value)
-        }
-        th.appendChild(this.#HTML.NumberInput)
+                this.Renderize(value);
+        };
+        th.appendChild(this.#HTML.NumberInput);
 
-        this.#HTML.CreateButton = document.createElement("button")
-        this.#HTML.CreateButton.type = "button"
-        this.#HTML.CreateButton.style.backgroundImage = TGrid.#Images.Insert
-        this.#HTML.CreateButton.title = "Incluir registro (ctrl-i)"
-        this.#HTML.CreateButton.hidden = false
-        this.#HTML.CreateButton.onmouseenter = () => TScreen.Message = "Incluir registro"
-        this.#HTML.CreateButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
+        this.#HTML.CreateButton = document.createElement("button");
+        this.#HTML.CreateButton.type = "button";
+        this.#HTML.CreateButton.style.backgroundImage = TGrid.#Images.Insert;
+        this.#HTML.CreateButton.title = "Incluir registro (ctrl-i)";
+        this.#HTML.CreateButton.hidden = false;
+        this.#HTML.CreateButton.onmouseenter = () => TScreen.Message = "Incluir registro";
+        this.#HTML.CreateButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage;
         this.#HTML.CreateButton.onclick = () => {
             new TForm(this, TActions.CREATE).Configure()
                 .then(form => {
                     if (form)
-                        form.Renderize()
-                })
-        }
-        th.appendChild(this.#HTML.CreateButton)
+                        form.Renderize();
+                });
+        };
+        th.appendChild(this.#HTML.CreateButton);
 
-        this.#HTML.UpdateButton = document.createElement("button")
-        this.#HTML.UpdateButton.type = "button"
-        this.#HTML.UpdateButton.style.backgroundImage = TGrid.#Images.Edit
-        this.#HTML.UpdateButton.title = "Alterar registro (ctrl-a)"
-        this.#HTML.UpdateButton.hidden = this.#RowCount === 0
-        this.#HTML.UpdateButton.onmouseenter = () => TScreen.Message = "Alterar registro"
-        this.#HTML.UpdateButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
+        this.#HTML.UpdateButton = document.createElement("button");
+        this.#HTML.UpdateButton.type = "button";
+        this.#HTML.UpdateButton.style.backgroundImage = TGrid.#Images.Edit;
+        this.#HTML.UpdateButton.title = "Alterar registro (ctrl-a)";
+        this.#HTML.UpdateButton.hidden = this.#RowCount === 0;
+        this.#HTML.UpdateButton.onmouseenter = () => TScreen.Message = "Alterar registro";
+        this.#HTML.UpdateButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage;
         this.#HTML.UpdateButton.onclick = () =>
             new TForm(this, TActions.UPDATE).Configure()
                 .then(form => {
                     if (form)
-                        form.Renderize()
-                })
-        th.appendChild(this.#HTML.UpdateButton)
+                        form.Renderize();
+                });
+        th.appendChild(this.#HTML.UpdateButton);
 
-        this.#HTML.DeleteButton = document.createElement("button")
-        this.#HTML.DeleteButton.type = "button"
-        this.#HTML.DeleteButton.style.backgroundImage = TGrid.#Images.Delete
-        this.#HTML.DeleteButton.title = "Excluir registro (ctrl-e)"
-        this.#HTML.DeleteButton.hidden = this.#RowCount === 0
-        this.#HTML.DeleteButton.onmouseenter = () => TScreen.Message = "Excluir registro"
-        this.#HTML.DeleteButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
+        this.#HTML.DeleteButton = document.createElement("button");
+        this.#HTML.DeleteButton.type = "button";
+        this.#HTML.DeleteButton.style.backgroundImage = TGrid.#Images.Delete;
+        this.#HTML.DeleteButton.title = "Excluir registro (ctrl-e)";
+        this.#HTML.DeleteButton.hidden = this.#RowCount === 0;
+        this.#HTML.DeleteButton.onmouseenter = () => TScreen.Message = "Excluir registro";
+        this.#HTML.DeleteButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage;
         this.#HTML.DeleteButton.onclick = () =>
             new TForm(this, TActions.DELETE).Configure()
                 .then(form => {
                     if (form)
-                        form.Renderize()
-                })
-        th.appendChild(this.#HTML.DeleteButton)
+                        form.Renderize();
+                });
+        th.appendChild(this.#HTML.DeleteButton);
 
-        this.#HTML.QueryButton = document.createElement("button")
-        this.#HTML.QueryButton.type = "button"
-        this.#HTML.QueryButton.style.backgroundImage = TGrid.#Images.Query
-        this.#HTML.QueryButton.title = "Ver registro (ctrl-v)"
-        this.#HTML.QueryButton.hidden = this.#RowCount === 0
-        this.#HTML.QueryButton.onmouseenter = () => TScreen.Message = "Ver registro"
-        this.#HTML.QueryButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
+        this.#HTML.QueryButton = document.createElement("button");
+        this.#HTML.QueryButton.type = "button";
+        this.#HTML.QueryButton.style.backgroundImage = TGrid.#Images.Query;
+        this.#HTML.QueryButton.title = "Ver registro (ctrl-v)";
+        this.#HTML.QueryButton.hidden = this.#RowCount === 0;
+        this.#HTML.QueryButton.onmouseenter = () => TScreen.Message = "Ver registro";
+        this.#HTML.QueryButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage;
         this.#HTML.QueryButton.onclick = () =>
             new TForm(this, TActions.QUERY).Configure()
                 .then(form => {
                     if (form)
-                        form.Renderize()
-                })
-        th.appendChild(this.#HTML.QueryButton)
+                        form.Renderize();
+                });
+        th.appendChild(this.#HTML.QueryButton);
 
-        this.#HTML.FilterButton = document.createElement("button")
-        this.#HTML.FilterButton.type = "button"
-        this.#HTML.FilterButton.style.backgroundImage = TGrid.#Images.Filter
-        this.#HTML.FilterButton.title = "Filtrar registros (ctrl-f)"
-        this.#HTML.FilterButton.hidden = !filtered && this.#RowCount <= TSystem.RowsPerPage
-        this.#HTML.FilterButton.onmouseenter = () => TScreen.Message = "Filtrar registros"
-        this.#HTML.FilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
+        this.#HTML.FilterButton = document.createElement("button");
+        this.#HTML.FilterButton.type = "button";
+        this.#HTML.FilterButton.style.backgroundImage = TGrid.#Images.Filter;
+        this.#HTML.FilterButton.title = "Filtrar registros (ctrl-f)";
+        this.#HTML.FilterButton.hidden = !filtered && this.#RowCount <= TSystem.RowsPerPage;
+        this.#HTML.FilterButton.onmouseenter = () => TScreen.Message = "Filtrar registros";
+        this.#HTML.FilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage;
         this.#HTML.FilterButton.onclick = async () => {
-            (await new TForm(this, TActions.FILTER).Configure()).Renderize()
-        }
-        th.appendChild(this.#HTML.FilterButton)
+            (await new TForm(this, TActions.FILTER).Configure()).Renderize();
+        };
+        th.appendChild(this.#HTML.FilterButton);
 
-        this.#HTML.UnfilterButton = document.createElement("button")
-        this.#HTML.UnfilterButton.type = "button"
-        this.#HTML.UnfilterButton.style.backgroundImage = TGrid.#Images.Unfilter
-        this.#HTML.UnfilterButton.title = `Limpar filtragem de registros (ctrl-l): ${this.Filter}`
-        this.#HTML.UnfilterButton.hidden = !filtered
-        this.#HTML.UnfilterButton.onmouseenter = () => TScreen.Message = "Limpar filtragem de registros"
-        this.#HTML.UnfilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
+        this.#HTML.UnfilterButton = document.createElement("button");
+        this.#HTML.UnfilterButton.type = "button";
+        this.#HTML.UnfilterButton.style.backgroundImage = TGrid.#Images.Unfilter;
+        this.#HTML.UnfilterButton.title = `Limpar filtragem de registros (ctrl-l): ${this.Filter}`;
+        this.#HTML.UnfilterButton.hidden = !filtered;
+        this.#HTML.UnfilterButton.onmouseenter = () => TScreen.Message = "Limpar filtragem de registros";
+        this.#HTML.UnfilterButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage;
         this.#HTML.UnfilterButton.onclick = () => {
-            this.ClearFilters()
-            this.Renderize()
-        }
-        th.appendChild(this.#HTML.UnfilterButton)
+            this.ClearFilters();
+            this.Renderize();
+        };
+        th.appendChild(this.#HTML.UnfilterButton);
 
-        this.#HTML.UnorderButton = document.createElement("button")
-        this.#HTML.UnorderButton.type = "button"
-        this.#HTML.UnorderButton.style.backgroundImage = TGrid.#Images.Unorder
-        this.#HTML.UnorderButton.title = `Limpar ordenação de registros (ctrl-o): ${this.OrderBy}`
-        this.#HTML.UnorderButton.hidden = TConfig.IsEmpty(this.#OrderBy)
-        this.#HTML.UnorderButton.onmouseenter = () => TScreen.Message = "Limpar ordenação de registros"
-        this.#HTML.UnorderButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
+        this.#HTML.UnorderButton = document.createElement("button");
+        this.#HTML.UnorderButton.type = "button";
+        this.#HTML.UnorderButton.style.backgroundImage = TGrid.#Images.Unorder;
+        this.#HTML.UnorderButton.title = `Limpar ordenação de registros (ctrl-o): ${this.OrderBy}`;
+        this.#HTML.UnorderButton.hidden = TConfig.IsEmpty(this.#OrderBy);
+        this.#HTML.UnorderButton.onmouseenter = () => TScreen.Message = "Limpar ordenação de registros";
+        this.#HTML.UnorderButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage;
         this.#HTML.UnorderButton.onclick = () => {
-            this.#OrderBy = ""
-            this.Renderize()
-        }
-        th.appendChild(this.#HTML.UnorderButton)
+            this.#OrderBy = "";
+            this.Renderize();
+        };
+        th.appendChild(this.#HTML.UnorderButton);
 
-        this.#HTML.ExitButton = document.createElement("button")
-        this.#HTML.ExitButton.type = "button"
-        this.#HTML.ExitButton.style.backgroundImage = TGrid.#Images.Exit
-        this.#HTML.ExitButton.title = "Retornar ao menu principal (ctrl-r)"
-        this.#HTML.ExitButton.hidden = false
-        this.#HTML.ExitButton.onmouseenter = () => TScreen.Message = "Retornar ao menu principal"
-        this.#HTML.ExitButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage
-        this.#HTML.ExitButton.onclick = () => TSystem.Action = `${TActions.EXIT}/${TActions.MENU}`
-        th.appendChild(this.#HTML.ExitButton)
+        this.#HTML.ExitButton = document.createElement("button");
+        this.#HTML.ExitButton.type = "button";
+        this.#HTML.ExitButton.style.backgroundImage = TGrid.#Images.Exit;
+        this.#HTML.ExitButton.title = "Retornar ao menu principal (ctrl-r)";
+        this.#HTML.ExitButton.hidden = false;
+        this.#HTML.ExitButton.onmouseenter = () => TScreen.Message = "Retornar ao menu principal";
+        this.#HTML.ExitButton.onmouseleave = () => TScreen.Message = TScreen.LastMessage;
+        this.#HTML.ExitButton.onclick = () => TSystem.Action = `${TActions.EXIT}/${TActions.MENU}`;
+        th.appendChild(this.#HTML.ExitButton);
 
-        label = document.createElement("label")
-        label.style.float = "right"
-        label.innerHTML = `Total de Registros: ${this.#Rows.length}/${this.#RowCount}`
-        th.appendChild(label)
-        tr.appendChild(th)
+        label = document.createElement("label");
+        label.style.float = "right";
+        label.innerHTML = `Total de Registros: ${this.#Rows.length}/${this.#RowCount}`;
+        th.appendChild(label);
+        tr.appendChild(th);
 
-        this.#HTML.Foot.innerHTML = null
-        this.#HTML.Foot.appendChild(tr)
+        this.#HTML.Foot.innerHTML = null;
+        this.#HTML.Foot.appendChild(tr);
     }
     get Table() {
-        return this.#Table
+        return this.#Table;
     }
     get FilterValues() {
-        return this.#FilterValues
+        return this.#FilterValues;
     }
     get Primarykeys() {
         return { Id: this.#Data[this.#RowNumber]["Id"], };
     }
     get OrderBy() {
-        return this.#OrderBy.slice(0, -1)
+        return this.#OrderBy.slice(0, -1);
     }
     get Filter() {
-        var filter = ""
+        var filter = "";
 
         for (let key in this.#FilterValues) {
-            let value = this.#FilterValues[key]
+            let value = this.#FilterValues[key];
 
             if (value !== null)
-                filter += `${(filter === "" ? "" : " AND ")}${key} = '${value}'`
+                filter += `${(filter === "" ? "" : " AND ")}${key} = '${value}'`;
         }
-        return filter
+        return filter;
     }
     get Container() {
-        return this.#HTML.Table
+        return this.#HTML.Table;
     }
 }

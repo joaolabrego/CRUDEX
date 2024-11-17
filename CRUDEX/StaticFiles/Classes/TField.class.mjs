@@ -1,38 +1,38 @@
-"use strict"
+"use strict";
 
 export default class TField {
-    #Column = null
-    #LastValue = null
-    #Value = null
-    #Reference = null
+    #Column = null;
+    #LastValue = null;
+    #Value = null;
+    #Reference = null;
     constructor(column, value) {
         if (column.ClassName !== "TColumm")
-            throw new Error("Argumento column não é do tipo TColumn.")
-        this.#Column = column
-        this.#LastValue = this.#Value = value
+            throw new Error("Argumento column nï¿½o ï¿½ do tipo TColumn.");
+        this.#Column = column;
+        this.#LastValue = this.#Value = value;
     }
     Reset() {
-        this.#Value = this.#LastValue
+        this.#Value = this.#LastValue;
     }
     get Updated() {
-        return this.#Value !== this.#LastValue
+        return this.#Value !== this.#LastValue;
     }
     get Column() {
-        return this.#Column
+        return this.#Column;
     }
     set Reference(reference) {
         if (reference.ClassName !== "TField")
-            throw new Error("Argumento reference não é do tipo TField.")
-        this.#Reference = reference
+            throw new Error("Argumento reference nï¿½o ï¿½ do tipo TField.");
+        this.#Reference = reference;
     }
     get Reference() {
-        return this.#Reference
+        return this.#Reference;
     }
     set Value(value) {
-        this.#Value = value
+        this.#Value = value;
     }
 
     get Value() {
-        return this.#Value
+        return this.#Value;
     }
 }
