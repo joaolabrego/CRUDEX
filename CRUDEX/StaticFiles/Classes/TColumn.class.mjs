@@ -18,10 +18,26 @@ export default class TColumn {
         this.#Table = table
         this.#Domain = TSystem.GetDomain(rowColumn.DomainId)
     }
-    set LatValue(value) {
+    SetValue(value) {
+        let categoryName = this.#Domain.Type.Category.Name
+
+        if (categoryName !== typeof value) {
+            if (categoryName === "number")
+                value = Number(value)
+            else if (categoryName === "boolean")
+                value = new Boolean(value)
+            else if (categoryName === "date" || categoryName === "datetime" || categoryName === "time")
+                value = new Date(`${categoryName === "time" ? "1900-01-01 " : ""}${value}`)
+            else
+                value = String(value)
+
+
+        }
+    }
+    set LastValue(value) {
         this.#LastValue = value
     }
-    get LatValue() {
+    get LastValue() {
         return this.#LastValue
     }
     set Value(value) {
