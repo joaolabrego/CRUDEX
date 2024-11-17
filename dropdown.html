@@ -99,6 +99,16 @@
           this.input.classList.add("dropdown-input");
           this.input.setAttribute("type", "text");
           this.input.setAttribute("placeholder", "Digite ou selecione...");
+          this.input.addEventListener("focusout", (event) => {
+            if (!this.contains(event.relatedTarget))
+              this.optionsDiv.style.display = "none";
+          });
+          this.input.addEventListener("focus", (event) => {
+            if (event.target.value != "") {
+              this.showOptions();
+            }
+          });
+          this.input.addEventListener("input", () => this.applyFilter());
           container.appendChild(this.input);
 
           this.arrowIcon = document.createElement("span");
@@ -121,14 +131,6 @@
 
         connectedCallback() {
           // Evento no input apenas para aplicar filtro, sem abrir a lista
-          this.input.addEventListener("input", () => this.applyFilter());
-
-          // Fechar a lista ao clicar fora dela
-          document.addEventListener("click", (event) => {
-            if (!this.contains(event.target)) {
-              this.optionsDiv.style.display = "none";
-            }
-          });
 
           this.prevPageButton = document.createElement("button");
           this.prevPageButton.textContent = "◀";
