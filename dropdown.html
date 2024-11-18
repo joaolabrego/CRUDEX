@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Filterable Dropdown</title>
+  </head>
+  <body>
+    <input type="text" placeholder="Input de referência" />
+    <filterable-dropdown id="dropdown1"></filterable-dropdown>
+    <filterable-dropdown id="dropdown2"></filterable-dropdown>
+
+    <script>
+      class FilterableDropdown extends HTMLElement {
+        constructor() {
+          super();
+          this.attachShadow({ mode: "open" });
+
+          this.currentPage = 0;
+          this.itemsPerPage = 5;
+          this.data = [];
+          this.filteredData = [];
+
+          this.shadowRoot.innerHTML = `
+          <style>
+            :host {
+              display: inline-block;
+              width: 150px;
+              position: relative;
+              font-family: inherit;
+            }
+
+            .input-container {
+              position: relative;
+            }
+
+            .filter-input {
+              width: 100%;
+              height: 20px;
+              padding: 5px 30px 5px 10px; /* Espaço para o ícone */
+              border: 1px solid #ccc;
+              border-radius: 4px;
+              box-sizing: border-box;
+              font-family: inherit;
+            }
+
+            .dropdown-icon {
+              position: absolute;
+              top: 50%;
+              right: 10px;
+              transform: translateY(-50%);
+              cursor: pointer;
+              font-size: 12px;
+              color: #888;
+              user-select: none; /* Impede a seleção da seta */
+            }
+
+            .dropdown-list {
+              position: absolute;
+              top: calc(100% + 4px);
+              left: 0;
+              right: 0;
+              max-height: 500px;
+              overflow-y: auto;
+              background: white;
+              display: none;
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+              font-family: inherit;
+              z-index: 100;
+              border: none;
+            }
+
+            .dropdown-list.open {
+              display: block;
+            }
+
+            .dropdown-item {
+              padding: 8px;
+              cursor: pointer;
+              font-family: inherit;
+            }
+
+            .dropdown-item:hover {
+              background-color: #f0f0f0;
+            }
+
+            .pagination {
+              display: flex;
+              justify-content: space-between;
+              padding: 4px;
+              background: #f9f9f9;
+            }
+
+            .pagination button {
+              border: none;
+              background: none;
+              cursor: pointer;
+              font-size: 14px;
+              color: #007bff;
+            }
+
+            .pagination button[disabled] {
+              color: #ccc;
+              cursor: not-allowed;
+              pointer-events: none;
+            }
+          </style>
+
+          <div class="input-container">
+            <input type="text" class="filter-input" placeholder="Type to filter..." />
+            <span class="dropdown-icon">&#9660;</span>
+            <div class="dropdown-list">
+              <div class="dropdown-items"></div>
+              <div class="pagination">
+                <button class="prev-button" disabled>&#9664;</button>
+                <button class="next-button">&#9654;</button>
+              </div>
+            </div>
+          </div>
+        `;
+        }
+
+        connectedCallback() {
+          this.filterInput = this.shadowRoot.querySelector(".filter-input");
+          this.dropdownIcon = this.shadowRoot.querySelector(".dropdown-icon");
+          this.dropdownList = this.shadowRoot.querySelector(".dropdown-list");
+          this.itemsContainer =
+            this.shadowRoot.querySelector(".dropdown-items");
+          this.prevButton = this.shadowRoot.querySelector(".prev-button");
+          this.nextButton = this.shadowRoot.querySelector(".next-button");
+
+          this.filterInput.addEventListener("focus", () => {
+            this.filterItems(this.filterInput.value.trim());
+          });
+
+          this.filterInput.addEventListener("input", (e) => {
+            this.filterItems(e.target.value.trim());
+            this.showDropdown();
+          });
+
+          this.filterInput.addEventListener("blur", () => {
+            this.hideDropdown();
+          });
+
+          this.dropdownIcon.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (this.dropdownList.classList.contains("open")) {
+              this.hideDropdown();
+            } else {
+              this.filterItems(this.filterInput.value.trim());
+              this.showDropdown();
+            }
+          });
+
+          this.prevButton.addEventListener("click", () => this.changePage(-1));
+          this.nextButton.addEventListener("click", () => this.changePage(1));
+          this.dropdownList.addEventListener("mousedown", (e) =>
+            e.preventDefault()
+          );
+        }
+
+        set dataSource(items) {
+          this.data = items;
+          this.filteredData = [...items];
+          this.renderItems();
+        }
+
+        filterItems(query) {
+          this.filteredData = this.data.filter((item) =>
+            item.toLowerCase().includes(query.toLowerCase())
+          );
+          this.currentPage = 0;
+          this.renderItems();
+        }
+
+        changePage(direction) {
+          const totalPages = Math.ceil(
+            this.filteredData.length / this.itemsPerPage
+          );
+          this.currentPage = Math.min(
+            Math.max(this.currentPage + direction, 0),
+            totalPages - 1
+          );
+          this.renderItems();
+        }
+
+        renderItems() {
+          const start = this.currentPage * this.itemsPerPage;
+          const end = start + this.itemsPerPage;
+
+          this.itemsContainer.innerHTML = "";
+          const pageItems = this.filteredData.slice(start, end);
+          pageItems.forEach((item) => {
+            const div = document.createElement("div");
+            div.className = "dropdown-item";
+            div.textContent = item;
+            div.addEventListener("click", () => this.selectItem(item));
+            this.itemsContainer.appendChild(div);
+          });
+
+          this.updatePagination();
+
+          if (this.filteredData.length === 0) {
+            this.hideDropdown();
+          }
+        }
+
+        updatePagination() {
+          const totalPages = Math.ceil(
+            this.filteredData.length / this.itemsPerPage
+          );
+          this.prevButton.disabled = this.currentPage === 0;
+          this.nextButton.disabled = this.currentPage >= totalPages - 1;
+
+          const paginationContainer =
+            this.shadowRoot.querySelector(".pagination");
+          paginationContainer.style.display = totalPages > 1 ? "flex" : "none";
+        }
+
+        showDropdown() {
+          this.dropdownList.classList.add("open");
+        }
+
+        hideDropdown() {
+          this.dropdownList.classList.remove("open");
+        }
+
+        selectItem(item) {
+          this.filterInput.value = item;
+          this.hideDropdown();
+        }
+      }
+
+      customElements.define("filterable-dropdown", FilterableDropdown);
+
+      const dropdown1 = document.getElementById("dropdown1");
+      dropdown1.dataSource = [
+        "Apple",
+        "Banana",
+        "Cherry",
+        "Date",
+        "Fig",
+        "Grape",
+        "Kiwi",
+      ];
+      dropdown1.itemsPerPageCount = 3;
+
+      const dropdown2 = document.getElementById("dropdown2");
+      dropdown2.dataSource = [
+        "Mango",
+        "Orange",
+        "Papaya",
+        "Pineapple",
+        "Strawberry",
+        "Watermelon",
+      ];
+      dropdown2.itemsPerPageCount = 3;
+    </script>
+  </body>
+</html>
