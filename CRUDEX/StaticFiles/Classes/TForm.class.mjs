@@ -183,6 +183,7 @@ export default class TForm {
                     event.target.placeholder = event.target.placeholder ? "" : "null";
             }
         };
+        //
         control.name = column.Name;
         control.Column = column;
         control.onfocus = (event) => event.target.select();
