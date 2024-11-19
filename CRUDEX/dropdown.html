@@ -163,6 +163,10 @@
           );
         }
 
+        disconnectedCallback() {
+          document.removeEventListener("focusin", this.handleFocusChange);
+        }
+
         set dataSource(items) {
           this.data = items;
           this.filteredData = [...items];

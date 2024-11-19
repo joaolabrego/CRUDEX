@@ -4,6 +4,7 @@ import TActions from "./TActions.class.mjs";
 import TScreen from "./TScreen.class.mjs";
 import TConfig from "./TConfig.class.mjs";
 import TLogin from "./TLogin.class.mjs";
+import TSystem from "./TSystem.class.mjs";
 export default class TForm {
     #Action = "";
     #ReturnAction = "";
@@ -155,7 +156,7 @@ export default class TForm {
                 break;
         }
         control.onchange = event => {
-            let value = event.target.type === "checkbox" ? eval(event.target.value) : event.target.value;
+            let value = event.target.type === "checkbox" ? TSystem.Evaluate(event.target.value) : event.target.value;
 
             this.#Record[column.Name] = TConfig.IsEmpty(value) ? null : value;
         };
