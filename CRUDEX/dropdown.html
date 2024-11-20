@@ -6,6 +6,7 @@
     <title>Filterable Dropdown</title>
   </head>
   <body>
+    <div style="height: 560px"></div>
     <input type="text" placeholder="Input de referência" />
     <filterable-dropdown id="dropdown1"></filterable-dropdown>
     <filterable-dropdown id="dropdown2"></filterable-dropdown>
@@ -120,16 +121,24 @@
         }
 
         connectedCallback() {
+          window.addEventListener("dropdownOpened", (e) => {
+            if (e.detail.dropdown !== this) {
+              this.hideDropdown();
+            }
+          });
           this.filterInput = this.shadowRoot.querySelector(".filter-input");
           this.dropdownIcon = this.shadowRoot.querySelector(".dropdown-icon");
           this.dropdownList = this.shadowRoot.querySelector(".dropdown-list");
           this.itemsContainer =
             this.shadowRoot.querySelector(".dropdown-items");
           this.prevButton = this.shadowRoot.querySelector(".prev-button");
+          this.prevButton.tabIndex = -1;
           this.nextButton = this.shadowRoot.querySelector(".next-button");
+          this.nextButton.tabIndex = -1;
 
           this.filterInput.addEventListener("focus", () => {
             this.filterItems(this.filterInput.value.trim());
+            if (this.filterInput.value.trim()) this.showDropdown();
           });
 
           this.filterInput.addEventListener("input", (e) => {
@@ -141,7 +150,7 @@
             this.hideDropdown();
           });
 
-          this.dropdownIcon.addEventListener("click", (e) => {
+          this.filterInput.addEventListener("click", (e) => {
             e.stopPropagation();
             if (this.dropdownList.classList.contains("open")) {
               this.hideDropdown();
@@ -149,6 +158,12 @@
               this.filterItems(this.filterInput.value.trim());
               this.showDropdown();
             }
+          });
+
+          this.dropdownIcon.addEventListener("mousedown", (e) => {
+            e.preventDefault(); // Impede perda de foco
+            this.filterInput.focus(); // Força o foco no input
+            this.filterInput.click(); // Simula o clique no input
           });
 
           this.prevButton.addEventListener("click", () => this.changePage(-1));
@@ -165,6 +180,11 @@
 
         disconnectedCallback() {
           document.removeEventListener("focusin", this.handleFocusChange);
+          window.removeEventListener("dropdownOpened", (e) => {
+            if (e.detail.dropdown !== this) {
+              this.hideDropdown();
+            }
+          });
         }
 
         set dataSource(items) {
@@ -232,11 +252,39 @@
         }
 
         showDropdown() {
+          const event = new CustomEvent("dropdownOpened", {
+            detail: { dropdown: this },
+            bubbles: true, // Permite a propagação do evento
+          });
+          window.dispatchEvent(event); // Dispara o evento globalmente
+
+          this.dropdownList.style.visibility = "hidden";
+          this.dropdownList.style.display = "block";
+
+          const dropdownRect = this.filterInput.getBoundingClientRect();
+          const listHeight = this.dropdownList.scrollHeight;
+          const viewportHeight = window.innerHeight;
+          const spaceBelow = viewportHeight - dropdownRect.bottom;
+          const spaceAbove = dropdownRect.top;
+
+          if (spaceBelow < listHeight && spaceAbove > listHeight) {
+            this.dropdownList.style.top = "auto";
+            this.dropdownList.style.bottom = `${dropdownRect.height}px`;
+          } else {
+            this.dropdownList.style.top = `calc(100% + 0.8dvmin)`;
+            this.dropdownList.style.bottom = "auto";
+          }
+
+          this.dropdownList.style.visibility = "visible";
           this.dropdownList.classList.add("open");
         }
 
         hideDropdown() {
+          this.lastDropdownInstance = null;
           this.dropdownList.classList.remove("open");
+          this.dropdownList.style.display = "none";
+          this.dropdownList.style.top = "";
+          this.dropdownList.style.bottom = "";
         }
 
         selectItem(item) {
