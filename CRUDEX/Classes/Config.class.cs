@@ -67,7 +67,7 @@ namespace CRUDA_LIB
                    $"        <meta http-equiv='X-UA-Compatible' content='IE=edge' />\r\n" +
                    $"        <meta http-equiv='pragma' content='no-cache, no-store' />\r\n" +
                    $"        <meta http-equiv='content-type' content='text/html; X-Content-Type-Options=nosniff;' />\r\n" +
-                   $"        <meta name='viewport' content='width=device-width, initial-scale=1.0\">' />\r\n" +
+                   $"        <meta name='viewport' content='width=device-width, initial-scale=1.0'>\r\n" +
                    $"        <meta name='application-name' content='CRUDEX - CRUD Express' />\r\n" +
                    $"        <meta name='author' content='João da Rocha Labrego' />\r\n" +
                    $"        <meta name='copyright' content='© 2024 Labrego' />\r\n" +

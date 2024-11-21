@@ -6,7 +6,7 @@
     <title>Filterable Dropdown</title>
   </head>
   <body>
-    <div style="height: 560px"></div>
+    <div style="height: 580px"></div>
     <input type="text" placeholder="Input de referência" />
     <filterable-dropdown id="dropdown1"></filterable-dropdown>
     <filterable-dropdown id="dropdown2"></filterable-dropdown>
@@ -16,6 +16,7 @@
         constructor() {
           super();
           this.attachShadow({ mode: "open" });
+          this.isCloseDropdown = true;
 
           this.currentPage = 0;
           this.itemsPerPage = 5;
@@ -128,6 +129,12 @@
               this.hideDropdown();
             }
           });
+
+          document.addEventListener(
+            "mousedown",
+            this.handleClickOutside.bind(this)
+          );
+
           this.filterInput = this.shadowRoot.querySelector(".filter-input");
           this.dropdownIcon = this.shadowRoot.querySelector(".dropdown-icon");
           this.dropdownList = this.shadowRoot.querySelector(".dropdown-list");
@@ -149,7 +156,8 @@
           });
 
           this.filterInput.addEventListener("blur", () => {
-            this.hideDropdown();
+            if (this.isCloseDropdown) this.hideDropdown();
+            this.isCloseDropdown = true;
           });
 
           this.filterInput.addEventListener("click", (e) => {
@@ -157,6 +165,7 @@
             if (this.dropdownList.classList.contains("open")) {
               this.hideDropdown();
             } else {
+              this.isCloseDropdown = false;
               this.filterItems(this.filterInput.value.trim());
               this.showDropdown();
             }
@@ -173,11 +182,22 @@
           this.dropdownList.addEventListener("mousedown", (e) =>
             e.preventDefault()
           );
+        }
 
-          // Gerenciar o foco entre os dropdowns
-          document.addEventListener("focusin", (e) =>
-            this.handleFocusChange(e)
-          );
+        disconnectedCallback() {
+          document.removeEventListener("mousedown", this.handleClickOutside);
+          document.removeEventListener("focusin", this.handleFocusChange);
+          window.removeEventListener("dropdownOpened", (e) => {
+            if (e.detail.dropdown !== this) {
+              this.hideDropdown();
+            }
+          });
+        }
+
+        handleClickOutside(event) {
+          if (!this.contains(event.target)) {
+            this.hideDropdown();
+          }
         }
 
         disconnectedCallback() {
