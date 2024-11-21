@@ -1,371 +1,359 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Filterable Dropdown</title>
-  </head>
-  <body>
+</head>
+<body>
     <div style="height: 580px"></div>
     <input type="text" placeholder="Input de referência" />
     <filterable-dropdown id="dropdown1"></filterable-dropdown>
     <filterable-dropdown id="dropdown2"></filterable-dropdown>
 
     <script>
-      class FilterableDropdown extends HTMLElement {
-        constructor() {
-          super();
-          this.attachShadow({ mode: "open" });
-          this.isCloseDropdown = true;
+        class FilterableDropdown extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: "open" });
+                this.isCloseDropdown = true;
 
-          this.currentPage = 0;
-          this.itemsPerPage = 5;
-          this.data = [];
-          this.filteredData = [];
+                this.currentPage = 0;
+                this.itemsPerPage = 5;
+                this.data = [];
+                this.filteredData = [];
 
-          this.shadowRoot.innerHTML = `
-          <style>
-            :host {
-              display: inline-block;
-              position: relative;
-              font-family: inherit;
-            }
+                this.shadowRoot.innerHTML = `
+              <style>
+                :host {
+                  display: inline-block;
+                  position: relative;
+                  font-family: inherit;
+                }
 
-            .input-container {
-              position: relative;
-            }
+                .input-container {
+                  position: relative;
+                }
 
-            .filter-input {
-              width: 100%;
-              height: 2.8dvmin;
-              padding: 0.5dvmin;
-              border: 0.1dvmin solid #000;
-              border-radius: 0.1dvmin;
-              box-sizing: border-box;
-              font-family: inherit;
-            }
+                .filter-input {
+                  width: 100%;
+                  height: 2.8dvmin;
+                  padding: 0.5dvmin;
+                  border: 0.1dvmin solid #000;
+                  border-radius: 0.1dvmin;
+                  box-sizing: border-box;
+                  font-family: inherit;
+                }
 
-            .dropdown-icon {
-              position: absolute;
-              top: 50%;
-              right: 0.5dvmin;
-              transform: translateY(-50%);
-              cursor: pointer;
-              font-size: 2dvmin;
-              color: #888;
-              user-select: none;
-            }
+                .dropdown-icon {
+                  position: absolute;
+                  top: 50%;
+                  right: 0.5dvmin;
+                  transform: translateY(-50%);
+                  cursor: pointer;
+                  font-size: 2dvmin;
+                  color: #888;
+                  user-select: none;
+                }
 
-            .dropdown-list {
-              position: absolute;
-              top: calc(100% + 0.8dvmin);
-              left: 0;
-              right: 0;
-              max-height: 100dvmin;
-              overflow-y: auto;
-              background: white;
-              display: none;
-              box-shadow: 0 0.8dvmin 1.6dvmin rgba(0, 0, 0, 0.2);
-              font-family: inherit;
-              z-index: 100;
-              border: none;
-            }
+                .dropdown-list {
+                  position: absolute;
+                  top: calc(100% + 0.8dvmin);
+                  left: 0;
+                  right: 0;
+                  max-height: 100dvmin;
+                  overflow-y: auto;
+                  background: white;
+                  display: none;
+                  box-shadow: 0 0.8dvmin 1.6dvmin rgba(0, 0, 0, 0.2);
+                  font-family: inherit;
+                  z-index: 100;
+                  border: none;
+                }
 
-            .dropdown-list.open {
-              display: block;
-            }
+                .dropdown-list.open {
+                  display: block;
+                }
 
-            .dropdown-item {
-              padding: 0.5dvmin;
-              cursor: pointer;
-              font-family: inherit;
-            }
+                .dropdown-item {
+                  padding: 0.5dvmin;
+                  cursor: pointer;
+                  font-family: inherit;
+                }
 
-            .dropdown-item:hover {
-              background-color: #f0f0f0;
-            }
+                .dropdown-item:hover {
+                  background-color: #f0f0f0;
+                }
 
-            .dropdown-item.selected {
-              background-color: #007bff; /* Azul */
-              color: white;
-            }
+                .dropdown-item.selected {
+                  background-color: #007bff; /* Azul */
+                  color: white;
+                }
 
-            .pagination {
-              display: flex;
-              justify-content: space-between;
-              padding: 0.5dvmin;
-              background: #f9f9f9;
-            }
+                .pagination {
+                  display: flex;
+                  justify-content: space-between;
+                  padding: 0.5dvmin;
+                  background: #f9f9f9;
+                }
 
-            .pagination button {
-              border: none;
-              background: none;
-              cursor: pointer;
-              font-size: 2dvmin;
-              color: #007bff;
-            }
+                .pagination button {
+                  border: none;
+                  background: none;
+                  cursor: pointer;
+                  font-size: 2dvmin;
+                  color: #007bff;
+                }
 
-            .pagination button[disabled] {
-              color: #ccc;
-              cursor: not-allowed;
-              pointer-events: none;
-            }
-          </style>
+                .pagination button[disabled] {
+                  color: #ccc;
+                  cursor: not-allowed;
+                  pointer-events: none;
+                }
+              </style>
 
-          <div class="input-container">
-            <input type="text" class="filter-input" placeholder="Type to filter..." />
-            <span class="dropdown-icon">&#9660;</span>
-            <div class="dropdown-list">
-              <div class="dropdown-items"></div>
-              <div class="pagination">
-                <button class="prev-button" disabled>&#9664;</button>
-                <button class="next-button">&#9654;</button>
+              <div class="input-container">
+                <input type="text" class="filter-input" placeholder="Type to filter..." />
+                <span class="dropdown-icon">&#9660;</span>
+                <div class="dropdown-list">
+                  <div class="dropdown-items"></div>
+                  <div class="pagination">
+                    <button class="prev-button" disabled>&#9664;</button>
+                    <button class="next-button">&#9654;</button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        `;
-        }
-
-        connectedCallback() {
-          window.addEventListener("dropdownOpened", (e) => {
-            if (e.detail.dropdown !== this) {
-              this.hideDropdown();
-            }
-          });
-
-          document.addEventListener(
-            "mousedown",
-            this.handleClickOutside.bind(this)
-          );
-
-          this.filterInput = this.shadowRoot.querySelector(".filter-input");
-          this.dropdownIcon = this.shadowRoot.querySelector(".dropdown-icon");
-          this.dropdownList = this.shadowRoot.querySelector(".dropdown-list");
-          this.itemsContainer =
-            this.shadowRoot.querySelector(".dropdown-items");
-          this.prevButton = this.shadowRoot.querySelector(".prev-button");
-          this.prevButton.tabIndex = -1;
-          this.nextButton = this.shadowRoot.querySelector(".next-button");
-          this.nextButton.tabIndex = -1;
-
-          this.filterInput.addEventListener("focus", () => {
-            // Se o valor estiver preenchido, exibe a lista
-            if (this.filterInput.value.trim()) {
-              this.filterItems(this.filterInput.value.trim());
-              this.showDropdown();
-              this.isCloseDropdown = false;
-            }
-          });
-
-          this.filterInput.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (this.isCloseDropdown) {
-              if (this.dropdownList.classList.contains("open")) {
-                this.hideDropdown(); // Oculta se já estiver aberta
-              } else {
-                this.filterItems(this.filterInput.value.trim());
-                this.showDropdown(); // Exibe se estiver oculta
-              }
-            }
-            this.isCloseDropdown = true;
-          });
-
-          this.filterInput.addEventListener("blur", () => {
-            if (this.isCloseDropdown) this.hideDropdown();
-            this.isCloseDropdown = true;
-          });
-
-          this.dropdownIcon.addEventListener("mousedown", (e) => {
-            e.preventDefault(); // Impede perda de foco
-            this.filterInput.focus(); // Força o foco no input
-            this.filterInput.click(); // Simula o clique no input
-          });
-
-          this.filterInput.addEventListener("input", (e) => {
-            this.filterItems(e.target.value.trim());
-            this.showDropdown();
-          });
-
-          this.prevButton.addEventListener("click", () => this.changePage(-1));
-          this.nextButton.addEventListener("click", () => this.changePage(1));
-          this.dropdownList.addEventListener("mousedown", (e) =>
-            e.preventDefault()
-          );
-        }
-
-        disconnectedCallback() {
-          document.removeEventListener("mousedown", this.handleClickOutside);
-          document.removeEventListener("focusin", this.handleFocusChange);
-          window.removeEventListener("dropdownOpened", (e) => {
-            if (e.detail.dropdown !== this) {
-              this.hideDropdown();
-            }
-          });
-        }
-
-        handleClickOutside(event) {
-          if (!this.contains(event.target)) {
-            this.hideDropdown();
-          }
-        }
-
-        disconnectedCallback() {
-          document.removeEventListener("focusin", this.handleFocusChange);
-          window.removeEventListener("dropdownOpened", (e) => {
-            if (e.detail.dropdown !== this) {
-              this.hideDropdown();
-            }
-          });
-        }
-
-        set dataSource(items) {
-          this.data = items;
-          this.filteredData = [...items];
-          this.renderItems();
-        }
-
-        handleFocusChange(event) {
-          if (!this.contains(event.target)) {
-            this.hideDropdown();
-          }
-        }
-
-        filterItems(query) {
-          this.filteredData = this.data.filter((item) =>
-            item.toLowerCase().includes(query.toLowerCase())
-          );
-          this.currentPage = 0;
-          this.renderItems();
-        }
-
-        changePage(direction) {
-          const totalPages = Math.ceil(
-            this.filteredData.length / this.itemsPerPage
-          );
-          this.currentPage = Math.min(
-            Math.max(this.currentPage + direction, 0),
-            totalPages - 1
-          );
-          this.renderItems();
-        }
-
-        renderItems() {
-          const start = this.currentPage * this.itemsPerPage;
-          const end = start + this.itemsPerPage;
-
-          this.itemsContainer.innerHTML = "";
-          const pageItems = this.filteredData.slice(start, end);
-          pageItems.forEach((item) => {
-            const div = document.createElement("div");
-            div.className = "dropdown-item";
-            div.textContent = item;
-
-            // Adiciona a classe 'selected' ao item correspondente ao valor do input
-            if (item === this.filterInput.value) {
-              div.classList.add("selected");
+            `;
             }
 
-            div.addEventListener("click", () => this.selectItem(item));
-            this.itemsContainer.appendChild(div);
-          });
+            connectedCallback() {
+                window.addEventListener("dropdownOpened", (e) => handleDropdownOpened(e));
+                document.addEventListener(
+                    "mousedown",
+                    this.handleClickOutside.bind(this)
+                );
 
-          this.updatePagination();
+                this.filterInput = this.shadowRoot.querySelector(".filter-input");
+                this.dropdownIcon = this.shadowRoot.querySelector(".dropdown-icon");
+                this.dropdownList = this.shadowRoot.querySelector(".dropdown-list");
+                this.itemsContainer =
+                    this.shadowRoot.querySelector(".dropdown-items");
+                this.prevButton = this.shadowRoot.querySelector(".prev-button");
+                this.prevButton.tabIndex = -1;
+                this.nextButton = this.shadowRoot.querySelector(".next-button");
+                this.nextButton.tabIndex = -1;
 
-          if (this.filteredData.length === 0) {
-            this.hideDropdown();
-          }
+                this.filterInput.addEventListener("focus", () => {
+                    // Se o valor estiver preenchido, exibe a lista
+                    if (this.filterInput.value.trim()) {
+                        this.filterItems(this.filterInput.value.trim());
+                        this.showDropdown();
+                        this.isCloseDropdown = false;
+                    }
+                });
+
+                this.filterInput.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    if (this.isCloseDropdown) {
+                        if (this.dropdownList.classList.contains("open")) {
+                            this.hideDropdown(); // Oculta se já estiver aberta
+                        } else {
+                            this.filterItems(this.filterInput.value.trim());
+                            this.showDropdown(); // Exibe se estiver oculta
+                        }
+                    }
+                    this.isCloseDropdown = true;
+                });
+
+                this.filterInput.addEventListener("blur", () => {
+                    if (this.isCloseDropdown) this.hideDropdown();
+                    this.isCloseDropdown = true;
+                });
+
+                this.dropdownIcon.addEventListener("mousedown", (e) => {
+                    e.preventDefault(); // Impede perda de foco
+                    this.filterInput.focus(); // Força o foco no input
+                    this.filterInput.click(); // Simula o clique no input
+                });
+
+                this.filterInput.addEventListener("input", (e) => {
+                    this.filterItems(e.target.value.trim());
+                    this.showDropdown();
+                });
+
+                this.prevButton.addEventListener("click", () => this.changePage(-1));
+                this.nextButton.addEventListener("click", () => this.changePage(1));
+                this.dropdownList.addEventListener("mousedown", (e) =>
+                    e.preventDefault()
+                );
+            }
+
+            disconnectedCallback() {
+                document.removeEventListener("mousedown", this.handleClickOutside);
+                document.removeEventListener("focusin", this.handleFocusChange);
+                window.removeEventListener("dropdownOpened", this.handleDropdownOpened);
+            }
+
+            handleClickOutside(event) {
+                if (!this.contains(event.target)) {
+                    this.hideDropdown();
+                }
+            }
+
+            handleDropdownOpened(event) {
+                if (event.detail.dropdown !== this) {
+                    this.hideDropdown();
+                }
+            }
+
+            set dataSource(items) {
+                this.data = items;
+                this.filteredData = [...items];
+                this.renderItems();
+            }
+
+            handleFocusChange(event) {
+                if (!this.contains(event.target)) {
+                    this.hideDropdown();
+                }
+            }
+
+            filterItems(query) {
+                this.filteredData = this.data.filter((item) =>
+                    item.toLowerCase().includes(query.toLowerCase())
+                );
+                this.currentPage = 0;
+                this.renderItems();
+            }
+
+            changePage(direction) {
+                const totalPages = Math.ceil(
+                    this.filteredData.length / this.itemsPerPage
+                );
+                this.currentPage = Math.min(
+                    Math.max(this.currentPage + direction, 0),
+                    totalPages - 1
+                );
+                this.renderItems();
+            }
+
+            renderItems() {
+                const start = this.currentPage * this.itemsPerPage;
+                const end = start + this.itemsPerPage;
+
+                this.itemsContainer.innerHTML = "";
+                const pageItems = this.filteredData.slice(start, end);
+                pageItems.forEach((item) => {
+                    const div = document.createElement("div");
+                    div.className = "dropdown-item";
+                    div.textContent = item;
+
+                    // Adiciona a classe 'selected' ao item correspondente ao valor do input
+                    if (item === this.filterInput.value) {
+                        div.classList.add("selected");
+                    }
+
+                    div.addEventListener("click", () => this.selectItem(item));
+                    this.itemsContainer.appendChild(div);
+                });
+
+                this.updatePagination();
+
+                if (this.filteredData.length === 0) {
+                    this.hideDropdown();
+                }
+            }
+
+            updatePagination() {
+                const totalPages = Math.ceil(
+                    this.filteredData.length / this.itemsPerPage
+                );
+                this.prevButton.disabled = this.currentPage === 0;
+                this.nextButton.disabled = this.currentPage >= totalPages - 1;
+
+                const paginationContainer =
+                    this.shadowRoot.querySelector(".pagination");
+                paginationContainer.style.display = totalPages > 1 ? "flex" : "none";
+            }
+
+            showDropdown() {
+                const event = new CustomEvent("dropdownOpened", {
+                    detail: { dropdown: this },
+                    bubbles: true, // Permite a propagação do evento
+                });
+                window.dispatchEvent(event); // Dispara o evento globalmente
+
+                this.dropdownList.style.visibility = "hidden";
+                this.dropdownList.style.display = "block";
+
+                const dropdownRect = this.filterInput.getBoundingClientRect();
+                const listHeight = this.dropdownList.scrollHeight;
+                const viewportHeight = window.innerHeight;
+                const spaceBelow = viewportHeight - dropdownRect.bottom;
+                const spaceAbove = dropdownRect.top;
+
+                if (spaceBelow < listHeight && spaceAbove > listHeight) {
+                    this.dropdownList.style.top = "auto";
+                    this.dropdownList.style.bottom = `${dropdownRect.height}px`;
+                } else {
+                    this.dropdownList.style.top = `calc(100% + 0.8dvmin)`;
+                    this.dropdownList.style.bottom = "auto";
+                }
+
+                this.dropdownList.style.visibility = "visible";
+                this.dropdownList.classList.add("open");
+            }
+
+            hideDropdown() {
+                this.dropdownList.classList.remove("open");
+                this.dropdownList.style.display = "none";
+                this.dropdownList.style.top = "";
+                this.dropdownList.style.bottom = "";
+            }
+
+            selectItem(item) {
+                // Remove a classe 'selected' de todos os itens
+                const items = this.itemsContainer.querySelectorAll(".dropdown-item");
+                items.forEach((el) => el.classList.remove("selected"));
+
+                // Adiciona a classe 'selected' ao item selecionado
+                const selectedItem = Array.from(items).find(
+                    (el) => el.textContent === item
+                );
+                if (selectedItem) {
+                    selectedItem.classList.add("selected");
+                }
+
+                this.filterInput.value = item;
+                this.hideDropdown();
+            }
         }
 
-        updatePagination() {
-          const totalPages = Math.ceil(
-            this.filteredData.length / this.itemsPerPage
-          );
-          this.prevButton.disabled = this.currentPage === 0;
-          this.nextButton.disabled = this.currentPage >= totalPages - 1;
+        customElements.define("filterable-dropdown", FilterableDropdown);
 
-          const paginationContainer =
-            this.shadowRoot.querySelector(".pagination");
-          paginationContainer.style.display = totalPages > 1 ? "flex" : "none";
-        }
+        const dropdown1 = document.getElementById("dropdown1");
+        dropdown1.dataSource = [
+            "Apple",
+            "Banana",
+            "Banana-nanica",
+            "Cherry",
+            "Date",
+            "Fig",
+            "Grape",
+            "Kiwi",
+        ];
+        dropdown1.itemsPerPageCount = 3;
 
-        showDropdown() {
-          const event = new CustomEvent("dropdownOpened", {
-            detail: { dropdown: this },
-            bubbles: true, // Permite a propagação do evento
-          });
-          window.dispatchEvent(event); // Dispara o evento globalmente
-
-          this.dropdownList.style.visibility = "hidden";
-          this.dropdownList.style.display = "block";
-
-          const dropdownRect = this.filterInput.getBoundingClientRect();
-          const listHeight = this.dropdownList.scrollHeight;
-          const viewportHeight = window.innerHeight;
-          const spaceBelow = viewportHeight - dropdownRect.bottom;
-          const spaceAbove = dropdownRect.top;
-
-          if (spaceBelow < listHeight && spaceAbove > listHeight) {
-            this.dropdownList.style.top = "auto";
-            this.dropdownList.style.bottom = `${dropdownRect.height}px`;
-          } else {
-            this.dropdownList.style.top = `calc(100% + 0.8dvmin)`;
-            this.dropdownList.style.bottom = "auto";
-          }
-
-          this.dropdownList.style.visibility = "visible";
-          this.dropdownList.classList.add("open");
-        }
-
-        hideDropdown() {
-          this.dropdownList.classList.remove("open");
-          this.dropdownList.style.display = "none";
-          this.dropdownList.style.top = "";
-          this.dropdownList.style.bottom = "";
-        }
-
-        selectItem(item) {
-          // Remove a classe 'selected' de todos os itens
-          const items = this.itemsContainer.querySelectorAll(".dropdown-item");
-          items.forEach((el) => el.classList.remove("selected"));
-
-          // Adiciona a classe 'selected' ao item selecionado
-          const selectedItem = Array.from(items).find(
-            (el) => el.textContent === item
-          );
-          if (selectedItem) {
-            selectedItem.classList.add("selected");
-          }
-
-          this.filterInput.value = item;
-          this.hideDropdown();
-        }
-      }
-
-      customElements.define("filterable-dropdown", FilterableDropdown);
-
-      const dropdown1 = document.getElementById("dropdown1");
-      dropdown1.dataSource = [
-        "Apple",
-        "Banana",
-        "Banana-nanica",
-        "Cherry",
-        "Date",
-        "Fig",
-        "Grape",
-        "Kiwi",
-      ];
-      dropdown1.itemsPerPageCount = 3;
-
-      const dropdown2 = document.getElementById("dropdown2");
-      dropdown2.dataSource = [
-        "Mango",
-        "Orange",
-        "Papaya",
-        "Pineapple",
-        "Strawberry",
-        "Watermelon",
-      ];
-      dropdown2.itemsPerPageCount = 3;
+        const dropdown2 = document.getElementById("dropdown2");
+        dropdown2.dataSource = [
+            "Mango",
+            "Orange",
+            "Papaya",
+            "Pineapple",
+            "Strawberry",
+            "Watermelon",
+        ];
+        dropdown2.itemsPerPageCount = 3;
     </script>
-  </body>
+</body>
 </html>
