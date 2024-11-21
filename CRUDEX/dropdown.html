@@ -85,6 +85,11 @@
               background-color: #f0f0f0;
             }
 
+            .dropdown-item.selected {
+              background-color: #007bff; /* Azul */
+              color: white;
+            }
+
             .pagination {
               display: flex;
               justify-content: space-between;
@@ -146,8 +151,20 @@
           this.nextButton.tabIndex = -1;
 
           this.filterInput.addEventListener("focus", () => {
-            this.filterItems(this.filterInput.value.trim());
-            if (this.filterInput.value.trim()) this.showDropdown();
+            // Se o valor estiver preenchido, exibe a lista
+            if (this.filterInput.value.trim()) {
+              this.filterItems(this.filterInput.value.trim());
+              this.showDropdown();
+            }
+          });
+
+          this.filterInput.addEventListener("click", (e) => {
+            e.stopPropagation();
+            // Sempre verifica se precisa mostrar o dropdown
+            if (!this.dropdownList.classList.contains("open")) {
+              this.filterItems(this.filterInput.value.trim());
+              this.showDropdown();
+            }
           });
 
           this.filterInput.addEventListener("input", (e) => {
@@ -158,17 +175,6 @@
           this.filterInput.addEventListener("blur", () => {
             if (this.isCloseDropdown) this.hideDropdown();
             this.isCloseDropdown = true;
-          });
-
-          this.filterInput.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (this.dropdownList.classList.contains("open")) {
-              this.hideDropdown();
-            } else {
-              this.isCloseDropdown = false;
-              this.filterItems(this.filterInput.value.trim());
-              this.showDropdown();
-            }
           });
 
           this.dropdownIcon.addEventListener("mousedown", (e) => {
@@ -250,6 +256,12 @@
             const div = document.createElement("div");
             div.className = "dropdown-item";
             div.textContent = item;
+
+            // Adiciona a classe 'selected' ao item correspondente ao valor do input
+            if (item === this.filterInput.value) {
+              div.classList.add("selected");
+            }
+
             div.addEventListener("click", () => this.selectItem(item));
             this.itemsContainer.appendChild(div);
           });
@@ -309,6 +321,18 @@
         }
 
         selectItem(item) {
+          // Remove a classe 'selected' de todos os itens
+          const items = this.itemsContainer.querySelectorAll(".dropdown-item");
+          items.forEach((el) => el.classList.remove("selected"));
+
+          // Adiciona a classe 'selected' ao item selecionado
+          const selectedItem = Array.from(items).find(
+            (el) => el.textContent === item
+          );
+          if (selectedItem) {
+            selectedItem.classList.add("selected");
+          }
+
           this.filterInput.value = item;
           this.hideDropdown();
         }
@@ -320,6 +344,7 @@
       dropdown1.dataSource = [
         "Apple",
         "Banana",
+        "Banana-nanica",
         "Cherry",
         "Date",
         "Fig",
