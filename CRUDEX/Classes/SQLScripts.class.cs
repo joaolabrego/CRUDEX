@@ -10,7 +10,7 @@ namespace crudex.Classes
     public class SQLScripts
     {
         static readonly string DirectoryScripts = Path.Combine(Settings.Builder.Environment.ContentRootPath, Settings.Get("DIRECTORY_SCRIPTS"));
-        static readonly string ReservedColumnNames = ";Data;ClassName;";
+        static readonly string ReservedColumnNames = ";Data;ClassName;ListItemId;ListItemName;_;";
         public static async Task Generate(string systemName = "crudex", string databaseName = "crudex", bool saveInDisk = true, bool? isExcel = null, bool withInsertData = true)
         {
             var result = new StringBuilder();
@@ -1429,8 +1429,8 @@ namespace crudex.Classes
                     result.Append($"            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount\r\n");
                     result.Append($"                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END\r\n");
                     result.Append($"        END\r\n");
-                    result.Append($"        SET @sql = 'SELECT [T].[Id]\r\n");
-                    result.Append($"                          ,[T].[{listableColumn["Name"]}]\r\n");
+                    result.Append($"        SET @sql = 'SELECT [T].[Id] AS [ListItemId]\r\n");
+                    result.Append($"                          ,[T].[{listableColumn["Name"]}] AS [ListItemName]\r\n");
                     result.Append($"                       FROM [#query] [Q]\r\n");
                     result.Append($"                           INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[Id] = [Q].[Id]\r\n");
                     result.Append($"                       ORDER BY [T].[{listableColumn["Name"]}]\r\n");

@@ -16384,8 +16384,8 @@ ALTER PROCEDURE [dbo].[CategoriesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Categories] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -17141,8 +17141,8 @@ ALTER PROCEDURE [dbo].[TypesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Types] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -18333,8 +18333,8 @@ ALTER PROCEDURE [dbo].[DomainsList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Domains] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -18928,8 +18928,8 @@ ALTER PROCEDURE [dbo].[SystemsList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Systems] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -20102,8 +20102,8 @@ ALTER PROCEDURE [dbo].[UsersList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Users] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -20706,8 +20706,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[SystemsUsers] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -21949,8 +21949,8 @@ ALTER PROCEDURE [dbo].[DatabasesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Databases] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -22573,8 +22573,8 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[SystemsDatabases] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -23222,8 +23222,8 @@ ALTER PROCEDURE [dbo].[TablesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -23860,8 +23860,8 @@ ALTER PROCEDURE [dbo].[DatabasesTablesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[DatabasesTables] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -25384,8 +25384,8 @@ ALTER PROCEDURE [dbo].[IndexesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Indexes] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]

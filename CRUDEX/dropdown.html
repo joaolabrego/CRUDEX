@@ -122,6 +122,8 @@
 
         connectedCallback() {
           window.addEventListener("dropdownOpened", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             if (e.detail.dropdown !== this) {
               this.hideDropdown();
             }
@@ -280,7 +282,6 @@
         }
 
         hideDropdown() {
-          this.lastDropdownInstance = null;
           this.dropdownList.classList.remove("open");
           this.dropdownList.style.display = "none";
           this.dropdownList.style.top = "";
