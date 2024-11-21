@@ -128,8 +128,6 @@
 
         connectedCallback() {
           window.addEventListener("dropdownOpened", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
             if (e.detail.dropdown !== this) {
               this.hideDropdown();
             }
@@ -155,21 +153,21 @@
             if (this.filterInput.value.trim()) {
               this.filterItems(this.filterInput.value.trim());
               this.showDropdown();
+              this.isCloseDropdown = false;
             }
           });
 
           this.filterInput.addEventListener("click", (e) => {
             e.stopPropagation();
-            // Sempre verifica se precisa mostrar o dropdown
-            if (!this.dropdownList.classList.contains("open")) {
-              this.filterItems(this.filterInput.value.trim());
-              this.showDropdown();
+            if (this.isCloseDropdown) {
+              if (this.dropdownList.classList.contains("open")) {
+                this.hideDropdown(); // Oculta se já estiver aberta
+              } else {
+                this.filterItems(this.filterInput.value.trim());
+                this.showDropdown(); // Exibe se estiver oculta
+              }
             }
-          });
-
-          this.filterInput.addEventListener("input", (e) => {
-            this.filterItems(e.target.value.trim());
-            this.showDropdown();
+            this.isCloseDropdown = true;
           });
 
           this.filterInput.addEventListener("blur", () => {
@@ -181,6 +179,11 @@
             e.preventDefault(); // Impede perda de foco
             this.filterInput.focus(); // Força o foco no input
             this.filterInput.click(); // Simula o clique no input
+          });
+
+          this.filterInput.addEventListener("input", (e) => {
+            this.filterItems(e.target.value.trim());
+            this.showDropdown();
           });
 
           this.prevButton.addEventListener("click", () => this.changePage(-1));
