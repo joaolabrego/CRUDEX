@@ -320,6 +320,7 @@ export default class TGrid {
                 RecordFilter: JSON.stringify(this.#FilterValues),
                 OrderBy: this.OrderBy,
                 PaddingGridLastPage: TSystem.PaddingGridLastPage,
+                IsActionList: false,
             },
             OutParams: {},
             IOParams: {

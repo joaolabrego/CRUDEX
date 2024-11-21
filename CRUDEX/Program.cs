@@ -1,4 +1,3 @@
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using crudex.Classes;
 using crudex.Classes.Models;
@@ -43,8 +42,8 @@ namespace CRUDA_LIB
                 switch (action)
                 {
                     case null:
-                        await SQLScripts.Generate();
                         context.Response.Headers.ContentType = "text/html;";
+                        await SqlServerScripts.Generate();
                         await context.Response.WriteAsync(Config.GetHTML("crudex", "Nome do sistema é requerido na URL."), Encoding.UTF8);
                         break;
                     case Actions.CHECK:

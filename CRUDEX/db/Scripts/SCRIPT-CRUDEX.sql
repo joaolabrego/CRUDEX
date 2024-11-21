@@ -16100,6 +16100,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -16318,6 +16319,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
         SELECT [ClassName]
               ,[Id]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[HtmlInputType]
               ,[HtmlInputAlign]
               ,[AskEncrypted]
@@ -16818,6 +16820,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -17055,6 +17058,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
               ,[Id]
               ,[CategoryId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[MaxLength]
               ,[Minimum]
               ,[Maximum]
@@ -17476,6 +17480,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -18016,6 +18021,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -18220,6 +18226,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
               ,[TypeId]
               ,[MaskId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[Length]
               ,[Decimals]
               ,[ValidValues]
@@ -18705,6 +18712,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -18867,6 +18875,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
         SELECT [ClassName]
               ,[Id]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[Description]
               ,[ClientName]
               ,[MaxRetryLogins]
@@ -19311,6 +19320,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -19873,6 +19883,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -20041,6 +20052,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
         SELECT [ClassName]
               ,[Id]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[Password]
               ,[FullName]
               ,[RetryLogins]
@@ -20457,6 +20469,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -20623,6 +20636,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
               ,[SystemId]
               ,[UserId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
             FROM [#result]
         SELECT DISTINCT 'System' AS ClassName
               ,[R].[Id]
@@ -21101,6 +21115,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -21690,6 +21705,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -21869,6 +21885,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
               ,[Id]
               ,[ConnectionId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[Alias]
               ,[Description]
               ,[Folder]
@@ -22304,6 +22321,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -22470,6 +22488,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,[SystemId]
               ,[DatabaseId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
             FROM [#result]
         SELECT DISTINCT 'System' AS ClassName
               ,[R].[Id]
@@ -22974,6 +22993,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -23146,6 +23166,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
         SELECT [ClassName]
               ,[Id]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[Alias]
               ,[Description]
               ,[ParentTableId]
@@ -23577,6 +23598,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -23743,6 +23765,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,[DatabaseId]
               ,[TableId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
             FROM [#result]
         SELECT DISTINCT 'Database' AS ClassName
               ,[R].[Id]
@@ -24364,6 +24387,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -25136,6 +25160,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -25299,6 +25324,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
               ,[Id]
               ,[TableId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[IsUnique]
             FROM [#result]
         SELECT DISTINCT 'Table' AS ClassName
@@ -25750,6 +25776,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -26365,6 +26392,7 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -26893,6 +26921,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -27429,6 +27458,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -27994,6 +28024,7 @@ ALTER PROCEDURE [dbo].[AssociationsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -28552,6 +28583,7 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT

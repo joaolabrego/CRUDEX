@@ -55,6 +55,7 @@ export default class TForm {
                 RecordFilter: JSON.stringify(this.#Grid.Primarykeys),
                 OrderBy: null,
                 PaddingGridLastPage: false,
+                IsActionList: false,
             },
             OutParams: {},
             IOParams: {

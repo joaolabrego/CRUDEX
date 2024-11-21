@@ -7,10 +7,10 @@ using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
 
 namespace crudex.Classes
 {
-    public class SQLScripts
+    public class SqlServerScripts
     {
         static readonly string DirectoryScripts = Path.Combine(Settings.Builder.Environment.ContentRootPath, Settings.Get("DIRECTORY_SCRIPTS"));
-        static readonly string ReservedColumnNames = ";Data;ClassName;ListItemId;ListItemName;_;";
+        static readonly string ReservedColumnNames = ";Data;ClassName;ListItemValue;_;";
         public static async Task Generate(string systemName = "crudex", string databaseName = "crudex", bool saveInDisk = true, bool? isExcel = null, bool withInsertData = true)
         {
             var result = new StringBuilder();
@@ -1142,6 +1142,7 @@ namespace crudex.Classes
                 result.Append($"                                          ,@RecordFilter NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@OrderBy NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@PaddingGridLastPage BIT\r\n");
+                result.Append($"                                          ,@IsActionList BIT\r\n");
                 result.Append($"                                          ,@PageNumber INT OUT\r\n");
                 result.Append($"                                          ,@LimitRows INT OUT\r\n");
                 result.Append($"                                          ,@MaxPage INT OUT\r\n");
@@ -1342,6 +1343,8 @@ namespace crudex.Classes
                         firstTime = false;
                     }
                     result.Append($"              ,[{column["Name"]}]\r\n");
+                    if (Settings.ToBoolean(column["IsListable"]))
+                        result.Append($"              ,[{column["Name"]}] AS [ListItemValue]\r\n");
                 }
                 result.Append($"            FROM [#result]\r\n");
 
