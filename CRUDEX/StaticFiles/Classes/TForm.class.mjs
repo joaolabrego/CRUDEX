@@ -193,7 +193,15 @@ export default class TForm {
         control.style.textAlign = column.Domain.Type.Category.HtmlInputAlign;
         if (!this.#HTML.FirstInput)
             this.#HTML.FirstInput = control;
-        fieldset.appendChild(control);
+        if (column.Domain.Type.Category.HtmlInputType === "checkbox") {
+            let span = document.createElement("span")
+
+            span.innerHTML = "&nbsp;&nbsp;&nbsp;";
+            legend.appendChild(span);
+            legend.appendChild(control);
+        }
+        else
+            fieldset.appendChild(control);
         //if (column.IsRequired)
         //    fieldset.appendChild(document.createTextNode(" *"))
 
