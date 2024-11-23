@@ -70,7 +70,7 @@ export default class TConfig {
             clearTimeout(this.#Timer)
             this.#Timer = setTimeout(() => {
                 clearTimeout(this.#Timer)
-                TScreen.ShowAlert(`Sistema ocioso por mais de ${this.#IdleTimeInMinutesLimit} minuto(s).`, TActions.RELOAD, 10000)
+                TScreen.ShowAlert(`Sistema ocioso por mais de ${this.#IdleTimeInMinutesLimit} minuto(s).`, TActions.LOGIN, 10000)
             }, this.#IdleTimeInMinutesLimit * 60000)
         }
         if (activate) {

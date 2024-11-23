@@ -180,9 +180,6 @@ export default class TSystem {
             case TActions.GRID:
                 new TGrid(newValue[1], newValue[2]).Renderize();
                 break;
-            case TActions.RELOAD:
-                document.location.reload(true);
-                break;
             case TActions.EXIT:
                 TScreen.ShowQuestion(`Confirma retornar ao ${newValue[1]}?`, newValue[1], TActions.NONE);
                 break;
