@@ -97,7 +97,7 @@ export default class TLogin {
         if (this.#LoginId)
             TConfig.GetAPI(TActions.LOGOUT)
                 .then((result) => this.#LoginId = result.Parameters.ReturnValue)
-                .catch(error => TScreen.ShowError(error.Message, error.Action));
+                .catch(error => TScreen.ShowError(error.message || error.Message, error.Action));
     }
     static set LoginId(value) {
         this.#LoginId = value;

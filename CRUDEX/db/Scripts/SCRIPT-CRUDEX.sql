@@ -1069,6 +1069,10 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 								  1,
 								  GETDATE(),
 								  @UserName)
+			UPDATE [dbo].[Users]
+				SET [RetryLogins] = 0
+				WHERE [Id] = @UserId
+					  AND [RetryLogins] > 0
 		END ELSE IF @LoginId IS NULL
 			THROW 51000, 'Id de login é requerido', 1
 		ELSE BEGIN
@@ -1092,9 +1096,6 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 						[UpdatedBy] = @UserName
 					WHERE [Id] = @LoginId
 		END
-		UPDATE [dbo].[Users]
-			SET [RetryLogins] = 0
-			WHERE [Id] = @UserId
 		SET @ReturnValue = @LoginId
 		COMMIT TRANSACTION
 
