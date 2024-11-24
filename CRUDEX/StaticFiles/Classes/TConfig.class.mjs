@@ -15,49 +15,59 @@ export default class TConfig {
     static #IdleTimeInMinutesLimit = 0
     static #Timer = null
 
-    static async GetAPI(action, parameters = {}) {
-        let cryptoKey,
+    static async GetAPI(action, parameters = {}, showSpinner = true) {
+        let result,
+            crypto,
             body = {},
+            request = {},
             headers = {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
-            }
+            },
+            url = `${location}/${action}`
 
-        if (action === TActions.CONFIG)
-            headers.PublicKey = cryptoKey = TCrypto.GenerateCryptokey()
-        else if (action === TActions.LOGIN) {
-            TSpinner.Show()
-            headers.PublicKey = cryptoKey = TCrypto.GenerateCryptokey()
-            body.Login = {
-                Action: action,
-                SystemName: TSystem.Name,
-                UserName: TLogin.UserName,
-                Password: TLogin.Password,
-                PublicKey: headers.PublicKey,
+        if (action === TActions.CONFIG) {
+            request.PublicKey = TCrypto.GenerateCryptokey()
+            crypto = new TCrypto(request.PublicKey)
+        } else {
+            if (showSpinner)
+                TSpinner.Show()
+            if (action === TActions.LOGIN) {
+                request.PublicKey = TCrypto.GenerateCryptokey()
+                body.Login = {
+                    Action: action,
+                    SystemName: TSystem.Name,
+                    UserName: TLogin.UserName,
+                    Password: TLogin.Password,
+                    PublicKey: request.PublicKey,
+                }
+                crypto = new TCrypto(request.PublicKey)
             }
-        }
-        else {
-            TSpinner.Show()
-            cryptoKey = TLogin.PublicKey;
-            headers.LoginId = TLogin.LoginId
-            body.Login = {
-                Action: action == TActions.LOGOUT ? action : TActions.AUTHENTICATE,
-                SystemName: TSystem.Name,
-                UserName: TLogin.UserName,
-                Password: TLogin.Password,
-                LoginId: TLogin.LoginId,
+            else {
+                request.LoginId = TLogin.LoginId
+                body.Login = {
+                    Action: action == TActions.LOGOUT ? action : TActions.AUTHENTICATE,
+                    SystemName: TSystem.Name,
+                    UserName: TLogin.UserName,
+                    Password: TLogin.Password,
+                    LoginId: TLogin.LoginId,
+                }
+                crypto = new TCrypto(TLogin.PublicKey)
             }
         }
         body.Parameters = parameters
-
-        let crypto = new TCrypto(cryptoKey),
-            response = await fetch(`${location}/${action}`, {
+        request.Request = crypto.EncryptDecrypt(JSON.stringify(body))
+        if (action === TActions.LOGOUT && navigator.sendBeacon) {
+            result = navigator.sendBeacon(url, JSON.stringify(request)) ? {} : { ClassName: "Error", Message: "Erro ao enviar LOGOUT via sendBeacon." }
+        } else {
+            let response = await fetch(url, {
                 method: "POST",
                 headers,
-                body: JSON.stringify({ Request: crypto.EncryptDecrypt(JSON.stringify(body)) }),
-            }),
+                body: JSON.stringify(request),
+            })
             result = JSON.parse(crypto.EncryptDecrypt((await response.json()).Response))
-        if (action !== TActions.CONFIG)
+        }
+        if (showSpinner && action !== TActions.CONFIG)
             TSpinner.Hide()
         if (result.ClassName === "Error")
             throw result
@@ -70,7 +80,7 @@ export default class TConfig {
             clearTimeout(this.#Timer)
             this.#Timer = setTimeout(() => {
                 clearTimeout(this.#Timer)
-                TScreen.ShowAlert(`Sistema ocioso por mais de ${this.#IdleTimeInMinutesLimit} minuto(s).`, TActions.LOGIN, 10000)
+                TScreen.ShowAlert(`Sistema ocioso por mais de ${this.#IdleTimeInMinutesLimit} minuto(s).`, TActions.RELOAD, 10000)
             }, this.#IdleTimeInMinutesLimit * 60000)
         }
         if (activate) {

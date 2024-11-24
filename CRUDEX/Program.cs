@@ -39,6 +39,8 @@ namespace CRUDA_LIB
         {
             try
             {
+                var json = Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body ?? "")));
+
                 switch (action)
                 {
                     case null:
@@ -55,16 +57,14 @@ namespace CRUDA_LIB
                         var response = JsonConvert.SerializeObject(await Config.Create(systemName, "all"));
 
                         context.Response.Headers.ContentType = "application/json";
-                        await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(context.Request.Headers["PublicKey"]).EncryptDecrypt(response), }), Encoding.UTF8);
+                        await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = new Crypto(json["PublicKey"]).EncryptDecrypt(response), }), Encoding.UTF8);
                         break;
                     case Actions.LOGIN:
                     case Actions.LOGOUT:
                     case Actions.EXECUTE:
-                        var publicKey = action == Actions.LOGIN 
-                            ? context.Request.Headers["PublicKey"].ToString() 
-                            : await Login.GetPublicKey(Convert.ToInt64(context.Request.Headers["LoginId"]));
-                        var request = Config.ToDictionary(JsonConvert.DeserializeObject(new Crypto(publicKey)
-                            .EncryptDecrypt(Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body)))["Request"])));
+                        //var json = Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body)));
+                        var publicKey = action == Actions.LOGIN ? json["PublicKey"].ToString() : await Login.GetPublicKey(Convert.ToInt64(json["LoginId"]));
+                        var request = Config.ToDictionary(JsonConvert.DeserializeObject(new Crypto(publicKey).EncryptDecrypt(json["Request"])));
                         var parameters = Config.ToDictionary(new
                         {
                             Login = request["Login"],
