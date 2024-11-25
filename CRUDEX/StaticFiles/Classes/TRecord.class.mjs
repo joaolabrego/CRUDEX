@@ -6,9 +6,9 @@ export default class TRecord {
     #Columns = [];
 
     constructor(table, datarow) {
-        if (table.ClassName !== "TTable")
+        if (!table instanceof TTable)
             throw new Error("Argumento table não é do tipo TTable.");
-        if (datarow.ClassName === table.Alias)
+        if (datarow.ClassName !== table.Alias)
             throw new Error("Argumento datarow não é do mesmo tipo de tabela.");
         this.#Table = table;
     }

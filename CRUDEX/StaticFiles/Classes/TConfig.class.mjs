@@ -112,6 +112,32 @@ export default class TConfig {
     static Evaluate(JSexpression) {
         return eval(JSexpression)
     }
+    static evaluateTableExpression(expression, table) {
+        const resolveColumnValue = (table, columnName) => {
+            let column = table.GetColumn(columnName);
+            if (column) return column.Value;
+
+            // Se a coluna não existir na tabela atual, verifica na tabela pai.
+            if (table.ParentTableId) {
+                const parentTable = TSystem.GetTable(table.ParentTableId);
+                return resolveColumnValue(parentTable, columnName);
+            }
+
+            // Se a coluna não foi encontrada, lança um erro.
+            throw new Error(`Nome de coluna '${columnName}' não existe.`);
+        };
+
+        try {
+            // Cria uma função dinâmica para avaliar a expressão.
+            const func = new Function('$', `return ${expression};`);
+            return func(new Proxy(table, {
+                get: (_, columnName) => resolveColumnValue(table, columnName),
+            }));
+        } catch (error) {
+            console.error('Erro ao avaliar expressão:', error);
+            return undefined;
+        }
+    }
     static get Locale() {
         if (this.#Locale)
             return this.#Locale

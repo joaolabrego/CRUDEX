@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 export default class TField {
     #Column = null;
@@ -6,8 +6,8 @@ export default class TField {
     #Value = null;
     #Reference = null;
     constructor(column, value) {
-        if (column.ClassName !== "TColumm")
-            throw new Error("Argumento column n�o � do tipo TColumn.");
+        if (!column instanceof TColumm)
+            throw new Error("Argumento column não é do tipo TColumn.");
         this.#Column = column;
         this.#LastValue = this.#Value = value;
     }

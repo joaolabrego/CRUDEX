@@ -3,19 +3,17 @@
 import TRecord from "./TRecord.class.mjs"
 import TSystem from "./TSystem.class.mjs"
 
-export default class TRecordSet {
+export default class TDataset {
     #Table = null
-    #FixedFilter = {}
-    #FilterValues = {}
     #RowCount = 0
     #PageNumber = 1
     #PageCount = 0
     #RowNumber = 0
     #OrderBy = ""
     #Data = []
-    #References = {}
+    #References = []
     constructor(table) {
-        if (table.ClassName !== "TTable")
+        if (!table instanceof Table)
             throw new Error("Argumento table não é do tipo TTable.")
         this.#Table = table
         this.#Table.Columns.filter(column => column.IsFilterable)
@@ -81,7 +79,6 @@ export default class TRecordSet {
                 return column.Value = value
             }
         })
-
 
         return this.#Data = result.DataSet.Table
     }
