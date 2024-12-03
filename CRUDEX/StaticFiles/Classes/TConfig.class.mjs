@@ -58,7 +58,7 @@ export default class TConfig {
         body.Parameters = parameters
         request.Request = crypto.EncryptDecrypt(JSON.stringify(body))
         if (action === TActions.LOGOUT && navigator.sendBeacon) {
-            result = navigator.sendBeacon(url, JSON.stringify(request)) ? {} : { ClassName: "Error", Message: "Erro ao enviar LOGOUT via sendBeacon." }
+            result = navigator.sendBeacon(url, new Blob([JSON.stringify(request)], { type: 'application/json' })) ? {} : { ClassName: "Error", Message: "Erro ao enviar LOGOUT via sendBeacon." };
         } else {
             let response = await fetch(url, {
                 method: "POST",

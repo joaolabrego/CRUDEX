@@ -39,7 +39,7 @@ namespace CRUDA_LIB
         {
             try
             {
-                var json = Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body ?? "")));
+                var json = Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body ?? "{}")));
 
                 switch (action)
                 {
@@ -62,7 +62,6 @@ namespace CRUDA_LIB
                     case Actions.LOGIN:
                     case Actions.LOGOUT:
                     case Actions.EXECUTE:
-                        //var json = Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body)));
                         var publicKey = action == Actions.LOGIN ? json["PublicKey"].ToString() : await Login.GetPublicKey(Convert.ToInt64(json["LoginId"]));
                         var request = Config.ToDictionary(JsonConvert.DeserializeObject(new Crypto(publicKey).EncryptDecrypt(json["Request"])));
                         var parameters = Config.ToDictionary(new
