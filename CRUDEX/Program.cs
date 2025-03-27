@@ -86,7 +86,7 @@ namespace CRUDA_LIB
             }
             catch (Exception ex)
             {
-                if (action == null || action == Actions.CHECK)
+                if (action == null || action == Actions.CHECK || action == Actions.CONFIG)
                 {
                     context.Response.Headers.ContentType = "text/html";
                     await context.Response.WriteAsync(Config.GetHTML(systemName, ex.Message), Encoding.UTF8);

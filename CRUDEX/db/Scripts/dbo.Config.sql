@@ -269,14 +269,14 @@ BEGIN
 				FROM [dbo].[Associations] [A]
 				WHERE EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] IN ([A].[TableId1], [A].[TableId2]))
 			
-			-- 13 [Uniques]
+			-- 13 [Unicities]
 			SELECT 'Unique' AS [ClassName]
 					,[U].[Id]
 					,[U].[ColumnId1]
 					,[U].[ColumnId2]
 					,[U].[IsBidirectional]
-				INTO [#Uniques]
-				FROM [dbo].[Uniques] [U]
+				INTO [#Unicities]
+				FROM [dbo].[Unicities] [U]
 				WHERE EXISTS(SELECT 1 FROM [dbo].[#Columns] WHERE [Id] IN ([U].[ColumnId1], [U].[ColumnId2]))
 		END
 
@@ -294,7 +294,7 @@ BEGIN
 			SELECT * FROM [#Indexkeys] ORDER BY [IndexId], [Sequence] -- 9 [#Indexkeys]
 			SELECT * FROM [#Masks] ORDER BY [Id] -- 10 [#Masks]
 			SELECT * FROM [#Associations] ORDER BY [Id] -- 11 [#Associations]
-			SELECT * FROM [#Uniques] ORDER BY [Id] -- 12 [#Uniques]
+			SELECT * FROM [#Unicities] ORDER BY [Id] -- 12 [#Unicities]
 		END ELSE BEGIN
 			SELECT * FROM [#Connections] ORDER BY [Id] -- 1 [#Connections]]
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]

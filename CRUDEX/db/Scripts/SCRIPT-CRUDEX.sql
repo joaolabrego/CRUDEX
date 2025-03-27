@@ -510,11 +510,11 @@ CREATE UNIQUE INDEX [UNQ_Associations_TableId2_TableId1] ON [dbo].[Associations]
 GO
 
 /**********************************************************************************
-Criar tabela [dbo].[Uniques]
+Criar tabela [dbo].[Unicities]
 **********************************************************************************/
-IF (SELECT object_id('[dbo].[Uniques]', 'U')) IS NOT NULL
-    DROP TABLE [dbo].[Uniques]
-CREATE TABLE [dbo].[Uniques]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+IF (SELECT object_id('[dbo].[Unicities]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Unicities]
+CREATE TABLE [dbo].[Unicities]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[ColumnId1] bigint NOT NULL
                                     ,[ColumnId2] bigint NOT NULL
                                     ,[IsBidirectional] bit NOT NULL
@@ -522,9 +522,9 @@ CREATE TABLE [dbo].[Uniques]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] nvarchar(25) NULL)
-ALTER TABLE [dbo].[Uniques] ADD CONSTRAINT PK_Uniques PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Uniques_ColumnId1_ColumnId2] ON [dbo].[Uniques]([ColumnId1] ASC, [ColumnId2] ASC)
-CREATE UNIQUE INDEX [UNQ_Uniques_ColumnId2_ColumnId1] ON [dbo].[Uniques]([ColumnId2] ASC, [ColumnId1] ASC)
+ALTER TABLE [dbo].[Unicities] ADD CONSTRAINT PK_Unicities PRIMARY KEY CLUSTERED ([Id])
+CREATE UNIQUE INDEX [UNQ_Uniques_ColumnId1_ColumnId2] ON [dbo].[Unicities]([ColumnId1] ASC, [ColumnId2] ASC)
+CREATE UNIQUE INDEX [UNQ_Uniques_ColumnId2_ColumnId1] ON [dbo].[Unicities]([ColumnId2] ASC, [ColumnId1] ASC)
 GO
 
 /**********************************************************************************
@@ -801,14 +801,14 @@ BEGIN
 				FROM [dbo].[Associations] [A]
 				WHERE EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] IN ([A].[TableId1], [A].[TableId2]))
 			
-			-- 13 [Uniques]
+			-- 13 [Unicities]
 			SELECT 'Unique' AS [ClassName]
 					,[U].[Id]
 					,[U].[ColumnId1]
 					,[U].[ColumnId2]
 					,[U].[IsBidirectional]
-				INTO [#Uniques]
-				FROM [dbo].[Uniques] [U]
+				INTO [#Unicities]
+				FROM [dbo].[Unicities] [U]
 				WHERE EXISTS(SELECT 1 FROM [dbo].[#Columns] WHERE [Id] IN ([U].[ColumnId1], [U].[ColumnId2]))
 		END
 
@@ -826,7 +826,7 @@ BEGIN
 			SELECT * FROM [#Indexkeys] ORDER BY [IndexId], [Sequence] -- 9 [#Indexkeys]
 			SELECT * FROM [#Masks] ORDER BY [Id] -- 10 [#Masks]
 			SELECT * FROM [#Associations] ORDER BY [Id] -- 11 [#Associations]
-			SELECT * FROM [#Uniques] ORDER BY [Id] -- 12 [#Uniques]
+			SELECT * FROM [#Unicities] ORDER BY [Id] -- 12 [#Unicities]
 		END ELSE BEGIN
 			SELECT * FROM [#Connections] ORDER BY [Id] -- 1 [#Connections]]
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]
@@ -2418,27 +2418,27 @@ GO
 ALTER TABLE [dbo].[Associations] CHECK CONSTRAINT [FK_Associations_Tables]
 GO
 /**********************************************************************************
-Criar referências de [dbo].[Uniques]
+Criar referências de [dbo].[Unicities]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Uniques_Columns')
-    ALTER TABLE [dbo].[Uniques] DROP CONSTRAINT FK_Uniques_Columns
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Unicities_Columns')
+    ALTER TABLE [dbo].[Unicities] DROP CONSTRAINT FK_Unicities_Columns
 GO
-ALTER TABLE [dbo].[Uniques] WITH CHECK 
-    ADD CONSTRAINT [FK_Uniques_Columns] 
+ALTER TABLE [dbo].[Unicities] WITH CHECK 
+    ADD CONSTRAINT [FK_Unicities_Columns] 
     FOREIGN KEY([ColumnId1]) 
     REFERENCES [dbo].[Columns] ([Id])
 GO
-ALTER TABLE [dbo].[Uniques] CHECK CONSTRAINT [FK_Uniques_Columns]
+ALTER TABLE [dbo].[Unicities] CHECK CONSTRAINT [FK_Unicities_Columns]
 GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Uniques_Columns')
-    ALTER TABLE [dbo].[Uniques] DROP CONSTRAINT FK_Uniques_Columns
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Unicities_Columns')
+    ALTER TABLE [dbo].[Unicities] DROP CONSTRAINT FK_Unicities_Columns
 GO
-ALTER TABLE [dbo].[Uniques] WITH CHECK 
-    ADD CONSTRAINT [FK_Uniques_Columns] 
+ALTER TABLE [dbo].[Unicities] WITH CHECK 
+    ADD CONSTRAINT [FK_Unicities_Columns] 
     FOREIGN KEY([ColumnId2]) 
     REFERENCES [dbo].[Columns] ([Id])
 GO
-ALTER TABLE [dbo].[Uniques] CHECK CONSTRAINT [FK_Uniques_Columns]
+ALTER TABLE [dbo].[Unicities] CHECK CONSTRAINT [FK_Unicities_Columns]
 GO
 
 /**********************************************************************************
@@ -5826,8 +5826,8 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('21' AS bigint)
-                                ,CAST('Uniques' AS nvarchar(25))
-                                ,CAST('Unique' AS nvarchar(25))
+                                ,CAST('Unicities' AS nvarchar(25))
+                                ,CAST('Unicity' AS nvarchar(25))
                                 ,CAST('Unicidades cruzadas' AS nvarchar(50))
                                 ,NULL
                                 ,CAST('0' AS bit)
@@ -15695,9 +15695,9 @@ INSERT INTO [dbo].[Associations] ([Id]
 GO
 
 /**********************************************************************************
-Inserir dados na tabela [dbo].[Uniques]
+Inserir dados na tabela [dbo].[Unicities]
 **********************************************************************************/
-INSERT INTO [dbo].[Uniques] ([Id]
+INSERT INTO [dbo].[Unicities] ([Id]
                                 ,[ColumnId1]
                                 ,[ColumnId2]
                                 ,[IsBidirectional]
@@ -28253,12 +28253,12 @@ GO
 
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UniqueValidate]
+Criar stored procedure [dbo].[UnicityValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UniqueValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UniqueValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UnicityValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UnicityValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[UnicityValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
@@ -28305,9 +28305,9 @@ ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
-                THROW 51000, 'Chave-primária já existe em Uniques', 1
+                THROW 51000, 'Chave-primária já existe em Unicities', 1
         END ELSE IF @Action <> 'create'
-            THROW 51000, 'Chave-primária não existe em Uniques', 1
+            THROW 51000, 'Chave-primária não existe em Unicities', 1
         IF @Action <> 'create' BEGIN
             IF @LastRecord IS NULL
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
@@ -28320,12 +28320,12 @@ ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsBidirectional'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
-                            FROM [dbo].[Uniques]
+                            FROM [dbo].[Unicities]
                             WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
                                   AND [ColumnId1] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId1')
                                   AND [ColumnId2] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId2')
                                   AND [IsBidirectional] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsBidirectional'))
-                THROW 51000, 'Registro de Uniques alterado por outro usuário', 1
+                THROW 51000, 'Registro de Unicities alterado por outro usuário', 1
         END
 
         IF @Action <> 'delete' BEGIN
@@ -28345,13 +28345,13 @@ ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
             IF @W_IsBidirectional IS NULL
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2)
+                IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2)
                     THROW 51000, 'Chave única de UNQ_Uniques_ColumnId1_ColumnId2 já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1)
+                IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1)
                     THROW 51000, 'Chave única de UNQ_Uniques_ColumnId2_ColumnId1 já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2 AND [Id] <> @W_Id)
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2 AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Uniques_ColumnId1_ColumnId2 já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1 AND [Id] <> @W_Id)
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1 AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Uniques_ColumnId2_ColumnId1 já existe', 1
             END
         END
@@ -28366,12 +28366,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UniquePersist]
+Criar stored procedure [dbo].[UnicityPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UniquePersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UniquePersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UnicityPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UnicityPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[UnicityPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -28392,7 +28392,7 @@ ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[UniqueValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[UnicityValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -28412,7 +28412,7 @@ ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
                                              ,[CreatedAt]
                                              ,[CreatedBy])
                                        VALUES(@TransactionId
-                                             ,'Uniques'
+                                             ,'Unicities'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
@@ -28431,7 +28431,7 @@ ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
             THROW 51000, 'Registro já existe nesta transação', 1
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[UniqueValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[UnicityValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -28468,12 +28468,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UniqueCommit]
+Criar stored procedure [dbo].[UnicityCommit]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UniqueCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UniqueCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UnicityCommit]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UnicityCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[UnicityCommit](@LoginId BIGINT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
@@ -28511,7 +28511,7 @@ ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
-        IF @TableName <> 'Uniques'
+        IF @TableName <> 'Unicities'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -28519,13 +28519,13 @@ ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[UniqueValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[UnicityValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
-            DELETE FROM [dbo].[Uniques] WHERE [Id] = @W_Id
+            DELETE FROM [dbo].[Unicities] WHERE [Id] = @W_Id
         ELSE BEGIN
 
             DECLARE @W_ColumnId1 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId1') AS bigint)
@@ -28533,7 +28533,7 @@ ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
                    ,@W_IsBidirectional bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional') AS bit)
 
             IF @Action = 'create'
-                INSERT INTO [dbo].[Uniques] ([Id]
+                INSERT INTO [dbo].[Unicities] ([Id]
                                                 ,[ColumnId1]
                                                 ,[ColumnId2]
                                                 ,[IsBidirectional]
@@ -28546,7 +28546,7 @@ ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
                                                  ,GETDATE()
                                                  ,@UserName)
             ELSE
-                UPDATE [dbo].[Uniques] SET [Id] = @W_Id
+                UPDATE [dbo].[Unicities] SET [Id] = @W_Id
                                               ,[ColumnId1] = @W_ColumnId1
                                               ,[ColumnId2] = @W_ColumnId2
                                               ,[IsBidirectional] = @W_IsBidirectional
@@ -28575,12 +28575,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UniquesRead]
+Criar stored procedure [dbo].[UnicitiesRead]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UniquesRead]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UniquesRead] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UnicitiesRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UnicitiesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[UnicitiesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -28614,7 +28614,7 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
                                       LEFT JOIN (SELECT [#1].[name] AS ColumnName
                                                     FROM [sys].[columns] [#1]
                                                         INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
-                                                    WHERE [#2].[name] = 'Uniques') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                                                    WHERE [#2].[name] = 'Unicities') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
             SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
@@ -28640,7 +28640,7 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Uniques'
+                  AND [TableName] = 'Unicities'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
@@ -28673,7 +28673,7 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
         SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
-                            FROM [dbo].[Uniques] [T]
+                            FROM [dbo].[Unicities] [T]
                                 LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
@@ -28721,16 +28721,16 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
                     ,CAST(NULL AS bit) AS [IsBidirectional]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Unique'' AS [ClassName]
+                        SELECT ''Unicity'' AS [ClassName]
                               ,[T].[Id]
                               ,[T].[ColumnId1]
                               ,[T].[ColumnId2]
                               ,[T].[IsBidirectional]
                             FROM [#tmpTable] [#]
-                                INNER JOIN [dbo].[Uniques] [T] ON [T].[Id] = [#].[Id]
+                                INNER JOIN [dbo].[Unicities] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Unique'' AS [ClassName]
+                            SELECT ''Unicity'' AS [ClassName]
                                   ,[O].[Id]
                                   ,[O].[ColumnId1]
                                   ,[O].[ColumnId2]

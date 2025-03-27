@@ -27,7 +27,7 @@ namespace crudex.Classes
             var types = (dataSet.Tables["Types"] ?? throw new Exception("Tabela Types não existe.")).AsEnumerable().ToList();
             var tables = (dataSet.Tables["Tables"] ?? throw new Exception("Tabela Tables não existe.")).AsEnumerable().ToList();
             var associations = (dataSet.Tables["Associations"] ?? throw new Exception("Tabela Associations não existe.")).AsEnumerable().ToList();
-            var uniques = (dataSet.Tables["Uniques"] ?? throw new Exception("Tabela Uniques não existe.")).AsEnumerable().ToList();
+            var unicities = (dataSet.Tables["Unicities"] ?? throw new Exception("Tabela Unicities não existe.")).AsEnumerable().ToList();
             var databaseTables = (dataSet.Tables["DatabasesTables"] ?? throw new Exception("Tabela DatabasesTables não existe.")).AsEnumerable().ToList()
                 .FindAll(row => Settings.ToLong(row["DatabaseId"]) == Settings.ToLong(database["Id"]));
             var references = new TDataRows();
@@ -64,7 +64,7 @@ namespace crudex.Classes
             {
                 var table = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(databaseTable["TableId"]));
 
-                result.AppendLine(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys, uniques).ToString());
+                result.AppendLine(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys, unicities).ToString());
                 result.AppendLine(GetScriptPersistTable(table, columns).ToString());
                 result.AppendLine(GetScriptCommitTable(table, columns).ToString());
                 result.AppendLine(GetScriptReadTable(table, columns, domains, types).ToString());
@@ -809,7 +809,7 @@ namespace crudex.Classes
 
             return result;
         }
-        private static StringBuilder GetScriptValidateTable(DataRow table, TDataRows tables, TDataRows columns, TDataRows domains, TDataRows types, TDataRows indexes, TDataRows indexkeys, TDataRows uniques)
+        private static StringBuilder GetScriptValidateTable(DataRow table, TDataRows tables, TDataRows columns, TDataRows domains, TDataRows types, TDataRows indexes, TDataRows indexkeys, TDataRows unicities)
         {
             var result = new StringBuilder();
             var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
@@ -985,7 +985,7 @@ namespace crudex.Classes
                         result.Append($"                THROW 51000, 'Valor de {column["Name"]} em @ActualRecord inexiste em {referenceTable["Name"]}', 1\r\n");
                     }
                 }
-                var uniqueRows = uniques.FindAll(unique => Settings.ToLong(unique["#TableId1"]) == Settings.ToLong(table["Id"]) ||
+                var uniqueRows = unicities.FindAll(unique => Settings.ToLong(unique["#TableId1"]) == Settings.ToLong(table["Id"]) ||
                                                            (Settings.ToBoolean(unique["IsBidirectional"]) &&
                                                             Settings.ToLong(unique["#TableId2"]) == Settings.ToLong(table["Id"])));
                 var uniqueIndexRows = indexes.FindAll(index => Settings.ToLong(index["TableId"]) == Settings.ToLong(table["Id"]) && Settings.ToBoolean(index["IsUnique"]));
