@@ -18,7 +18,7 @@ Desse modo, toda a inteligência do sistema se concentra no banco-de-dados, bem 
 
 Assim, o analista de negócios não depende mais do desenvolvedor para testar suas especificações e, caso o usuário goste do frontend padrão, o sistema já pode ser considerado concluído.
 
-Caso o usuário queira um frontend mais charmoso e bonito, aí o desenvolvedor entra em ação e desenvolve um frontend melhor, desde que para executar as operações de CRUD, ele faça chamadas aos endpoints da API e não diretamente às stored procedures do banco-de-dados.
+Caso o usuário queira um frontend mais charmoso e bonito, aí o desenvolvedor entra em ação e desenvolve um frontend mais ao gosto do usuário, desde que para executar as operações de CRUD, ele faça chamadas aos endpoints da API e não diretamente às stored procedures do banco-de-dados.
 
 Com isso, o backend nunca mais será problema do desenvolvedor e sim, do analista de negócios ou até mesmo do DBA.
 
