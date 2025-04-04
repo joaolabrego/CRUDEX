@@ -1,3 +1,6 @@
+CRUDEX: O SGSI mais poderoso do mundo
+CONTATO: João da Rocha Labrego - joaolabrego@gmail.com
+
 O projeto CRUDEX que já está quase em fase final de desenvolvimento promete automatizar ao máximo o desenvolvimento de sistemas.
 
 Até tive que inventar um conceito novo para ele: SGSI - Sistema Gerenciador de Sistemas de Informação.
