@@ -536,13 +536,14 @@ GO
 ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
 							  ,@DatabaseName VARCHAR(25) = NULL
 							  ,@TableName VARCHAR(25) = NULL
-							  ,@ReturnValue BIGINT OUT) AS
+							  ,@ReturnValue BIT OUT) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(250)
 
 	SET NOCOUNT ON
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 	BEGIN TRY
+		SET @ReturnValue = 1
 		IF @SystemName IS NULL BEGIN
 			SET @ErrorMessage = 'Nome de sistema é requerido.';
 			THROW 51000, @ErrorMessage, 1
@@ -568,7 +569,7 @@ BEGIN
 		END
 		ALTER TABLE [#Systems] DROP COLUMN [IsOffAir]
 		IF @DatabaseName IS NULL
-			RETURN 1
+			RETURN 0
 		ALTER TABLE [#Systems] ADD PRIMARY KEY CLUSTERED([Id])
 		IF @DatabaseName = 'all' BEGIN
 			SET @DatabaseName = NULL
@@ -832,11 +833,13 @@ BEGIN
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]
 			SELECT * FROM [#Tables] ORDER BY [DatabaseId], [Name] -- 3 [#Tables]
 		END
-		
-		RETURN 0
 	END TRY
 	BEGIN CATCH
-		THROW
+		SELECT ERROR_PROCEDURE() AS [ProcedureName]
+				,ERROR_NUMBER() AS [Number]
+				,ERROR_LINE() AS [Line]
+				,ERROR_MESSAGE() AS [Message]
+		SET @ReturnValue = 0
 	END CATCH
 END
 GO
@@ -972,15 +975,12 @@ IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 							 ,@ReturnValue BIGINT OUT) AS BEGIN
-	DECLARE @TRANCOUNT INT = @@TRANCOUNT
-			,@ErrorMessage NVARCHAR(MAX)
+	DECLARE @ErrorMessage NVARCHAR(MAX)
 
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-		BEGIN TRANSACTION
-		SAVE TRANSACTION [SavePoint]
-
+		SET @ReturnValue = 1
 		IF ISJSON(@Parameters) = 0
 			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
@@ -1042,14 +1042,12 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 			UPDATE [dbo].[Users] 
 				SET [RetryLogins] = @RetryLogins
 				WHERE [Id] = @UserId
-			COMMIT TRANSACTION 
 			IF @RetryLogins = @MaxRetryLogins
 				THROW 51000, 'Usuário está bloqueado', 1
 			ELSE BEGIN
 				SET @ErrorMessage = 'Senha é inválida (' + CAST(@MaxRetryLogins -  @RetryLogins AS VARCHAR(3)) + ' tentativas restantes)';
 				THROW 51000, @ErrorMessage, 1
 			END
-		
 		END
 		IF @action = 'login' BEGIN
 			IF @PublicKey IS NULL
@@ -1096,18 +1094,18 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 						[UpdatedBy] = @UserName
 					WHERE [Id] = @LoginId
 		END
-		SET @ReturnValue = @LoginId
-		COMMIT TRANSACTION
 
-		RETURN 0
+		RETURN 1
 	END TRY
 	BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END
-        SET @ErrorMessage = ERROR_MESSAGE();
-        THROW 51000, @ErrorMessage, 1
+		SELECT 'PROCEDURE_RESULT' AS [ClassName]
+				,ERROR_PROCEDURE() AS [ProcedureName]
+				,ERROR_NUMBER() AS [Number]
+				,ERROR_LINE() AS [Line]
+				,ERROR_MESSAGE() AS [Message]
+		SET @ReturnValue = 0
+
+		RETURN 0
 	END CATCH
 END
 GO
@@ -5242,7 +5240,7 @@ INSERT INTO [dbo].[SystemsUsers] ([Id]
                          VALUES (CAST('1' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('cruda x adm' AS nvarchar(50))
+                                ,CAST('crudex x adm' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5259,7 +5257,7 @@ INSERT INTO [dbo].[SystemsUsers] ([Id]
                          VALUES (CAST('2' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('2' AS bigint)
-                                ,CAST('cruda x labrego' AS nvarchar(50))
+                                ,CAST('crudex x labrego' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL

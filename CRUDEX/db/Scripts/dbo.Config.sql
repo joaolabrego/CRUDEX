@@ -4,13 +4,14 @@ GO
 ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
 							  ,@DatabaseName VARCHAR(25) = NULL
 							  ,@TableName VARCHAR(25) = NULL
-							  ,@ReturnValue BIGINT OUT) AS
+							  ,@ReturnValue BIT OUT) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(250)
 
 	SET NOCOUNT ON
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 	BEGIN TRY
+		SET @ReturnValue = 1
 		IF @SystemName IS NULL BEGIN
 			SET @ErrorMessage = 'Nome de sistema é requerido.';
 			THROW 51000, @ErrorMessage, 1
@@ -36,7 +37,7 @@ BEGIN
 		END
 		ALTER TABLE [#Systems] DROP COLUMN [IsOffAir]
 		IF @DatabaseName IS NULL
-			RETURN 1
+			RETURN 0
 		ALTER TABLE [#Systems] ADD PRIMARY KEY CLUSTERED([Id])
 		IF @DatabaseName = 'all' BEGIN
 			SET @DatabaseName = NULL
@@ -300,11 +301,13 @@ BEGIN
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]
 			SELECT * FROM [#Tables] ORDER BY [DatabaseId], [Name] -- 3 [#Tables]
 		END
-		
-		RETURN 0
 	END TRY
 	BEGIN CATCH
-		THROW
+		SELECT ERROR_PROCEDURE() AS [ProcedureName]
+				,ERROR_NUMBER() AS [Number]
+				,ERROR_LINE() AS [Line]
+				,ERROR_MESSAGE() AS [Message]
+		SET @ReturnValue = 0
 	END CATCH
 END
 GO

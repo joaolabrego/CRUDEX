@@ -46,50 +46,52 @@ namespace CRUDA_LIB
         }
         public string EncryptDecrypt(string value, string? keys = null)
         {
-            var SPACE = (int)' ';
-            var factor = -1;
-            var prefix = CryptoPrefix;
-            var res = new StringBuilder();
-            var encrypted = IsEncrypted(value);
+            return value;
 
-            if (string.IsNullOrEmpty(keys))
-                keys = CryptoKey;
-            if (encrypted)
-            {
-                factor = 1;
-                value = value[prefix.Length..];
-                prefix = string.Empty;
-            }
-            else
-            {
-                if (value.IndexOf(DELIMITER_VALUE) > 0)
-                    throw new Exception($"Valor para criptografar não pode conter {DELIMITER_VALUE}");
-                value += DELIMITER_VALUE;
-                for (var i = value.Length; i <= DEFAULT_LENGTH; i++)
-                    value += CHARSET[Rnd.Next(0, CHARSET.Length)];
-            }
-            for (var i = 0; i < value.Length; i++)
-            {
-                var ascii = (int)value[i];
+            //var SPACE = (int)' ';
+            //var factor = -1;
+            //var prefix = CryptoPrefix;
+            //var res = new StringBuilder();
+            //var encrypted = IsEncrypted(value);
 
-                if (ascii >= SPACE)
-                {
-                    ascii -= SPACE;
-                    ascii += keys[i % keys.Length] * factor;
-                    ascii %= 256 - SPACE;
-                    if (ascii < 0)
-                        ascii += 256 - SPACE;
-                    ascii += SPACE;
-                }
-                res.Append((char)ascii);
-            }
+            //if (string.IsNullOrEmpty(keys))
+            //    keys = CryptoKey;
+            //if (encrypted)
+            //{
+            //    factor = 1;
+            //    value = value[prefix.Length..];
+            //    prefix = string.Empty;
+            //}
+            //else
+            //{
+            //    if (value.IndexOf(DELIMITER_VALUE) > 0)
+            //        throw new Exception($"Valor para criptografar não pode conter {DELIMITER_VALUE}");
+            //    value += DELIMITER_VALUE;
+            //    for (var i = value.Length; i <= DEFAULT_LENGTH; i++)
+            //        value += CHARSET[Rnd.Next(0, CHARSET.Length)];
+            //}
+            //for (var i = 0; i < value.Length; i++)
+            //{
+            //    var ascii = (int)value[i];
 
-            var result = res.ToString();
+            //    if (ascii >= SPACE)
+            //    {
+            //        ascii -= SPACE;
+            //        ascii += keys[i % keys.Length] * factor;
+            //        ascii %= 256 - SPACE;
+            //        if (ascii < 0)
+            //            ascii += 256 - SPACE;
+            //        ascii += SPACE;
+            //    }
+            //    res.Append((char)ascii);
+            //}
 
-            if (encrypted)
-                result = result[..result.IndexOf(DELIMITER_VALUE)];
+            //var result = res.ToString();
+
+            //if (encrypted)
+            //    result = result[..result.IndexOf(DELIMITER_VALUE)];
                 
-            return prefix + result;
+            //return prefix + result;
         }
     }
 }

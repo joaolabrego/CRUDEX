@@ -3,15 +3,12 @@
 GO
 ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 							 ,@ReturnValue BIGINT OUT) AS BEGIN
-	DECLARE @TRANCOUNT INT = @@TRANCOUNT
-			,@ErrorMessage NVARCHAR(MAX)
+	DECLARE @ErrorMessage NVARCHAR(MAX)
 
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-		BEGIN TRANSACTION
-		SAVE TRANSACTION [SavePoint]
-
+		SET @ReturnValue = 1
 		IF ISJSON(@Parameters) = 0
 			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
@@ -73,14 +70,12 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 			UPDATE [dbo].[Users] 
 				SET [RetryLogins] = @RetryLogins
 				WHERE [Id] = @UserId
-			COMMIT TRANSACTION 
 			IF @RetryLogins = @MaxRetryLogins
 				THROW 51000, 'Usuário está bloqueado', 1
 			ELSE BEGIN
 				SET @ErrorMessage = 'Senha é inválida (' + CAST(@MaxRetryLogins -  @RetryLogins AS VARCHAR(3)) + ' tentativas restantes)';
 				THROW 51000, @ErrorMessage, 1
 			END
-		
 		END
 		IF @action = 'login' BEGIN
 			IF @PublicKey IS NULL
@@ -127,18 +122,18 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 						[UpdatedBy] = @UserName
 					WHERE [Id] = @LoginId
 		END
-		SET @ReturnValue = @LoginId
-		COMMIT TRANSACTION
 
-		RETURN 0
+		RETURN 1
 	END TRY
 	BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END
-        SET @ErrorMessage = ERROR_MESSAGE();
-        THROW 51000, @ErrorMessage, 1
+		SELECT 'PROCEDURE_RESULT' AS [ClassName]
+				,ERROR_PROCEDURE() AS [ProcedureName]
+				,ERROR_NUMBER() AS [Number]
+				,ERROR_LINE() AS [Line]
+				,ERROR_MESSAGE() AS [Message]
+		SET @ReturnValue = 0
+
+		RETURN 0
 	END CATCH
 END
 GO

@@ -56,7 +56,8 @@ export default class TConfig {
             }
         }
         body.Parameters = parameters
-        request.Request = crypto.EncryptDecrypt(JSON.stringify(body))
+        //request.Request = crypto.EncryptDecrypt(JSON.stringify(body))
+        request.Request = JSON.stringify(body)
         if (action === TActions.LOGOUT && navigator.sendBeacon) {
             result = navigator.sendBeacon(url, new Blob([JSON.stringify(request)], { type: 'application/json' })) ? {} : { ClassName: "Error", Message: "Erro ao enviar LOGOUT via sendBeacon." };
         } else {
@@ -65,7 +66,8 @@ export default class TConfig {
                 headers,
                 body: JSON.stringify(request),
             })
-            result = JSON.parse(crypto.EncryptDecrypt((await response.json()).Response))
+            //result = JSON.parse(crypto.EncryptDecrypt((await response.json()).Response))
+            result = JSON.parse(await response.json()).Response
         }
         if (showSpinner && action !== TActions.CONFIG)
             TSpinner.Hide()
