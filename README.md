@@ -30,4 +30,12 @@ Ao desenvolvedor cabe apenas a criação de frontends específicos, como aplicat
 
 O CRUDEX já conta com várias funcionalidades adicionais, mas o essencial é esse.
 
+IMAGENS DO FRONTEND PADRÃO
+
 <img src="./presentation/crudex-tela1.png" alt="Tela do CRUDEX" width="600"/>
+
+<img src="./presentation/crudex-tela2.png" alt="Tela do CRUDEX" width="600"/>
+
+<img src="./presentation/crudex-tela3.png" alt="Tela do CRUDEX" width="600"/>
+
+<img src="./presentation/crudex-tela4.png" alt="Tela do CRUDEX" width="600"/>
