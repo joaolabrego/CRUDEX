@@ -14,7 +14,7 @@ No CRUDEX, o analista de negócios especifica o sistema diretamente, definindo t
 
 Com base nesses metadados, o CRUDEX gera automaticamente todos os scripts DDL e DML necessários, bem como as stored procedures responsáveis pelas operações de CRUD de cada tabela.
 
-O sistema também fornece um frontend padrão — feito em HTML, CSS e JavaScript puro (sem frameworks) — em arquitetura Single Page Application.
+O sistema também fornece um frontend padrão — feito em HTML, CSS e JavaScript puro (sem frameworks) — em arquitetura Single Page Application e montado dinamicamente no navegador conforme os metadadados configurados para o sistema em execução.
 
 Com isso, o analista de negócios já pode executar e testar o sistema especificado imediatamente, bastando criar o banco de dados com os scripts gerados automaticamente.
 
