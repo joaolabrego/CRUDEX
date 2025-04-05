@@ -1,31 +1,30 @@
-CRUDEX: O SGSI mais poderoso do mundo.
+CRUDEX: O SGSI mais poderoso do mundo
+CONTATO: João da Rocha Labrego — joaolabrego@gmail.com
 
-CONTATO: João da Rocha Labrego - joaolabrego@gmail.com
+O projeto CRUDEX, que já está quase em fase final de desenvolvimento, foi criado para automatizar ao máximo o desenvolvimento de sistemas.
 
-O projeto CRUDEX que já está quase em fase final de desenvolvimento promete automatizar ao máximo o desenvolvimento de sistemas.
+Tive até que inventar um conceito novo para defini-lo: SGSI — Sistema Gerenciador de Sistemas de Informação.
 
-Até tive que inventar um conceito novo para ele: SGSI - Sistema Gerenciador de Sistemas de Informação.
+Assim como existem os conceitos de SGBD SQL e SGBD NoSQL, agora existe também o conceito de SGSI CRUDEX. Se futuramente surgirem outros padrões, haverá os SGSI CRUDEX e os SGSI não-CRUDEX.
 
-Em paralelo a esse conceito, já existem no mercado os conceitos de SGBD SQL e SGBD no-SQL.
+O que há de novo nisso? 
 
-Se, futuramente, alguém criar um novo padrão de SGSI haverá os SGSI CRUDEX e os SGSI no-CRUDEX.
+No CRUDEX, o analista de negócios especifica o sistema diretamente, definindo tabelas, validações, índices, chaves estrangeiras, chaves primárias etc.
 
-O que tem de novo nisso?
+Com base nesses metadados, o CRUDEX gera automaticamente todos os scripts DDL e DML necessários, bem como as stored procedures responsáveis pelas operações de CRUD de cada tabela.
 
-Oras, o analista de negócios especifica o sistema diretamente no CRUDEX, definindo tabelas, validações, índices, foreign-keys, primary-keys, etc. dessas tabelas.
+O sistema também fornece um frontend padrão — feito em HTML, CSS e JavaScript puro (sem frameworks) — em arquitetura Single Page Application.
 
-O CRUDEX se encarrega de gerar automaticamente os scripts DDLs e DMLs do sistema sendo especificado, juntamente com os scripts das stored procedures de cada tabela responsáveis pela execução das operações de CRUD.
+Com isso, o analista de negócios já pode executar e testar o sistema especificado imediatamente, bastando criar o banco de dados com os scripts gerados automaticamente.
 
-O CRUDEX também já fornece um frontend padrão em HTML, CSS e JavaScript puro sem frameworks e em Single Page Application, no qual o analista de negócios já pode executar seu sistema recém-especificado, após criar o banco-de-dados executando apenas os scripts gerados automaticamente.
+Desse modo, toda a inteligência do sistema reside no banco de dados, incluindo as regras de negócio.
 
-Desse modo, toda a inteligência do sistema se concentra no banco-de-dados, bem como as regras de negócio.
+O analista de negócios deixa de depender do desenvolvedor para validar suas especificações e, caso o frontend padrão atenda às necessidades, o sistema já pode ser considerado pronto para uso.
 
-Assim, o analista de negócios não depende mais do desenvolvedor para testar suas especificações e, caso o usuário goste do frontend padrão, o sistema já pode ser considerado concluído.
+Se o cliente desejar um frontend mais bonito ou personalizado, o desenvolvedor entra em ação apenas para construir essa interface, desde que as operações de CRUD sejam realizadas via API — nunca diretamente no banco.
 
-Caso o usuário queira um frontend mais charmoso e bonito, aí o desenvolvedor entra em ação e desenvolve um frontend mais ao gosto do usuário, desde que para executar as operações de CRUD, ele faça chamadas aos endpoints da API e não diretamente às stored procedures do banco-de-dados.
+Com isso, o backend passa a ser responsabilidade do analista de negócios ou do DBA — e não mais do desenvolvedor.
 
-Com isso, o backend nunca mais será problema do desenvolvedor e sim, do analista de negócios ou até mesmo do DBA.
+Ao desenvolvedor cabe apenas a criação de frontends específicos, como aplicativos móveis ou interfaces avançadas, sem interferir na lógica do sistema.
 
-Ao desenvolvedor caberá apenas a tarefa de fazer frontends não padrão para aplicações específicas como aplicativos em celular, por exemplo.
-
-Há várias funcionalidades extras implementadas, mas o básico é esse.
+O CRUDEX já conta com várias funcionalidades adicionais, mas o essencial é esse.
