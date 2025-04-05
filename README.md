@@ -8,7 +8,7 @@ Tive até que inventar um conceito novo para defini-lo: SGSI — Sistema Gerenci
 
 Assim como existem os conceitos de SGBD SQL e SGBD NoSQL, agora existe também o conceito de SGSI CRUDEX. Se futuramente surgirem outros padrões, haverá os SGSI CRUDEX e os SGSI não-CRUDEX.
 
-O que há de novo nisso? 
+O que há de novo nisso?
 
 No CRUDEX, o analista de negócios especifica o sistema diretamente, definindo tabelas, validações, índices, chaves estrangeiras, chaves primárias etc.
 
@@ -29,3 +29,13 @@ Com isso, o backend passa a ser responsabilidade do analista de negócios ou do 
 Ao desenvolvedor cabe apenas a criação de frontends específicos, como aplicativos móveis ou interfaces avançadas, sem interferir na lógica do sistema.
 
 O CRUDEX já conta com várias funcionalidades adicionais, mas o essencial é esse.
+
+IMAGENS DO FRONTEND PADRÃO
+
+<img src="./presentation/crudex-tela1.png" alt="Tela do CRUDEX" width="600"/>
+
+<img src="./presentation/crudex-tela2.png" alt="Tela do CRUDEX" width="600"/>
+
+<img src="./presentation/crudex-tela3.png" alt="Tela do CRUDEX" width="600"/>
+
+<img src="./presentation/crudex-tela4.png" alt="Tela do CRUDEX" width="600"/>
