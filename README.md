@@ -16,7 +16,7 @@ Oras, o analista de negócios especifica o sistema diretamente no CRUDEX, defini
 
 O CRUDEX se encarrega de gerar automaticamente os scripts DDLs e DMLs do sistema sendo especificado, juntamente com os scripts das stored procedures de cada tabela responsáveis pela execução das operações de CRUD.
 
-O CRUDEX também já fornece um frontend padrão em HTML, CSS e JavaScript, no qual o analista de negócios já pode executar seu sistema recém-especificado, após criar o banco-de-dados executando apenas os scripts gerados automaticamente.
+O CRUDEX também já fornece um frontend padrão em HTML, CSS e JavaScript puro sem frameworks, no qual o analista de negócios já pode executar seu sistema recém-especificado, após criar o banco-de-dados executando apenas os scripts gerados automaticamente.
 
 Desse modo, toda a inteligência do sistema se concentra no banco-de-dados, bem como as regras de negócio.
 
