@@ -29,3 +29,5 @@ Com isso, o backend passa a ser responsabilidade do analista de negócios ou do 
 Ao desenvolvedor cabe apenas a criação de frontends específicos, como aplicativos móveis ou interfaces avançadas, sem interferir na lógica do sistema.
 
 O CRUDEX já conta com várias funcionalidades adicionais, mas o essencial é esse.
+
+<img src="./presentation/crudex-tela1.png" alt="Tela do CRUDEX" width="600"/>
