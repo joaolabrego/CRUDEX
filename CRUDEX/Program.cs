@@ -45,7 +45,7 @@ namespace CRUDA_LIB
                 {
                     case null:
                         context.Response.Headers.ContentType = "text/html;";
-                        await ScriptsSqlServer.Generate();
+                        //await ScriptsSqlServer.Generate();
                         await context.Response.WriteAsync(Config.GetHTML("crudex", "Nome do sistema é requerido na URL."), Encoding.UTF8);
                         break;
                     case Actions.CHECK:
