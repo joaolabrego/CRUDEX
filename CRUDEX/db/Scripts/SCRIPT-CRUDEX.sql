@@ -9,9 +9,9 @@ GO
 CREATE DATABASE [crudex]
     CONTAINMENT = NONE
     ON PRIMARY
-    (NAME = N'$crudex', FILENAME = N'D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\db\crudex.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)
+    (NAME = N'$crudex', FILENAME = N'D:\CRUDEX-C#\CRUDEX\CRUDEX\db\crudex.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)
     LOG ON
-    (NAME = N'$crudex_log', FILENAME = N'D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\db\crudex.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)
+    (NAME = N'$crudex_log', FILENAME = N'D:\CRUDEX-C#\CRUDEX\CRUDEX\db\crudex.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)
     WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF
 GO
 ALTER DATABASE[crudex] SET COMPATIBILITY_LEVEL = 160
@@ -510,11 +510,11 @@ CREATE UNIQUE INDEX [UNQ_Associations_TableId2_TableId1] ON [dbo].[Associations]
 GO
 
 /**********************************************************************************
-Criar tabela [dbo].[Uniques]
+Criar tabela [dbo].[Unicities]
 **********************************************************************************/
-IF (SELECT object_id('[dbo].[Uniques]', 'U')) IS NOT NULL
-    DROP TABLE [dbo].[Uniques]
-CREATE TABLE [dbo].[Uniques]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+IF (SELECT object_id('[dbo].[Unicities]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Unicities]
+CREATE TABLE [dbo].[Unicities]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[ColumnId1] bigint NOT NULL
                                     ,[ColumnId2] bigint NOT NULL
                                     ,[IsBidirectional] bit NOT NULL
@@ -522,9 +522,9 @@ CREATE TABLE [dbo].[Uniques]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] nvarchar(25) NULL)
-ALTER TABLE [dbo].[Uniques] ADD CONSTRAINT PK_Uniques PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Uniques_ColumnId1_ColumnId2] ON [dbo].[Uniques]([ColumnId1] ASC, [ColumnId2] ASC)
-CREATE UNIQUE INDEX [UNQ_Uniques_ColumnId2_ColumnId1] ON [dbo].[Uniques]([ColumnId2] ASC, [ColumnId1] ASC)
+ALTER TABLE [dbo].[Unicities] ADD CONSTRAINT PK_Unicities PRIMARY KEY CLUSTERED ([Id])
+CREATE UNIQUE INDEX [UNQ_Uniques_ColumnId1_ColumnId2] ON [dbo].[Unicities]([ColumnId1] ASC, [ColumnId2] ASC)
+CREATE UNIQUE INDEX [UNQ_Uniques_ColumnId2_ColumnId1] ON [dbo].[Unicities]([ColumnId2] ASC, [ColumnId1] ASC)
 GO
 
 /**********************************************************************************
@@ -536,13 +536,14 @@ GO
 ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
 							  ,@DatabaseName VARCHAR(25) = NULL
 							  ,@TableName VARCHAR(25) = NULL
-							  ,@ReturnValue BIGINT OUT) AS
+							  ,@ReturnValue BIT OUT) AS
 BEGIN
 	DECLARE @ErrorMessage VARCHAR(250)
 
 	SET NOCOUNT ON
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 	BEGIN TRY
+		SET @ReturnValue = 1
 		IF @SystemName IS NULL BEGIN
 			SET @ErrorMessage = 'Nome de sistema é requerido.';
 			THROW 51000, @ErrorMessage, 1
@@ -568,7 +569,7 @@ BEGIN
 		END
 		ALTER TABLE [#Systems] DROP COLUMN [IsOffAir]
 		IF @DatabaseName IS NULL
-			RETURN 1
+			RETURN 0
 		ALTER TABLE [#Systems] ADD PRIMARY KEY CLUSTERED([Id])
 		IF @DatabaseName = 'all' BEGIN
 			SET @DatabaseName = NULL
@@ -801,14 +802,14 @@ BEGIN
 				FROM [dbo].[Associations] [A]
 				WHERE EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] IN ([A].[TableId1], [A].[TableId2]))
 			
-			-- 13 [Uniques]
+			-- 13 [Unicities]
 			SELECT 'Unique' AS [ClassName]
 					,[U].[Id]
 					,[U].[ColumnId1]
 					,[U].[ColumnId2]
 					,[U].[IsBidirectional]
-				INTO [#Uniques]
-				FROM [dbo].[Uniques] [U]
+				INTO [#Unicities]
+				FROM [dbo].[Unicities] [U]
 				WHERE EXISTS(SELECT 1 FROM [dbo].[#Columns] WHERE [Id] IN ([U].[ColumnId1], [U].[ColumnId2]))
 		END
 
@@ -826,17 +827,19 @@ BEGIN
 			SELECT * FROM [#Indexkeys] ORDER BY [IndexId], [Sequence] -- 9 [#Indexkeys]
 			SELECT * FROM [#Masks] ORDER BY [Id] -- 10 [#Masks]
 			SELECT * FROM [#Associations] ORDER BY [Id] -- 11 [#Associations]
-			SELECT * FROM [#Uniques] ORDER BY [Id] -- 12 [#Uniques]
+			SELECT * FROM [#Unicities] ORDER BY [Id] -- 12 [#Unicities]
 		END ELSE BEGIN
 			SELECT * FROM [#Connections] ORDER BY [Id] -- 1 [#Connections]]
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]
 			SELECT * FROM [#Tables] ORDER BY [DatabaseId], [Name] -- 3 [#Tables]
 		END
-		
-		RETURN 0
 	END TRY
 	BEGIN CATCH
-		THROW
+		SELECT ERROR_PROCEDURE() AS [ProcedureName]
+				,ERROR_NUMBER() AS [Number]
+				,ERROR_LINE() AS [Line]
+				,ERROR_MESSAGE() AS [Message]
+		SET @ReturnValue = 0
 	END CATCH
 END
 GO
@@ -972,15 +975,12 @@ IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 							 ,@ReturnValue BIGINT OUT) AS BEGIN
-	DECLARE @TRANCOUNT INT = @@TRANCOUNT
-			,@ErrorMessage NVARCHAR(MAX)
+	DECLARE @ErrorMessage NVARCHAR(MAX)
 
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-		BEGIN TRANSACTION
-		SAVE TRANSACTION [SavePoint]
-
+		SET @ReturnValue = 1
 		IF ISJSON(@Parameters) = 0
 			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
@@ -1042,14 +1042,12 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 			UPDATE [dbo].[Users] 
 				SET [RetryLogins] = @RetryLogins
 				WHERE [Id] = @UserId
-			COMMIT TRANSACTION 
 			IF @RetryLogins = @MaxRetryLogins
 				THROW 51000, 'Usuário está bloqueado', 1
 			ELSE BEGIN
 				SET @ErrorMessage = 'Senha é inválida (' + CAST(@MaxRetryLogins -  @RetryLogins AS VARCHAR(3)) + ' tentativas restantes)';
 				THROW 51000, @ErrorMessage, 1
 			END
-		
 		END
 		IF @action = 'login' BEGIN
 			IF @PublicKey IS NULL
@@ -1069,6 +1067,10 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 								  1,
 								  GETDATE(),
 								  @UserName)
+			UPDATE [dbo].[Users]
+				SET [RetryLogins] = 0
+				WHERE [Id] = @UserId
+					  AND [RetryLogins] > 0
 		END ELSE IF @LoginId IS NULL
 			THROW 51000, 'Id de login é requerido', 1
 		ELSE BEGIN
@@ -1092,21 +1094,18 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 						[UpdatedBy] = @UserName
 					WHERE [Id] = @LoginId
 		END
-		UPDATE [dbo].[Users]
-			SET [RetryLogins] = 0
-			WHERE [Id] = @UserId
-		SET @ReturnValue = @LoginId
-		COMMIT TRANSACTION
 
-		RETURN 0
+		RETURN 1
 	END TRY
 	BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END
-        SET @ErrorMessage = ERROR_MESSAGE();
-        THROW 51000, @ErrorMessage, 1
+		SELECT 'PROCEDURE_RESULT' AS [ClassName]
+				,ERROR_PROCEDURE() AS [ProcedureName]
+				,ERROR_NUMBER() AS [Number]
+				,ERROR_LINE() AS [Line]
+				,ERROR_MESSAGE() AS [Message]
+		SET @ReturnValue = 0
+
+		RETURN 0
 	END CATCH
 END
 GO
@@ -2417,27 +2416,27 @@ GO
 ALTER TABLE [dbo].[Associations] CHECK CONSTRAINT [FK_Associations_Tables]
 GO
 /**********************************************************************************
-Criar referências de [dbo].[Uniques]
+Criar referências de [dbo].[Unicities]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Uniques_Columns')
-    ALTER TABLE [dbo].[Uniques] DROP CONSTRAINT FK_Uniques_Columns
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Unicities_Columns')
+    ALTER TABLE [dbo].[Unicities] DROP CONSTRAINT FK_Unicities_Columns
 GO
-ALTER TABLE [dbo].[Uniques] WITH CHECK 
-    ADD CONSTRAINT [FK_Uniques_Columns] 
+ALTER TABLE [dbo].[Unicities] WITH CHECK 
+    ADD CONSTRAINT [FK_Unicities_Columns] 
     FOREIGN KEY([ColumnId1]) 
     REFERENCES [dbo].[Columns] ([Id])
 GO
-ALTER TABLE [dbo].[Uniques] CHECK CONSTRAINT [FK_Uniques_Columns]
+ALTER TABLE [dbo].[Unicities] CHECK CONSTRAINT [FK_Unicities_Columns]
 GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Uniques_Columns')
-    ALTER TABLE [dbo].[Uniques] DROP CONSTRAINT FK_Uniques_Columns
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Unicities_Columns')
+    ALTER TABLE [dbo].[Unicities] DROP CONSTRAINT FK_Unicities_Columns
 GO
-ALTER TABLE [dbo].[Uniques] WITH CHECK 
-    ADD CONSTRAINT [FK_Uniques_Columns] 
+ALTER TABLE [dbo].[Unicities] WITH CHECK 
+    ADD CONSTRAINT [FK_Unicities_Columns] 
     FOREIGN KEY([ColumnId2]) 
     REFERENCES [dbo].[Columns] ([Id])
 GO
-ALTER TABLE [dbo].[Uniques] CHECK CONSTRAINT [FK_Uniques_Columns]
+ALTER TABLE [dbo].[Unicities] CHECK CONSTRAINT [FK_Unicities_Columns]
 GO
 
 /**********************************************************************************
@@ -5241,7 +5240,7 @@ INSERT INTO [dbo].[SystemsUsers] ([Id]
                          VALUES (CAST('1' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('cruda x adm' AS nvarchar(50))
+                                ,CAST('crudex x adm' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5258,7 +5257,7 @@ INSERT INTO [dbo].[SystemsUsers] ([Id]
                          VALUES (CAST('2' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('2' AS bigint)
-                                ,CAST('cruda x labrego' AS nvarchar(50))
+                                ,CAST('crudex x labrego' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5825,8 +5824,8 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('21' AS bigint)
-                                ,CAST('Uniques' AS nvarchar(25))
-                                ,CAST('Unique' AS nvarchar(25))
+                                ,CAST('Unicities' AS nvarchar(25))
+                                ,CAST('Unicity' AS nvarchar(25))
                                 ,CAST('Unicidades cruzadas' AS nvarchar(50))
                                 ,NULL
                                 ,CAST('0' AS bit)
@@ -15694,9 +15693,9 @@ INSERT INTO [dbo].[Associations] ([Id]
 GO
 
 /**********************************************************************************
-Inserir dados na tabela [dbo].[Uniques]
+Inserir dados na tabela [dbo].[Unicities]
 **********************************************************************************/
-INSERT INTO [dbo].[Uniques] ([Id]
+INSERT INTO [dbo].[Unicities] ([Id]
                                 ,[ColumnId1]
                                 ,[ColumnId2]
                                 ,[IsBidirectional]
@@ -16100,6 +16099,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -16318,6 +16318,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
         SELECT [ClassName]
               ,[Id]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[HtmlInputType]
               ,[HtmlInputAlign]
               ,[AskEncrypted]
@@ -16384,8 +16385,8 @@ ALTER PROCEDURE [dbo].[CategoriesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Categories] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -16818,6 +16819,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -17055,6 +17057,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
               ,[Id]
               ,[CategoryId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[MaxLength]
               ,[Minimum]
               ,[Maximum]
@@ -17141,8 +17144,8 @@ ALTER PROCEDURE [dbo].[TypesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Types] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -17476,6 +17479,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -18016,6 +18020,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -18220,6 +18225,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
               ,[TypeId]
               ,[MaskId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[Length]
               ,[Decimals]
               ,[ValidValues]
@@ -18333,8 +18339,8 @@ ALTER PROCEDURE [dbo].[DomainsList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Domains] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -18705,6 +18711,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -18867,6 +18874,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
         SELECT [ClassName]
               ,[Id]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[Description]
               ,[ClientName]
               ,[MaxRetryLogins]
@@ -18928,8 +18936,8 @@ ALTER PROCEDURE [dbo].[SystemsList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Systems] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -19311,6 +19319,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -19873,6 +19882,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -20041,6 +20051,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
         SELECT [ClassName]
               ,[Id]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[Password]
               ,[FullName]
               ,[RetryLogins]
@@ -20102,8 +20113,8 @@ ALTER PROCEDURE [dbo].[UsersList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Users] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -20457,6 +20468,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -20623,6 +20635,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
               ,[SystemId]
               ,[UserId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
             FROM [#result]
         SELECT DISTINCT 'System' AS ClassName
               ,[R].[Id]
@@ -20706,8 +20719,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[SystemsUsers] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -21101,6 +21114,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -21690,6 +21704,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -21869,6 +21884,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
               ,[Id]
               ,[ConnectionId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[Alias]
               ,[Description]
               ,[Folder]
@@ -21949,8 +21965,8 @@ ALTER PROCEDURE [dbo].[DatabasesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Databases] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -22304,6 +22320,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -22470,6 +22487,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
               ,[SystemId]
               ,[DatabaseId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
             FROM [#result]
         SELECT DISTINCT 'System' AS ClassName
               ,[R].[Id]
@@ -22573,8 +22591,8 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[SystemsDatabases] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -22974,6 +22992,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -23146,6 +23165,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
         SELECT [ClassName]
               ,[Id]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[Alias]
               ,[Description]
               ,[ParentTableId]
@@ -23222,8 +23242,8 @@ ALTER PROCEDURE [dbo].[TablesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -23577,6 +23597,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -23743,6 +23764,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
               ,[DatabaseId]
               ,[TableId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
             FROM [#result]
         SELECT DISTINCT 'Database' AS ClassName
               ,[R].[Id]
@@ -23860,8 +23882,8 @@ ALTER PROCEDURE [dbo].[DatabasesTablesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[DatabasesTables] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -24364,6 +24386,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -25136,6 +25159,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -25299,6 +25323,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
               ,[Id]
               ,[TableId]
               ,[Name]
+              ,[Name] AS [ListItemValue]
               ,[IsUnique]
             FROM [#result]
         SELECT DISTINCT 'Table' AS ClassName
@@ -25384,8 +25409,8 @@ ALTER PROCEDURE [dbo].[IndexesList](@Value NVARCHAR(MAX)
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SET @sql = 'SELECT [T].[Id]
-                          ,[T].[Name]
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
                        FROM [#query] [Q]
                            INNER JOIN [dbo].[Indexes] [T] ON [T].[Id] = [Q].[Id]
                        ORDER BY [T].[Name]
@@ -25750,6 +25775,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -26365,6 +26391,7 @@ ALTER PROCEDURE [dbo].[LoginsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -26893,6 +26920,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -27429,6 +27457,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -27994,6 +28023,7 @@ ALTER PROCEDURE [dbo].[AssociationsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -28221,12 +28251,12 @@ GO
 
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UniqueValidate]
+Criar stored procedure [dbo].[UnicityValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UniqueValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UniqueValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UnicityValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UnicityValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[UnicityValidate](@LoginId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
@@ -28273,9 +28303,9 @@ ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
         IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
-                THROW 51000, 'Chave-primária já existe em Uniques', 1
+                THROW 51000, 'Chave-primária já existe em Unicities', 1
         END ELSE IF @Action <> 'create'
-            THROW 51000, 'Chave-primária não existe em Uniques', 1
+            THROW 51000, 'Chave-primária não existe em Unicities', 1
         IF @Action <> 'create' BEGIN
             IF @LastRecord IS NULL
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
@@ -28288,12 +28318,12 @@ ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsBidirectional'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
-                            FROM [dbo].[Uniques]
+                            FROM [dbo].[Unicities]
                             WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
                                   AND [ColumnId1] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId1')
                                   AND [ColumnId2] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId2')
                                   AND [IsBidirectional] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsBidirectional'))
-                THROW 51000, 'Registro de Uniques alterado por outro usuário', 1
+                THROW 51000, 'Registro de Unicities alterado por outro usuário', 1
         END
 
         IF @Action <> 'delete' BEGIN
@@ -28313,13 +28343,13 @@ ALTER PROCEDURE [dbo].[UniqueValidate](@LoginId BIGINT
             IF @W_IsBidirectional IS NULL
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2)
+                IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2)
                     THROW 51000, 'Chave única de UNQ_Uniques_ColumnId1_ColumnId2 já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1)
+                IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1)
                     THROW 51000, 'Chave única de UNQ_Uniques_ColumnId2_ColumnId1 já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2 AND [Id] <> @W_Id)
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2 AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Uniques_ColumnId1_ColumnId2 já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1 AND [Id] <> @W_Id)
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1 AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Uniques_ColumnId2_ColumnId1 já existe', 1
             END
         END
@@ -28334,12 +28364,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UniquePersist]
+Criar stored procedure [dbo].[UnicityPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UniquePersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UniquePersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UnicityPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UnicityPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[UnicityPersist](@LoginId BIGINT
                                               ,@UserName NVARCHAR(25)
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -28360,7 +28390,7 @@ ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[UniqueValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionId = [dbo].[UnicityValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -28380,7 +28410,7 @@ ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
                                              ,[CreatedAt]
                                              ,[CreatedBy])
                                        VALUES(@TransactionId
-                                             ,'Uniques'
+                                             ,'Unicities'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
@@ -28399,7 +28429,7 @@ ALTER PROCEDURE [dbo].[UniquePersist](@LoginId BIGINT
             THROW 51000, 'Registro já existe nesta transação', 1
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[UniqueValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[UnicityValidate] @LoginId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -28436,12 +28466,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UniqueCommit]
+Criar stored procedure [dbo].[UnicityCommit]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UniqueCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UniqueCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UnicityCommit]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UnicityCommit] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[UnicityCommit](@LoginId BIGINT
                                              ,@UserName NVARCHAR(25)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @TRANCOUNT INT = @@TRANCOUNT
@@ -28479,7 +28509,7 @@ ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
-        IF @TableName <> 'Uniques'
+        IF @TableName <> 'Unicities'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -28487,13 +28517,13 @@ ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[UniqueValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[UnicityValidate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
-            DELETE FROM [dbo].[Uniques] WHERE [Id] = @W_Id
+            DELETE FROM [dbo].[Unicities] WHERE [Id] = @W_Id
         ELSE BEGIN
 
             DECLARE @W_ColumnId1 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId1') AS bigint)
@@ -28501,7 +28531,7 @@ ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
                    ,@W_IsBidirectional bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional') AS bit)
 
             IF @Action = 'create'
-                INSERT INTO [dbo].[Uniques] ([Id]
+                INSERT INTO [dbo].[Unicities] ([Id]
                                                 ,[ColumnId1]
                                                 ,[ColumnId2]
                                                 ,[IsBidirectional]
@@ -28514,7 +28544,7 @@ ALTER PROCEDURE [dbo].[UniqueCommit](@LoginId BIGINT
                                                  ,GETDATE()
                                                  ,@UserName)
             ELSE
-                UPDATE [dbo].[Uniques] SET [Id] = @W_Id
+                UPDATE [dbo].[Unicities] SET [Id] = @W_Id
                                               ,[ColumnId1] = @W_ColumnId1
                                               ,[ColumnId2] = @W_ColumnId2
                                               ,[IsBidirectional] = @W_IsBidirectional
@@ -28543,15 +28573,16 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UniquesRead]
+Criar stored procedure [dbo].[UnicitiesRead]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UniquesRead]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UniquesRead] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UnicitiesRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UnicitiesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[UnicitiesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
                                           ,@PageNumber INT OUT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
@@ -28581,7 +28612,7 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
                                       LEFT JOIN (SELECT [#1].[name] AS ColumnName
                                                     FROM [sys].[columns] [#1]
                                                         INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
-                                                    WHERE [#2].[name] = 'Uniques') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                                                    WHERE [#2].[name] = 'Unicities') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
             SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
@@ -28607,7 +28638,7 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Uniques'
+                  AND [TableName] = 'Unicities'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
@@ -28640,7 +28671,7 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
         SET @sql = 'INSERT [#tmpTable]
                         SELECT ''T'' AS [_]
                               ,[T].[Id]
-                            FROM [dbo].[Uniques] [T]
+                            FROM [dbo].[Unicities] [T]
                                 LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                             WHERE [#].[Id] IS NULL' + @Where + '
                         UNION ALL
@@ -28688,16 +28719,16 @@ ALTER PROCEDURE [dbo].[UniquesRead](@LoginId BIGINT
                     ,CAST(NULL AS bit) AS [IsBidirectional]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Unique'' AS [ClassName]
+                        SELECT ''Unicity'' AS [ClassName]
                               ,[T].[Id]
                               ,[T].[ColumnId1]
                               ,[T].[ColumnId2]
                               ,[T].[IsBidirectional]
                             FROM [#tmpTable] [#]
-                                INNER JOIN [dbo].[Uniques] [T] ON [T].[Id] = [#].[Id]
+                                INNER JOIN [dbo].[Unicities] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Unique'' AS [ClassName]
+                            SELECT ''Unicity'' AS [ClassName]
                                   ,[O].[Id]
                                   ,[O].[ColumnId1]
                                   ,[O].[ColumnId2]

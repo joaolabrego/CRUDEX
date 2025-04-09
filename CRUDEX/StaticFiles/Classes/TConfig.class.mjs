@@ -26,22 +26,16 @@ export default class TConfig {
             },
             url = `${location}/${action}`
 
-        if (action === TActions.CONFIG) {
-            request.PublicKey = TCrypto.GenerateCryptokey()
-            crypto = new TCrypto(request.PublicKey)
-        } else {
+        if (action !== TActions.CONFIG) {
             if (showSpinner)
                 TSpinner.Show()
             if (action === TActions.LOGIN) {
-                request.PublicKey = TCrypto.GenerateCryptokey()
                 body.Login = {
                     Action: action,
                     SystemName: TSystem.Name,
                     UserName: TLogin.UserName,
                     Password: TLogin.Password,
-                    PublicKey: request.PublicKey,
                 }
-                crypto = new TCrypto(request.PublicKey)
             }
             else {
                 request.LoginId = TLogin.LoginId
@@ -52,11 +46,9 @@ export default class TConfig {
                     Password: TLogin.Password,
                     LoginId: TLogin.LoginId,
                 }
-                crypto = new TCrypto(TLogin.PublicKey)
             }
         }
         body.Parameters = parameters
-        //request.Request = crypto.EncryptDecrypt(JSON.stringify(body))
         request.Request = JSON.stringify(body)
         if (action === TActions.LOGOUT && navigator.sendBeacon) {
             result = navigator.sendBeacon(url, new Blob([JSON.stringify(request)], { type: 'application/json' })) ? {} : { ClassName: "Error", Message: "Erro ao enviar LOGOUT via sendBeacon." };
@@ -66,8 +58,7 @@ export default class TConfig {
                 headers,
                 body: JSON.stringify(request),
             })
-            //result = JSON.parse(crypto.EncryptDecrypt((await response.json()).Response))
-            result = JSON.parse(await response.json()).Response
+            result = JSON.parse((await response.json()).Response)
         }
         if (showSpinner && action !== TActions.CONFIG)
             TSpinner.Hide()
