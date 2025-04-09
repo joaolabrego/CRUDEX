@@ -98,7 +98,7 @@ namespace crudex.Classes
         }
         private static async Task<DataSet> GetDataSet()
         {
-            var dataset = (await SQLProcedure.Execute(Settings.ConnectionString(),
+            var dataset = (await Procedure.Execute(Settings.ConnectionString(),
                                                Settings.Get("SCRIPT_SYSTEM_PROCEDURE"),
                                                Config.ToDictionary(Config.ToDictionary(new
                                                {})))).DataSet;

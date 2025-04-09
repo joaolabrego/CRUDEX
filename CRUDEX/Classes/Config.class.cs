@@ -19,7 +19,7 @@ namespace CRUDA_LIB
         public static async Task<Config> Create(string systemName, string? databaseName = null, string? tableName = null)
         {
             var config = new Config();
-            var result = await SQLProcedure.GetConfig(systemName, databaseName, tableName);
+            var result = await Procedure.GetConfig(systemName, databaseName, tableName);
 
             config.Parameters = result.Parameters;
             if (databaseName == null)

@@ -8,7 +8,6 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-		SET @ReturnValue = 1
 		IF ISJSON(@Parameters) = 0
 			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
@@ -97,6 +96,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 				SET [RetryLogins] = 0
 				WHERE [Id] = @UserId
 					  AND [RetryLogins] > 0
+			SET @ReturnValue = @LoginId
 		END ELSE IF @LoginId IS NULL
 			THROW 51000, 'Id de login é requerido', 1
 		ELSE BEGIN
@@ -129,7 +129,6 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 				,ERROR_NUMBER() AS [Number]
 				,ERROR_LINE() AS [Line]
 				,ERROR_MESSAGE() AS [Message]
-		SET @ReturnValue = 0
 
 		RETURN 0
 	END CATCH

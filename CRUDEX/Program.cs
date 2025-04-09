@@ -50,7 +50,7 @@ namespace CRUDA_LIB
                         break;
                     case Actions.CHECK:
                         context.Response.Headers.ContentType = "text/html";
-                        await SQLProcedure.GetConfig(systemName);
+                        await Procedure.GetConfig(systemName);
                         await context.Response.WriteAsync(Config.GetHTML(systemName), Encoding.UTF8);
                         break;
                     case Actions.CONFIG:
@@ -72,7 +72,7 @@ namespace CRUDA_LIB
                         if (action == Actions.EXECUTE)
                         {
                             await Login.Execute(parameters, true);
-                            response = JsonConvert.SerializeObject(await SQLProcedure.Execute(systemName, parameters));
+                            response = JsonConvert.SerializeObject(await Procedure.Execute(systemName, parameters));
                         }
                         else
                             response = JsonConvert.SerializeObject(await Login.Execute(parameters));

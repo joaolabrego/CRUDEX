@@ -16,7 +16,7 @@ namespace CRUDA_LIB
                     throw new Exception("Login requerido em Parameters.");
                 else if (login.ContainsKey("SystemName") && login.ContainsKey("UserName") && login.ContainsKey("Password") && login.ContainsKey("Action"))
                 {
-                    return await SQLProcedure.Execute(
+                    return await Procedure.Execute(
                         Settings.ConnectionString(),
                         Settings.Get("LOGIN_PROCEDURE"),
                         Config.ToDictionary(new
@@ -41,7 +41,7 @@ namespace CRUDA_LIB
         }
         public static async Task<string> GetPublicKey(long loginId)
         {
-            return (await SQLProcedure.Execute(
+            return (await Procedure.Execute(
                 Settings.ConnectionString(),
                 Settings.Get("PUBLICKEY_PROCEDURE"),
                 Config.ToDictionary(new

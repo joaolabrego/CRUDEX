@@ -5,9 +5,9 @@ using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
 namespace CRUDA_LIB
 {
-    public static class SQLProcedure
+    public static class Procedure
     {
-        public readonly static string ClassName = "SQLProcedure";
+        public readonly static string ClassName = "Procedure";
         public static async Task<TResult> Execute(string? connectionString, string? procedureName, TDictionary? parameters = null)
         {
             using var dataset = new DataSet();
@@ -34,13 +34,6 @@ namespace CRUDA_LIB
             using var adapter = new OleDbDataAdapter(command);
             adapter.Fill(dataset);
             
-            if (Convert.ToInt64(command.Parameters["ReturnValue"].Value) == 0)
-            {
-                throw new Exception(dataset.Tables[dataset.Tables.Count - 1].Rows[0]["Message"].ToString());
-            }
-
-                
-
             return new TResult(dataset, command.Parameters);
         }
 
