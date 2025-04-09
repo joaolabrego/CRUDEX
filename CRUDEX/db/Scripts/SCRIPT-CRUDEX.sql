@@ -9,9 +9,9 @@ GO
 CREATE DATABASE [crudex]
     CONTAINMENT = NONE
     ON PRIMARY
-    (NAME = N'$crudex', FILENAME = N'D:\CRUDEX-C#\CRUDEX\CRUDEX\db\crudex.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)
+    (NAME = N'$crudex', FILENAME = N'D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\db\crudex.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)
     LOG ON
-    (NAME = N'$crudex_log', FILENAME = N'D:\CRUDEX-C#\CRUDEX\CRUDEX\db\crudex.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)
+    (NAME = N'$crudex_log', FILENAME = N'D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\db\crudex.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)
     WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF
 GO
 ALTER DATABASE[crudex] SET COMPATIBILITY_LEVEL = 160
@@ -444,7 +444,7 @@ IF (SELECT object_id('[dbo].[Logins]', 'U')) IS NOT NULL
 CREATE TABLE [dbo].[Logins]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[SystemId] bigint NOT NULL CHECK ([SystemId] >= CAST('1' AS bigint))
                                     ,[UserId] bigint NOT NULL CHECK ([UserId] >= CAST('1' AS bigint))
-                                    ,[PublicKey] nvarchar(256) NOT NULL
+                                    ,[PublicKey] nvarchar(256) NULL
                                     ,[IsLogged] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
@@ -1050,8 +1050,6 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 			END
 		END
 		IF @action = 'login' BEGIN
-			IF @PublicKey IS NULL
-				THROW 51000, 'Chave pública é requerida', 1
 			EXEC [dbo].[NewId] 'crudex', 'crudex', 'Logins', @LoginId OUT
 			INSERT [dbo].[Logins]([Id],
 								  [SystemId],
@@ -5319,7 +5317,7 @@ INSERT INTO [dbo].[Databases] ([Id]
                                 ,CAST('crudex' AS nvarchar(25))
                                 ,CAST('crudex' AS nvarchar(25))
                                 ,CAST('CRUD Express' AS nvarchar(50))
-                                ,CAST('D:\CRUDEX-C#\CRUDEX\CRUDEX\db\' AS nvarchar(256))
+                                ,CAST('D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\db\' AS nvarchar(256))
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
@@ -13131,7 +13129,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -26126,7 +26124,7 @@ ALTER PROCEDURE [dbo].[LoginValidate](@LoginId BIGINT
                             WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
                                   AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
                                   AND [UserId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId')
-                                  AND [PublicKey] = [crudex].[JSON_EXTRACT](@LastRecord, '$.PublicKey')
+                                  AND [crudex].[IS_EQUAL]([PublicKey], [crudex].[JSON_EXTRACT](@LastRecord, '$.PublicKey'), 'nvarchar') = 1
                                   AND [IsLogged] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLogged'))
                 THROW 51000, 'Registro de Logins alterado por outro usuário', 1
         END
@@ -26153,8 +26151,6 @@ ALTER PROCEDURE [dbo].[LoginValidate](@LoginId BIGINT
                 THROW 51000, 'Valor de UserId em @ActualRecord deve ser maior que ou igual a 1', 1
             IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_Id)
                 THROW 51000, 'Valor de UserId em @ActualRecord inexiste em Users', 1
-            IF @W_PublicKey IS NULL
-                THROW 51000, 'Valor de PublicKey em @ActualRecord é requerido.', 1
             IF @W_IsLogged IS NULL
                 THROW 51000, 'Valor de IsLogged em @ActualRecord é requerido.', 1
         END

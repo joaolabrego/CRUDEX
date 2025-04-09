@@ -28,7 +28,6 @@ namespace CRUDA_LIB
                                     SystemName = login["SystemName"],
                                     UserName = login["UserName"],
                                     Password = login["Password"],
-                                    PublicKey = login["Action"] == Actions.LOGIN ? Crypto.GenerateCryptoKey() : null,
                                     LoginId = login["Action"] == Actions.LOGIN ? null : login["LoginId"],
                                     Action = forceAuthenticate ? Actions.AUTHENTICATE : login["Action"],
                                 }),
