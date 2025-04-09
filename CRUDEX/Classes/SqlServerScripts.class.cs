@@ -363,8 +363,8 @@ namespace crudex.Classes
 
                         if (!Settings.ToString(column["Name"]).ToLower().Equals("id"))
                             throw new Exception(message + "deve ter nome 'Id'.");
-                        if (!Settings.ToString(column["#CategoryName"]).Equals("numeric"))
-                            throw new Exception(message + "deve ser de categoria 'numeric'.");
+                        if (!Settings.ToString(column["#CategoryName"]).Equals("number"))
+                            throw new Exception(message + "deve ser de categoria 'number'.");
                         if (!Settings.ToBoolean(constraints["AskPrimarykey"]))
                             throw new Exception(message + "deve permitir 'primary key'.");
                         if (!Settings.ToBoolean(column["IsPrimarykey"]))

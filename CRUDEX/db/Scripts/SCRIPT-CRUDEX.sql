@@ -4209,8 +4209,293 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('6' AS bigint)
-                                ,CAST('DateTime' AS nvarchar(25))
+                                ,CAST('American DateTime' AS nvarchar(25))
+                                ,CAST('MM/dd/yyyy hh:mm:ss' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('7' AS bigint)
+                                ,CAST('Brithish DateTime' AS nvarchar(25))
                                 ,CAST('dd/MM/yyyy hh:mm:ss' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('8' AS bigint)
+                                ,CAST('ISO DateTime' AS nvarchar(25))
+                                ,CAST('yyyy-MM-dd hh:mm:ss' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('9' AS bigint)
+                                ,CAST('Small American DateTime' AS nvarchar(25))
+                                ,CAST('MM/dd/yyyy hh:mm' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('10' AS bigint)
+                                ,CAST('Small Brithish DateTime' AS nvarchar(25))
+                                ,CAST('dd/MM/yyyy hh:mm' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('11' AS bigint)
+                                ,CAST('Small ISO DateTime' AS nvarchar(25))
+                                ,CAST('yyyy-MM-dd hh:mm' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('12' AS bigint)
+                                ,CAST('Short American DateTime' AS nvarchar(25))
+                                ,CAST('MM/dd/yy hh:mm:ss' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('13' AS bigint)
+                                ,CAST('Short Brithish DateTime' AS nvarchar(25))
+                                ,CAST('dd/MM/yy hh:mm:ss' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('14' AS bigint)
+                                ,CAST('Short ISO DateTime' AS nvarchar(25))
+                                ,CAST('yy-MM-dd hh:mm:ss' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('15' AS bigint)
+                                ,CAST('Tiny American DateTime' AS nvarchar(25))
+                                ,CAST('MM/dd/yy hh:mm' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('16' AS bigint)
+                                ,CAST('Tiny Brithish DateTime' AS nvarchar(25))
+                                ,CAST('dd/MM/yy hh:mm' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('17' AS bigint)
+                                ,CAST('Tiny ISO DateTime' AS nvarchar(25))
+                                ,CAST('yy-MM-dd hh:mm' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('18' AS bigint)
+                                ,CAST('American Date' AS nvarchar(25))
+                                ,CAST('MM/dd/yyyy' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('19' AS bigint)
+                                ,CAST('Brithish Date' AS nvarchar(25))
+                                ,CAST('dd/MM/yyyy' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('20' AS bigint)
+                                ,CAST('ISO Date' AS nvarchar(25))
+                                ,CAST('yyyy/MM/dd' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('21' AS bigint)
+                                ,CAST('Tiny American Date' AS nvarchar(25))
+                                ,CAST('MM/dd/yy' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('22' AS bigint)
+                                ,CAST('Tiny Brithish Date' AS nvarchar(25))
+                                ,CAST('dd/MM/yy' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('23' AS bigint)
+                                ,CAST('Tiny ISO Date' AS nvarchar(25))
+                                ,CAST('yy/MM/dd' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('24' AS bigint)
+                                ,CAST('Time' AS nvarchar(25))
+                                ,CAST('hh:mm:ss' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Masks] ([Id]
+                                ,[Name]
+                                ,[Mask]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('25' AS bigint)
+                                ,CAST('Tiny Time' AS nvarchar(25))
+                                ,CAST('hh:mm' AS nvarchar(max))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6187,7 +6472,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('21' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('21' AS bigint)
-                                ,CAST('crudex x Uniques' AS nvarchar(50))
+                                ,CAST('crudex x Unicities' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -24013,10 +24298,10 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@LoginId BIGINT
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [ColumnId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Indexkeys', 1
-            IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId1] = @W_Id)
-                THROW 51000, 'Chave-primária referenciada em Uniques', 1
-            IF EXISTS(SELECT 1 FROM [dbo].[Uniques] WHERE [ColumnId2] = @W_Id)
-                THROW 51000, 'Chave-primária referenciada em Uniques', 1
+            IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Unicities', 1
+            IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId2] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Unicities', 1
         END ELSE BEGIN
 
             DECLARE @W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS bigint)
