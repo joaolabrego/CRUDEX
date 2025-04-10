@@ -4987,7 +4987,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('16' AS bigint)
                                 ,CAST('6' AS tinyint)
-                                ,CAST('6' AS bigint)
+                                ,CAST('7' AS bigint)
                                 ,CAST('DateTime' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
