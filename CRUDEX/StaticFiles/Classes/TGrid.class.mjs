@@ -107,8 +107,7 @@ export default class TGrid {
     #UpdateScrollThumbFromInputs() {
         let trackHeight = this.#HTML.Scroll.Track.clientHeight,
             maxTop = trackHeight - this.#HTML.Scroll.Thumb.clientHeight,
-            scrollPosition =
-                ((this.#PageNumber - 1) / (this.#PageCount - 1)) * maxTop;
+            scrollPosition = Math.trunc(((this.#PageNumber - 1) / (this.#PageCount - 1)) * maxTop);
 
         this.#HTML.Scroll.Thumb.style.top = `${scrollPosition}px`;
     }

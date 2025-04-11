@@ -15,14 +15,14 @@ export default class TField {
         this.#Value = this.#LastValue;
     }
     get Updated() {
-        return this.#Value !== this.#LastValue;
+        return this.#Value !== this.#LastValue; S;
     }
     get Column() {
         return this.#Column;
     }
     set Reference(reference) {
         if (reference.ClassName !== "TField")
-            throw new Error("Argumento reference n�o � do tipo TField.");
+            throw new Error("Argumento reference não é do tipo TField.");
         this.#Reference = reference;
     }
     get Reference() {
