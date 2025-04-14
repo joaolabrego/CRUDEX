@@ -6,7 +6,7 @@ O projeto CRUDEX, que já está quase em fase final de desenvolvimento, foi cria
 
 Tive até que inventar um conceito novo para defini-lo: SGSI — Sistema Gerenciador de Sistemas de Informação.
 
-Assim como existem os conceitos de SGBD SQL e SGBD NoSQL, agora existe também o conceito de SGSI CRUDEX. Se futuramente surgirem outros padrões, haverá os SGSI CRUDEX e os SGSI não-CRUDEX.
+Assim como existem os conceitos de SGBD SQL e SGBD No-SQL, agora existe também o conceito de SGSI CRUDEX. Se futuramente surgirem outros padrões, haverá os SGSI CRUDEX e os SGSI No-CRUDEX.
 
 O que há de novo nisso?
 
