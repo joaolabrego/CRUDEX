@@ -48,11 +48,9 @@
     <Content Include="Assets\Images\alert.png" />
     <Content Include="Assets\Images\cancel.png" />
     <Content Include="Assets\Images\confirm.png" />
-    <Content Include="Assets\Images\daycoval.jpg" />
     <Content Include="Assets\Images\delete.png" />
     <Content Include="Assets\Images\edit.png" />
     <Content Include="Assets\Images\error.png" />
-    <Content Include="Assets\Images\exclamation.png" />
     <Content Include="Assets\Images\exit.png" />
     <Content Include="Assets\Images\favicon.png" />
     <Content Include="Assets\Images\filter.png" />

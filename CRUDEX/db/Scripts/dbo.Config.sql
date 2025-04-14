@@ -303,11 +303,8 @@ BEGIN
 		END
 	END TRY
 	BEGIN CATCH
-		SELECT ERROR_PROCEDURE() AS [ProcedureName]
-				,ERROR_NUMBER() AS [Number]
-				,ERROR_LINE() AS [Line]
-				,ERROR_MESSAGE() AS [Message]
-		SET @ReturnValue = 0
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
 	END CATCH
 END
 GO

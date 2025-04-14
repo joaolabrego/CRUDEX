@@ -124,13 +124,8 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 		RETURN 1
 	END TRY
 	BEGIN CATCH
-		SELECT 'PROCEDURE_RESULT' AS [ClassName]
-				,ERROR_PROCEDURE() AS [ProcedureName]
-				,ERROR_NUMBER() AS [Number]
-				,ERROR_LINE() AS [Line]
-				,ERROR_MESSAGE() AS [Message]
-
-		RETURN 0
+        SET @ErrorMessage = ERROR_MESSAGE();
+        THROW 51000, @ErrorMessage, 1
 	END CATCH
 END
 GO
