@@ -77,8 +77,8 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 			END
 		END
 		IF @action = 'login' BEGIN
-			EXEC [dbo].[NewId] 'crudex', 'crudex', 'Logins', @LoginId OUT
-			INSERT [dbo].[Logins]([Id],
+			EXEC [dbo].[NewId] 'crudex', 'crudex', 'Sessions', @LoginId OUT
+			INSERT [dbo].[Sessions]([Id],
 								  [SystemId],
 								  [UserId],
 								  [PublicKey],
@@ -103,7 +103,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 			SELECT @SystemIdAux = [SystemId],
 				   @UserIdAux = [UserId],
 				   @IsLogged = [IsLogged]
-				FROM [dbo].[Logins]
+				FROM [dbo].[Sessions]
 				WHERE [Id] = @LoginId
 			IF @SystemIdAux IS NULL
 				THROW 51000, 'Login não cadastrado', 1
@@ -114,7 +114,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 			IF @IsLogged = 0
 				THROW 51000, 'Login já encerrado', 1
 			IF @action = 'logout'
-				UPDATE [dbo].[Logins]
+				UPDATE [dbo].[Sessions]
 					SET [IsLogged] = 0,
 						[UpdatedAt] = GETDATE(),
 						[UpdatedBy] = @UserName

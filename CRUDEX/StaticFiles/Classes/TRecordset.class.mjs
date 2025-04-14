@@ -22,7 +22,7 @@ export default class TRecordSet {
         this.#Table.Columns.filter(column => column.IsFilterable)
             .forEach(column => this.#FilterValues[column.Name] = null);
     }
-    async #ReadPage(pageNumber) {
+    async #ReadPage(pageNumber = this.#PageNumber) {
         let parameters = {
             DatabaseName: this.#Table.Database.Name,
             TableName: this.#Table.Name,
@@ -56,8 +56,8 @@ export default class TRecordSet {
                     let table = TSystem.GetTable(datarow.ClassName),
                         record = new TRecord(this, datarow);
 
-                    if (this.this.#References[table.Alias] === undefined)
-                        this.this.#References[table.Alias] = [];
+                    if (this.#References[table.Alias] === undefined)
+                        this.#References[table.Alias] = [];
                     this.this.#References[table.Alias].push(record);
                 });
             }
@@ -82,9 +82,10 @@ export default class TRecordSet {
                 return column.Value = value;
             }
         });
+        this.#Data.length = 0;
+        this.#Data.push(...result.DataSet.Table);
 
-
-        return this.#Data = result.DataSet.Table;
+        return this.#Data;
     }
     GetReferenceRow(tableId, valueId) {
         return this.#References[tableId].find(referenceRow => referenceRow.Id === valueId);

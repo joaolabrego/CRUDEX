@@ -1,7 +1,7 @@
 ﻿IF(SELECT object_id('[crudex].[TransactionBegin]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [crudex].[TransactionBegin] AS PRINT 1')
 GO
-ALTER PROCEDURE[crudex].[TransactionBegin](@LoginId BIGINT
+ALTER PROCEDURE[crudex].[TransactionBegin](@SessionId BIGINT
 										 ,@UserName VARCHAR(25)
 										 ,@ReturnValue BIGINT OUT) AS BEGIN
 	DECLARE @TRANCOUNT INT = @@TRANCOUNT
@@ -12,23 +12,23 @@ ALTER PROCEDURE[crudex].[TransactionBegin](@LoginId BIGINT
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 		BEGIN TRANSACTION
 		SAVE TRANSACTION [SavePoint]
-		IF @LoginId IS NULL
-			THROW 51000, 'Valor de @LoginId é requerido', 1
+		IF @SessionId IS NULL
+			THROW 51000, 'Valor de @SessionId é requerido', 1
 		IF @UserName IS NULL
 			THROW 51000, 'Valor de @UserName é requerido', 1
-		IF EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId AND [IsConfirmed] IS NULL)
-			THROW 51000, 'Há transação pendente neste @LoginId', 1
+		IF EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId AND [IsConfirmed] IS NULL)
+			THROW 51000, 'Há transação pendente neste @SessionId', 1
 		
 		DECLARE @TransactionId BIGINT
 
 		EXEC @TransactionId = [dbo].[NewId] 'crudex', 'crudex', 'Transactions'
 		INSERT [dbo].[Transactions] ([Id]
-									,[LoginId]
+									,[SessionId]
 									,[IsConfirmed]
 									,[CreatedAt]
 									,[CreatedBy])
 								VALUES (@TransactionId
-									   ,@LoginId
+									   ,@SessionId
 									   ,NULL
 									   ,GETDATE()
 									   ,@UserName)

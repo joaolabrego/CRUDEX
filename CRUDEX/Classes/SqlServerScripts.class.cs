@@ -119,7 +119,7 @@ namespace crudex.Classes
             dataset.Tables[13].TableName = "Columns";
             dataset.Tables[14].TableName = "Indexes";
             dataset.Tables[15].TableName = "Indexkeys";
-            dataset.Tables[16].TableName = "Logins";
+            dataset.Tables[16].TableName = "Sessions";
             dataset.Tables[17].TableName = "Transactions";
             dataset.Tables[18].TableName = "Operations";
 
@@ -558,7 +558,7 @@ namespace crudex.Classes
                 result.Append($"IF(SELECT object_id('[dbo].[{table["Alias"]}Persist]', 'P')) IS NULL\r\n");
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Alias"]}Persist] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Persist](@LoginId BIGINT\r\n");
+                result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Persist](@SessionId BIGINT\r\n");
                 result.Append($"                                              ,@UserName NVARCHAR(25)\r\n");
                 result.Append($"                                              ,@Action NVARCHAR(15)\r\n");
                 result.Append($"                                              ,@LastRecord NVARCHAR(max)\r\n");
@@ -579,7 +579,7 @@ namespace crudex.Classes
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
                 result.Append($"        SAVE TRANSACTION [SavePoint]\r\n");
-                result.Append($"        EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
+                result.Append($"        EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
                 result.Append($"        SELECT @OperationId = [Id]\r\n");
                 result.Append($"              ,@CreatedBy = [CreatedBy]\r\n");
                 result.Append($"              ,@ActionAux = [Action]\r\n");
@@ -618,7 +618,7 @@ namespace crudex.Classes
                 result.Append($"            THROW 51000, 'Registro já existe nesta transação', 1\r\n");
                 result.Append($"        ELSE IF @Action = 'update' BEGIN\r\n");
                 result.Append($"            IF @ActionAux = 'create'\r\n");
-                result.Append($"                EXEC [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, 'create', NULL, @ActualRecord\r\n");
+                result.Append($"                EXEC [dbo].[{table["Alias"]}Validate] @SessionId, @UserName, 'create', NULL, @ActualRecord\r\n");
                 result.Append($"            UPDATE [dbo].[Operations]\r\n");
                 result.Append($"                SET [ActualRecord] = @ActualRecord\r\n");
                 result.Append($"                   ,[UpdatedAt] = GETDATE()\r\n");
@@ -670,7 +670,7 @@ namespace crudex.Classes
                 result.Append($"IF(SELECT object_id('[dbo].[{table["Alias"]}Commit]', 'P')) IS NULL\r\n");
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Alias"]}Commit] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Commit](@LoginId BIGINT\r\n");
+                result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Commit](@SessionId BIGINT\r\n");
                 result.Append($"                                             ,@UserName NVARCHAR(25)\r\n");
                 result.Append($"                                             ,@OperationId BIGINT) AS BEGIN\r\n");
                 result.Append($"    DECLARE @TRANCOUNT INT = @@TRANCOUNT\r\n");
@@ -691,8 +691,8 @@ namespace crudex.Classes
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
                 result.Append($"        SAVE TRANSACTION [SavePoint]\r\n");
-                result.Append($"        IF @LoginId IS NULL\r\n");
-                result.Append($"            THROW 51000, 'Valor de @LoginId requerido', 1\r\n");
+                result.Append($"        IF @SessionId IS NULL\r\n");
+                result.Append($"            THROW 51000, 'Valor de @SessionId requerido', 1\r\n");
                 result.Append($"        IF @UserName IS NULL\r\n");
                 result.Append($"            THROW 51000, 'Valor de @UserName requerido', 1\r\n");
                 result.Append($"        IF @OperationId IS NULL\r\n");
@@ -716,7 +716,7 @@ namespace crudex.Classes
                 result.Append($"        END\r\n");
                 result.Append($"        IF @UserName <> @CreatedBy\r\n");
                 result.Append($"            THROW 51000, 'Erro grave de segurança', 1\r\n");
-                result.Append($"        EXEC @TransactionIdAux = [dbo].[{table["Alias"]}Validate] @LoginId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
+                result.Append($"        EXEC @TransactionIdAux = [dbo].[{table["Alias"]}Validate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
                 result.Append($"        IF @TransactionId <> @TransactionIdAux\r\n");
                 result.Append($"            THROW 51000, 'Transação da operação é inválida', 1\r\n");
                 result.Append($"        DECLARE @W_Id {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
@@ -822,7 +822,7 @@ namespace crudex.Classes
                 result.Append($"IF(SELECT object_id('[dbo].[{table["Alias"]}Validate]', 'P')) IS NULL\r\n");
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Alias"]}Validate] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Validate](@LoginId BIGINT\r\n");
+                result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Validate](@SessionId BIGINT\r\n");
                 result.Append($"                                               ,@UserName NVARCHAR(25)\r\n");
                 result.Append($"                                               ,@Action NVARCHAR(15)\r\n");
                 result.Append($"                                               ,@LastRecord NVARCHAR(max)\r\n");
@@ -832,8 +832,8 @@ namespace crudex.Classes
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
-                result.Append($"        IF @LoginId IS NULL\r\n");
-                result.Append($"            THROW 51000, 'Valor de @LoginId é requerido', 1\r\n");
+                result.Append($"        IF @SessionId IS NULL\r\n");
+                result.Append($"            THROW 51000, 'Valor de @SessionId é requerido', 1\r\n");
                 result.Append($"        IF @UserName IS NULL\r\n");
                 result.Append($"            THROW 51000, 'Valor de @UserName é requerido', 1\r\n");
                 result.Append($"        IF @Action IS NULL\r\n");
@@ -844,13 +844,13 @@ namespace crudex.Classes
                 result.Append($"            THROW 51000, 'Valor de @ActualRecord é requerido', 1\r\n");
                 result.Append($"        IF ISJSON(@ActualRecord) = 0\r\n");
                 result.Append($"            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1\r\n");
-                result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
+                result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
                 result.Append($"               ,@W_Id AS {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF @TransactionId IS NULL\r\n");
-                result.Append($"            THROW 51000, 'Não existe transação para este @LoginId', 1\r\n");
+                result.Append($"            THROW 51000, 'Não existe transação para este @SessionId', 1\r\n");
                 result.Append($"        SELECT @IsConfirmed = [IsConfirmed]\r\n");
                 result.Append($"              ,@CreatedBy = [CreatedBy]\r\n");
                 result.Append($"            FROM [dbo].[Transactions]\r\n");
@@ -1138,7 +1138,7 @@ namespace crudex.Classes
                 result.Append($"IF(SELECT object_id('[dbo].[{table["Name"]}Read]', 'P')) IS NULL\r\n");
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}Read] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}Read](@LoginId BIGINT\r\n");
+                result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}Read](@SessionId BIGINT\r\n");
                 result.Append($"                                          ,@RecordFilter NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@OrderBy NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@PaddingGridLastPage BIT\r\n");
@@ -1152,8 +1152,8 @@ namespace crudex.Classes
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
-                result.Append($"        IF @LoginId IS NULL\r\n");
-                result.Append($"            THROW 51000, 'Valor de @LoginId é requerido', 1\r\n");
+                result.Append($"        IF @SessionId IS NULL\r\n");
+                result.Append($"            THROW 51000, 'Valor de @SessionId é requerido', 1\r\n");
                 result.Append($"        IF @RecordFilter IS NULL\r\n");
                 result.Append("            SET @RecordFilter = '{}'\r\n");
                 result.Append($"        ELSE IF ISJSON(@RecordFilter) = 0\r\n");
@@ -1186,7 +1186,7 @@ namespace crudex.Classes
                 result.Append($"                FROM STRING_SPLIT(@OrderBy, ',')\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [LoginId] = @LoginId)\r\n");
+                result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)\r\n");
                 result.Append($"            SET @TransactionId = NULL\r\n");
@@ -1392,7 +1392,7 @@ namespace crudex.Classes
                     result.Append($"IF(SELECT object_id('[dbo].[{table["Name"]}List]', 'P')) IS NULL\r\n");
                     result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}List] AS PRINT 1')\r\n");
                     result.Append($"GO\r\n");
-                    result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}List](@Value NVARCHAR(MAX)\r\n");
+                    result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}List](@Value {listableColumn["#DataType"]}\r\n");
                     result.Append($"                                          ,@PaddingGridLastPage BIT\r\n");
                     result.Append($"                                          ,@PageNumber INT OUT\r\n");
                     result.Append($"                                          ,@LimitRows INT OUT\r\n");

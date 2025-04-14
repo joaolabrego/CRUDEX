@@ -12,7 +12,7 @@ ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT
 		IF @LoginId IS NULL
 			THROW 51000, 'Parâmetro @LoginId é requerido', 1
 		SELECT [PublicKey]
-			FROM [dbo].[Logins]
+			FROM [dbo].[Sessions]
 			WHERE [Id] = @LoginId
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Valor @LoginId é inexistente', 1

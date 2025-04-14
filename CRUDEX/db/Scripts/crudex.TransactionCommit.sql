@@ -11,7 +11,7 @@ ALTER PROCEDURE[crudex].[TransactionCommit](@TransactionId BIGINT
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @LoginId BIGINT
+		DECLARE @SessionId BIGINT
 				,@OperationId BIGINT
 				,@TableName VARCHAR(25)
 				,@IsConfirmed BIT
@@ -24,7 +24,7 @@ ALTER PROCEDURE[crudex].[TransactionCommit](@TransactionId BIGINT
 			THROW 51000, 'Valor de @TransactionId é requerido', 1
 		IF @UserName IS NULL
 			THROW 51000, 'Valor de @UserName é requerido', 1
-		SELECT @LoginId = [LoginId]
+		SELECT @SessionId = [SessionId]
 			  ,@IsConfirmed = [IsConfirmed]
 			  ,@CreatedBy = [CreatedBy]
 			FROM [dbo].[Transactions]
@@ -37,8 +37,8 @@ ALTER PROCEDURE[crudex].[TransactionCommit](@TransactionId BIGINT
 		END
 		IF @UserName <> @CreatedBy
 			THROW 51000, 'Erro grave de segurança', 1
-		SET @sql = (SELECT STRING_AGG('[dbo].[' + [O].[TableName] + 'Commit] @LoginId = ' +
-									  CAST(@LoginId AS VARCHAR) + ', @OperationId = ' +
+		SET @sql = (SELECT STRING_AGG('[dbo].[' + [O].[TableName] + 'Commit] @SessionId = ' +
+									  CAST(@SessionId AS VARCHAR) + ', @OperationId = ' +
 									  CAST([O].[Id] AS VARCHAR), '; ')
 						FROM [dbo].[Operations] [O]
 						WHERE [O].[TransactionId] = @TransactionId
