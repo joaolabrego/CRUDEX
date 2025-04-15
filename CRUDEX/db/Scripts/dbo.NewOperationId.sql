@@ -4,9 +4,6 @@ GO
 ALTER PROCEDURE [dbo].[NewOperationId](@SystemName VARCHAR(25)
 									  ,@DatabaseName VARCHAR(25)
 									  ,@ReturnValue BIGINT OUT) AS BEGIN
-	DECLARE @TRANCOUNT INT = @@TRANCOUNT
-			,@ErrorMessage NVARCHAR(MAX)
-
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -15,8 +12,6 @@ ALTER PROCEDURE [dbo].[NewOperationId](@SystemName VARCHAR(25)
 				,@DatabaseId BIGINT
 				,@NexOperationtId BIGINT
 
-		BEGIN TRANSACTION
-		SAVE TRANSACTION [SavePoint]
 		SELECT @SystemId = [Id]
 			FROM [dbo].[Systems]
 			WHERE [Name] = @SystemName
@@ -37,16 +32,12 @@ ALTER PROCEDURE [dbo].[NewOperationId](@SystemName VARCHAR(25)
 			SET [CurrentOperationId] = @NexOperationtId
 			WHERE [Id] = @DatabaseId
 		SET @ReturnValue = @NexOperationtId
-		COMMIT TRANSACTION
 
 		RETURN 0
 	END TRY
 	BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+		DECLARE @ErrorMessage VARCHAR(MAX) = ERROR_MESSAGE();
+
         THROW 51000, @ErrorMessage, 1
 	END CATCH
 END

@@ -6,16 +6,14 @@ ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
 							  ,@TableName VARCHAR(25) = NULL
 							  ,@ReturnValue BIT OUT) AS
 BEGIN
-	DECLARE @ErrorMessage VARCHAR(250)
-
 	SET NOCOUNT ON
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+	DECLARE @ErrorMessage VARCHAR(MAX)
+
 	BEGIN TRY
 		SET @ReturnValue = 1
-		IF @SystemName IS NULL BEGIN
-			SET @ErrorMessage = 'Nome de sistema é requerido.';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @SystemName IS NULL
+			THROW 51000, 'Nome de sistema é requerido.', 1
 		-- 0 [Systems]
 		SELECT 	'System' AS [ClassName]
 				,[Id]
@@ -57,10 +55,8 @@ BEGIN
 				INNER JOIN [dbo].[SystemsDatabases] [SD] ON [SD].[DatabaseId] = [D].[id]
 				INNER JOIN [#Systems] [S] ON [S].[Id] = [SD].[SystemId]
 			WHERE @DatabaseName IS NULL OR [D].[Name] = @DatabaseName
-		IF @@ROWCOUNT = 0 BEGIN
-			SET @ErrorMessage = 'Banco(s)-de-dados não cadastrado(s).';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @@ROWCOUNT = 0
+			THROW 51000, 'Banco(s)-de-dados não cadastrado(s).', 1
 		ALTER TABLE [#Databases] ADD PRIMARY KEY CLUSTERED([Id])
 		IF @DatabaseName IS NULL BEGIN
 			ALTER TABLE [#Databases] DROP COLUMN [Folder]
@@ -82,10 +78,8 @@ BEGIN
 			INTO [#Connections]
 			FROM [dbo].[Connections] [C]
 			WHERE [C].[Id] IN (SELECT [ConnectionId] FROM [#Databases])
-		IF @@ROWCOUNT = 0 BEGIN
-			SET @ErrorMessage = 'Banco(s)-de-dados não cadastrado(s).';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @@ROWCOUNT = 0
+			THROW 51000, 'Banco(s)-de-dados não cadastrado(s).', 1
 		ALTER TABLE [#Connections] ADD PRIMARY KEY CLUSTERED([Id])
 
 		-- 3 [Tables]
@@ -102,10 +96,8 @@ BEGIN
 				INNER JOIN [dbo].[DatabasesTables] [DT] ON [DT].[TableId] = [T].[Id]
 				INNER JOIN [#Databases] [D] ON [D].[Id] = [DT].[DatabaseId]
 			WHERE @TableName IS NULL OR [T].[Name] = @TableName
-		IF @@ROWCOUNT = 0 BEGIN
-			SET @ErrorMessage = 'Tabela(s) não cadastrada(s).';
-			THROW 51000, @ErrorMessage, 1
-		END
+		IF @@ROWCOUNT = 0
+			THROW 51000, 'Tabela(s) não cadastrada(s).', 1
 		ALTER TABLE [#Tables] ADD PRIMARY KEY CLUSTERED([Id])
 
 		IF @DatabaseName IS NULL BEGIN
@@ -136,10 +128,8 @@ BEGIN
 				INTO [#Columns]
 				FROM [dbo].[Columns] [C]
 					INNER JOIN [#Tables] [T] ON [T].[Id]= [C].[TableId] 
-			IF @@ROWCOUNT = 0 BEGIN
-				SET @ErrorMessage = 'Colunas de tabelas não cadastradas.';
-				THROW 51000, @ErrorMessage, 1
-			END
+			IF @@ROWCOUNT = 0
+				THROW 51000, 'Colunas de tabelas não cadastradas.', 1
 			ALTER TABLE [#Columns] ADD PRIMARY KEY CLUSTERED([Id])
 			CREATE INDEX [#ColumnsDomainId] ON [#Columns]([DomainId])
 
@@ -159,10 +149,8 @@ BEGIN
 				INTO [#Domains]
 				FROM [dbo].[Domains] [D]
 				WHERE EXISTS(SELECT TOP 1 1 FROM [#Columns] WHERE [DomainId] = [D].[Id])
-			IF @@ROWCOUNT = 0 BEGIN
-				SET @ErrorMessage = 'Domínios de colunas não cadastrados.';
-				THROW 51000, @ErrorMessage, 1
-			END
+			IF @@ROWCOUNT = 0
+				THROW 51000, 'Domínios de colunas não cadastrados.', 1
 			ALTER TABLE [#Domains] ADD PRIMARY KEY NONCLUSTERED([Id])
 			CREATE INDEX [#DomainsTypeId] ON [#Domains]([TypeId])
 
@@ -185,10 +173,8 @@ BEGIN
 				INTO [#Types]
 				FROM [dbo].[Types] [T]
 				WHERE EXISTS(SELECT TOP 1 1 FROM [#Domains] WHERE [TypeId] = [T].[Id])
-			IF @@ROWCOUNT = 0 BEGIN
-				SET @ErrorMessage = 'Tipos de domínios não cadastrados.';
-				THROW 51000, @ErrorMessage, 1
-			END
+			IF @@ROWCOUNT = 0
+				THROW 51000, 'Tipos de domínios não cadastrados.', 1
 			CREATE INDEX [#TypesCategoryId] ON [#Types]([CategoryId])
 
 			-- 7 [Categories]
@@ -207,10 +193,8 @@ BEGIN
 				INTO [#Categories]
 				FROM [dbo].[Categories] [C]
 				WHERE EXISTS(SELECT TOP 1 1 FROM [#Types] WHERE [CategoryId] = [C].[Id])
-			IF @@ROWCOUNT = 0 BEGIN
-			   SET @ErrorMessage = 'Categoria(s) de tipos não cadastrada(s).';
-			   THROW 51000, @ErrorMessage, 1
-			END
+			IF @@ROWCOUNT = 0
+			   THROW 51000, 'Categoria(s) de tipos não cadastrada(s).', 1
 
 			-- 8 [Menus]
 			SELECT 	'Menu' AS [ClassName]
@@ -224,10 +208,8 @@ BEGIN
 				INTO [#Menus]
 				FROM [dbo].[Menus] [M]
 					INNER JOIN [#Systems] [S] ON [S].[Id] = [M].[SystemId]
-			IF @@ROWCOUNT = 0 BEGIN
-			   SET @ErrorMessage = 'Menu(s) de sistema não cadastrado(s).';
-			   THROW 51000, @ErrorMessage, 1
-			END
+			IF @@ROWCOUNT = 0
+			   THROW 51000, 'Menu(s) de sistema não cadastrado(s).', 1
 
 			-- 9 [Indexes]
 			SELECT 	'Index' AS [ClassName]
@@ -303,7 +285,8 @@ BEGIN
 		END
 	END TRY
 	BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+		SET @ErrorMessage = ERROR_MESSAGE();
+
         THROW 51000, @ErrorMessage, 1
 	END CATCH
 END

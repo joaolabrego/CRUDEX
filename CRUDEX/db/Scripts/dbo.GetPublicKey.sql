@@ -3,8 +3,6 @@
 GO
 ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT
 								   ,@ReturnValue BIGINT OUT) AS BEGIN
-	DECLARE @ErrorMessage NVARCHAR(MAX)
-
 	BEGIN TRY
 		SET NOCOUNT ON
 		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
@@ -21,7 +19,8 @@ ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT
 		RETURN @ReturnValue
 	END TRY
 	BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+		DECLARE @ErrorMessage VARCHAR(MAX) = ERROR_MESSAGE();
+
         THROW 51000, @ErrorMessage, 1
 	END CATCH
 END
