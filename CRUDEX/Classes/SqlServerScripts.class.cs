@@ -7,7 +7,7 @@ using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
 
 namespace crudex.Classes
 {
-    public class ScriptsSqlServer
+    public class SqlServerScripts
     {
         static readonly string DirectoryScripts = Path.Combine(Settings.Builder.Environment.ContentRootPath, Settings.Get("DIRECTORY_SCRIPTS"));
         static readonly string ReservedColumnNames = ";Data;ClassName;ListItemValue;_;";
