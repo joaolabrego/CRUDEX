@@ -63,18 +63,11 @@ BEGIN
 		END
 
 		-- 2 [Connections]
-		SELECT 	'Connection' AS [ClassName]
-				,[C].[Id]
-				,[C].[Provider]
-				,[C].[HostName]
-				,[C].[Port]
-				,[C].[IntegratedSecurity]
-				,[C].[ConnectionTimeout]
-				,[C].[ExtendedProperties]
-				,[C].[UserID]
-				,[C].[Password]
-				,[C].[PersistSecurityInfo]
-				,[C].[AdditionalParameters]
+		SELECT 'Connection' AS [ClassName]
+			  ,[Id]
+			  ,[Environment]
+			  ,[ConnectionString]
+
 			INTO [#Connections]
 			FROM [dbo].[Connections] [C]
 			WHERE [C].[Id] IN (SELECT [ConnectionId] FROM [#Databases])
@@ -242,18 +235,8 @@ BEGIN
 				FROM [dbo].[Masks] [M]
 				WHERE EXISTS(SELECT TOP 1 1 FROM [#Domains] WHERE [MaskId] = [M].[Id])
 			
-			-- 12 [Associations]
-			SELECT 'Association' AS [ClassName]
-					,[A].[Id]
-					,[A].[TableId1]
-					,[A].[TableId2]
-					,[A].[IsBidirectional]
-				INTO [#Associations]
-				FROM [dbo].[Associations] [A]
-				WHERE EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] IN ([A].[TableId1], [A].[TableId2]))
-			
-			-- 13 [Unicities]
-			SELECT 'Unique' AS [ClassName]
+			-- 12 [Unicities]
+			SELECT 'Unicity' AS [ClassName]
 					,[U].[Id]
 					,[U].[ColumnId1]
 					,[U].[ColumnId2]
@@ -276,8 +259,7 @@ BEGIN
 			SELECT * FROM [#Indexes] ORDER BY [Name] -- 8 [#Indexes]
 			SELECT * FROM [#Indexkeys] ORDER BY [IndexId], [Sequence] -- 9 [#Indexkeys]
 			SELECT * FROM [#Masks] ORDER BY [Id] -- 10 [#Masks]
-			SELECT * FROM [#Associations] ORDER BY [Id] -- 11 [#Associations]
-			SELECT * FROM [#Unicities] ORDER BY [Id] -- 12 [#Unicities]
+			SELECT * FROM [#Unicities] ORDER BY [Id] -- 11 [#Unicities]
 		END ELSE BEGIN
 			SELECT * FROM [#Connections] ORDER BY [Id] -- 1 [#Connections]]
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]

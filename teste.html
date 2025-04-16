@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Teste de Substituição do Body</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+      }
+      .container {
+        border: 1px solid #ccc;
+        padding: 15px;
+      }
+      input,
+      select,
+      button {
+        display: block;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body id="body">
+    <div class="container">
+      <h1>Cadastro de Cliente</h1>
+      <label>Nome: <input type="text" id="nome" value="João" /></label>
+      <label
+        >Cidade:
+        <select id="cidade">
+          <option value="1">São Paulo</option>
+          <option value="2" selected>Rio de Janeiro</option>
+        </select>
+      </label>
+      <button onclick="salvarEIrParaOutraTela()">
+        Ir para Cadastro de Cidade
+      </button>
+    </div>
+
+    <script>
+      let backup;
+
+      function salvarEIrParaOutraTela() {
+        // Teste com cloneNode (sem eventos preservados)
+        const body = document.getElementById("body");
+        backup = body.cloneNode(true);
+
+        // Substitui temporariamente o conteúdo do body
+        body.innerHTML = `
+        <div class="container">
+          <h1>Cadastro de Cidades</h1>
+          <label>Nome da Cidade: <input type="text" id="cidadeNome" /></label>
+          <button onclick="voltarParaTelaAnterior()">Voltar</button>
+        </div>
+      `;
+      }
+
+      function voltarParaTelaAnterior() {
+        // Restaura o conteúdo original
+        const oldBody = document.getElementById("body");
+        oldBody.replaceWith(backup);
+      }
+    </script>
+  </body>
+</html>

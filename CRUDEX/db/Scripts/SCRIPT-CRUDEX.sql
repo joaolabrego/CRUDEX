@@ -270,16 +270,8 @@ Criar tabela [dbo].[Connections]
 IF (SELECT object_id('[dbo].[Connections]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Connections]
 CREATE TABLE [dbo].[Connections]([Id] bigint NOT NULL
-                                    ,[Provider] nvarchar(50) NOT NULL
-                                    ,[HostName] nvarchar(25) NOT NULL
-                                    ,[Port] int NOT NULL CHECK ([Port] >= CAST('1' AS int))
-                                    ,[IntegratedSecurity] bit NOT NULL
-                                    ,[ConnectionTimeout] smallint NOT NULL CHECK ([ConnectionTimeout] >= CAST('0' AS smallint))
-                                    ,[ExtendedProperties] nvarchar(max) NULL
-                                    ,[UserID] nvarchar(25) NULL
-                                    ,[Password] nvarchar(256) NULL
-                                    ,[PersistSecurityInfo] bit NULL
-                                    ,[AdditionalParameters] nvarchar(max) NULL
+                                    ,[Environment] nvarchar(3) NOT NULL
+                                    ,[ConnectionString] nvarchar(256) NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
@@ -452,7 +444,7 @@ CREATE TABLE [dbo].[Sessions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bi
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Sessions] ADD CONSTRAINT PK_Sessions PRIMARY KEY CLUSTERED ([Id])
-CREATE  INDEX [IDX_Logins_SystemId_UserId_IsLogged] ON [dbo].[Sessions]([SystemId] ASC, [UserId] ASC, [IsLogged] ASC)
+CREATE  INDEX [IDX_Sessions_SystemId_UserId_IsLogged] ON [dbo].[Sessions]([SystemId] ASC, [UserId] ASC, [IsLogged] ASC)
 GO
 
 /**********************************************************************************
@@ -468,7 +460,7 @@ CREATE TABLE [dbo].[Transactions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' A
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED ([Id])
-CREATE  INDEX [IDX_Transactions_LoginId_IsConfirmed] ON [dbo].[Transactions]([SessionId] ASC, [IsConfirmed] ASC)
+CREATE  INDEX [IDX_Transactions_SessionId_IsConfirmed] ON [dbo].[Transactions]([SessionId] ASC, [IsConfirmed] ASC)
 GO
 
 /**********************************************************************************
@@ -493,24 +485,6 @@ CREATE  INDEX [IDX_Operations_TransactionId_TableName_IsConfirmed] ON [dbo].[Ope
 GO
 
 /**********************************************************************************
-Criar tabela [dbo].[Associations]
-**********************************************************************************/
-IF (SELECT object_id('[dbo].[Associations]', 'U')) IS NOT NULL
-    DROP TABLE [dbo].[Associations]
-CREATE TABLE [dbo].[Associations]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
-                                    ,[TableId1] bigint NOT NULL CHECK ([TableId1] >= CAST('1' AS bigint))
-                                    ,[TableId2] bigint NOT NULL CHECK ([TableId2] >= CAST('1' AS bigint))
-                                    ,[IsBidirectional] bit NOT NULL CHECK ([IsBidirectional] >= CAST('1' AS bit))
-                                    ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] nvarchar(25) NOT NULL
-                                    ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-ALTER TABLE [dbo].[Associations] ADD CONSTRAINT PK_Associations PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Associations_TableId1_TableId2] ON [dbo].[Associations]([TableId1] ASC, [TableId2] ASC)
-CREATE UNIQUE INDEX [UNQ_Associations_TableId2_TableId1] ON [dbo].[Associations]([TableId2] ASC, [TableId1] ASC)
-GO
-
-/**********************************************************************************
 Criar tabela [dbo].[Unicities]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Unicities]', 'U')) IS NOT NULL
@@ -524,8 +498,8 @@ CREATE TABLE [dbo].[Unicities]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS b
                                     ,[UpdatedAt] datetime NULL
                                     ,[UpdatedBy] nvarchar(25) NULL)
 ALTER TABLE [dbo].[Unicities] ADD CONSTRAINT PK_Unicities PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Uniques_ColumnId1_ColumnId2] ON [dbo].[Unicities]([ColumnId1] ASC, [ColumnId2] ASC)
-CREATE UNIQUE INDEX [UNQ_Uniques_ColumnId2_ColumnId1] ON [dbo].[Unicities]([ColumnId2] ASC, [ColumnId1] ASC)
+CREATE UNIQUE INDEX [UNQ_Unicities_ColumnId1_ColumnId2] ON [dbo].[Unicities]([ColumnId1] ASC, [ColumnId2] ASC)
+CREATE UNIQUE INDEX [UNQ_Unicities_ColumnId2_ColumnId1] ON [dbo].[Unicities]([ColumnId2] ASC, [ColumnId1] ASC)
 GO
 
 /**********************************************************************************
@@ -596,18 +570,11 @@ BEGIN
 		END
 
 		-- 2 [Connections]
-		SELECT 	'Connection' AS [ClassName]
-				,[C].[Id]
-				,[C].[Provider]
-				,[C].[HostName]
-				,[C].[Port]
-				,[C].[IntegratedSecurity]
-				,[C].[ConnectionTimeout]
-				,[C].[ExtendedProperties]
-				,[C].[UserID]
-				,[C].[Password]
-				,[C].[PersistSecurityInfo]
-				,[C].[AdditionalParameters]
+		SELECT 'Connection' AS [ClassName]
+			  ,[Id]
+			  ,[Environment]
+			  ,[ConnectionString]
+
 			INTO [#Connections]
 			FROM [dbo].[Connections] [C]
 			WHERE [C].[Id] IN (SELECT [ConnectionId] FROM [#Databases])
@@ -775,18 +742,8 @@ BEGIN
 				FROM [dbo].[Masks] [M]
 				WHERE EXISTS(SELECT TOP 1 1 FROM [#Domains] WHERE [MaskId] = [M].[Id])
 			
-			-- 12 [Associations]
-			SELECT 'Association' AS [ClassName]
-					,[A].[Id]
-					,[A].[TableId1]
-					,[A].[TableId2]
-					,[A].[IsBidirectional]
-				INTO [#Associations]
-				FROM [dbo].[Associations] [A]
-				WHERE EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] IN ([A].[TableId1], [A].[TableId2]))
-			
-			-- 13 [Unicities]
-			SELECT 'Unique' AS [ClassName]
+			-- 12 [Unicities]
+			SELECT 'Unicity' AS [ClassName]
 					,[U].[Id]
 					,[U].[ColumnId1]
 					,[U].[ColumnId2]
@@ -809,8 +766,7 @@ BEGIN
 			SELECT * FROM [#Indexes] ORDER BY [Name] -- 8 [#Indexes]
 			SELECT * FROM [#Indexkeys] ORDER BY [IndexId], [Sequence] -- 9 [#Indexkeys]
 			SELECT * FROM [#Masks] ORDER BY [Id] -- 10 [#Masks]
-			SELECT * FROM [#Associations] ORDER BY [Id] -- 11 [#Associations]
-			SELECT * FROM [#Unicities] ORDER BY [Id] -- 12 [#Unicities]
+			SELECT * FROM [#Unicities] ORDER BY [Id] -- 11 [#Unicities]
 		END ELSE BEGIN
 			SELECT * FROM [#Connections] ORDER BY [Id] -- 1 [#Connections]]
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]
@@ -1136,16 +1092,8 @@ BEGIN
 		ALTER TABLE [#SystemsDatabases] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 3 [Connections]
 		SELECT [Id]
-			  ,[Provider]
-			  ,[HostName]
-			  ,[Port]
-			  ,[IntegratedSecurity]
-			  ,[ConnectionTimeout]
-			  ,[ExtendedProperties]
-			  ,[UserID]
-			  ,[Password]
-			  ,[PersistSecurityInfo]
-			  ,[AdditionalParameters]
+			  ,[Environment]
+			  ,[ConnectionString]
 		  INTO [#Connections]
 		  FROM [dbo].[Connections]
 		-- 4 [Databases]
@@ -2345,29 +2293,6 @@ ALTER TABLE [dbo].[Operations] WITH CHECK
     REFERENCES [dbo].[Operations] ([Id])
 GO
 ALTER TABLE [dbo].[Operations] CHECK CONSTRAINT [FK_Operations_Operations]
-GO
-/**********************************************************************************
-Criar referências de [dbo].[Associations]
-**********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Associations_Tables')
-    ALTER TABLE [dbo].[Associations] DROP CONSTRAINT FK_Associations_Tables
-GO
-ALTER TABLE [dbo].[Associations] WITH CHECK 
-    ADD CONSTRAINT [FK_Associations_Tables] 
-    FOREIGN KEY([TableId1]) 
-    REFERENCES [dbo].[Tables] ([Id])
-GO
-ALTER TABLE [dbo].[Associations] CHECK CONSTRAINT [FK_Associations_Tables]
-GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Associations_Tables')
-    ALTER TABLE [dbo].[Associations] DROP CONSTRAINT FK_Associations_Tables
-GO
-ALTER TABLE [dbo].[Associations] WITH CHECK 
-    ADD CONSTRAINT [FK_Associations_Tables] 
-    FOREIGN KEY([TableId2]) 
-    REFERENCES [dbo].[Tables] ([Id])
-GO
-ALTER TABLE [dbo].[Associations] CHECK CONSTRAINT [FK_Associations_Tables]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Unicities]
@@ -4933,7 +4858,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,CAST('JS' AS nvarchar(5))
+                                ,CAST('js' AS nvarchar(5))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -4964,7 +4889,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,CAST('SQL' AS nvarchar(5))
+                                ,CAST('sql' AS nvarchar(5))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -4995,7 +4920,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,CAST('JSON' AS nvarchar(5))
+                                ,CAST('json' AS nvarchar(5))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5084,7 +5009,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,CAST('Codification' AS nvarchar(25))
                                 ,CAST('5' AS smallint)
                                 ,NULL
-                                ,CAST('JSON;JS;SQL' AS nvarchar(max))
+                                ,CAST('js;json;sql' AS nvarchar(max))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -5174,10 +5099,41 @@ INSERT INTO [dbo].[Domains] ([Id]
                          VALUES (CAST('21' AS bigint)
                                 ,CAST('20' AS tinyint)
                                 ,NULL
-                                ,CAST('OperationAction' AS nvarchar(25))
+                                ,CAST('Operation' AS nvarchar(25))
                                 ,CAST('15' AS smallint)
                                 ,NULL
                                 ,CAST('create;update;delete' AS nvarchar(max))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Domains] ([Id]
+                                ,[TypeId]
+                                ,[MaskId]
+                                ,[Name]
+                                ,[Length]
+                                ,[Decimals]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[Codification]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('22' AS bigint)
+                                ,CAST('20' AS tinyint)
+                                ,NULL
+                                ,CAST('Environment' AS nvarchar(25))
+                                ,CAST('3' AS smallint)
+                                ,NULL
+                                ,CAST('dev;hml;prd' AS nvarchar(max))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -5581,31 +5537,15 @@ GO
 Inserir dados na tabela [dbo].[Connections]
 **********************************************************************************/
 INSERT INTO [dbo].[Connections] ([Id]
-                                ,[Provider]
-                                ,[HostName]
-                                ,[Port]
-                                ,[IntegratedSecurity]
-                                ,[ConnectionTimeout]
-                                ,[ExtendedProperties]
-                                ,[UserID]
-                                ,[Password]
-                                ,[PersistSecurityInfo]
-                                ,[AdditionalParameters]
+                                ,[Environment]
+                                ,[ConnectionString]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS bigint)
-                                ,CAST('MSOLEDBSQL' AS nvarchar(50))
-                                ,CAST('localhost' AS nvarchar(25))
-                                ,CAST('1433' AS int)
-                                ,CAST('0' AS bit)
-                                ,CAST('30' AS smallint)
-                                ,NULL
-                                ,CAST('sa' AS nvarchar(25))
-                                ,CAST('diva' AS nvarchar(256))
-                                ,CAST('0' AS bit)
-                                ,NULL
+                                ,CAST('dev' AS nvarchar(3))
+                                ,CAST('Provider=MSOLEDBSQL;Data Source=localhost,1433;Initial Catalog=crudex;Integrated Security=SSPI;Encrypt=yes;TrustServerCertificate=yes;Persist Security Info=False;Connect Timeout=30;' AS nvarchar(256))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5728,7 +5668,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Máscaras de Edição' AS nvarchar(50))
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,CAST('6' AS bigint)
+                                ,CAST('25' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5935,7 +5875,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Tabelas de bancos-de-dados' AS nvarchar(50))
                                 ,CAST('10' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('21' AS bigint)
+                                ,CAST('20' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5981,7 +5921,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Colunas de tabelas' AS nvarchar(50))
                                 ,CAST('12' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('151' AS bigint)
+                                ,CAST('152' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6114,29 +6054,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('20' AS bigint)
-                                ,CAST('Associations' AS nvarchar(25))
-                                ,CAST('Association' AS nvarchar(25))
-                                ,CAST('Associações entre tabelas' AS nvarchar(50))
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('3' AS bigint)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Tables] ([Id]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[ParentTableId]
-                                ,[IsLegacy]
-                                ,[CurrentId]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('21' AS bigint)
                                 ,CAST('Unicities' AS nvarchar(25))
                                 ,CAST('Unicity' AS nvarchar(25))
                                 ,CAST('Unicidades cruzadas' AS nvarchar(50))
@@ -6435,7 +6352,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('17' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('17' AS bigint)
-                                ,CAST('crudex x Logins' AS nvarchar(50))
+                                ,CAST('crudex x Sessions' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6486,23 +6403,6 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('20' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('20' AS bigint)
-                                ,CAST('crudex x Associations' AS nvarchar(50))
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[DatabasesTables] ([Id]
-                                ,[DatabaseId]
-                                ,[TableId]
-                                ,[Name]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('21' AS bigint)
-                                ,CAST('1' AS bigint)
-                                ,CAST('21' AS bigint)
                                 ,CAST('crudex x Unicities' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
@@ -9934,13 +9834,13 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('65' AS bigint)
                                 ,CAST('9' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('10' AS bigint)
+                                ,CAST('22' AS bigint)
                                 ,NULL
-                                ,CAST('Provider' AS nvarchar(25))
+                                ,CAST('Environment' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('Provedor OleDb ' AS nvarchar(50))
-                                ,CAST('Provedor' AS nvarchar(25))
-                                ,CAST('Provedor' AS nvarchar(25))
+                                ,CAST('Ambiente' AS nvarchar(50))
+                                ,CAST('Ambiente' AS nvarchar(25))
+                                ,CAST('Ambiente' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -9987,13 +9887,13 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('66' AS bigint)
                                 ,CAST('9' AS bigint)
                                 ,CAST('15' AS smallint)
-                                ,CAST('9' AS bigint)
+                                ,CAST('11' AS bigint)
                                 ,NULL
-                                ,CAST('HostName' AS nvarchar(25))
+                                ,CAST('ConnectionString' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('Nome da Hospedagem' AS nvarchar(50))
-                                ,CAST('Hospedagem' AS nvarchar(25))
-                                ,CAST('Hospedagem' AS nvarchar(25))
+                                ,CAST('ConnectionString' AS nvarchar(50))
+                                ,CAST('ConnectionString' AS nvarchar(25))
+                                ,CAST('ConnectionString' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -10038,430 +9938,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('67' AS bigint)
-                                ,CAST('9' AS bigint)
-                                ,CAST('20' AS smallint)
-                                ,CAST('3' AS bigint)
-                                ,NULL
-                                ,CAST('Port' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('Porta TCP/IP' AS nvarchar(50))
-                                ,CAST('Porta' AS nvarchar(25))
-                                ,CAST('Porta' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('1' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('68' AS bigint)
-                                ,CAST('9' AS bigint)
-                                ,CAST('25' AS smallint)
-                                ,CAST('6' AS bigint)
-                                ,NULL
-                                ,CAST('IntegratedSecurity' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('Segurança integrada?' AS nvarchar(50))
-                                ,CAST('Segurança integrada?' AS nvarchar(25))
-                                ,CAST('Segurança integrada?' AS nvarchar(25))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,NULL
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('69' AS bigint)
-                                ,CAST('9' AS bigint)
-                                ,CAST('30' AS smallint)
-                                ,CAST('4' AS bigint)
-                                ,NULL
-                                ,CAST('ConnectionTimeout' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('Timeout de conexão' AS nvarchar(50))
-                                ,CAST('Timeout' AS nvarchar(25))
-                                ,CAST('Timeout' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('0' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('70' AS bigint)
-                                ,CAST('9' AS bigint)
-                                ,CAST('35' AS smallint)
-                                ,CAST('12' AS bigint)
-                                ,NULL
-                                ,CAST('ExtendedProperties' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('Propriedades extendidas' AS nvarchar(50))
-                                ,CAST('Propriedades' AS nvarchar(25))
-                                ,CAST('Propriedades' AS nvarchar(25))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('71' AS bigint)
-                                ,CAST('9' AS bigint)
-                                ,CAST('40' AS smallint)
-                                ,CAST('9' AS bigint)
-                                ,NULL
-                                ,CAST('UserID' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('Usuário ID' AS nvarchar(50))
-                                ,CAST('Usuário' AS nvarchar(25))
-                                ,CAST('Usuário' AS nvarchar(25))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('72' AS bigint)
-                                ,CAST('9' AS bigint)
-                                ,CAST('45' AS smallint)
-                                ,CAST('11' AS bigint)
-                                ,NULL
-                                ,CAST('Password' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('Senha do usuário' AS nvarchar(50))
-                                ,CAST('Senha' AS nvarchar(25))
-                                ,CAST('Senha' AS nvarchar(25))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('73' AS bigint)
-                                ,CAST('9' AS bigint)
-                                ,CAST('50' AS smallint)
-                                ,CAST('6' AS bigint)
-                                ,NULL
-                                ,CAST('PersistSecurityInfo' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('Persiste informação de segurança?' AS nvarchar(50))
-                                ,CAST('Persiste info?' AS nvarchar(25))
-                                ,CAST('Persiste info?' AS nvarchar(25))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,NULL
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('74' AS bigint)
-                                ,CAST('9' AS bigint)
-                                ,CAST('55' AS smallint)
-                                ,CAST('12' AS bigint)
-                                ,NULL
-                                ,CAST('AdditionalParameters' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('Parâmetros adicionais' AS nvarchar(50))
-                                ,CAST('Parâmetros' AS nvarchar(25))
-                                ,CAST('Parâmetros' AS nvarchar(25))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('75' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10514,7 +9990,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('76' AS bigint)
+                         VALUES (CAST('68' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10567,7 +10043,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('77' AS bigint)
+                         VALUES (CAST('69' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -10620,7 +10096,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('78' AS bigint)
+                         VALUES (CAST('70' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -10673,7 +10149,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('79' AS bigint)
+                         VALUES (CAST('71' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -10726,7 +10202,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('80' AS bigint)
+                         VALUES (CAST('72' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('11' AS bigint)
@@ -10779,7 +10255,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('81' AS bigint)
+                         VALUES (CAST('73' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -10832,7 +10308,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('82' AS bigint)
+                         VALUES (CAST('74' AS bigint)
                                 ,CAST('10' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10885,7 +10361,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('83' AS bigint)
+                         VALUES (CAST('75' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10938,7 +10414,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('84' AS bigint)
+                         VALUES (CAST('76' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -10991,7 +10467,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('85' AS bigint)
+                         VALUES (CAST('77' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11044,7 +10520,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('86' AS bigint)
+                         VALUES (CAST('78' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -11097,7 +10573,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('87' AS bigint)
+                         VALUES (CAST('79' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11150,7 +10626,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('88' AS bigint)
+                         VALUES (CAST('80' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -11203,7 +10679,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('89' AS bigint)
+                         VALUES (CAST('81' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -11256,7 +10732,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('90' AS bigint)
+                         VALUES (CAST('82' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -11309,7 +10785,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('91' AS bigint)
+                         VALUES (CAST('83' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11362,7 +10838,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('92' AS bigint)
+                         VALUES (CAST('84' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -11415,7 +10891,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('93' AS bigint)
+                         VALUES (CAST('85' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11468,7 +10944,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('94' AS bigint)
+                         VALUES (CAST('86' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11521,7 +10997,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('95' AS bigint)
+                         VALUES (CAST('87' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11574,7 +11050,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('96' AS bigint)
+                         VALUES (CAST('88' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11627,7 +11103,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('97' AS bigint)
+                         VALUES (CAST('89' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -11680,7 +11156,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('98' AS bigint)
+                         VALUES (CAST('90' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11733,7 +11209,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('99' AS bigint)
+                         VALUES (CAST('91' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11786,7 +11262,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('100' AS bigint)
+                         VALUES (CAST('92' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
@@ -11839,7 +11315,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('101' AS bigint)
+                         VALUES (CAST('93' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11892,7 +11368,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('102' AS bigint)
+                         VALUES (CAST('94' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -11945,7 +11421,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('103' AS bigint)
+                         VALUES (CAST('95' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -11998,7 +11474,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('104' AS bigint)
+                         VALUES (CAST('96' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -12051,7 +11527,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('105' AS bigint)
+                         VALUES (CAST('97' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -12104,7 +11580,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('106' AS bigint)
+                         VALUES (CAST('98' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('45' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -12157,7 +11633,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('107' AS bigint)
+                         VALUES (CAST('99' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('50' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -12210,7 +11686,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('108' AS bigint)
+                         VALUES (CAST('100' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('55' AS smallint)
                                 ,CAST('17' AS bigint)
@@ -12263,7 +11739,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('109' AS bigint)
+                         VALUES (CAST('101' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('60' AS smallint)
                                 ,CAST('17' AS bigint)
@@ -12316,7 +11792,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('110' AS bigint)
+                         VALUES (CAST('102' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('65' AS smallint)
                                 ,CAST('17' AS bigint)
@@ -12369,7 +11845,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('111' AS bigint)
+                         VALUES (CAST('103' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('70' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12422,7 +11898,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('112' AS bigint)
+                         VALUES (CAST('104' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('75' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12475,7 +11951,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('113' AS bigint)
+                         VALUES (CAST('105' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('80' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12528,7 +12004,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('114' AS bigint)
+                         VALUES (CAST('106' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('85' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12581,7 +12057,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('115' AS bigint)
+                         VALUES (CAST('107' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('90' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12634,7 +12110,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('116' AS bigint)
+                         VALUES (CAST('108' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('95' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12687,7 +12163,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('117' AS bigint)
+                         VALUES (CAST('109' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('100' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12740,7 +12216,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('118' AS bigint)
+                         VALUES (CAST('110' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('105' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12793,7 +12269,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('119' AS bigint)
+                         VALUES (CAST('111' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('110' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12846,7 +12322,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('120' AS bigint)
+                         VALUES (CAST('112' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12899,7 +12375,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('121' AS bigint)
+                         VALUES (CAST('113' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12952,7 +12428,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('122' AS bigint)
+                         VALUES (CAST('114' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -13005,7 +12481,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('123' AS bigint)
+                         VALUES (CAST('115' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13058,7 +12534,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('124' AS bigint)
+                         VALUES (CAST('116' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13111,7 +12587,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('125' AS bigint)
+                         VALUES (CAST('117' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13164,7 +12640,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('126' AS bigint)
+                         VALUES (CAST('118' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
@@ -13217,7 +12693,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('127' AS bigint)
+                         VALUES (CAST('119' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13270,7 +12746,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('128' AS bigint)
+                         VALUES (CAST('120' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13323,7 +12799,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('129' AS bigint)
+                         VALUES (CAST('121' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13376,7 +12852,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('130' AS bigint)
+                         VALUES (CAST('122' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13429,7 +12905,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('131' AS bigint)
+                         VALUES (CAST('123' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13482,7 +12958,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('132' AS bigint)
+                         VALUES (CAST('124' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('11' AS bigint)
@@ -13535,7 +13011,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('133' AS bigint)
+                         VALUES (CAST('125' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13588,7 +13064,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('134' AS bigint)
+                         VALUES (CAST('126' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13641,7 +13117,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('135' AS bigint)
+                         VALUES (CAST('127' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13694,7 +13170,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('136' AS bigint)
+                         VALUES (CAST('128' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13747,7 +13223,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('137' AS bigint)
+                         VALUES (CAST('129' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13800,7 +13276,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('138' AS bigint)
+                         VALUES (CAST('130' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13853,7 +13329,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('139' AS bigint)
+                         VALUES (CAST('131' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -13906,7 +13382,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('140' AS bigint)
+                         VALUES (CAST('132' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13959,7 +13435,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('141' AS bigint)
+                         VALUES (CAST('133' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('21' AS bigint)
@@ -14012,7 +13488,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('142' AS bigint)
+                         VALUES (CAST('134' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('12' AS bigint)
@@ -14065,7 +13541,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('143' AS bigint)
+                         VALUES (CAST('135' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('12' AS bigint)
@@ -14118,7 +13594,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('144' AS bigint)
+                         VALUES (CAST('136' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -14171,220 +13647,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('145' AS bigint)
+                         VALUES (CAST('137' AS bigint)
                                 ,CAST('20' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('1' AS bigint)
-                                ,NULL
-                                ,CAST('Id' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('ID da transação' AS nvarchar(50))
-                                ,CAST('ID' AS nvarchar(25))
-                                ,CAST('ID' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('1' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('146' AS bigint)
-                                ,CAST('20' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('1' AS bigint)
-                                ,CAST('12' AS bigint)
-                                ,CAST('TableId1' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('ID da tabela 1' AS nvarchar(50))
-                                ,CAST('Tabela 1' AS nvarchar(25))
-                                ,CAST('Tabela 1' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('1' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('147' AS bigint)
-                                ,CAST('20' AS bigint)
-                                ,CAST('15' AS smallint)
-                                ,CAST('1' AS bigint)
-                                ,CAST('12' AS bigint)
-                                ,CAST('TableId2' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('ID da tabela 2' AS nvarchar(50))
-                                ,CAST('Tabela 2' AS nvarchar(25))
-                                ,CAST('Tabela 2' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('1' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('148' AS bigint)
-                                ,CAST('20' AS bigint)
-                                ,CAST('20' AS smallint)
-                                ,CAST('6' AS bigint)
-                                ,NULL
-                                ,CAST('IsBidirectional' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('É bidirecional?' AS nvarchar(50))
-                                ,CAST('Bidirecional?' AS nvarchar(25))
-                                ,CAST('Bidirecional?' AS nvarchar(25))
-                                ,NULL
-                                ,CAST('1' AS nvarchar(max))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,NULL
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('149' AS bigint)
-                                ,CAST('21' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,NULL
@@ -14436,8 +13700,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('150' AS bigint)
-                                ,CAST('21' AS bigint)
+                         VALUES (CAST('138' AS bigint)
+                                ,CAST('20' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('14' AS bigint)
@@ -14489,8 +13753,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('151' AS bigint)
-                                ,CAST('21' AS bigint)
+                         VALUES (CAST('139' AS bigint)
+                                ,CAST('20' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('14' AS bigint)
@@ -14542,8 +13806,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('152' AS bigint)
-                                ,CAST('21' AS bigint)
+                         VALUES (CAST('140' AS bigint)
+                                ,CAST('20' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('6' AS bigint)
                                 ,NULL
@@ -14974,7 +14238,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('24' AS bigint)
                                 ,CAST('17' AS bigint)
-                                ,CAST('IDX_Logins_SystemId_UserId_IsLogged' AS nvarchar(50))
+                                ,CAST('IDX_Sessions_SystemId_UserId_IsLogged' AS nvarchar(50))
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -14991,7 +14255,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('25' AS bigint)
                                 ,CAST('18' AS bigint)
-                                ,CAST('IDX_Transactions_LoginId_IsConfirmed' AS nvarchar(50))
+                                ,CAST('IDX_Transactions_SessionId_IsConfirmed' AS nvarchar(50))
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15025,7 +14289,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('27' AS bigint)
                                 ,CAST('20' AS bigint)
-                                ,CAST('UNQ_Associations_TableId1_TableId2' AS nvarchar(50))
+                                ,CAST('UNQ_Unicities_ColumnId1_ColumnId2' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15042,41 +14306,7 @@ INSERT INTO [dbo].[Indexes] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('28' AS bigint)
                                 ,CAST('20' AS bigint)
-                                ,CAST('UNQ_Associations_TableId2_TableId1' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('29' AS bigint)
-                                ,CAST('21' AS bigint)
-                                ,CAST('UNQ_Uniques_ColumnId1_ColumnId2' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('30' AS bigint)
-                                ,CAST('21' AS bigint)
-                                ,CAST('UNQ_Uniques_ColumnId2_ColumnId1' AS nvarchar(50))
+                                ,CAST('UNQ_Unicities_ColumnId2_ColumnId1' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15346,7 +14576,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('14' AS bigint)
                                 ,CAST('11' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('77' AS bigint)
+                                ,CAST('69' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15365,7 +14595,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('15' AS bigint)
                                 ,CAST('12' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('78' AS bigint)
+                                ,CAST('70' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15384,7 +14614,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('16' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('84' AS bigint)
+                                ,CAST('76' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15403,7 +14633,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('17' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('85' AS bigint)
+                                ,CAST('77' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15422,7 +14652,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('18' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('86' AS bigint)
+                                ,CAST('78' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15441,7 +14671,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('19' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('88' AS bigint)
+                                ,CAST('80' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15460,7 +14690,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('20' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('89' AS bigint)
+                                ,CAST('81' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15479,7 +14709,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('21' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('95' AS bigint)
+                                ,CAST('87' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15498,7 +14728,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('22' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('96' AS bigint)
+                                ,CAST('88' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15517,7 +14747,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('23' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('97' AS bigint)
+                                ,CAST('89' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15536,7 +14766,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('24' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('99' AS bigint)
+                                ,CAST('91' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15555,7 +14785,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('25' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('103' AS bigint)
+                                ,CAST('95' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15574,7 +14804,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('26' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('99' AS bigint)
+                                ,CAST('91' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15593,7 +14823,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('27' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('100' AS bigint)
+                                ,CAST('92' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15612,7 +14842,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('28' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('122' AS bigint)
+                                ,CAST('114' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15631,7 +14861,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('29' AS bigint)
                                 ,CAST('22' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('125' AS bigint)
+                                ,CAST('117' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15650,7 +14880,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('30' AS bigint)
                                 ,CAST('22' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('126' AS bigint)
+                                ,CAST('118' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15669,7 +14899,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('31' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('125' AS bigint)
+                                ,CAST('117' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15688,7 +14918,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('32' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('127' AS bigint)
+                                ,CAST('119' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15707,7 +14937,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('33' AS bigint)
                                 ,CAST('24' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('130' AS bigint)
+                                ,CAST('122' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15726,7 +14956,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('34' AS bigint)
                                 ,CAST('24' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('131' AS bigint)
+                                ,CAST('123' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15745,7 +14975,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('35' AS bigint)
                                 ,CAST('24' AS bigint)
                                 ,CAST('15' AS smallint)
-                                ,CAST('133' AS bigint)
+                                ,CAST('125' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15764,7 +14994,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('36' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('135' AS bigint)
+                                ,CAST('127' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15783,7 +15013,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('37' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('136' AS bigint)
+                                ,CAST('128' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15802,7 +15032,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('38' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('138' AS bigint)
+                                ,CAST('130' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15821,7 +15051,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('39' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('139' AS bigint)
+                                ,CAST('131' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15840,7 +15070,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('40' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('15' AS smallint)
-                                ,CAST('144' AS bigint)
+                                ,CAST('136' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15859,7 +15089,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('41' AS bigint)
                                 ,CAST('27' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('146' AS bigint)
+                                ,CAST('138' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15878,7 +15108,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('42' AS bigint)
                                 ,CAST('27' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('147' AS bigint)
+                                ,CAST('139' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15897,7 +15127,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('43' AS bigint)
                                 ,CAST('28' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('147' AS bigint)
+                                ,CAST('139' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -15916,83 +15146,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('44' AS bigint)
                                 ,CAST('28' AS bigint)
                                 ,CAST('10' AS smallint)
-                                ,CAST('146' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('45' AS bigint)
-                                ,CAST('29' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('150' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('46' AS bigint)
-                                ,CAST('29' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('151' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('47' AS bigint)
-                                ,CAST('30' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('151' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('48' AS bigint)
-                                ,CAST('30' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('150' AS bigint)
+                                ,CAST('138' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -16002,61 +15156,6 @@ GO
 
 
 
-
-/**********************************************************************************
-Inserir dados na tabela [dbo].[Associations]
-**********************************************************************************/
-INSERT INTO [dbo].[Associations] ([Id]
-                                ,[TableId1]
-                                ,[TableId2]
-                                ,[IsBidirectional]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('1' AS bigint)
-                                ,CAST('5' AS bigint)
-                                ,CAST('7' AS bigint)
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Associations] ([Id]
-                                ,[TableId1]
-                                ,[TableId2]
-                                ,[IsBidirectional]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('2' AS bigint)
-                                ,CAST('5' AS bigint)
-                                ,CAST('10' AS bigint)
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Associations] ([Id]
-                                ,[TableId1]
-                                ,[TableId2]
-                                ,[IsBidirectional]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('3' AS bigint)
-                                ,CAST('10' AS bigint)
-                                ,CAST('12' AS bigint)
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Unicities]
@@ -21186,30 +20285,14 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
                 AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Provider'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Provider'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HostName'), [crudex].[JSON_EXTRACT](@LastRecord, '$.HostName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Port'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Port'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IntegratedSecurity'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IntegratedSecurity'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionTimeout'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ConnectionTimeout'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ExtendedProperties'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ExtendedProperties'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserID'), [crudex].[JSON_EXTRACT](@LastRecord, '$.UserID'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.PersistSecurityInfo'), [crudex].[JSON_EXTRACT](@LastRecord, '$.PersistSecurityInfo'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AdditionalParameters'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AdditionalParameters'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Environment'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Environment'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionString'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ConnectionString'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Connections]
                             WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Provider] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Provider')
-                                  AND [HostName] = [crudex].[JSON_EXTRACT](@LastRecord, '$.HostName')
-                                  AND [Port] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Port')
-                                  AND [IntegratedSecurity] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IntegratedSecurity')
-                                  AND [ConnectionTimeout] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ConnectionTimeout')
-                                  AND [crudex].[IS_EQUAL]([ExtendedProperties], [crudex].[JSON_EXTRACT](@LastRecord, '$.ExtendedProperties'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([UserID], [crudex].[JSON_EXTRACT](@LastRecord, '$.UserID'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([Password], [crudex].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([PersistSecurityInfo], [crudex].[JSON_EXTRACT](@LastRecord, '$.PersistSecurityInfo'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([AdditionalParameters], [crudex].[JSON_EXTRACT](@LastRecord, '$.AdditionalParameters'), 'nvarchar(max)') = 1)
+                                  AND [Environment] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Environment')
+                                  AND [ConnectionString] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ConnectionString'))
                 THROW 51000, 'Registro de Connections alterado por outro usuário', 1
         END
 
@@ -21218,31 +20301,13 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Databases', 1
         END ELSE BEGIN
 
-            DECLARE @W_Provider nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Provider') AS nvarchar(50))
-                   ,@W_HostName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.HostName') AS nvarchar(25))
-                   ,@W_Port int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Port') AS int)
-                   ,@W_IntegratedSecurity bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IntegratedSecurity') AS bit)
-                   ,@W_ConnectionTimeout smallint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionTimeout') AS smallint)
-                   ,@W_ExtendedProperties nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ExtendedProperties') AS nvarchar(max))
-                   ,@W_UserID nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserID') AS nvarchar(25))
-                   ,@W_Password nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password') AS nvarchar(256))
-                   ,@W_PersistSecurityInfo bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.PersistSecurityInfo') AS bit)
-                   ,@W_AdditionalParameters nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AdditionalParameters') AS nvarchar(max))
+            DECLARE @W_Environment nvarchar(3) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Environment') AS nvarchar(3))
+                   ,@W_ConnectionString nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionString') AS nvarchar(256))
 
-            IF @W_Provider IS NULL
-                THROW 51000, 'Valor de Provider em @ActualRecord é requerido.', 1
-            IF @W_HostName IS NULL
-                THROW 51000, 'Valor de HostName em @ActualRecord é requerido.', 1
-            IF @W_Port IS NULL
-                THROW 51000, 'Valor de Port em @ActualRecord é requerido.', 1
-            IF @W_Port < CAST('1' AS int)
-                THROW 51000, 'Valor de Port em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_IntegratedSecurity IS NULL
-                THROW 51000, 'Valor de IntegratedSecurity em @ActualRecord é requerido.', 1
-            IF @W_ConnectionTimeout IS NULL
-                THROW 51000, 'Valor de ConnectionTimeout em @ActualRecord é requerido.', 1
-            IF @W_ConnectionTimeout < CAST('0' AS smallint)
-                THROW 51000, 'Valor de ConnectionTimeout em @ActualRecord deve ser maior que ou igual a 0', 1
+            IF @W_Environment IS NULL
+                THROW 51000, 'Valor de Environment em @ActualRecord é requerido.', 1
+            IF @W_ConnectionString IS NULL
+                THROW 51000, 'Valor de ConnectionString em @ActualRecord é requerido.', 1
         END
 
         RETURN @TransactionId
@@ -21417,56 +20482,24 @@ ALTER PROCEDURE [dbo].[ConnectionCommit](@SessionId BIGINT
             DELETE FROM [dbo].[Connections] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Provider nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Provider') AS nvarchar(50))
-                   ,@W_HostName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.HostName') AS nvarchar(25))
-                   ,@W_Port int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Port') AS int)
-                   ,@W_IntegratedSecurity bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IntegratedSecurity') AS bit)
-                   ,@W_ConnectionTimeout smallint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionTimeout') AS smallint)
-                   ,@W_ExtendedProperties nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ExtendedProperties') AS nvarchar(max))
-                   ,@W_UserID nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserID') AS nvarchar(25))
-                   ,@W_Password nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password') AS nvarchar(256))
-                   ,@W_PersistSecurityInfo bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.PersistSecurityInfo') AS bit)
-                   ,@W_AdditionalParameters nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AdditionalParameters') AS nvarchar(max))
+            DECLARE @W_Environment nvarchar(3) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Environment') AS nvarchar(3))
+                   ,@W_ConnectionString nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionString') AS nvarchar(256))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Connections] ([Id]
-                                                ,[Provider]
-                                                ,[HostName]
-                                                ,[Port]
-                                                ,[IntegratedSecurity]
-                                                ,[ConnectionTimeout]
-                                                ,[ExtendedProperties]
-                                                ,[UserID]
-                                                ,[Password]
-                                                ,[PersistSecurityInfo]
-                                                ,[AdditionalParameters]
+                                                ,[Environment]
+                                                ,[ConnectionString]
                                                 ,[CreatedAt]
                                                 ,[CreatedBy])
                                           VALUES (@W_Id
-                                                 ,@W_Provider
-                                                 ,@W_HostName
-                                                 ,@W_Port
-                                                 ,@W_IntegratedSecurity
-                                                 ,@W_ConnectionTimeout
-                                                 ,@W_ExtendedProperties
-                                                 ,@W_UserID
-                                                 ,@W_Password
-                                                 ,@W_PersistSecurityInfo
-                                                 ,@W_AdditionalParameters
+                                                 ,@W_Environment
+                                                 ,@W_ConnectionString
                                                  ,GETDATE()
                                                  ,@UserName)
             ELSE
                 UPDATE [dbo].[Connections] SET [Id] = @W_Id
-                                              ,[Provider] = @W_Provider
-                                              ,[HostName] = @W_HostName
-                                              ,[Port] = @W_Port
-                                              ,[IntegratedSecurity] = @W_IntegratedSecurity
-                                              ,[ConnectionTimeout] = @W_ConnectionTimeout
-                                              ,[ExtendedProperties] = @W_ExtendedProperties
-                                              ,[UserID] = @W_UserID
-                                              ,[Password] = @W_Password
-                                              ,[PersistSecurityInfo] = @W_PersistSecurityInfo
-                                              ,[AdditionalParameters] = @W_AdditionalParameters
+                                              ,[Environment] = @W_Environment
+                                              ,[ConnectionString] = @W_ConnectionString
                                               ,[UpdatedAt] = GETDATE()
                                               ,[UpdatedBy] = @UserName
                     WHERE [Id] = @W_Id
@@ -21551,16 +20584,8 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Provider') AS nvarchar(50)) AS [Provider]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.HostName') AS nvarchar(25)) AS [HostName]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Port') AS int) AS [Port]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IntegratedSecurity') AS bit) AS [IntegratedSecurity]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ConnectionTimeout') AS smallint) AS [ConnectionTimeout]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ExtendedProperties') AS nvarchar(max)) AS [ExtendedProperties]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.UserID') AS nvarchar(25)) AS [UserID]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.PersistSecurityInfo') AS bit) AS [PersistSecurityInfo]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AdditionalParameters') AS nvarchar(max)) AS [AdditionalParameters]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Environment') AS nvarchar(3)) AS [Environment]
+              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ConnectionString') AS nvarchar(256)) AS [ConnectionString]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -21574,27 +20599,17 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
 
         IF @_ IS NULL BEGIN
             DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_Provider nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Provider') AS nvarchar(50))
-                   ,@W_HostName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.HostName') AS nvarchar(25))
-                   ,@W_Port int = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Port') AS int)
-                   ,@W_IntegratedSecurity bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IntegratedSecurity') AS bit)
+                   ,@W_Environment nvarchar(3) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Environment') AS nvarchar(3))
+                   ,@W_ConnectionString nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ConnectionString') AS nvarchar(256))
 
             IF @W_Id IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_Provider IS NOT NULL BEGIN
-                SET @Where = @Where + ' AND [T].[Provider] = @Provider'
+            IF @W_Environment IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Environment] = @Environment'
             END
-            IF @W_HostName IS NOT NULL BEGIN
-                SET @Where = @Where + ' AND [T].[HostName] = @HostName'
-            END
-            IF @W_Port IS NOT NULL BEGIN
-                IF @W_Port < CAST('1' AS int)
-                    THROW 51000, 'Valor de Port deve ser maior que ou igual a ''1''', 1
-                SET @Where = @Where + ' AND [T].[Port] = @Port'
-            END
-            IF @W_IntegratedSecurity IS NOT NULL BEGIN
-                SET @Where = @Where + ' AND [T].[IntegratedSecurity] = @IntegratedSecurity'
+            IF @W_ConnectionString IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[ConnectionString] = @ConnectionString'
             END
         END ELSE
             SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
@@ -21613,15 +20628,11 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
         IF @_ IS NULL
             EXEC sp_executesql @sql
                                ,N'@Id bigint
-                               ,@Provider nvarchar(50)
-                               ,@HostName nvarchar(25)
-                               ,@Port int
-                               ,@IntegratedSecurity bit'
+                               ,@Environment nvarchar(3)
+                               ,@ConnectionString nvarchar(256)'
                            ,@Id = @W_Id
-                           ,@Provider = @W_Provider
-                           ,@HostName = @W_HostName
-                           ,@Port = @W_Port
-                           ,@IntegratedSecurity = @W_IntegratedSecurity
+                           ,@Environment = @W_Environment
+                           ,@ConnectionString = @W_ConnectionString
         ELSE
             EXEC sp_executesql @sql
 
@@ -21646,46 +20657,22 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
                     ,CAST(NULL AS bigint) AS [Id]
-                    ,CAST(NULL AS nvarchar(50)) AS [Provider]
-                    ,CAST(NULL AS nvarchar(25)) AS [HostName]
-                    ,CAST(NULL AS int) AS [Port]
-                    ,CAST(NULL AS bit) AS [IntegratedSecurity]
-                    ,CAST(NULL AS smallint) AS [ConnectionTimeout]
-                    ,CAST(NULL AS nvarchar(max)) AS [ExtendedProperties]
-                    ,CAST(NULL AS nvarchar(25)) AS [UserID]
-                    ,CAST(NULL AS nvarchar(256)) AS [Password]
-                    ,CAST(NULL AS bit) AS [PersistSecurityInfo]
-                    ,CAST(NULL AS nvarchar(max)) AS [AdditionalParameters]
+                    ,CAST(NULL AS nvarchar(3)) AS [Environment]
+                    ,CAST(NULL AS nvarchar(256)) AS [ConnectionString]
             INTO [#result]
         SET @sql = 'INSERT #result
                         SELECT ''Connection'' AS [ClassName]
                               ,[T].[Id]
-                              ,[T].[Provider]
-                              ,[T].[HostName]
-                              ,[T].[Port]
-                              ,[T].[IntegratedSecurity]
-                              ,[T].[ConnectionTimeout]
-                              ,[T].[ExtendedProperties]
-                              ,[T].[UserID]
-                              ,[T].[Password]
-                              ,[T].[PersistSecurityInfo]
-                              ,[T].[AdditionalParameters]
+                              ,[T].[Environment]
+                              ,[T].[ConnectionString]
                             FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Connections] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Connection'' AS [ClassName]
                                   ,[O].[Id]
-                                  ,[O].[Provider]
-                                  ,[O].[HostName]
-                                  ,[O].[Port]
-                                  ,[O].[IntegratedSecurity]
-                                  ,[O].[ConnectionTimeout]
-                                  ,[O].[ExtendedProperties]
-                                  ,[O].[UserID]
-                                  ,[O].[Password]
-                                  ,[O].[PersistSecurityInfo]
-                                  ,[O].[AdditionalParameters]
+                                  ,[O].[Environment]
+                                  ,[O].[ConnectionString]
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
@@ -21695,16 +20682,8 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
         EXEC sp_executesql @sql
         SELECT [ClassName]
               ,[Id]
-              ,[Provider]
-              ,[HostName]
-              ,[Port]
-              ,[IntegratedSecurity]
-              ,[ConnectionTimeout]
-              ,[ExtendedProperties]
-              ,[UserID]
-              ,[Password]
-              ,[PersistSecurityInfo]
-              ,[AdditionalParameters]
+              ,[Environment]
+              ,[ConnectionString]
             FROM [#result]
         SET @ReturnValue = @RowCount
 
@@ -22280,16 +21259,8 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@SessionId BIGINT
             FROM [#result]
         SELECT DISTINCT 'Connection' AS ClassName
               ,[R].[Id]
-              ,[R].[Provider]
-              ,[R].[HostName]
-              ,[R].[Port]
-              ,[R].[IntegratedSecurity]
-              ,[R].[ConnectionTimeout]
-              ,[R].[ExtendedProperties]
-              ,[R].[UserID]
-              ,[R].[Password]
-              ,[R].[PersistSecurityInfo]
-              ,[R].[AdditionalParameters]
+              ,[R].[Environment]
+              ,[R].[ConnectionString]
             INTO [#Connections]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
@@ -22904,16 +21875,8 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@SessionId BIGINT
         CREATE UNIQUE INDEX [#Databases] ON [#Databases](Id)
         SELECT DISTINCT 'Connection' AS ClassName
               ,[R].[Id]
-              ,[R].[Provider]
-              ,[R].[HostName]
-              ,[R].[Port]
-              ,[R].[IntegratedSecurity]
-              ,[R].[ConnectionTimeout]
-              ,[R].[ExtendedProperties]
-              ,[R].[UserID]
-              ,[R].[Password]
-              ,[R].[PersistSecurityInfo]
-              ,[R].[AdditionalParameters]
+              ,[R].[Environment]
+              ,[R].[ConnectionString]
             INTO [#Connections]
             FROM [#Databases] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
@@ -23090,10 +22053,6 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Columns', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [TableId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Indexes', 1
-            IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId1] = @W_Id)
-                THROW 51000, 'Chave-primária referenciada em Associations', 1
-            IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId2] = @W_Id)
-                THROW 51000, 'Chave-primária referenciada em Associations', 1
         END ELSE BEGIN
 
             DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
@@ -23124,18 +22083,18 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                     THROW 51000, 'Chave única de UNQ_Tables_Name já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias)
                     THROW 51000, 'Chave única de UNQ_Tables_Alias já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias)
-                    THROW 51000, 'Unicidade cruzada de [Table].[Name] => [Table].[Alias] já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name)
-                    THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Name)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Id] => [Table].[Name] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Id)
+                    THROW 51000, 'Unicidade cruzada de [Table].[Name] => [Table].[Id] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Tables_Name já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Tables_Alias já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Alias AND [Id] <> @W_Id)
-                THROW 51000, 'Unicidade cruzada de [Table].[Name] => [Table].[Alias] já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Unicidade cruzada de [Table].[Alias] => [Table].[Name] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Name AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Id] => [Table].[Name] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Id AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [Table].[Name] => [Table].[Id] já existe', 1
             END
         END
 
@@ -24169,16 +23128,8 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@SessionId BIGINT
         CREATE UNIQUE INDEX [#Databases] ON [#Databases](Id)
         SELECT DISTINCT 'Connection' AS ClassName
               ,[R].[Id]
-              ,[R].[Provider]
-              ,[R].[HostName]
-              ,[R].[Port]
-              ,[R].[IntegratedSecurity]
-              ,[R].[ConnectionTimeout]
-              ,[R].[ExtendedProperties]
-              ,[R].[UserID]
-              ,[R].[Password]
-              ,[R].[PersistSecurityInfo]
-              ,[R].[AdditionalParameters]
+              ,[R].[Environment]
+              ,[R].[ConnectionString]
             INTO [#Connections]
             FROM [#Databases] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
@@ -27453,11 +26404,11 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@SessionId BIGINT
               ,[R].[UserId]
               ,[R].[PublicKey]
               ,[R].[IsLogged]
-            INTO [#Logins]
+            INTO [#Sessions]
             FROM [#result] [T]
-                INNER JOIN [dbo].[Logins] [R] ON [R].[Id] = [T].[SessionId]
+                INNER JOIN [dbo].[Sessions] [R] ON [R].[Id] = [T].[SessionId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Logins] ON [#Logins](Id)
+        CREATE UNIQUE INDEX [#Sessions] ON [#Sessions](Id)
         SELECT DISTINCT 'System' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -27466,11 +26417,11 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@SessionId BIGINT
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
             INTO [#Systems]
-            FROM [#Logins] [T]
+            FROM [#Sessions] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
-        SELECT [Logins].* FROM [#Logins] AS [Logins]
+        SELECT [Sessions].* FROM [#Sessions] AS [Sessions]
         SELECT [Systems].* FROM [#Systems] AS [Systems]
         SET @ReturnValue = @RowCount
 
@@ -28024,11 +26975,11 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
               ,[R].[UserId]
               ,[R].[PublicKey]
               ,[R].[IsLogged]
-            INTO [#Logins]
+            INTO [#Sessions]
             FROM [#Transactions] [T]
-                INNER JOIN [dbo].[Logins] [R] ON [R].[Id] = [T].[SessionId]
+                INNER JOIN [dbo].[Sessions] [R] ON [R].[Id] = [T].[SessionId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Logins] ON [#Logins](Id)
+        CREATE UNIQUE INDEX [#Sessions] ON [#Sessions](Id)
         SELECT DISTINCT 'System' AS ClassName
               ,[R].[Id]
               ,[R].[Name]
@@ -28037,7 +26988,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
               ,[R].[MaxRetryLogins]
               ,[R].[IsOffAir]
             INTO [#Systems]
-            FROM [#Logins] [T]
+            FROM [#Sessions] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
@@ -28056,574 +27007,9 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Operations] ON [#Operations](Id)
         SELECT [Transactions].* FROM [#Transactions] AS [Transactions]
-        SELECT [Logins].* FROM [#Logins] AS [Logins]
+        SELECT [Sessions].* FROM [#Sessions] AS [Sessions]
         SELECT [Systems].* FROM [#Systems] AS [Systems]
         SELECT [Operations].* FROM [#Operations] AS [Operations]
-        SET @ReturnValue = @RowCount
-
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
-END
-GO
-
-
-/**********************************************************************************
-Criar stored procedure [dbo].[AssociationValidate]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[AssociationValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[AssociationValidate] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[AssociationValidate](@SessionId BIGINT
-                                               ,@UserName NVARCHAR(25)
-                                               ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
-                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
-
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName é requerido', 1
-        IF @Action IS NULL
-            THROW 51000, 'Valor de @Action é requerido', 1
-        IF @Action NOT IN ('create', 'update', 'delete')
-            THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
-
-        IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
-        SELECT @IsConfirmed = [IsConfirmed]
-              ,@CreatedBy = [CreatedBy]
-            FROM [dbo].[Transactions]
-            WHERE [Id] = @TransactionId
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1;
-        END
-        IF @UserName <> @CreatedBy
-            THROW 51000, 'Erro grave de segurança', 1
-        IF @W_Id IS NULL BEGIN
-            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @W_Id < CAST('1' AS bigint)
-            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
-            IF @Action = 'create'
-                THROW 51000, 'Chave-primária já existe em Associations', 1
-        END ELSE IF @Action <> 'create'
-            THROW 51000, 'Chave-primária não existe em Associations', 1
-        IF @Action <> 'create' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId1'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId1'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId2'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId2'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsBidirectional'), 'bit') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
-            IF NOT EXISTS(SELECT 1
-                            FROM [dbo].[Associations]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [TableId1] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId1')
-                                  AND [TableId2] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId2')
-                                  AND [IsBidirectional] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsBidirectional'))
-                THROW 51000, 'Registro de Associations alterado por outro usuário', 1
-        END
-
-        IF @Action <> 'delete' BEGIN
-
-            DECLARE @W_TableId1 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId1') AS bigint)
-                   ,@W_TableId2 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId2') AS bigint)
-                   ,@W_IsBidirectional bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional') AS bit)
-
-            IF @W_TableId1 IS NULL
-                THROW 51000, 'Valor de TableId1 em @ActualRecord é requerido.', 1
-            IF @W_TableId1 < CAST('1' AS bigint)
-                THROW 51000, 'Valor de TableId1 em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
-                THROW 51000, 'Valor de TableId1 em @ActualRecord inexiste em Tables', 1
-            IF @W_TableId2 IS NULL
-                THROW 51000, 'Valor de TableId2 em @ActualRecord é requerido.', 1
-            IF @W_TableId2 < CAST('1' AS bigint)
-                THROW 51000, 'Valor de TableId2 em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
-                THROW 51000, 'Valor de TableId2 em @ActualRecord inexiste em Tables', 1
-            IF @W_IsBidirectional IS NULL
-                THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
-            IF @W_IsBidirectional < CAST('1' AS bit)
-                THROW 51000, 'Valor de IsBidirectional em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId1] = @W_TableId1 AND [TableId2] = @W_TableId2)
-                    THROW 51000, 'Chave única de UNQ_Associations_TableId1_TableId2 já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId2] = @W_TableId2 AND [TableId1] = @W_TableId1)
-                    THROW 51000, 'Chave única de UNQ_Associations_TableId2_TableId1 já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId1] = @W_TableId1 AND [TableId2] = @W_TableId2 AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Associations_TableId1_TableId2 já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Associations] WHERE [TableId2] = @W_TableId2 AND [TableId1] = @W_TableId1 AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Associations_TableId2_TableId1 já existe', 1
-            END
-        END
-
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[AssociationPersist]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[AssociationPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[AssociationPersist] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[AssociationPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
-                                              ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
-                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
-
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
-               ,@CreatedBy NVARCHAR(25)
-               ,@ActionAux NVARCHAR(15)
-               ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
-
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[AssociationValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
-        SELECT @OperationId = [Id]
-              ,@CreatedBy = [CreatedBy]
-              ,@ActionAux = [Action]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [dbo].[Operations]
-            WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
-                  AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
-        IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
-                                             ,[TableName]
-                                             ,[Action]
-                                             ,[LastRecord]
-                                             ,[ActualRecord]
-                                             ,[IsConfirmed]
-                                             ,[CreatedAt]
-                                             ,[CreatedBy])
-                                       VALUES(@TransactionId
-                                             ,'Associations'
-                                             ,@Action
-                                             ,@LastRecord
-                                             ,@ActualRecord
-                                             ,NULL
-                                             ,GETDATE()
-                                             ,@UserName)
-            SET @OperationId = @@IDENTITY
-        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END ELSE IF @UserName <> @CreatedBy
-            THROW 51000, 'Erro grave de segurança', 1
-        ELSE IF @ActionAux = 'delete'
-            THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
-        ELSE IF @Action = 'update' BEGIN
-            IF @ActionAux = 'create'
-                EXEC [dbo].[AssociationValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [dbo].[Operations]
-                SET [ActualRecord] = @ActualRecord
-                   ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @UserName
-                WHERE [Id] = @OperationId
-        END ELSE IF @ActionAux = 'create' BEGIN
-            UPDATE [dbo].[Operations] 
-                SET [IsConfirmed] = 0
-                   ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @UserName
-                WHERE [Id] = @OperationId
-        END ELSE BEGIN
-            UPDATE [dbo].[Operations]
-                SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
-                   ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @UserName
-                WHERE [Id] = @OperationId
-        END
-        COMMIT TRANSACTION
-
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[AssociationCommit]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[AssociationCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[AssociationCommit] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[AssociationCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
-                                             ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
-
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-        DECLARE @TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@TableName NVARCHAR(25)
-               ,@Action NVARCHAR(15)
-               ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
-               ,@ActualRecord NVARCHAR(max)
-               ,@IsConfirmed BIT
-
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
-            THROW 51000, 'Valor de @OperationId requerido', 1
-        SELECT @TransactionId = [TransactionId]
-               ,@TableName = [TableName]
-               ,@Action = [Action]
-               ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
-               ,@ActualRecord = [ActualRecord]
-               ,@IsConfirmed = [IsConfirmed]
-            FROM [dbo].[Operations]
-            WHERE [Id] = @OperationId
-        IF @@ROWCOUNT = 0
-            THROW 51000, 'Operação inexistente', 1
-        IF @TableName <> 'Associations'
-            THROW 51000, 'Tabela da operação é inválida', 1
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @UserName <> @CreatedBy
-            THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[AssociationValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId <> @TransactionIdAux
-            THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
-
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Associations] WHERE [Id] = @W_Id
-        ELSE BEGIN
-
-            DECLARE @W_TableId1 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId1') AS bigint)
-                   ,@W_TableId2 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId2') AS bigint)
-                   ,@W_IsBidirectional bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional') AS bit)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Associations] ([Id]
-                                                ,[TableId1]
-                                                ,[TableId2]
-                                                ,[IsBidirectional]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_TableId1
-                                                 ,@W_TableId2
-                                                 ,@W_IsBidirectional
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Associations] SET [Id] = @W_Id
-                                              ,[TableId1] = @W_TableId1
-                                              ,[TableId2] = @W_TableId2
-                                              ,[IsBidirectional] = @W_IsBidirectional
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
-        UPDATE [dbo].[Operations]
-            SET [IsConfirmed] = 1
-                ,[UpdatedAt] = GETDATE()
-                ,[UpdatedBy] = @UserName
-            WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
-
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[AssociationsRead]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[AssociationsRead]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[AssociationsRead] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[AssociationsRead](@SessionId BIGINT
-                                          ,@RecordFilter NVARCHAR(MAX)
-                                          ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@IsActionList BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
-
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
-        IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
-        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
-        IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
-        ELSE BEGIN
-            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT 1 
-                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
-                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
-                                           ELSE TRIM([value])
-                                      END AS [ColumnName]
-                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
-                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
-                                                    FROM [sys].[columns] [#1]
-                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
-                                                    WHERE [#2].[name] = 'Associations') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
-                         WHERE [T].[ColumnName] IS NULL)
-                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
-                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
-                                                         ELSE TRIM([value])
-                                                    END) + '] ' + 
-                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
-                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
-                                                         ELSE 'ASC'
-                                                    END, ', ')
-                FROM STRING_SPLIT(@OrderBy, ',')
-        END
-
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-
-        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
-            SET @TransactionId = NULL
-        SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId1') AS bigint) AS [TableId1]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId2') AS bigint) AS [TableId2]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsBidirectional') AS bit) AS [IsBidirectional]
-            INTO [#tmpOperations]
-            FROM [dbo].[Operations]
-            WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Associations'
-                  AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
-
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
-               ,@Where NVARCHAR(MAX) = ''
-               ,@sql NVARCHAR(MAX)
-
-        IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_TableId1 bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId1') AS bigint)
-                   ,@W_TableId2 bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId2') AS bigint)
-
-            IF @W_Id IS NOT NULL BEGIN
-                IF @W_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @Where = @Where + ' AND [T].[Id] = @Id'
-            END
-            IF @W_TableId1 IS NOT NULL BEGIN
-                IF @W_TableId1 < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de TableId1 deve ser maior que ou igual a ''1''', 1
-                SET @Where = @Where + ' AND [T].[TableId1] = @TableId1'
-            END
-            IF @W_TableId2 IS NOT NULL BEGIN
-                IF @W_TableId2 < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de TableId2 deve ser maior que ou igual a ''1''', 1
-                SET @Where = @Where + ' AND [T].[TableId2] = @TableId2'
-            END
-        END ELSE
-            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Associations] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL' + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete''' + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
-            EXEC sp_executesql @sql
-                               ,N'@Id bigint
-                               ,@TableId1 bigint
-                               ,@TableId2 bigint'
-                           ,@Id = @W_Id
-                           ,@TableId1 = @W_TableId1
-                           ,@TableId2 = @W_TableId2
-        ELSE
-            EXEC sp_executesql @sql
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-
-        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
-                    ,CAST(NULL AS bigint) AS [Id]
-                    ,CAST(NULL AS bigint) AS [TableId1]
-                    ,CAST(NULL AS bigint) AS [TableId2]
-                    ,CAST(NULL AS bit) AS [IsBidirectional]
-            INTO [#result]
-        SET @sql = 'INSERT #result
-                        SELECT ''Association'' AS [ClassName]
-                              ,[T].[Id]
-                              ,[T].[TableId1]
-                              ,[T].[TableId2]
-                              ,[T].[IsBidirectional]
-                            FROM [#tmpTable] [#]
-                                INNER JOIN [dbo].[Associations] [T] ON [T].[Id] = [#].[Id]
-                            WHERE [#].[_] = ''T''
-                        UNION ALL
-                            SELECT ''Association'' AS [ClassName]
-                                  ,[O].[Id]
-                                  ,[O].[TableId1]
-                                  ,[O].[TableId2]
-                                  ,[O].[IsBidirectional]
-                                FROM [#tmpTable] [#]
-                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
-                                WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
-        SELECT [ClassName]
-              ,[Id]
-              ,[TableId1]
-              ,[TableId2]
-              ,[IsBidirectional]
-            FROM [#result]
-        SELECT DISTINCT 'Table' AS ClassName
-              ,[R].[Id]
-              ,[R].[Name]
-              ,[R].[Alias]
-              ,[R].[Description]
-              ,[R].[ParentTableId]
-              ,[R].[IsLegacy]
-              ,[R].[CurrentId]
-            INTO [#Tables]
-            FROM [#result] [T]
-                INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId1]
-            ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[IsLegacy]
-                  ,[R].[CurrentId]
-                FROM [#Tables] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[IsLegacy]
-                  ,[R].[CurrentId]
-                FROM [#result] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId2]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[IsLegacy]
-                  ,[R].[CurrentId]
-                FROM [#Tables] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
-        SELECT [Tables].* FROM [#Tables] AS [Tables]
         SET @ReturnValue = @RowCount
 
         RETURN 0
@@ -28730,13 +27116,13 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2)
-                    THROW 51000, 'Chave única de UNQ_Uniques_ColumnId1_ColumnId2 já existe', 1
+                    THROW 51000, 'Chave única de UNQ_Unicities_ColumnId1_ColumnId2 já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1)
-                    THROW 51000, 'Chave única de UNQ_Uniques_ColumnId2_ColumnId1 já existe', 1
+                    THROW 51000, 'Chave única de UNQ_Unicities_ColumnId2_ColumnId1 já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2 AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Uniques_ColumnId1_ColumnId2 já existe', 1
+                THROW 51000, 'Chave única de UNQ_Unicities_ColumnId1_ColumnId2 já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1 AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Uniques_ColumnId2_ColumnId1 já existe', 1
+                THROW 51000, 'Chave única de UNQ_Unicities_ColumnId2_ColumnId1 já existe', 1
             END
         END
 

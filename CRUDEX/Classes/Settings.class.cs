@@ -56,37 +56,11 @@ namespace CRUDA_LIB
         }
         public static string ConnectionString()
         {
-            var integratedSecurity = Convert.ToBoolean(Get("DB_INTEGRATED_SECURITY"));
-            var result = new OleDbConnectionStringBuilder
-            {
-                Provider = Get("DB_PROVIDER"),
-                DataSource = $"{Get("DB_HOST")},{Get("DB_PORT")}",
-                ["Initial Catalog"] = Get("DB_INITIAL_CATALOG"),
-                ["Connect Timeout"] = Get("DB_CONNECTION_TIMEOUT"),
-                ["Persist Security Info"] = Get("PERSIST_SECURITY_INFO"),
-                ["Integrated Security"] = integratedSecurity ? "SSPI" : null,
-                ["User ID"] = integratedSecurity ? null : Get("DB_USER_ID") ?? null,
-                ["Password"] = integratedSecurity ? null : Get("DB_PASSWORD") ?? null,
-            };
-
-            return result.ToString();
+            return new OleDbConnectionStringBuilder(Get("ConnectionString")).ToString();
         }
-        public static string ConnectionString(string databaseAlias, DataRow connection)
+        public static string ConnectionString(DataRow connection)
         {
-            var integratedSecurity = Convert.ToBoolean(Get("DB_INTEGRATED_SECURITY"));
-            var result = new OleDbConnectionStringBuilder
-            {
-                Provider = ToString(connection["Provider"]),
-                DataSource = $"{connection["HostName"]},{connection["Port"]}",
-                ["Initial Catalog"] = databaseAlias,
-                ["Connect Timeout"] = connection["ConnectionTimeout"],
-                ["Persist Security Info"] = connection["PersistSecurityInfo"],
-                ["Integrated Security"] = integratedSecurity ? "SSPI" : null,
-                ["User ID"] = integratedSecurity ? null : connection["UserID"] ?? null,
-                ["Password"] = integratedSecurity ? null : connection["Password"] ?? null,
-            };
-
-            return result.ToString();
+            return new OleDbConnectionStringBuilder(connection["ConnectionString"].ToString()).ToString();
         }
         public static string Get(string key)
         {

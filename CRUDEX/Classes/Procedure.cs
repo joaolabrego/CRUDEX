@@ -60,7 +60,7 @@ namespace CRUDA_LIB
             var config = GetConfig(systemName, databaseName, tableName).Result.DataSet.Tables;
             var databaseAlias = config[2].Rows[0]["Alias"];
             var connectionRow = config[1].Rows[0];
-            var connectionString = Settings.ConnectionString(databaseAlias, connectionRow);
+            var connectionString = Settings.ConnectionString(connectionRow);
             var procedureName = action switch
             {
                 Actions.BEGIN => $"TransactionBegin",

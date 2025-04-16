@@ -26,7 +26,6 @@ namespace crudex.Classes
             var categories = (dataSet.Tables["Categories"] ?? throw new Exception("Tabela Categories não existe.")).AsEnumerable().ToList();
             var types = (dataSet.Tables["Types"] ?? throw new Exception("Tabela Types não existe.")).AsEnumerable().ToList();
             var tables = (dataSet.Tables["Tables"] ?? throw new Exception("Tabela Tables não existe.")).AsEnumerable().ToList();
-            var associations = (dataSet.Tables["Associations"] ?? throw new Exception("Tabela Associations não existe.")).AsEnumerable().ToList();
             var unicities = (dataSet.Tables["Unicities"] ?? throw new Exception("Tabela Unicities não existe.")).AsEnumerable().ToList();
             var databaseTables = (dataSet.Tables["DatabasesTables"] ?? throw new Exception("Tabela DatabasesTables não existe.")).AsEnumerable().ToList()
                 .FindAll(row => Settings.ToLong(row["DatabaseId"]) == Settings.ToLong(database["Id"]));
@@ -42,6 +41,7 @@ namespace crudex.Classes
                     result.AppendLine(GetScriptCreateDatabase(database).ToString());
                     firstTime = false;
                 }
+
                 result.AppendLine(GetScriptCreateTable(table, columns, indexes, indexkeys, domains, types).ToString());
             }
             if (!firstTime)

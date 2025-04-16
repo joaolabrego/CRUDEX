@@ -29,8 +29,7 @@ export default class TSystem {
     static #Columns = [];
     static #Categories = [];
     static #Masks = [];
-    static #Associations = [];
-    static #Uniques = [];
+    static #Unicities = [];
 
     static Run(withBackgroundImage = true) {
         TConfig.GetAPI(TActions.CONFIG)
