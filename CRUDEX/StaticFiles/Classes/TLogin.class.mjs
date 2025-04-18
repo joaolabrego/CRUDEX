@@ -12,6 +12,9 @@ export default class TLogin {
         Container: null,
         UserName: null,
         Password: null,
+        ChangePassword: null,
+        NewPassword: null,
+        RetypePassword: null,
         Submit: null,
         Style: null,
     };
@@ -54,13 +57,66 @@ export default class TLogin {
 
         this.#HTML.Container.appendChild(this.#HTML.Password);
 
+        this.#HTML.ChangePassword = document.createElement("input");
+        this.#HTML.ChangePassword.setAttribute("id", "checkboxChangePassword");
+        this.#HTML.ChangePassword.setAttribute("type", "checkbox");
+        this.#HTML.ChangePassword.setAttribute("tabindex", "-1");
+        this.#HTML.ChangePassword.setAttribute("title", "Marque para trocar senha");
+        this.#HTML.ChangePassword.onchange = () => {
+            TScreen.ErrorMessage = "";
+            if (this.#HTML.ChangePassword.checked) {
+                this.#HTML.NewPassword.removeAttribute("hidden");
+                this.#HTML.RetypePassword.removeAttribute("hidden");
+            }
+            else {
+                this.#HTML.NewPassword.setAttribute("hidden", "hidden");
+                this.#HTML.RetypePassword.setAttribute("hidden", "hidden");
+                this.#HTML.NewPassword.value = this.#HTML.RetypePassword.value = ""
+            }
+            this.#HTML.UserName.focus();
+        }
+
+        this.#HTML.Container.appendChild(this.#HTML.ChangePassword);
+
+        let label = document.createElement("label");
+
+        label.htmlFor = "checkboxChangePassword";
+        label.innerHTML = "&nbsp;&nbsp;&nbsp;Trocar senha";
+
+        this.#HTML.Container.appendChild(label);
+
+        this.#HTML.NewPassword = document.createElement("input");
+        this.#HTML.NewPassword.setAttribute("type", "password");
+        this.#HTML.NewPassword.setAttribute("title", "Digite sua nova senha");
+        this.#HTML.NewPassword.setAttribute("placeholder", "new password");
+        this.#HTML.NewPassword.setAttribute("required", "true");
+        this.#HTML.NewPassword.setAttribute("autocomplete", "off");
+        this.#HTML.NewPassword.setAttribute("value", "");
+        this.#HTML.NewPassword.setAttribute("hidden", "hidden");
+        this.#HTML.NewPassword.onfocus = () => this.#HTML.NewPassword.select();
+
+        this.#HTML.Container.appendChild(this.#HTML.NewPassword);
+
+        this.#HTML.RetypePassword = document.createElement("input");
+        this.#HTML.RetypePassword.setAttribute("type", "password");
+        this.#HTML.RetypePassword.setAttribute("title", "Redigite sua nova senha");
+        this.#HTML.RetypePassword.setAttribute("placeholder", "retype new password");
+        this.#HTML.RetypePassword.setAttribute("required", "true");
+        this.#HTML.RetypePassword.setAttribute("autocomplete", "off");
+        this.#HTML.RetypePassword.setAttribute("value", "");
+        this.#HTML.RetypePassword.setAttribute("hidden", "hidden");
+        this.#HTML.RetypePassword.onfocus = () => this.#HTML.RetypePassword.select();
+
+        this.#HTML.Container.appendChild(this.#HTML.RetypePassword);
+
         this.#HTML.Submit = document.createElement("button");
         this.#HTML.Submit.setAttribute("type", "button");
-        this.#HTML.Submit.setAttribute("title", "Clique para enviar nome e senha de usuário");
-        this.#HTML.Submit.innerText = "Enviar";
+        this.#HTML.Submit.setAttribute("title", "Clique para confirmar nome e senha de usuário");
+        this.#HTML.Submit.innerText = "Confirmar";
         this.#HTML.Submit.onclick = (event) => {
             event.preventDefault();
             event.stopPropagation();
+            TScreen.ErrorMessage = "";
             if (this.#HTML.UserName.validity.valueMissing) {
                 TScreen.ErrorMessage = "Nome do usuário é requerido.";
                 this.#HTML.UserName.focus();
@@ -68,6 +124,41 @@ export default class TLogin {
             else if (this.#HTML.Password.validity.valueMissing) {
                 TScreen.ErrorMessage = "Senha do usuário é requerida.";
                 this.#HTML.Password.focus();
+            }
+            else if (this.#HTML.ChangePassword.checked) {
+                if (this.#HTML.NewPassword.validity.valueMissing) {
+                    TScreen.ErrorMessage = "Nova senha do usuário é requerida.";
+                    this.#HTML.NewPassword.focus();
+                }
+                else if (this.#HTML.RetypePassword.validity.valueMissing) {
+                    TScreen.ErrorMessage = "Senha redigitada do usuário é requerida.";
+                    this.#HTML.RetypePassword.focus();
+                }
+                else if (this.#HTML.Password.value == this.#HTML.NewPassword.value) {
+                    TScreen.ErrorMessage = "Nova senha deve ser diferente da anterior.";
+                    this.#HTML.NewPassword.focus();
+                }
+                else if (this.#HTML.NewPassword.value != this.#HTML.RetypePassword.value) {
+                    TScreen.ErrorMessage = "Senha redigitada do usuário não confere com a nova senha.";
+                    this.#HTML.RetypePassword.focus();
+                }
+                else {
+                    TConfig.GetAPI(TActions.CHANGE, { NewPassword: this.#HTML.NewPassword })
+                        .then((result) => {
+                            this.#LoginId = result.Parameters.ReturnValue;
+                            this.#HTML.ChangePassword.checked = false;
+                            this.#HTML.ChangePassword.dispatchEvent(new Event('change', { bubbles: true }));
+                            this.#HTML.NewPassword.value = this.#HTML.RetypePassword.value = ""
+                            TSystem.Action = TActions.MENU;
+                        })
+                        .catch(error => {
+                            TScreen.ErrorMessage = error.Message;
+                            if (error.Message.toLowerCase().includes("senha"))
+                                this.#HTML.Password.focus();
+                            else
+                                this.#HTML.UserName.focus();
+                        });
+                }
             }
             else {
                 TConfig.GetAPI(TActions.LOGIN)

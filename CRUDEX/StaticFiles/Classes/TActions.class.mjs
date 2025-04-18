@@ -2,6 +2,7 @@
     static get CONFIG() { return "config" }
     static get SCREEN() { return "screen" }
     static get LOGIN() { return "login" }
+    static get CHANGE() { return "change" }
     static get LOGOUT() { return "logout" }
     static get AUTHENTICATE() { return "authenticate" }
     static get EXECUTE() { return "execute" }

@@ -17,6 +17,7 @@ export default class TGrid {
     #IsRendering = false;
     #IsNavigateByScroll = false;
     #Rows = [];
+    #ColumnTitle = null;
     #Data = null;
     #References = [];
     #Table = null;
@@ -483,11 +484,14 @@ export default class TGrid {
                         : th.IsOrdered
                             ? "&nbsp;\u25BC"
                             : "&nbsp;\u25B2");
+                if (this.#ColumnTitle)
+                    th.title = this.#ColumnTitle;
                 th.onclick = (event) => {
                     if (TConfig.IsEmpty(event.target.IsOrdered)) {
                         this.#OrderBy += columnNameAsc;
                         event.target.IsOrdered = false;
                         event.target.innerHTML = `${column.Title}&nbsp;\u25B2`;
+                        this.#ColumnTitle = "Clique aqui para ordenar em ordem decrescente";
                     } else if (event.target.IsOrdered === false) {
                         this.#OrderBy = this.#OrderBy.replace(
                             columnNameAsc,
@@ -495,10 +499,12 @@ export default class TGrid {
                         );
                         event.target.IsOrdered = true;
                         event.target.innerHTML = `${column.Title}&nbsp;\u25BC`;
+                        this.#ColumnTitle = "Clique aqui para cancelar ordenação";
                     } else {
                         this.#OrderBy = this.#OrderBy.replace(columnNameDesc, "");
                         event.target.IsOrdered = null;
                         event.target.innerHTML = column.Title;
+                        this.#ColumnTitle = null;
                     }
                     this.Renderize();
                 };

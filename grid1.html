@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Navegação com Divs</title>
+    <style>
+      :root {
+        --background-color: #f5d9b0;
+        --background-color-focus: #dcdcdc;
+        --background-color-active: #e0e0e0;
+        --background-color-control: #ccc;
+        --font-size-grid: 1.8dvmin;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font-family: sans-serif;
+      }
+
+      .page {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+
+      .header,
+      .footer {
+        background: var(--background-color);
+        padding: 1dvmin;
+        text-align: center;
+        flex-shrink: 0;
+      }
+
+      .content {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .grid-wrapper {
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      .grid {
+        display: table;
+        width: 100%;
+        font-size: var(--font-size-grid);
+        border-collapse: collapse;
+      }
+
+      .grid-header,
+      .grid-row {
+        display: table-row;
+      }
+
+      .grid-cell {
+        display: table-cell;
+        border: 1px solid #999;
+        padding: 0.5dvmin;
+        text-align: left;
+      }
+
+      .grid-header {
+        background-color: var(--background-color-focus);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+
+      .grid-row:nth-child(odd) {
+        background-color: var(--background-color-active);
+      }
+
+      .grid-row.highlight {
+        background-color: var(--background-color-control) !important;
+      }
+
+      .footer {
+        background-color: var(--background-color);
+        height: 3dvmin;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="header">
+        <strong>CRUDEX - NAVEGAÇÃO ENTRE DIVs</strong>
+      </div>
+
+      <div class="content">
+        <div class="grid-wrapper" id="gridWrapper">
+          <div class="grid" id="grid">
+            <div class="grid-header">
+              <div class="grid-cell">ID</div>
+              <div class="grid-cell">Nome</div>
+              <div class="grid-cell">Descrição</div>
+            </div>
+
+            <script>
+              for (let i = 1; i <= 20; i++) {
+                document.write(`
+                <div class="grid-row">
+                  <div class="grid-cell">${i}</div>
+                  <div class="grid-cell">Item ${i}</div>
+                  <div class="grid-cell">Descrição do item ${i}</div>
+                </div>`);
+              }
+            </script>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">Use as setas ↑ ↓ para navegar</div>
+    </div>
+
+    <script>
+      const rows = Array.from(document.querySelectorAll(".grid-row"));
+      let current = 0;
+
+      const highlightRow = (index) => {
+        rows.forEach((row) => row.classList.remove("highlight"));
+        if (rows[index]) {
+          rows[index].classList.add("highlight");
+          rows[index].scrollIntoView({ block: "nearest" });
+        }
+      };
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown") {
+          if (current < rows.length - 1) current++;
+        } else if (e.key === "ArrowUp") {
+          if (current > 0) current--;
+        } else {
+          return;
+        }
+        highlightRow(current);
+        e.preventDefault();
+      });
+
+      // inicializa com a primeira linha destacada
+      highlightRow(current);
+    </script>
+  </body>
+</html>

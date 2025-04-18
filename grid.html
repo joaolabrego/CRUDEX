@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Grid com Rodapé Fixo</title>
+    <style>
+      :root {
+        --background-color: #f5d9b0;
+        --background-color-focus: #dcdcdc;
+        --background-color-active: #e0e0e0;
+        --background-color-control: #ccc;
+        --font-size-grid: 1.8dvmin;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font-family: sans-serif;
+      }
+
+      .page {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+
+      .header,
+      .footer {
+        background: var(--background-color);
+        padding: 1dvmin;
+        text-align: center;
+        flex-shrink: 0;
+      }
+
+      .content {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .grid-wrapper {
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      table.grid {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: var(--font-size-grid);
+      }
+
+      .grid th,
+      .grid td {
+        border: 1px solid #999;
+        padding: 0.5dvmin;
+        text-align: left;
+      }
+
+      .grid tbody tr:nth-child(odd) {
+        background-color: var(--background-color-active);
+      }
+
+      .grid thead {
+        background-color: var(--background-color-focus);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+
+      .footer {
+        background-color: var(--background-color);
+        height: 3dvmin;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="header">
+        <strong>CRUDEX - TESTE DE GRID</strong>
+      </div>
+
+      <div class="content">
+        <div class="grid-wrapper">
+          <table class="grid">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Descrição</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Gere várias linhas para testar scroll -->
+              <script>
+                for (let i = 1; i <= 20; i++) {
+                  document.write(`<tr>
+                  <td>${i}</td>
+                  <td>Item ${i}</td>
+                  <td>Descrição do item ${i}</td>
+                </tr>`);
+                }
+              </script>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="footer">Rodapé sempre fixo</div>
+    </div>
+  </body>
+</html>

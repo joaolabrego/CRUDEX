@@ -181,8 +181,10 @@ export default class TForm {
                     this.#HTML.CancelButton.click();
             }
             else if (this.#Action == TActions.FILTER && !event.target.Column.IsRequired && (event.key == "Backspace" || event.key == "Delete")) {
-                if (event.target.value === "")
+                if (event.target.value === "") {
+                    event.preventDefault();
                     event.target.placeholder = event.target.placeholder ? "" : "null";
+                }
             }
         };
         control.name = column.Name;
