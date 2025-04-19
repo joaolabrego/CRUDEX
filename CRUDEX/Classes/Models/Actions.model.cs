@@ -7,6 +7,7 @@
         public const string LOGIN = "login";
         public const string LOGOUT = "logout";
         public const string AUTHENTICATE = "authenticate";
+        public const string CHANGE = "change";
         public const string EXECUTE = "execute";
         public const string BEGIN = "begin";
         public const string COMMIT = "commit";

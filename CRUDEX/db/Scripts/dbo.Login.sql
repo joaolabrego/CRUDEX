@@ -1,6 +1,7 @@
 ﻿IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[Login] AS PRINT 1')
 GO
+
 ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 							 ,@ReturnValue BIGINT OUT) AS BEGIN
 	DECLARE @ErrorMessage NVARCHAR(MAX)
@@ -11,12 +12,12 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 		IF ISJSON(@Parameters) = 0
 			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
-		DECLARE @Action VARCHAR(15) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.Action') AS VARCHAR(15))
-				,@LoginId BIGINT = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.LoginId') AS BIGINT)
-				,@SystemName VARCHAR(25) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.SystemName') AS VARCHAR(25))
-				,@UserName VARCHAR(25) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.UserName') AS VARCHAR(25))
-				,@Password VARCHAR(256) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.Password') AS VARCHAR(256))
-				,@PublicKey VARCHAR(256) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.PublicKey') AS VARCHAR(256))
+		DECLARE @Action VARCHAR(15) = CAST(JSON_VALUE(@Parameters, '$.Action') AS VARCHAR(15))
+				,@LoginId BIGINT = CAST(JSON_VALUE(@Parameters, '$.LoginId') AS BIGINT)
+				,@SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+				,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.UserName') AS VARCHAR(25))
+				,@Password VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.Password') AS VARCHAR(256))
+				,@PublicKey VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.PublicKey') AS VARCHAR(256))
 				,@PasswordAux VARCHAR(256)
 				,@SystemId BIGINT
 				,@SystemIdAux BIGINT
@@ -30,7 +31,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 	
 		IF @Action IS NULL
 			THROW 51000, 'Ação de login é requerida', 1
-		IF @Action NOT IN ('login','logout','authenticate')
+		IF @Action NOT IN ('login','logout','authenticate','change')
 			THROW 51000, 'Ação de login é inválida', 1
 		IF @SystemName IS NULL
 			THROW 51000, 'Sistema é requerido', 1
@@ -76,7 +77,23 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 				THROW 51000, @ErrorMessage, 1
 			END
 		END
-		IF @action = 'login' BEGIN
+		IF @action = 'login' OR @action = 'change' BEGIN
+			IF @action = 'change' BEGIN
+				DECLARE @NewPassword VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.NewPassword') AS VARCHAR(256))
+						,@RetypedPassword VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.RetypedPassword') AS VARCHAR(256))
+
+				IF @NewPassword IS NULL
+					THROW 51000, 'Nova senha é requerida', 1
+				IF @NewPassword = @Password
+					THROW 51000, 'Nova senha deve ser diferente da anterior', 1
+				IF @RetypedPassword IS NULL
+					THROW 51000, 'Senha redigitada é requerida', 1
+				IF @NewPassword <> @RetypedPassword
+					THROW 51000, 'Senha redigitada não confere com a nova senha', 1
+				UPDATE [dbo].[Users] 
+					SET [Password] = @NewPassword
+					WHERE [Id] = @UserId
+			END
 			EXEC [dbo].[NewId] 'crudex', 'crudex', 'Sessions', @LoginId OUT
 			INSERT [dbo].[Sessions]([Id],
 								  [SystemId],

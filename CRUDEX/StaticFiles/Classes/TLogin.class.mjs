@@ -14,23 +14,49 @@ export default class TLogin {
         Password: null,
         ChangePassword: null,
         NewPassword: null,
-        RetypePassword: null,
-        Submit: null,
+        RetypedPassword: null,
+        Confirm: null,
         Style: null,
     };
+    static #Observer = new IntersectionObserver((entries, observer) => {
+        for (let entry of entries) {
+            if (entry.isIntersecting) {
+                entry.target.focus();
+                observer.disconnect();
+            }
+        }
+    });
+
     static Initialize(styles) {
         if (styles.ClassName !== "Styles")
             throw new Error("Argumento styles não é do tipo Styles.");
         this.#HTML.Container = document.createElement("form");
         this.#HTML.Container.className = "login box";
-        this.#HTML.Container.onkeyup = (event) => {
-            if (event.key === "Enter")
-                this.#HTML.Submit.click();
-        };
-
         this.#HTML.Style = document.createElement("style");
         this.#HTML.Style.innerText = styles.Login;
         this.#HTML.Container.appendChild(this.#HTML.Style);
+
+        let onfocus = event => { event.target.select(); },
+            onkeydown = event => {
+                if (event.key === "Enter" || event.key === "Tab") {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    let focusableElements = Array.from(document.querySelectorAll("input[type='text'], input[type='password']"))
+                        .filter(e => e.offsetParent !== null),
+                        currentIndex = focusableElements.indexOf(document.activeElement);
+
+                    if (currentIndex > -1) {
+                        let nextIndex;
+                        if (event.shiftKey)
+                            nextIndex = (currentIndex > 0) ? currentIndex - 1 : focusableElements.length - 1;
+                        else
+                            nextIndex = (currentIndex < focusableElements.length - 1) ? currentIndex + 1 : 0;
+
+                        focusableElements[nextIndex].focus();
+                    }
+                }
+            };
 
         this.#HTML.UserName = document.createElement("input");
         this.#HTML.UserName.setAttribute("id", "textUserName");
@@ -40,7 +66,8 @@ export default class TLogin {
         this.#HTML.UserName.setAttribute("required", "true");
         this.#HTML.UserName.setAttribute("autocomplete", "off");
         this.#HTML.UserName.setAttribute("value", "labrego");
-        this.#HTML.UserName.onfocus = () => this.#HTML.UserName.select();
+        this.#HTML.UserName.onfocus = onfocus;
+        this.#HTML.UserName.onkeydown = onkeydown;
         this.#HTML.UserName.oninput = () => TScreen.UserName = this.#HTML.UserName.value;
 
         this.#HTML.Container.appendChild(this.#HTML.UserName);
@@ -53,7 +80,8 @@ export default class TLogin {
         this.#HTML.Password.setAttribute("required", "true");
         this.#HTML.Password.setAttribute("autocomplete", "off");
         this.#HTML.Password.setAttribute("value", "diva");
-        this.#HTML.Password.onfocus = () => this.#HTML.Password.select();
+        this.#HTML.Password.onfocus = onfocus;
+        this.#HTML.Password.onkeydown = onkeydown;
 
         this.#HTML.Container.appendChild(this.#HTML.Password);
 
@@ -62,16 +90,16 @@ export default class TLogin {
         this.#HTML.ChangePassword.setAttribute("type", "checkbox");
         this.#HTML.ChangePassword.setAttribute("tabindex", "-1");
         this.#HTML.ChangePassword.setAttribute("title", "Marque para trocar senha");
-        this.#HTML.ChangePassword.onchange = () => {
+        this.#HTML.ChangePassword.onchange = (event) => {
             TScreen.ErrorMessage = "";
-            if (this.#HTML.ChangePassword.checked) {
+            if (event.target.checked) {
                 this.#HTML.NewPassword.removeAttribute("hidden");
-                this.#HTML.RetypePassword.removeAttribute("hidden");
+                this.#HTML.RetypedPassword.removeAttribute("hidden");
             }
             else {
                 this.#HTML.NewPassword.setAttribute("hidden", "hidden");
-                this.#HTML.RetypePassword.setAttribute("hidden", "hidden");
-                this.#HTML.NewPassword.value = this.#HTML.RetypePassword.value = ""
+                this.#HTML.RetypedPassword.setAttribute("hidden", "hidden");
+                this.#HTML.NewPassword.value = this.#HTML.RetypedPassword.value = ""
             }
             this.#HTML.UserName.focus();
         }
@@ -93,27 +121,29 @@ export default class TLogin {
         this.#HTML.NewPassword.setAttribute("autocomplete", "off");
         this.#HTML.NewPassword.setAttribute("value", "");
         this.#HTML.NewPassword.setAttribute("hidden", "hidden");
-        this.#HTML.NewPassword.onfocus = () => this.#HTML.NewPassword.select();
+        this.#HTML.NewPassword.onfocus = onfocus;
+        this.#HTML.NewPassword.onkeydown = onkeydown;
 
         this.#HTML.Container.appendChild(this.#HTML.NewPassword);
 
-        this.#HTML.RetypePassword = document.createElement("input");
-        this.#HTML.RetypePassword.setAttribute("type", "password");
-        this.#HTML.RetypePassword.setAttribute("title", "Redigite sua nova senha");
-        this.#HTML.RetypePassword.setAttribute("placeholder", "retype new password");
-        this.#HTML.RetypePassword.setAttribute("required", "true");
-        this.#HTML.RetypePassword.setAttribute("autocomplete", "off");
-        this.#HTML.RetypePassword.setAttribute("value", "");
-        this.#HTML.RetypePassword.setAttribute("hidden", "hidden");
-        this.#HTML.RetypePassword.onfocus = () => this.#HTML.RetypePassword.select();
+        this.#HTML.RetypedPassword = document.createElement("input");
+        this.#HTML.RetypedPassword.setAttribute("type", "password");
+        this.#HTML.RetypedPassword.setAttribute("title", "Redigite sua nova senha");
+        this.#HTML.RetypedPassword.setAttribute("placeholder", "retype new password");
+        this.#HTML.RetypedPassword.setAttribute("required", "true");
+        this.#HTML.RetypedPassword.setAttribute("autocomplete", "off");
+        this.#HTML.RetypedPassword.setAttribute("value", "");
+        this.#HTML.RetypedPassword.setAttribute("hidden", "hidden");
+        this.#HTML.RetypedPassword.onfocus = onfocus;
+        this.#HTML.RetypedPassword.onkeydown = onkeydown;
 
-        this.#HTML.Container.appendChild(this.#HTML.RetypePassword);
+        this.#HTML.Container.appendChild(this.#HTML.RetypedPassword);
 
-        this.#HTML.Submit = document.createElement("button");
-        this.#HTML.Submit.setAttribute("type", "button");
-        this.#HTML.Submit.setAttribute("title", "Clique para confirmar nome e senha de usuário");
-        this.#HTML.Submit.innerText = "Confirmar";
-        this.#HTML.Submit.onclick = (event) => {
+        this.#HTML.Confirm = document.createElement("button");
+        this.#HTML.Confirm.setAttribute("type", "button");
+        this.#HTML.Confirm.setAttribute("title", "Clique para confirmar nome e senha de usuário");
+        this.#HTML.Confirm.innerText = "Confirmar";
+        this.#HTML.Confirm.onclick = (event) => {
             event.preventDefault();
             event.stopPropagation();
             TScreen.ErrorMessage = "";
@@ -130,25 +160,28 @@ export default class TLogin {
                     TScreen.ErrorMessage = "Nova senha do usuário é requerida.";
                     this.#HTML.NewPassword.focus();
                 }
-                else if (this.#HTML.RetypePassword.validity.valueMissing) {
+                else if (this.#HTML.RetypedPassword.validity.valueMissing) {
                     TScreen.ErrorMessage = "Senha redigitada do usuário é requerida.";
-                    this.#HTML.RetypePassword.focus();
+                    this.#HTML.RetypedPassword.focus();
                 }
                 else if (this.#HTML.Password.value == this.#HTML.NewPassword.value) {
                     TScreen.ErrorMessage = "Nova senha deve ser diferente da anterior.";
                     this.#HTML.NewPassword.focus();
                 }
-                else if (this.#HTML.NewPassword.value != this.#HTML.RetypePassword.value) {
+                else if (this.#HTML.NewPassword.value != this.#HTML.RetypedPassword.value) {
                     TScreen.ErrorMessage = "Senha redigitada do usuário não confere com a nova senha.";
-                    this.#HTML.RetypePassword.focus();
+                    this.#HTML.RetypedPassword.focus();
                 }
                 else {
-                    TConfig.GetAPI(TActions.CHANGE, { NewPassword: this.#HTML.NewPassword })
+                    TConfig.GetAPI(TActions.CHANGE, {
+                        NewPassword: this.#HTML.NewPassword.value,
+                        RetypedPassword: this.#HTML.RetypedPassword.value,
+                    })
                         .then((result) => {
                             this.#LoginId = result.Parameters.ReturnValue;
                             this.#HTML.ChangePassword.checked = false;
+                            this.#HTML.Password.value = this.#HTML.NewPassword.value;
                             this.#HTML.ChangePassword.dispatchEvent(new Event('change', { bubbles: true }));
-                            this.#HTML.NewPassword.value = this.#HTML.RetypePassword.value = ""
                             TSystem.Action = TActions.MENU;
                         })
                         .catch(error => {
@@ -175,13 +208,13 @@ export default class TLogin {
                     });
             }
         };
-        this.#HTML.Container.appendChild(this.#HTML.Submit);
+        this.#HTML.Container.appendChild(this.#HTML.Confirm);
     }
     static Renderize() {
         TScreen.Title = "Acesso do Usuário";
         TScreen.Message = "Digite seu login e senha de usuário.";
         TScreen.Main = this.#HTML.Container;
-        this.#HTML.UserName.focus();
+        this.#Observer.observe(this.#HTML.UserName);
     }
     static Logout() {
         if (this.#LoginId)

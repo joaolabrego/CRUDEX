@@ -72,6 +72,7 @@ namespace CRUDA_LIB
                    $"        <meta name='copyright' content='© 2024 Labrego' />\r\n" +
                    $"        <meta name='description' content='Sistema de operações CRUD em tabelas de bancos-de-dados MS-SQL Server' />\r\n" +
                    $"        <link rel='icon' href='{favIcon}' />\r\n" +
+                   $"        <script src='./Classes/3th/crypto-js.min.js'></script>\r\n" +
                    $"        <title>{systemName.ToUpper()}</title>\r\n" +
                    (message == null ? $"        <script type='module' defer>\r\n" +
                                       $"            import TSystem from './Classes/TSystem.class.mjs'\r\n" +

@@ -791,7 +791,7 @@ ALTER PROCEDURE [dbo].[NewId](@SystemName VARCHAR(25)
 							 ,@ReturnValue BIGINT OUT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+		SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
 
 		DECLARE @SystemId BIGINT
 				,@DatabaseId BIGINT
@@ -813,9 +813,12 @@ ALTER PROCEDURE [dbo].[NewId](@SystemName VARCHAR(25)
 						WHERE [SystemId] = @SystemId
 							  AND [DatabaseId] = @DatabaseId)
 			THROW 51000, 'Banco-de-dados não pertence ao sistema especificado', 1
+
+		BEGIN TRANSACTION
+
 		SELECT @TableId = [Id]
 			   ,@NextId = ISNULL([CurrentId], 0) + 1
-			FROM [dbo].[Tables]
+			FROM [dbo].[Tables] WITH (UPDLOCK, HOLDLOCK)
 			WHERE [Name] = @TableName
 		IF @TableId IS NULL
 			THROW 51000, 'Tabela não encontrada', 1
@@ -828,11 +831,14 @@ ALTER PROCEDURE [dbo].[NewId](@SystemName VARCHAR(25)
 			SET [CurrentId] = @NextId
 			WHERE [Id] = @TableId
 		SET @ReturnValue = @NextId
-
+		COMMIT
 		RETURN 0
 	END TRY
 	BEGIN CATCH
 		DECLARE @ErrorMessage VARCHAR(MAX) = ERROR_MESSAGE();
+
+		IF @@TRANCOUNT > 0
+			ROLLBACK;
 
         THROW 51000, @ErrorMessage, 1
 	END CATCH
@@ -891,6 +897,7 @@ Criar stored procedure [dbo].[Login]
 IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[Login] AS PRINT 1')
 GO
+
 ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 							 ,@ReturnValue BIGINT OUT) AS BEGIN
 	DECLARE @ErrorMessage NVARCHAR(MAX)
@@ -901,12 +908,12 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 		IF ISJSON(@Parameters) = 0
 			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
-		DECLARE @Action VARCHAR(15) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.Action') AS VARCHAR(15))
-				,@LoginId BIGINT = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.LoginId') AS BIGINT)
-				,@SystemName VARCHAR(25) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.SystemName') AS VARCHAR(25))
-				,@UserName VARCHAR(25) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.UserName') AS VARCHAR(25))
-				,@Password VARCHAR(256) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.Password') AS VARCHAR(256))
-				,@PublicKey VARCHAR(256) = CAST([crudex].[JSON_EXTRACT](@Parameters, '$.PublicKey') AS VARCHAR(256))
+		DECLARE @Action VARCHAR(15) = CAST(JSON_VALUE(@Parameters, '$.Action') AS VARCHAR(15))
+				,@LoginId BIGINT = CAST(JSON_VALUE(@Parameters, '$.LoginId') AS BIGINT)
+				,@SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
+				,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.UserName') AS VARCHAR(25))
+				,@Password VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.Password') AS VARCHAR(256))
+				,@PublicKey VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.PublicKey') AS VARCHAR(256))
 				,@PasswordAux VARCHAR(256)
 				,@SystemId BIGINT
 				,@SystemIdAux BIGINT
@@ -920,7 +927,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 	
 		IF @Action IS NULL
 			THROW 51000, 'Ação de login é requerida', 1
-		IF @Action NOT IN ('login','logout','authenticate')
+		IF @Action NOT IN ('login','logout','authenticate','change')
 			THROW 51000, 'Ação de login é inválida', 1
 		IF @SystemName IS NULL
 			THROW 51000, 'Sistema é requerido', 1
@@ -966,7 +973,23 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 				THROW 51000, @ErrorMessage, 1
 			END
 		END
-		IF @action = 'login' BEGIN
+		IF @action = 'login' OR @action = 'change' BEGIN
+			IF @action = 'change' BEGIN
+				DECLARE @NewPassword VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.NewPassword') AS VARCHAR(256))
+						,@RetypedPassword VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.RetypedPassword') AS VARCHAR(256))
+
+				IF @NewPassword IS NULL
+					THROW 51000, 'Nova senha é requerida', 1
+				IF @NewPassword = @Password
+					THROW 51000, 'Nova senha deve ser diferente da anterior', 1
+				IF @RetypedPassword IS NULL
+					THROW 51000, 'Senha redigitada é requerida', 1
+				IF @NewPassword <> @RetypedPassword
+					THROW 51000, 'Senha redigitada não confere com a nova senha', 1
+				UPDATE [dbo].[Users] 
+					SET [Password] = @NewPassword
+					WHERE [Id] = @UserId
+			END
 			EXEC [dbo].[NewId] 'crudex', 'crudex', 'Sessions', @LoginId OUT
 			INSERT [dbo].[Sessions]([Id],
 								  [SystemId],
@@ -1779,26 +1802,6 @@ BEGIN
 
     -- Comparação final como VARBINARY(MAX) (fallback)
     RETURN CASE WHEN TRY_CAST(@LeftValue AS VARBINARY(MAX)) = TRY_CAST(@RightValue AS VARBINARY(MAX)) THEN 1 ELSE 0 END;
-END
-GO
-/**********************************************************************************
-Criar stored procedure [crudex].[JSON_EXTRACT]
-**********************************************************************************/
-IF (SELECT object_id('[crudex].[JSON_EXTRACT]', 'FN')) IS NULL
-    EXEC('CREATE FUNCTION [crudex].[JSON_EXTRACT]() RETURNS NVARCHAR(MAX) AS BEGIN RETURN '''' END')
-GO
-ALTER FUNCTION [crudex].[JSON_EXTRACT](@json NVARCHAR(MAX),
-                                              @propertyPath NVARCHAR(MAX))
-RETURNS NVARCHAR(MAX) AS
-BEGIN
-    DECLARE @result NVARCHAR(MAX);
-
-    SET @result = JSON_QUERY(@json, @propertyPath);
-
-    IF @result IS NULL
-        SET @result = JSON_VALUE(@json, @propertyPath);
-
-    RETURN @result;
 END
 GO
 /**********************************************************************************
@@ -15128,7 +15131,7 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
+               ,@W_Id AS tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -15159,31 +15162,31 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputType'), [crudex].[JSON_EXTRACT](@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputAlign'), [crudex].[JSON_EXTRACT](@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskEncrypted'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskEncrypted'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMask'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMask'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskListable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskListable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDefault'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDefault'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMinimum'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMaximum'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskInWords'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskInWords'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.HtmlInputType'), JSON_VALUE(@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.HtmlInputAlign'), JSON_VALUE(@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskEncrypted'), JSON_VALUE(@LastRecord, '$.AskEncrypted'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskMask'), JSON_VALUE(@LastRecord, '$.AskMask'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskListable'), JSON_VALUE(@LastRecord, '$.AskListable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskDefault'), JSON_VALUE(@LastRecord, '$.AskDefault'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskMinimum'), JSON_VALUE(@LastRecord, '$.AskMinimum'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskMaximum'), JSON_VALUE(@LastRecord, '$.AskMaximum'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskInWords'), JSON_VALUE(@LastRecord, '$.AskInWords'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Categories]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([HtmlInputType], [crudex].[JSON_EXTRACT](@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([HtmlInputAlign], [crudex].[JSON_EXTRACT](@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
-                                  AND [AskEncrypted] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskEncrypted')
-                                  AND [AskMask] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMask')
-                                  AND [AskListable] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskListable')
-                                  AND [AskDefault] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDefault')
-                                  AND [AskMinimum] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMinimum')
-                                  AND [AskMaximum] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskMaximum')
-                                  AND [AskInWords] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskInWords'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [crudex].[IS_EQUAL]([HtmlInputType], JSON_VALUE(@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
+                                  AND [crudex].[IS_EQUAL]([HtmlInputAlign], JSON_VALUE(@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
+                                  AND [AskEncrypted] = JSON_VALUE(@LastRecord, '$.AskEncrypted')
+                                  AND [AskMask] = JSON_VALUE(@LastRecord, '$.AskMask')
+                                  AND [AskListable] = JSON_VALUE(@LastRecord, '$.AskListable')
+                                  AND [AskDefault] = JSON_VALUE(@LastRecord, '$.AskDefault')
+                                  AND [AskMinimum] = JSON_VALUE(@LastRecord, '$.AskMinimum')
+                                  AND [AskMaximum] = JSON_VALUE(@LastRecord, '$.AskMaximum')
+                                  AND [AskInWords] = JSON_VALUE(@LastRecord, '$.AskInWords'))
                 THROW 51000, 'Registro de Categories alterado por outro usuário', 1
         END
 
@@ -15192,16 +15195,16 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Types', 1
         END ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_HtmlInputType nvarchar(10) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
-                   ,@W_HtmlInputAlign nvarchar(6) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
-                   ,@W_AskEncrypted bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskEncrypted') AS bit)
-                   ,@W_AskMask bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMask') AS bit)
-                   ,@W_AskListable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskListable') AS bit)
-                   ,@W_AskDefault bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDefault') AS bit)
-                   ,@W_AskMinimum bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum') AS bit)
-                   ,@W_AskMaximum bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum') AS bit)
-                   ,@W_AskInWords bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskInWords') AS bit)
+            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_HtmlInputType nvarchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
+                   ,@W_HtmlInputAlign nvarchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
+                   ,@W_AskEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit)
+                   ,@W_AskMask bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit)
+                   ,@W_AskListable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskListable') AS bit)
+                   ,@W_AskDefault bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDefault') AS bit)
+                   ,@W_AskMinimum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMinimum') AS bit)
+                   ,@W_AskMaximum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMaximum') AS bit)
+                   ,@W_AskInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.AskInWords') AS bit)
 
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -15259,7 +15262,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
+               ,@W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -15272,7 +15275,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -15393,22 +15396,22 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[CategoryValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Categories] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_HtmlInputType nvarchar(10) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
-                   ,@W_HtmlInputAlign nvarchar(6) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
-                   ,@W_AskEncrypted bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskEncrypted') AS bit)
-                   ,@W_AskMask bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMask') AS bit)
-                   ,@W_AskListable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskListable') AS bit)
-                   ,@W_AskDefault bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDefault') AS bit)
-                   ,@W_AskMinimum bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMinimum') AS bit)
-                   ,@W_AskMaximum bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskMaximum') AS bit)
-                   ,@W_AskInWords bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskInWords') AS bit)
+            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_HtmlInputType nvarchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
+                   ,@W_HtmlInputAlign nvarchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
+                   ,@W_AskEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit)
+                   ,@W_AskMask bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit)
+                   ,@W_AskListable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskListable') AS bit)
+                   ,@W_AskDefault bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDefault') AS bit)
+                   ,@W_AskMinimum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMinimum') AS bit)
+                   ,@W_AskMaximum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMaximum') AS bit)
+                   ,@W_AskInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.AskInWords') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Categories] ([Id]
@@ -15532,17 +15535,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.HtmlInputType') AS nvarchar(10)) AS [HtmlInputType]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.HtmlInputAlign') AS nvarchar(6)) AS [HtmlInputAlign]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskEncrypted') AS bit) AS [AskEncrypted]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskMask') AS bit) AS [AskMask]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskListable') AS bit) AS [AskListable]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskDefault') AS bit) AS [AskDefault]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskMinimum') AS bit) AS [AskMinimum]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskInWords') AS bit) AS [AskInWords]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.HtmlInputType') AS nvarchar(10)) AS [HtmlInputType]
+              ,CAST(JSON_VALUE([ActualRecord], '$.HtmlInputAlign') AS nvarchar(6)) AS [HtmlInputAlign]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskEncrypted') AS bit) AS [AskEncrypted]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskMask') AS bit) AS [AskMask]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskListable') AS bit) AS [AskListable]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskDefault') AS bit) AS [AskDefault]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskMinimum') AS bit) AS [AskMinimum]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskInWords') AS bit) AS [AskInWords]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -15555,15 +15558,15 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS tinyint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                   ,@W_AskEncrypted bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskEncrypted') AS bit)
-                   ,@W_AskMask bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskMask') AS bit)
-                   ,@W_AskListable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskListable') AS bit)
-                   ,@W_AskDefault bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskDefault') AS bit)
-                   ,@W_AskMinimum bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskMinimum') AS bit)
-                   ,@W_AskMaximum bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskMaximum') AS bit)
-                   ,@W_AskInWords bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskInWords') AS bit)
+            DECLARE @W_Id tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS tinyint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_AskEncrypted bit = CAST(JSON_VALUE(@RecordFilter, '$.AskEncrypted') AS bit)
+                   ,@W_AskMask bit = CAST(JSON_VALUE(@RecordFilter, '$.AskMask') AS bit)
+                   ,@W_AskListable bit = CAST(JSON_VALUE(@RecordFilter, '$.AskListable') AS bit)
+                   ,@W_AskDefault bit = CAST(JSON_VALUE(@RecordFilter, '$.AskDefault') AS bit)
+                   ,@W_AskMinimum bit = CAST(JSON_VALUE(@RecordFilter, '$.AskMinimum') AS bit)
+                   ,@W_AskMaximum bit = CAST(JSON_VALUE(@RecordFilter, '$.AskMaximum') AS bit)
+                   ,@W_AskInWords bit = CAST(JSON_VALUE(@RecordFilter, '$.AskInWords') AS bit)
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS tinyint)
@@ -15819,7 +15822,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
+               ,@W_Id AS tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -15850,39 +15853,39 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CategoryId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.CategoryId'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxLength'), [crudex].[JSON_EXTRACT](@LastRecord, '$.MaxLength'), 'int') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskLength'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskLength'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDecimals'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDecimals'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskPrimarykey'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskPrimarykey'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskAutoincrement'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskAutoincrement'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskFilterable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskFilterable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskGridable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskGridable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskCodification'), [crudex].[JSON_EXTRACT](@LastRecord, '$.AskCodification'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLikeable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLikeable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsActive'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.CategoryId'), JSON_VALUE(@LastRecord, '$.CategoryId'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.MaxLength'), JSON_VALUE(@LastRecord, '$.MaxLength'), 'int') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Minimum'), JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Maximum'), JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskLength'), JSON_VALUE(@LastRecord, '$.AskLength'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskDecimals'), JSON_VALUE(@LastRecord, '$.AskDecimals'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskPrimarykey'), JSON_VALUE(@LastRecord, '$.AskPrimarykey'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskAutoincrement'), JSON_VALUE(@LastRecord, '$.AskAutoincrement'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskFilterable'), JSON_VALUE(@LastRecord, '$.AskFilterable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskGridable'), JSON_VALUE(@LastRecord, '$.AskGridable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskCodification'), JSON_VALUE(@LastRecord, '$.AskCodification'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsLikeable'), JSON_VALUE(@LastRecord, '$.IsLikeable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsActive'), JSON_VALUE(@LastRecord, '$.IsActive'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Types]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [CategoryId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.CategoryId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([MaxLength], [crudex].[JSON_EXTRACT](@LastRecord, '$.MaxLength'), 'int') = 1
-                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                                  AND [AskLength] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskLength')
-                                  AND [AskDecimals] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskDecimals')
-                                  AND [AskPrimarykey] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskPrimarykey')
-                                  AND [AskAutoincrement] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskAutoincrement')
-                                  AND [AskFilterable] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskFilterable')
-                                  AND [AskGridable] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskGridable')
-                                  AND [AskCodification] = [crudex].[JSON_EXTRACT](@LastRecord, '$.AskCodification')
-                                  AND [IsLikeable] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLikeable')
-                                  AND [IsActive] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsActive'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [CategoryId] = JSON_VALUE(@LastRecord, '$.CategoryId')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [crudex].[IS_EQUAL]([MaxLength], JSON_VALUE(@LastRecord, '$.MaxLength'), 'int') = 1
+                                  AND [crudex].[IS_EQUAL]([Minimum], JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Maximum], JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [AskLength] = JSON_VALUE(@LastRecord, '$.AskLength')
+                                  AND [AskDecimals] = JSON_VALUE(@LastRecord, '$.AskDecimals')
+                                  AND [AskPrimarykey] = JSON_VALUE(@LastRecord, '$.AskPrimarykey')
+                                  AND [AskAutoincrement] = JSON_VALUE(@LastRecord, '$.AskAutoincrement')
+                                  AND [AskFilterable] = JSON_VALUE(@LastRecord, '$.AskFilterable')
+                                  AND [AskGridable] = JSON_VALUE(@LastRecord, '$.AskGridable')
+                                  AND [AskCodification] = JSON_VALUE(@LastRecord, '$.AskCodification')
+                                  AND [IsLikeable] = JSON_VALUE(@LastRecord, '$.IsLikeable')
+                                  AND [IsActive] = JSON_VALUE(@LastRecord, '$.IsActive'))
                 THROW 51000, 'Registro de Types alterado por outro usuário', 1
         END
 
@@ -15891,20 +15894,20 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Domains', 1
         END ELSE BEGIN
 
-            DECLARE @W_CategoryId tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.CategoryId') AS tinyint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_MaxLength int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxLength') AS int)
-                   ,@W_Minimum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(max))
-                   ,@W_Maximum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(max))
-                   ,@W_AskLength bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskLength') AS bit)
-                   ,@W_AskDecimals bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDecimals') AS bit)
-                   ,@W_AskPrimarykey bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskPrimarykey') AS bit)
-                   ,@W_AskAutoincrement bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskAutoincrement') AS bit)
-                   ,@W_AskFilterable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskFilterable') AS bit)
-                   ,@W_AskGridable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskGridable') AS bit)
-                   ,@W_AskCodification bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskCodification') AS bit)
-                   ,@W_IsLikeable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLikeable') AS bit)
-                   ,@W_IsActive bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive') AS bit)
+            DECLARE @W_CategoryId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS tinyint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_MaxLength int = CAST(JSON_VALUE(@ActualRecord, '$.MaxLength') AS int)
+                   ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
+                   ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
+                   ,@W_AskLength bit = CAST(JSON_VALUE(@ActualRecord, '$.AskLength') AS bit)
+                   ,@W_AskDecimals bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDecimals') AS bit)
+                   ,@W_AskPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.AskPrimarykey') AS bit)
+                   ,@W_AskAutoincrement bit = CAST(JSON_VALUE(@ActualRecord, '$.AskAutoincrement') AS bit)
+                   ,@W_AskFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFilterable') AS bit)
+                   ,@W_AskGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskGridable') AS bit)
+                   ,@W_AskCodification bit = CAST(JSON_VALUE(@ActualRecord, '$.AskCodification') AS bit)
+                   ,@W_IsLikeable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLikeable') AS bit)
+                   ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 
             IF @W_CategoryId IS NULL
                 THROW 51000, 'Valor de CategoryId em @ActualRecord é requerido.', 1
@@ -15972,7 +15975,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
+               ,@W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -15985,7 +15988,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -16106,26 +16109,26 @@ ALTER PROCEDURE [dbo].[TypeCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[TypeValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS tinyint)
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Types] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_CategoryId tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.CategoryId') AS tinyint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_MaxLength int = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxLength') AS int)
-                   ,@W_Minimum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(max))
-                   ,@W_Maximum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(max))
-                   ,@W_AskLength bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskLength') AS bit)
-                   ,@W_AskDecimals bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskDecimals') AS bit)
-                   ,@W_AskPrimarykey bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskPrimarykey') AS bit)
-                   ,@W_AskAutoincrement bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskAutoincrement') AS bit)
-                   ,@W_AskFilterable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskFilterable') AS bit)
-                   ,@W_AskGridable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskGridable') AS bit)
-                   ,@W_AskCodification bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.AskCodification') AS bit)
-                   ,@W_IsLikeable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLikeable') AS bit)
-                   ,@W_IsActive bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive') AS bit)
+            DECLARE @W_CategoryId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS tinyint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_MaxLength int = CAST(JSON_VALUE(@ActualRecord, '$.MaxLength') AS int)
+                   ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
+                   ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
+                   ,@W_AskLength bit = CAST(JSON_VALUE(@ActualRecord, '$.AskLength') AS bit)
+                   ,@W_AskDecimals bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDecimals') AS bit)
+                   ,@W_AskPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.AskPrimarykey') AS bit)
+                   ,@W_AskAutoincrement bit = CAST(JSON_VALUE(@ActualRecord, '$.AskAutoincrement') AS bit)
+                   ,@W_AskFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFilterable') AS bit)
+                   ,@W_AskGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskGridable') AS bit)
+                   ,@W_AskCodification bit = CAST(JSON_VALUE(@ActualRecord, '$.AskCodification') AS bit)
+                   ,@W_IsLikeable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLikeable') AS bit)
+                   ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Types] ([Id]
@@ -16261,21 +16264,21 @@ ALTER PROCEDURE [dbo].[TypesRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS tinyint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.MaxLength') AS int) AS [MaxLength]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(max)) AS [Minimum]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(max)) AS [Maximum]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskLength') AS bit) AS [AskLength]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskDecimals') AS bit) AS [AskDecimals]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskPrimarykey') AS bit) AS [AskPrimarykey]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskAutoincrement') AS bit) AS [AskAutoincrement]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskFilterable') AS bit) AS [AskFilterable]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskGridable') AS bit) AS [AskGridable]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.AskCodification') AS bit) AS [AskCodification]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsLikeable') AS bit) AS [IsLikeable]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.MaxLength') AS int) AS [MaxLength]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS nvarchar(max)) AS [Minimum]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS nvarchar(max)) AS [Maximum]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskLength') AS bit) AS [AskLength]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskDecimals') AS bit) AS [AskDecimals]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskPrimarykey') AS bit) AS [AskPrimarykey]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskAutoincrement') AS bit) AS [AskAutoincrement]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskFilterable') AS bit) AS [AskFilterable]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskGridable') AS bit) AS [AskGridable]
+              ,CAST(JSON_VALUE([ActualRecord], '$.AskCodification') AS bit) AS [AskCodification]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsLikeable') AS bit) AS [IsLikeable]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -16288,17 +16291,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id tinyint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS tinyint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                   ,@W_AskLength bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskLength') AS bit)
-                   ,@W_AskDecimals bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskDecimals') AS bit)
-                   ,@W_AskPrimarykey bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskPrimarykey') AS bit)
-                   ,@W_AskAutoincrement bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskAutoincrement') AS bit)
-                   ,@W_AskFilterable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskFilterable') AS bit)
-                   ,@W_AskGridable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskGridable') AS bit)
-                   ,@W_AskCodification bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.AskCodification') AS bit)
-                   ,@W_IsLikeable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsLikeable') AS bit)
-                   ,@W_IsActive bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsActive') AS bit)
+            DECLARE @W_Id tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS tinyint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_AskLength bit = CAST(JSON_VALUE(@RecordFilter, '$.AskLength') AS bit)
+                   ,@W_AskDecimals bit = CAST(JSON_VALUE(@RecordFilter, '$.AskDecimals') AS bit)
+                   ,@W_AskPrimarykey bit = CAST(JSON_VALUE(@RecordFilter, '$.AskPrimarykey') AS bit)
+                   ,@W_AskAutoincrement bit = CAST(JSON_VALUE(@RecordFilter, '$.AskAutoincrement') AS bit)
+                   ,@W_AskFilterable bit = CAST(JSON_VALUE(@RecordFilter, '$.AskFilterable') AS bit)
+                   ,@W_AskGridable bit = CAST(JSON_VALUE(@RecordFilter, '$.AskGridable') AS bit)
+                   ,@W_AskCodification bit = CAST(JSON_VALUE(@RecordFilter, '$.AskCodification') AS bit)
+                   ,@W_IsLikeable bit = CAST(JSON_VALUE(@RecordFilter, '$.IsLikeable') AS bit)
+                   ,@W_IsActive bit = CAST(JSON_VALUE(@RecordFilter, '$.IsActive') AS bit)
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS tinyint)
@@ -16598,7 +16601,7 @@ ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -16627,15 +16630,15 @@ ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Mask'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Mask'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Mask'), JSON_VALUE(@LastRecord, '$.Mask'), 'nvarchar(max)') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Masks]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [Mask] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Mask'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [Mask] = JSON_VALUE(@LastRecord, '$.Mask'))
                 THROW 51000, 'Registro de Masks alterado por outro usuário', 1
         END
 
@@ -16644,8 +16647,8 @@ ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Domains', 1
         END ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Mask nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Mask') AS nvarchar(max))
+            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Mask nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS nvarchar(max))
 
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -16691,7 +16694,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -16704,7 +16707,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -16825,14 +16828,14 @@ ALTER PROCEDURE [dbo].[MaskCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[MaskValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Masks] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Mask nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Mask') AS nvarchar(max))
+            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Mask nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS nvarchar(max))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Masks] ([Id]
@@ -16932,9 +16935,9 @@ ALTER PROCEDURE [dbo].[MasksRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Mask') AS nvarchar(max)) AS [Mask]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Mask') AS nvarchar(max)) AS [Mask]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -16947,8 +16950,8 @@ ALTER PROCEDURE [dbo].[MasksRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25))
 
             IF @W_Id IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
@@ -17071,7 +17074,7 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -17102,31 +17105,31 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TypeId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TypeId'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaskId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.MaskId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Length'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Length'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Decimals'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Decimals'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ValidValues'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Codification'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Codification'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.TypeId'), JSON_VALUE(@LastRecord, '$.TypeId'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.MaskId'), JSON_VALUE(@LastRecord, '$.MaskId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Length'), JSON_VALUE(@LastRecord, '$.Length'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Decimals'), JSON_VALUE(@LastRecord, '$.Decimals'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ValidValues'), JSON_VALUE(@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Default'), JSON_VALUE(@LastRecord, '$.Default'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Minimum'), JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Maximum'), JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Codification'), JSON_VALUE(@LastRecord, '$.Codification'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Domains]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [TypeId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TypeId')
-                                  AND [crudex].[IS_EQUAL]([MaskId], [crudex].[JSON_EXTRACT](@LastRecord, '$.MaskId'), 'bigint') = 1
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([Length], [crudex].[JSON_EXTRACT](@LastRecord, '$.Length'), 'smallint') = 1
-                                  AND [crudex].[IS_EQUAL]([Decimals], [crudex].[JSON_EXTRACT](@LastRecord, '$.Decimals'), 'tinyint') = 1
-                                  AND [crudex].[IS_EQUAL]([ValidValues], [crudex].[JSON_EXTRACT](@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Default], [crudex].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Codification], [crudex].[JSON_EXTRACT](@LastRecord, '$.Codification'), 'nvarchar') = 1)
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [TypeId] = JSON_VALUE(@LastRecord, '$.TypeId')
+                                  AND [crudex].[IS_EQUAL]([MaskId], JSON_VALUE(@LastRecord, '$.MaskId'), 'bigint') = 1
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [crudex].[IS_EQUAL]([Length], JSON_VALUE(@LastRecord, '$.Length'), 'smallint') = 1
+                                  AND [crudex].[IS_EQUAL]([Decimals], JSON_VALUE(@LastRecord, '$.Decimals'), 'tinyint') = 1
+                                  AND [crudex].[IS_EQUAL]([ValidValues], JSON_VALUE(@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Default], JSON_VALUE(@LastRecord, '$.Default'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Minimum], JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Maximum], JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Codification], JSON_VALUE(@LastRecord, '$.Codification'), 'nvarchar') = 1)
                 THROW 51000, 'Registro de Domains alterado por outro usuário', 1
         END
 
@@ -17135,16 +17138,16 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Columns', 1
         END ELSE BEGIN
 
-            DECLARE @W_TypeId tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TypeId') AS tinyint)
-                   ,@W_MaskId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaskId') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Length smallint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Length') AS smallint)
-                   ,@W_Decimals tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Decimals') AS tinyint)
-                   ,@W_ValidValues nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ValidValues') AS nvarchar(max))
-                   ,@W_Default nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default') AS nvarchar(max))
-                   ,@W_Minimum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(max))
-                   ,@W_Maximum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(max))
-                   ,@W_Codification nvarchar(5) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Codification') AS nvarchar(5))
+            DECLARE @W_TypeId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.TypeId') AS tinyint)
+                   ,@W_MaskId bigint = CAST(JSON_VALUE(@ActualRecord, '$.MaskId') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Length smallint = CAST(JSON_VALUE(@ActualRecord, '$.Length') AS smallint)
+                   ,@W_Decimals tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Decimals') AS tinyint)
+                   ,@W_ValidValues nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS nvarchar(max))
+                   ,@W_Default nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS nvarchar(max))
+                   ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
+                   ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
+                   ,@W_Codification nvarchar(5) = CAST(JSON_VALUE(@ActualRecord, '$.Codification') AS nvarchar(5))
 
             IF @W_TypeId IS NULL
                 THROW 51000, 'Valor de TypeId em @ActualRecord é requerido.', 1
@@ -17200,7 +17203,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -17213,7 +17216,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -17334,22 +17337,22 @@ ALTER PROCEDURE [dbo].[DomainCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[DomainValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Domains] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_TypeId tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TypeId') AS tinyint)
-                   ,@W_MaskId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaskId') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Length smallint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Length') AS smallint)
-                   ,@W_Decimals tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Decimals') AS tinyint)
-                   ,@W_ValidValues nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ValidValues') AS nvarchar(max))
-                   ,@W_Default nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default') AS nvarchar(max))
-                   ,@W_Minimum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(max))
-                   ,@W_Maximum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(max))
-                   ,@W_Codification nvarchar(5) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Codification') AS nvarchar(5))
+            DECLARE @W_TypeId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.TypeId') AS tinyint)
+                   ,@W_MaskId bigint = CAST(JSON_VALUE(@ActualRecord, '$.MaskId') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Length smallint = CAST(JSON_VALUE(@ActualRecord, '$.Length') AS smallint)
+                   ,@W_Decimals tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Decimals') AS tinyint)
+                   ,@W_ValidValues nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS nvarchar(max))
+                   ,@W_Default nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS nvarchar(max))
+                   ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
+                   ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
+                   ,@W_Codification nvarchar(5) = CAST(JSON_VALUE(@ActualRecord, '$.Codification') AS nvarchar(5))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Domains] ([Id]
@@ -17473,17 +17476,17 @@ ALTER PROCEDURE [dbo].[DomainsRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TypeId') AS tinyint) AS [TypeId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.MaskId') AS bigint) AS [MaskId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Length') AS smallint) AS [Length]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Decimals') AS tinyint) AS [Decimals]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ValidValues') AS nvarchar(max)) AS [ValidValues]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Default') AS nvarchar(max)) AS [Default]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(max)) AS [Minimum]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(max)) AS [Maximum]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Codification') AS nvarchar(5)) AS [Codification]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.TypeId') AS tinyint) AS [TypeId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.MaskId') AS bigint) AS [MaskId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Length') AS smallint) AS [Length]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Decimals') AS tinyint) AS [Decimals]
+              ,CAST(JSON_VALUE([ActualRecord], '$.ValidValues') AS nvarchar(max)) AS [ValidValues]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Default') AS nvarchar(max)) AS [Default]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS nvarchar(max)) AS [Minimum]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS nvarchar(max)) AS [Maximum]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Codification') AS nvarchar(5)) AS [Codification]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -17496,12 +17499,12 @@ ALTER PROCEDURE [dbo].[DomainsRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_TypeId tinyint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TypeId') AS tinyint)
-                   ,@W_MaskId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.MaskId') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                   ,@W_ValidValues nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ValidValues') AS nvarchar(max))
-                   ,@W_Codification nvarchar(5) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Codification') AS nvarchar(5))
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_TypeId tinyint = CAST(JSON_VALUE(@RecordFilter, '$.TypeId') AS tinyint)
+                   ,@W_MaskId bigint = CAST(JSON_VALUE(@RecordFilter, '$.MaskId') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_ValidValues nvarchar(max) = CAST(JSON_VALUE(@RecordFilter, '$.ValidValues') AS nvarchar(max))
+                   ,@W_Codification nvarchar(5) = CAST(JSON_VALUE(@RecordFilter, '$.Codification') AS nvarchar(5))
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -17794,7 +17797,7 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -17825,21 +17828,21 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ClientName'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ClientName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxRetryLogins'), [crudex].[JSON_EXTRACT](@LastRecord, '$.MaxRetryLogins'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsOffAir'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsOffAir'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Description'), JSON_VALUE(@LastRecord, '$.Description'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ClientName'), JSON_VALUE(@LastRecord, '$.ClientName'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.MaxRetryLogins'), JSON_VALUE(@LastRecord, '$.MaxRetryLogins'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsOffAir'), JSON_VALUE(@LastRecord, '$.IsOffAir'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Systems]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [Description] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Description')
-                                  AND [ClientName] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ClientName')
-                                  AND [MaxRetryLogins] = [crudex].[JSON_EXTRACT](@LastRecord, '$.MaxRetryLogins')
-                                  AND [IsOffAir] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsOffAir'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [Description] = JSON_VALUE(@LastRecord, '$.Description')
+                                  AND [ClientName] = JSON_VALUE(@LastRecord, '$.ClientName')
+                                  AND [MaxRetryLogins] = JSON_VALUE(@LastRecord, '$.MaxRetryLogins')
+                                  AND [IsOffAir] = JSON_VALUE(@LastRecord, '$.IsOffAir'))
                 THROW 51000, 'Registro de Systems alterado por outro usuário', 1
         END
 
@@ -17854,11 +17857,11 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Sessions', 1
         END ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_ClientName nvarchar(15) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ClientName') AS nvarchar(15))
-                   ,@W_MaxRetryLogins tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxRetryLogins') AS tinyint)
-                   ,@W_IsOffAir bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsOffAir') AS bit)
+            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_ClientName nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.ClientName') AS nvarchar(15))
+                   ,@W_MaxRetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.MaxRetryLogins') AS tinyint)
+                   ,@W_IsOffAir bit = CAST(JSON_VALUE(@ActualRecord, '$.IsOffAir') AS bit)
 
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -17912,7 +17915,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -17925,7 +17928,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -18046,17 +18049,17 @@ ALTER PROCEDURE [dbo].[SystemCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[SystemValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Systems] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_ClientName nvarchar(15) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ClientName') AS nvarchar(15))
-                   ,@W_MaxRetryLogins tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.MaxRetryLogins') AS tinyint)
-                   ,@W_IsOffAir bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsOffAir') AS bit)
+            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_ClientName nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.ClientName') AS nvarchar(15))
+                   ,@W_MaxRetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.MaxRetryLogins') AS tinyint)
+                   ,@W_IsOffAir bit = CAST(JSON_VALUE(@ActualRecord, '$.IsOffAir') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Systems] ([Id]
@@ -18165,12 +18168,12 @@ ALTER PROCEDURE [dbo].[SystemsRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ClientName') AS nvarchar(15)) AS [ClientName]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsOffAir') AS bit) AS [IsOffAir]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_VALUE([ActualRecord], '$.ClientName') AS nvarchar(15)) AS [ClientName]
+              ,CAST(JSON_VALUE([ActualRecord], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsOffAir') AS bit) AS [IsOffAir]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -18183,9 +18186,9 @@ ALTER PROCEDURE [dbo].[SystemsRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                   ,@W_ClientName nvarchar(15) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ClientName') AS nvarchar(15))
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_ClientName nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.ClientName') AS nvarchar(15))
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -18391,7 +18394,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -18422,23 +18425,23 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Caption'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Message'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Message'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentMenuId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentMenuId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.SystemId'), JSON_VALUE(@LastRecord, '$.SystemId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Sequence'), JSON_VALUE(@LastRecord, '$.Sequence'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Caption'), JSON_VALUE(@LastRecord, '$.Caption'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Message'), JSON_VALUE(@LastRecord, '$.Message'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Action'), JSON_VALUE(@LastRecord, '$.Action'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ParentMenuId'), JSON_VALUE(@LastRecord, '$.ParentMenuId'), 'bigint') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Menus]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
-                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence')
-                                  AND [Caption] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Caption')
-                                  AND [Message] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Message')
-                                  AND [crudex].[IS_EQUAL]([Action], [crudex].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([ParentMenuId], [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentMenuId'), 'bigint') = 1)
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [SystemId] = JSON_VALUE(@LastRecord, '$.SystemId')
+                                  AND [Sequence] = JSON_VALUE(@LastRecord, '$.Sequence')
+                                  AND [Caption] = JSON_VALUE(@LastRecord, '$.Caption')
+                                  AND [Message] = JSON_VALUE(@LastRecord, '$.Message')
+                                  AND [crudex].[IS_EQUAL]([Action], JSON_VALUE(@LastRecord, '$.Action'), 'nvarchar') = 1
+                                  AND [crudex].[IS_EQUAL]([ParentMenuId], JSON_VALUE(@LastRecord, '$.ParentMenuId'), 'bigint') = 1)
                 THROW 51000, 'Registro de Menus alterado por outro usuário', 1
         END
 
@@ -18447,12 +18450,12 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Menus', 1
         END ELSE BEGIN
 
-            DECLARE @W_SystemId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS bigint)
-                   ,@W_Sequence smallint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_Caption nvarchar(20) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption') AS nvarchar(20))
-                   ,@W_Message nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Message') AS nvarchar(50))
-                   ,@W_Action nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action') AS nvarchar(50))
-                   ,@W_ParentMenuId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentMenuId') AS bigint)
+            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_Caption nvarchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS nvarchar(20))
+                   ,@W_Message nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Message') AS nvarchar(50))
+                   ,@W_Action nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(50))
+                   ,@W_ParentMenuId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentMenuId') AS bigint)
 
             IF @W_SystemId IS NULL
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
@@ -18516,7 +18519,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -18529,7 +18532,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -18650,18 +18653,18 @@ ALTER PROCEDURE [dbo].[MenuCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[MenuValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Menus] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_SystemId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS bigint)
-                   ,@W_Sequence smallint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_Caption nvarchar(20) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption') AS nvarchar(20))
-                   ,@W_Message nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Message') AS nvarchar(50))
-                   ,@W_Action nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action') AS nvarchar(50))
-                   ,@W_ParentMenuId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentMenuId') AS bigint)
+            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_Caption nvarchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS nvarchar(20))
+                   ,@W_Message nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Message') AS nvarchar(50))
+                   ,@W_Action nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(50))
+                   ,@W_ParentMenuId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentMenuId') AS bigint)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Menus] ([Id]
@@ -18773,13 +18776,13 @@ ALTER PROCEDURE [dbo].[MenusRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Caption') AS nvarchar(20)) AS [Caption]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Message') AS nvarchar(50)) AS [Message]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Action') AS nvarchar(50)) AS [Action]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ParentMenuId') AS bigint) AS [ParentMenuId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Caption') AS nvarchar(20)) AS [Caption]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Message') AS nvarchar(50)) AS [Message]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Action') AS nvarchar(50)) AS [Action]
+              ,CAST(JSON_VALUE([ActualRecord], '$.ParentMenuId') AS bigint) AS [ParentMenuId]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -18792,9 +18795,9 @@ ALTER PROCEDURE [dbo].[MenusRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_SystemId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS bigint)
-                   ,@W_Caption nvarchar(20) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Caption') AS nvarchar(20))
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.SystemId') AS bigint)
+                   ,@W_Caption nvarchar(20) = CAST(JSON_VALUE(@RecordFilter, '$.Caption') AS nvarchar(20))
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -18969,7 +18972,7 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -19000,21 +19003,21 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Password'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.FullName'), [crudex].[JSON_EXTRACT](@LastRecord, '$.FullName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.RetryLogins'), [crudex].[JSON_EXTRACT](@LastRecord, '$.RetryLogins'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsActive'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Password'), JSON_VALUE(@LastRecord, '$.Password'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.FullName'), JSON_VALUE(@LastRecord, '$.FullName'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.RetryLogins'), JSON_VALUE(@LastRecord, '$.RetryLogins'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsActive'), JSON_VALUE(@LastRecord, '$.IsActive'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Users]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [Password] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Password')
-                                  AND [FullName] = [crudex].[JSON_EXTRACT](@LastRecord, '$.FullName')
-                                  AND [RetryLogins] = [crudex].[JSON_EXTRACT](@LastRecord, '$.RetryLogins')
-                                  AND [IsActive] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsActive'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [Password] = JSON_VALUE(@LastRecord, '$.Password')
+                                  AND [FullName] = JSON_VALUE(@LastRecord, '$.FullName')
+                                  AND [RetryLogins] = JSON_VALUE(@LastRecord, '$.RetryLogins')
+                                  AND [IsActive] = JSON_VALUE(@LastRecord, '$.IsActive'))
                 THROW 51000, 'Registro de Users alterado por outro usuário', 1
         END
 
@@ -19025,11 +19028,11 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Sessions', 1
         END ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Password nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password') AS nvarchar(256))
-                   ,@W_FullName nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.FullName') AS nvarchar(50))
-                   ,@W_RetryLogins tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.RetryLogins') AS tinyint)
-                   ,@W_IsActive bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive') AS bit)
+            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Password nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS nvarchar(256))
+                   ,@W_FullName nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.FullName') AS nvarchar(50))
+                   ,@W_RetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint)
+                   ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -19083,7 +19086,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -19096,7 +19099,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -19217,17 +19220,17 @@ ALTER PROCEDURE [dbo].[UserCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[UserValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Users] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Password nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Password') AS nvarchar(256))
-                   ,@W_FullName nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.FullName') AS nvarchar(50))
-                   ,@W_RetryLogins tinyint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.RetryLogins') AS tinyint)
-                   ,@W_IsActive bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsActive') AS bit)
+            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Password nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS nvarchar(256))
+                   ,@W_FullName nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.FullName') AS nvarchar(50))
+                   ,@W_RetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint)
+                   ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Users] ([Id]
@@ -19336,12 +19339,12 @@ ALTER PROCEDURE [dbo].[UsersRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.FullName') AS nvarchar(50)) AS [FullName]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.RetryLogins') AS tinyint) AS [RetryLogins]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
+              ,CAST(JSON_VALUE([ActualRecord], '$.FullName') AS nvarchar(50)) AS [FullName]
+              ,CAST(JSON_VALUE([ActualRecord], '$.RetryLogins') AS tinyint) AS [RetryLogins]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -19354,10 +19357,10 @@ ALTER PROCEDURE [dbo].[UsersRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                   ,@W_FullName nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.FullName') AS nvarchar(50))
-                   ,@W_IsActive bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsActive') AS bit)
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_FullName nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.FullName') AS nvarchar(50))
+                   ,@W_IsActive bit = CAST(JSON_VALUE(@RecordFilter, '$.IsActive') AS bit)
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -19568,7 +19571,7 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -19599,25 +19602,25 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.SystemId'), JSON_VALUE(@LastRecord, '$.SystemId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.UserId'), JSON_VALUE(@LastRecord, '$.UserId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[SystemsUsers]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
-                                  AND [UserId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [SystemId] = JSON_VALUE(@LastRecord, '$.SystemId')
+                                  AND [UserId] = JSON_VALUE(@LastRecord, '$.UserId')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name'))
                 THROW 51000, 'Registro de SystemsUsers alterado por outro usuário', 1
         END
 
         IF @Action <> 'delete' BEGIN
 
-            DECLARE @W_SystemId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS bigint)
-                   ,@W_UserId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(50))
+            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+                   ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
             IF @W_SystemId IS NULL
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
@@ -19677,7 +19680,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -19690,7 +19693,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -19811,15 +19814,15 @@ ALTER PROCEDURE [dbo].[SystemUserCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[SystemUserValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[SystemsUsers] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_SystemId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS bigint)
-                   ,@W_UserId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(50))
+            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+                   ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[SystemsUsers] ([Id]
@@ -19922,10 +19925,10 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.UserId') AS bigint) AS [UserId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint) AS [UserId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -19938,10 +19941,10 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_SystemId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS bigint)
-                   ,@W_UserId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.UserId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(50))
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.SystemId') AS bigint)
+                   ,@W_UserId bigint = CAST(JSON_VALUE(@RecordFilter, '$.UserId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(50))
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -20174,7 +20177,7 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -20203,15 +20206,15 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Environment'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Environment'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionString'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ConnectionString'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Environment'), JSON_VALUE(@LastRecord, '$.Environment'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ConnectionString'), JSON_VALUE(@LastRecord, '$.ConnectionString'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Connections]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Environment] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Environment')
-                                  AND [ConnectionString] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ConnectionString'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [Environment] = JSON_VALUE(@LastRecord, '$.Environment')
+                                  AND [ConnectionString] = JSON_VALUE(@LastRecord, '$.ConnectionString'))
                 THROW 51000, 'Registro de Connections alterado por outro usuário', 1
         END
 
@@ -20220,8 +20223,8 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Databases', 1
         END ELSE BEGIN
 
-            DECLARE @W_Environment nvarchar(3) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Environment') AS nvarchar(3))
-                   ,@W_ConnectionString nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionString') AS nvarchar(256))
+            DECLARE @W_Environment nvarchar(3) = CAST(JSON_VALUE(@ActualRecord, '$.Environment') AS nvarchar(3))
+                   ,@W_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionString') AS nvarchar(256))
 
             IF @W_Environment IS NULL
                 THROW 51000, 'Valor de Environment em @ActualRecord é requerido.', 1
@@ -20261,7 +20264,7 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -20274,7 +20277,7 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -20395,14 +20398,14 @@ ALTER PROCEDURE [dbo].[ConnectionCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[ConnectionValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Connections] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Environment nvarchar(3) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Environment') AS nvarchar(3))
-                   ,@W_ConnectionString nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionString') AS nvarchar(256))
+            DECLARE @W_Environment nvarchar(3) = CAST(JSON_VALUE(@ActualRecord, '$.Environment') AS nvarchar(3))
+                   ,@W_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionString') AS nvarchar(256))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Connections] ([Id]
@@ -20502,9 +20505,9 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Environment') AS nvarchar(3)) AS [Environment]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ConnectionString') AS nvarchar(256)) AS [ConnectionString]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Environment') AS nvarchar(3)) AS [Environment]
+              ,CAST(JSON_VALUE([ActualRecord], '$.ConnectionString') AS nvarchar(256)) AS [ConnectionString]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -20517,9 +20520,9 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_Environment nvarchar(3) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Environment') AS nvarchar(3))
-                   ,@W_ConnectionString nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ConnectionString') AS nvarchar(256))
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_Environment nvarchar(3) = CAST(JSON_VALUE(@RecordFilter, '$.Environment') AS nvarchar(3))
+                   ,@W_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@RecordFilter, '$.ConnectionString') AS nvarchar(256))
 
             IF @W_Id IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
@@ -20647,7 +20650,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -20678,25 +20681,25 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ConnectionId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Folder'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Folder'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLegacy'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentOperationId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.CurrentOperationId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ConnectionId'), JSON_VALUE(@LastRecord, '$.ConnectionId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Alias'), JSON_VALUE(@LastRecord, '$.Alias'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Description'), JSON_VALUE(@LastRecord, '$.Description'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Folder'), JSON_VALUE(@LastRecord, '$.Folder'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsLegacy'), JSON_VALUE(@LastRecord, '$.IsLegacy'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.CurrentOperationId'), JSON_VALUE(@LastRecord, '$.CurrentOperationId'), 'bigint') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Databases]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [ConnectionId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ConnectionId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [Alias] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias')
-                                  AND [Description] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Description')
-                                  AND [crudex].[IS_EQUAL]([Folder], [crudex].[JSON_EXTRACT](@LastRecord, '$.Folder'), 'nvarchar') = 1
-                                  AND [IsLegacy] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLegacy')
-                                  AND [CurrentOperationId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.CurrentOperationId'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [ConnectionId] = JSON_VALUE(@LastRecord, '$.ConnectionId')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [Alias] = JSON_VALUE(@LastRecord, '$.Alias')
+                                  AND [Description] = JSON_VALUE(@LastRecord, '$.Description')
+                                  AND [crudex].[IS_EQUAL]([Folder], JSON_VALUE(@LastRecord, '$.Folder'), 'nvarchar') = 1
+                                  AND [IsLegacy] = JSON_VALUE(@LastRecord, '$.IsLegacy')
+                                  AND [CurrentOperationId] = JSON_VALUE(@LastRecord, '$.CurrentOperationId'))
                 THROW 51000, 'Registro de Databases alterado por outro usuário', 1
         END
 
@@ -20707,13 +20710,13 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em DatabasesTables', 1
         END ELSE BEGIN
 
-            DECLARE @W_ConnectionId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionId') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_Folder nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Folder') AS nvarchar(256))
-                   ,@W_IsLegacy bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy') AS bit)
-                   ,@W_CurrentOperationId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentOperationId') AS bigint)
+            DECLARE @W_ConnectionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionId') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_Folder nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Folder') AS nvarchar(256))
+                   ,@W_IsLegacy bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLegacy') AS bit)
+                   ,@W_CurrentOperationId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentOperationId') AS bigint)
 
             IF @W_ConnectionId IS NULL
                 THROW 51000, 'Valor de ConnectionId em @ActualRecord é requerido.', 1
@@ -20777,7 +20780,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -20790,7 +20793,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -20911,19 +20914,19 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[DatabaseValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Databases] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_ConnectionId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ConnectionId') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_Folder nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Folder') AS nvarchar(256))
-                   ,@W_IsLegacy bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy') AS bit)
-                   ,@W_CurrentOperationId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentOperationId') AS bigint)
+            DECLARE @W_ConnectionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionId') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_Folder nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Folder') AS nvarchar(256))
+                   ,@W_IsLegacy bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLegacy') AS bit)
+                   ,@W_CurrentOperationId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentOperationId') AS bigint)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Databases] ([Id]
@@ -21038,14 +21041,14 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ConnectionId') AS bigint) AS [ConnectionId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Folder') AS nvarchar(256)) AS [Folder]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsLegacy') AS bit) AS [IsLegacy]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.CurrentOperationId') AS bigint) AS [CurrentOperationId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.ConnectionId') AS bigint) AS [ConnectionId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Folder') AS nvarchar(256)) AS [Folder]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsLegacy') AS bit) AS [IsLegacy]
+              ,CAST(JSON_VALUE([ActualRecord], '$.CurrentOperationId') AS bigint) AS [CurrentOperationId]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -21058,10 +21061,10 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_ConnectionId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ConnectionId') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_ConnectionId bigint = CAST(JSON_VALUE(@RecordFilter, '$.ConnectionId') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Alias') AS nvarchar(25))
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -21292,7 +21295,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -21323,25 +21326,25 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.SystemId'), JSON_VALUE(@LastRecord, '$.SystemId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.DatabaseId'), JSON_VALUE(@LastRecord, '$.DatabaseId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[SystemsDatabases]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
-                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [SystemId] = JSON_VALUE(@LastRecord, '$.SystemId')
+                                  AND [DatabaseId] = JSON_VALUE(@LastRecord, '$.DatabaseId')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name'))
                 THROW 51000, 'Registro de SystemsDatabases alterado por outro usuário', 1
         END
 
         IF @Action <> 'delete' BEGIN
 
-            DECLARE @W_SystemId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS bigint)
-                   ,@W_DatabaseId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(50))
+            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+                   ,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
             IF @W_SystemId IS NULL
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
@@ -21401,7 +21404,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -21414,7 +21417,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -21535,15 +21538,15 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[SystemDatabaseValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_SystemId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS bigint)
-                   ,@W_DatabaseId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(50))
+            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+                   ,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[SystemsDatabases] ([Id]
@@ -21646,10 +21649,10 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -21662,10 +21665,10 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_SystemId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS bigint)
-                   ,@W_DatabaseId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.DatabaseId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(50))
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.SystemId') AS bigint)
+                   ,@W_DatabaseId bigint = CAST(JSON_VALUE(@RecordFilter, '$.DatabaseId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(50))
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -21910,7 +21913,7 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -21941,23 +21944,23 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentTableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLegacy'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.CurrentId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Alias'), JSON_VALUE(@LastRecord, '$.Alias'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Description'), JSON_VALUE(@LastRecord, '$.Description'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ParentTableId'), JSON_VALUE(@LastRecord, '$.ParentTableId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsLegacy'), JSON_VALUE(@LastRecord, '$.IsLegacy'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.CurrentId'), JSON_VALUE(@LastRecord, '$.CurrentId'), 'bigint') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Tables]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [Alias] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias')
-                                  AND [Description] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Description')
-                                  AND [crudex].[IS_EQUAL]([ParentTableId], [crudex].[JSON_EXTRACT](@LastRecord, '$.ParentTableId'), 'bigint') = 1
-                                  AND [IsLegacy] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLegacy')
-                                  AND [CurrentId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.CurrentId'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [Alias] = JSON_VALUE(@LastRecord, '$.Alias')
+                                  AND [Description] = JSON_VALUE(@LastRecord, '$.Description')
+                                  AND [crudex].[IS_EQUAL]([ParentTableId], JSON_VALUE(@LastRecord, '$.ParentTableId'), 'bigint') = 1
+                                  AND [IsLegacy] = JSON_VALUE(@LastRecord, '$.IsLegacy')
+                                  AND [CurrentId] = JSON_VALUE(@LastRecord, '$.CurrentId'))
                 THROW 51000, 'Registro de Tables alterado por outro usuário', 1
         END
 
@@ -21974,12 +21977,12 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Indexes', 1
         END ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_ParentTableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId') AS bigint)
-                   ,@W_IsLegacy bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy') AS bit)
-                   ,@W_CurrentId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentId') AS bigint)
+            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
+                   ,@W_IsLegacy bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLegacy') AS bit)
+                   ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
 
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -22049,7 +22052,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -22062,7 +22065,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -22183,18 +22186,18 @@ ALTER PROCEDURE [dbo].[TableCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[TableValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Tables] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_ParentTableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ParentTableId') AS bigint)
-                   ,@W_IsLegacy bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLegacy') AS bit)
-                   ,@W_CurrentId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.CurrentId') AS bigint)
+            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
+                   ,@W_IsLegacy bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLegacy') AS bit)
+                   ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Tables] ([Id]
@@ -22306,13 +22309,13 @@ ALTER PROCEDURE [dbo].[TablesRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ParentTableId') AS bigint) AS [ParentTableId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsLegacy') AS bit) AS [IsLegacy]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.CurrentId') AS bigint) AS [CurrentId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_VALUE([ActualRecord], '$.ParentTableId') AS bigint) AS [ParentTableId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsLegacy') AS bit) AS [IsLegacy]
+              ,CAST(JSON_VALUE([ActualRecord], '$.CurrentId') AS bigint) AS [CurrentId]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -22325,10 +22328,10 @@ ALTER PROCEDURE [dbo].[TablesRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
-                   ,@W_IsLegacy bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsLegacy') AS bit)
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Alias') AS nvarchar(25))
+                   ,@W_IsLegacy bit = CAST(JSON_VALUE(@RecordFilter, '$.IsLegacy') AS bit)
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -22557,7 +22560,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -22588,25 +22591,25 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.DatabaseId'), JSON_VALUE(@LastRecord, '$.DatabaseId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.TableId'), JSON_VALUE(@LastRecord, '$.TableId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[DatabasesTables]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [DatabaseId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.DatabaseId')
-                                  AND [TableId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [DatabaseId] = JSON_VALUE(@LastRecord, '$.DatabaseId')
+                                  AND [TableId] = JSON_VALUE(@LastRecord, '$.TableId')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name'))
                 THROW 51000, 'Registro de DatabasesTables alterado por outro usuário', 1
         END
 
         IF @Action <> 'delete' BEGIN
 
-            DECLARE @W_DatabaseId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId') AS bigint)
-                   ,@W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(50))
+            DECLARE @W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+                   ,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
             IF @W_DatabaseId IS NULL
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord é requerido.', 1
@@ -22666,7 +22669,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -22679,7 +22682,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -22800,15 +22803,15 @@ ALTER PROCEDURE [dbo].[DatabaseTableCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[DatabaseTableValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_DatabaseId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.DatabaseId') AS bigint)
-                   ,@W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(50))
+            DECLARE @W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+                   ,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[DatabasesTables] ([Id]
@@ -22911,10 +22914,10 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS bigint) AS [TableId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -22927,10 +22930,10 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_DatabaseId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.DatabaseId') AS bigint)
-                   ,@W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(50))
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_DatabaseId bigint = CAST(JSON_VALUE(@RecordFilter, '$.DatabaseId') AS bigint)
+                   ,@W_TableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.TableId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(50))
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -23189,7 +23192,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -23220,53 +23223,53 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.DomainId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.DomainId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ReferenceTableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Title'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Title'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Caption'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsPrimarykey'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsPrimarykey'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsAutoIncrement'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsRequired'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsRequired'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsListable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsListable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsFilterable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsFilterable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEditable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEditable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsGridable'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsGridable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEncrypted'), 'bit') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsInWords'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsInWords'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.TableId'), JSON_VALUE(@LastRecord, '$.TableId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Sequence'), JSON_VALUE(@LastRecord, '$.Sequence'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.DomainId'), JSON_VALUE(@LastRecord, '$.DomainId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ReferenceTableId'), JSON_VALUE(@LastRecord, '$.ReferenceTableId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Alias'), JSON_VALUE(@LastRecord, '$.Alias'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Description'), JSON_VALUE(@LastRecord, '$.Description'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Title'), JSON_VALUE(@LastRecord, '$.Title'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Caption'), JSON_VALUE(@LastRecord, '$.Caption'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Default'), JSON_VALUE(@LastRecord, '$.Default'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Minimum'), JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Maximum'), JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsPrimarykey'), JSON_VALUE(@LastRecord, '$.IsPrimarykey'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsAutoIncrement'), JSON_VALUE(@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsRequired'), JSON_VALUE(@LastRecord, '$.IsRequired'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsListable'), JSON_VALUE(@LastRecord, '$.IsListable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsFilterable'), JSON_VALUE(@LastRecord, '$.IsFilterable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsEditable'), JSON_VALUE(@LastRecord, '$.IsEditable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsGridable'), JSON_VALUE(@LastRecord, '$.IsGridable'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsEncrypted'), JSON_VALUE(@LastRecord, '$.IsEncrypted'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsInWords'), JSON_VALUE(@LastRecord, '$.IsInWords'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Columns]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [TableId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId')
-                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence')
-                                  AND [DomainId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.DomainId')
-                                  AND [crudex].[IS_EQUAL]([ReferenceTableId], [crudex].[JSON_EXTRACT](@LastRecord, '$.ReferenceTableId'), 'bigint') = 1
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([Alias], [crudex].[JSON_EXTRACT](@LastRecord, '$.Alias'), 'nvarchar') = 1
-                                  AND [Description] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Description')
-                                  AND [Title] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Title')
-                                  AND [Caption] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Caption')
-                                  AND [crudex].[IS_EQUAL]([Default], [crudex].[JSON_EXTRACT](@LastRecord, '$.Default'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Minimum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Maximum], [crudex].[JSON_EXTRACT](@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([IsPrimarykey], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsPrimarykey'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsAutoIncrement], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
-                                  AND [IsRequired] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsRequired')
-                                  AND [crudex].[IS_EQUAL]([IsListable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsListable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsFilterable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsFilterable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsEditable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEditable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsGridable], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsGridable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsEncrypted], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsEncrypted'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsInWords], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsInWords'), 'bit') = 1)
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [TableId] = JSON_VALUE(@LastRecord, '$.TableId')
+                                  AND [Sequence] = JSON_VALUE(@LastRecord, '$.Sequence')
+                                  AND [DomainId] = JSON_VALUE(@LastRecord, '$.DomainId')
+                                  AND [crudex].[IS_EQUAL]([ReferenceTableId], JSON_VALUE(@LastRecord, '$.ReferenceTableId'), 'bigint') = 1
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [crudex].[IS_EQUAL]([Alias], JSON_VALUE(@LastRecord, '$.Alias'), 'nvarchar') = 1
+                                  AND [Description] = JSON_VALUE(@LastRecord, '$.Description')
+                                  AND [Title] = JSON_VALUE(@LastRecord, '$.Title')
+                                  AND [Caption] = JSON_VALUE(@LastRecord, '$.Caption')
+                                  AND [crudex].[IS_EQUAL]([Default], JSON_VALUE(@LastRecord, '$.Default'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Minimum], JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([Maximum], JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [crudex].[IS_EQUAL]([IsPrimarykey], JSON_VALUE(@LastRecord, '$.IsPrimarykey'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsAutoIncrement], JSON_VALUE(@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
+                                  AND [IsRequired] = JSON_VALUE(@LastRecord, '$.IsRequired')
+                                  AND [crudex].[IS_EQUAL]([IsListable], JSON_VALUE(@LastRecord, '$.IsListable'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsFilterable], JSON_VALUE(@LastRecord, '$.IsFilterable'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsEditable], JSON_VALUE(@LastRecord, '$.IsEditable'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsGridable], JSON_VALUE(@LastRecord, '$.IsGridable'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsEncrypted], JSON_VALUE(@LastRecord, '$.IsEncrypted'), 'bit') = 1
+                                  AND [crudex].[IS_EQUAL]([IsInWords], JSON_VALUE(@LastRecord, '$.IsInWords'), 'bit') = 1)
                 THROW 51000, 'Registro de Columns alterado por outro usuário', 1
         END
 
@@ -23279,27 +23282,27 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Unicities', 1
         END ELSE BEGIN
 
-            DECLARE @W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS bigint)
-                   ,@W_Sequence smallint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_DomainId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.DomainId') AS bigint)
-                   ,@W_ReferenceTableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_Title nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Title') AS nvarchar(25))
-                   ,@W_Caption nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption') AS nvarchar(25))
-                   ,@W_Default nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default') AS nvarchar(max))
-                   ,@W_Minimum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(max))
-                   ,@W_Maximum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(max))
-                   ,@W_IsPrimarykey bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsPrimarykey') AS bit)
-                   ,@W_IsAutoIncrement bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsAutoIncrement') AS bit)
-                   ,@W_IsRequired bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsRequired') AS bit)
-                   ,@W_IsListable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsListable') AS bit)
-                   ,@W_IsFilterable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsFilterable') AS bit)
-                   ,@W_IsEditable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEditable') AS bit)
-                   ,@W_IsGridable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsGridable') AS bit)
-                   ,@W_IsEncrypted bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted') AS bit)
-                   ,@W_IsInWords bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsInWords') AS bit)
+            DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
+                   ,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_Title nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS nvarchar(25))
+                   ,@W_Caption nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS nvarchar(25))
+                   ,@W_Default nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS nvarchar(max))
+                   ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
+                   ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
+                   ,@W_IsPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPrimarykey') AS bit)
+                   ,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@ActualRecord, '$.IsAutoIncrement') AS bit)
+                   ,@W_IsRequired bit = CAST(JSON_VALUE(@ActualRecord, '$.IsRequired') AS bit)
+                   ,@W_IsListable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit)
+                   ,@W_IsFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit)
+                   ,@W_IsEditable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit)
+                   ,@W_IsGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsGridable') AS bit)
+                   ,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
+                   ,@W_IsInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.IsInWords') AS bit)
 
             IF @W_TableId IS NULL
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
@@ -23375,7 +23378,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -23388,7 +23391,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -23509,33 +23512,33 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[ColumnValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Columns] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS bigint)
-                   ,@W_Sequence smallint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_DomainId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.DomainId') AS bigint)
-                   ,@W_ReferenceTableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ReferenceTableId') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_Title nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Title') AS nvarchar(25))
-                   ,@W_Caption nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Caption') AS nvarchar(25))
-                   ,@W_Default nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Default') AS nvarchar(max))
-                   ,@W_Minimum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Minimum') AS nvarchar(max))
-                   ,@W_Maximum nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Maximum') AS nvarchar(max))
-                   ,@W_IsPrimarykey bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsPrimarykey') AS bit)
-                   ,@W_IsAutoIncrement bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsAutoIncrement') AS bit)
-                   ,@W_IsRequired bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsRequired') AS bit)
-                   ,@W_IsListable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsListable') AS bit)
-                   ,@W_IsFilterable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsFilterable') AS bit)
-                   ,@W_IsEditable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEditable') AS bit)
-                   ,@W_IsGridable bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsGridable') AS bit)
-                   ,@W_IsEncrypted bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsEncrypted') AS bit)
-                   ,@W_IsInWords bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsInWords') AS bit)
+            DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
+                   ,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
+                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_Title nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS nvarchar(25))
+                   ,@W_Caption nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS nvarchar(25))
+                   ,@W_Default nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS nvarchar(max))
+                   ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
+                   ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
+                   ,@W_IsPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPrimarykey') AS bit)
+                   ,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@ActualRecord, '$.IsAutoIncrement') AS bit)
+                   ,@W_IsRequired bit = CAST(JSON_VALUE(@ActualRecord, '$.IsRequired') AS bit)
+                   ,@W_IsListable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit)
+                   ,@W_IsFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit)
+                   ,@W_IsEditable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit)
+                   ,@W_IsGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsGridable') AS bit)
+                   ,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
+                   ,@W_IsInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.IsInWords') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Columns] ([Id]
@@ -23692,28 +23695,28 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS bigint) AS [TableId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.DomainId') AS bigint) AS [DomainId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ReferenceTableId') AS bigint) AS [ReferenceTableId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Title') AS nvarchar(25)) AS [Title]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Caption') AS nvarchar(25)) AS [Caption]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Default') AS nvarchar(max)) AS [Default]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Minimum') AS nvarchar(max)) AS [Minimum]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Maximum') AS nvarchar(max)) AS [Maximum]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsPrimarykey') AS bit) AS [IsPrimarykey]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsAutoIncrement') AS bit) AS [IsAutoIncrement]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsRequired') AS bit) AS [IsRequired]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsListable') AS bit) AS [IsListable]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsFilterable') AS bit) AS [IsFilterable]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsInWords') AS bit) AS [IsInWords]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST(JSON_VALUE([ActualRecord], '$.DomainId') AS bigint) AS [DomainId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.ReferenceTableId') AS bigint) AS [ReferenceTableId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Title') AS nvarchar(25)) AS [Title]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Caption') AS nvarchar(25)) AS [Caption]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Default') AS nvarchar(max)) AS [Default]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS nvarchar(max)) AS [Minimum]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS nvarchar(max)) AS [Maximum]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsPrimarykey') AS bit) AS [IsPrimarykey]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsAutoIncrement') AS bit) AS [IsAutoIncrement]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsRequired') AS bit) AS [IsRequired]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsListable') AS bit) AS [IsListable]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsFilterable') AS bit) AS [IsFilterable]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsInWords') AS bit) AS [IsInWords]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -23726,20 +23729,20 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS bigint)
-                   ,@W_DomainId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.DomainId') AS bigint)
-                   ,@W_ReferenceTableId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ReferenceTableId') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Alias') AS nvarchar(25))
-                   ,@W_IsAutoIncrement bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsAutoIncrement') AS bit)
-                   ,@W_IsRequired bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsRequired') AS bit)
-                   ,@W_IsListable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsListable') AS bit)
-                   ,@W_IsFilterable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsFilterable') AS bit)
-                   ,@W_IsEditable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsEditable') AS bit)
-                   ,@W_IsGridable bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsGridable') AS bit)
-                   ,@W_IsEncrypted bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsEncrypted') AS bit)
-                   ,@W_IsInWords bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsInWords') AS bit)
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_TableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.TableId') AS bigint)
+                   ,@W_DomainId bigint = CAST(JSON_VALUE(@RecordFilter, '$.DomainId') AS bigint)
+                   ,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.ReferenceTableId') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25))
+                   ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Alias') AS nvarchar(25))
+                   ,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@RecordFilter, '$.IsAutoIncrement') AS bit)
+                   ,@W_IsRequired bit = CAST(JSON_VALUE(@RecordFilter, '$.IsRequired') AS bit)
+                   ,@W_IsListable bit = CAST(JSON_VALUE(@RecordFilter, '$.IsListable') AS bit)
+                   ,@W_IsFilterable bit = CAST(JSON_VALUE(@RecordFilter, '$.IsFilterable') AS bit)
+                   ,@W_IsEditable bit = CAST(JSON_VALUE(@RecordFilter, '$.IsEditable') AS bit)
+                   ,@W_IsGridable bit = CAST(JSON_VALUE(@RecordFilter, '$.IsGridable') AS bit)
+                   ,@W_IsEncrypted bit = CAST(JSON_VALUE(@RecordFilter, '$.IsEncrypted') AS bit)
+                   ,@W_IsInWords bit = CAST(JSON_VALUE(@RecordFilter, '$.IsInWords') AS bit)
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -24117,7 +24120,7 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -24148,17 +24151,17 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsUnique'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsUnique'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.TableId'), JSON_VALUE(@LastRecord, '$.TableId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsUnique'), JSON_VALUE(@LastRecord, '$.IsUnique'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Indexes]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [TableId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableId')
-                                  AND [Name] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Name')
-                                  AND [IsUnique] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsUnique'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [TableId] = JSON_VALUE(@LastRecord, '$.TableId')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [IsUnique] = JSON_VALUE(@LastRecord, '$.IsUnique'))
                 THROW 51000, 'Registro de Indexes alterado por outro usuário', 1
         END
 
@@ -24167,9 +24170,9 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Indexkeys', 1
         END ELSE BEGIN
 
-            DECLARE @W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(50))
-                   ,@W_IsUnique bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsUnique') AS bit)
+            DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
+                   ,@W_IsUnique bit = CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit)
 
             IF @W_TableId IS NULL
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
@@ -24221,7 +24224,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -24234,7 +24237,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -24355,15 +24358,15 @@ ALTER PROCEDURE [dbo].[IndexCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[IndexValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Indexes] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Name') AS nvarchar(50))
-                   ,@W_IsUnique bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsUnique') AS bit)
+            DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
+                   ,@W_IsUnique bit = CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Indexes] ([Id]
@@ -24466,10 +24469,10 @@ ALTER PROCEDURE [dbo].[IndexesRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableId') AS bigint) AS [TableId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -24482,10 +24485,10 @@ ALTER PROCEDURE [dbo].[IndexesRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_TableId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.TableId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Name') AS nvarchar(50))
-                   ,@W_IsUnique bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsUnique') AS bit)
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_TableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.TableId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(50))
+                   ,@W_IsUnique bit = CAST(JSON_VALUE(@RecordFilter, '$.IsUnique') AS bit)
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -24717,7 +24720,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -24748,28 +24751,28 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IndexId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IndexId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsDescending'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsDescending'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IndexId'), JSON_VALUE(@LastRecord, '$.IndexId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Sequence'), JSON_VALUE(@LastRecord, '$.Sequence'), 'smallint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ColumnId'), JSON_VALUE(@LastRecord, '$.ColumnId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsDescending'), JSON_VALUE(@LastRecord, '$.IsDescending'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Indexkeys]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [IndexId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IndexId')
-                                  AND [Sequence] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Sequence')
-                                  AND [ColumnId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId')
-                                  AND [IsDescending] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsDescending'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [IndexId] = JSON_VALUE(@LastRecord, '$.IndexId')
+                                  AND [Sequence] = JSON_VALUE(@LastRecord, '$.Sequence')
+                                  AND [ColumnId] = JSON_VALUE(@LastRecord, '$.ColumnId')
+                                  AND [IsDescending] = JSON_VALUE(@LastRecord, '$.IsDescending'))
                 THROW 51000, 'Registro de Indexkeys alterado por outro usuário', 1
         END
 
         IF @Action <> 'delete' BEGIN
 
-            DECLARE @W_IndexId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IndexId') AS bigint)
-                   ,@W_Sequence smallint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_ColumnId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId') AS bigint)
-                   ,@W_IsDescending bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsDescending') AS bit)
+            DECLARE @W_IndexId bigint = CAST(JSON_VALUE(@ActualRecord, '$.IndexId') AS bigint)
+                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
+                   ,@W_IsDescending bit = CAST(JSON_VALUE(@ActualRecord, '$.IsDescending') AS bit)
 
             IF @W_IndexId IS NULL
                 THROW 51000, 'Valor de IndexId em @ActualRecord é requerido.', 1
@@ -24833,7 +24836,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -24846,7 +24849,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -24967,16 +24970,16 @@ ALTER PROCEDURE [dbo].[IndexkeyCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[IndexkeyValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Indexkeys] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_IndexId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IndexId') AS bigint)
-                   ,@W_Sequence smallint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_ColumnId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId') AS bigint)
-                   ,@W_IsDescending bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsDescending') AS bit)
+            DECLARE @W_IndexId bigint = CAST(JSON_VALUE(@ActualRecord, '$.IndexId') AS bigint)
+                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
+                   ,@W_IsDescending bit = CAST(JSON_VALUE(@ActualRecord, '$.IsDescending') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Indexkeys] ([Id]
@@ -25082,11 +25085,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IndexId') AS bigint) AS [IndexId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ColumnId') AS bigint) AS [ColumnId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsDescending') AS bit) AS [IsDescending]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IndexId') AS bigint) AS [IndexId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST(JSON_VALUE([ActualRecord], '$.ColumnId') AS bigint) AS [ColumnId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsDescending') AS bit) AS [IsDescending]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -25099,10 +25102,10 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_IndexId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IndexId') AS bigint)
-                   ,@W_ColumnId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ColumnId') AS bigint)
-                   ,@W_IsDescending bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsDescending') AS bit)
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_IndexId bigint = CAST(JSON_VALUE(@RecordFilter, '$.IndexId') AS bigint)
+                   ,@W_ColumnId bigint = CAST(JSON_VALUE(@RecordFilter, '$.ColumnId') AS bigint)
+                   ,@W_IsDescending bit = CAST(JSON_VALUE(@RecordFilter, '$.IsDescending') AS bit)
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -25342,7 +25345,7 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -25373,19 +25376,19 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.PublicKey'), [crudex].[JSON_EXTRACT](@LastRecord, '$.PublicKey'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLogged'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLogged'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.SystemId'), JSON_VALUE(@LastRecord, '$.SystemId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.UserId'), JSON_VALUE(@LastRecord, '$.UserId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.PublicKey'), JSON_VALUE(@LastRecord, '$.PublicKey'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsLogged'), JSON_VALUE(@LastRecord, '$.IsLogged'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Sessions]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [SystemId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SystemId')
-                                  AND [UserId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.UserId')
-                                  AND [crudex].[IS_EQUAL]([PublicKey], [crudex].[JSON_EXTRACT](@LastRecord, '$.PublicKey'), 'nvarchar') = 1
-                                  AND [IsLogged] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsLogged'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [SystemId] = JSON_VALUE(@LastRecord, '$.SystemId')
+                                  AND [UserId] = JSON_VALUE(@LastRecord, '$.UserId')
+                                  AND [crudex].[IS_EQUAL]([PublicKey], JSON_VALUE(@LastRecord, '$.PublicKey'), 'nvarchar') = 1
+                                  AND [IsLogged] = JSON_VALUE(@LastRecord, '$.IsLogged'))
                 THROW 51000, 'Registro de Sessions alterado por outro usuário', 1
         END
 
@@ -25394,10 +25397,10 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Transactions', 1
         END ELSE BEGIN
 
-            DECLARE @W_SystemId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS bigint)
-                   ,@W_UserId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId') AS bigint)
-                   ,@W_PublicKey nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.PublicKey') AS nvarchar(256))
-                   ,@W_IsLogged bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLogged') AS bit)
+            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+                   ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+                   ,@W_PublicKey nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS nvarchar(256))
+                   ,@W_IsLogged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit)
 
             IF @W_SystemId IS NULL
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
@@ -25447,7 +25450,7 @@ ALTER PROCEDURE [dbo].[SessionPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -25460,7 +25463,7 @@ ALTER PROCEDURE [dbo].[SessionPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -25581,16 +25584,16 @@ ALTER PROCEDURE [dbo].[SessionCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[SessionValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Sessions] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_SystemId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.SystemId') AS bigint)
-                   ,@W_UserId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.UserId') AS bigint)
-                   ,@W_PublicKey nvarchar(256) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.PublicKey') AS nvarchar(256))
-                   ,@W_IsLogged bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsLogged') AS bit)
+            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+                   ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+                   ,@W_PublicKey nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS nvarchar(256))
+                   ,@W_IsLogged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Sessions] ([Id]
@@ -25696,11 +25699,11 @@ ALTER PROCEDURE [dbo].[SessionsRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.UserId') AS bigint) AS [UserId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.PublicKey') AS nvarchar(256)) AS [PublicKey]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsLogged') AS bit) AS [IsLogged]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint) AS [UserId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.PublicKey') AS nvarchar(256)) AS [PublicKey]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsLogged') AS bit) AS [IsLogged]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -25713,10 +25716,10 @@ ALTER PROCEDURE [dbo].[SessionsRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_SystemId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.SystemId') AS bigint)
-                   ,@W_UserId bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.UserId') AS bigint)
-                   ,@W_IsLogged bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsLogged') AS bit)
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.SystemId') AS bigint)
+                   ,@W_UserId bigint = CAST(JSON_VALUE(@RecordFilter, '$.UserId') AS bigint)
+                   ,@W_IsLogged bit = CAST(JSON_VALUE(@RecordFilter, '$.IsLogged') AS bit)
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -25889,7 +25892,7 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -25920,15 +25923,15 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.SessionId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.SessionId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsConfirmed'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.SessionId'), JSON_VALUE(@LastRecord, '$.SessionId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsConfirmed'), JSON_VALUE(@LastRecord, '$.IsConfirmed'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Transactions]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [SessionId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.SessionId')
-                                  AND [IsConfirmed] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsConfirmed'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [SessionId] = JSON_VALUE(@LastRecord, '$.SessionId')
+                                  AND [IsConfirmed] = JSON_VALUE(@LastRecord, '$.IsConfirmed'))
                 THROW 51000, 'Registro de Transactions alterado por outro usuário', 1
         END
 
@@ -25937,8 +25940,8 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Operations', 1
         END ELSE BEGIN
 
-            DECLARE @W_SessionId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.SessionId') AS bigint)
-                   ,@W_IsConfirmed bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed') AS bit)
+            DECLARE @W_SessionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SessionId') AS bigint)
+                   ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
 
             IF @W_SessionId IS NULL
                 THROW 51000, 'Valor de SessionId em @ActualRecord é requerido.', 1
@@ -25984,7 +25987,7 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -25997,7 +26000,7 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -26118,14 +26121,14 @@ ALTER PROCEDURE [dbo].[TransactionCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[TransactionValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Transactions] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_SessionId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.SessionId') AS bigint)
-                   ,@W_IsConfirmed bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed') AS bit)
+            DECLARE @W_SessionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SessionId') AS bigint)
+                   ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Transactions] ([Id]
@@ -26225,9 +26228,9 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.SessionId') AS bigint) AS [SessionId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsConfirmed') AS bit) AS [IsConfirmed]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.SessionId') AS bigint) AS [SessionId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsConfirmed') AS bit) AS [IsConfirmed]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -26240,7 +26243,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -26385,7 +26388,7 @@ ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -26416,34 +26419,34 @@ ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TransactionId'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TransactionId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableName'), [crudex].[JSON_EXTRACT](@LastRecord, '$.TableName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Action'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.LastRecord'), [crudex].[JSON_EXTRACT](@LastRecord, '$.LastRecord'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ActualRecord'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ActualRecord'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsConfirmed'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.TransactionId'), JSON_VALUE(@LastRecord, '$.TransactionId'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.TableName'), JSON_VALUE(@LastRecord, '$.TableName'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Action'), JSON_VALUE(@LastRecord, '$.Action'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.LastRecord'), JSON_VALUE(@LastRecord, '$.LastRecord'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ActualRecord'), JSON_VALUE(@LastRecord, '$.ActualRecord'), 'nvarchar(max)') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsConfirmed'), JSON_VALUE(@LastRecord, '$.IsConfirmed'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Operations]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [TransactionId] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TransactionId')
-                                  AND [TableName] = [crudex].[JSON_EXTRACT](@LastRecord, '$.TableName')
-                                  AND [Action] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Action')
-                                  AND [crudex].[IS_EQUAL]([LastRecord], [crudex].[JSON_EXTRACT](@LastRecord, '$.LastRecord'), 'nvarchar(max)') = 1
-                                  AND [ActualRecord] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ActualRecord')
-                                  AND [crudex].[IS_EQUAL]([IsConfirmed], [crudex].[JSON_EXTRACT](@LastRecord, '$.IsConfirmed'), 'bit') = 1)
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [TransactionId] = JSON_VALUE(@LastRecord, '$.TransactionId')
+                                  AND [TableName] = JSON_VALUE(@LastRecord, '$.TableName')
+                                  AND [Action] = JSON_VALUE(@LastRecord, '$.Action')
+                                  AND [crudex].[IS_EQUAL]([LastRecord], JSON_VALUE(@LastRecord, '$.LastRecord'), 'nvarchar(max)') = 1
+                                  AND [ActualRecord] = JSON_VALUE(@LastRecord, '$.ActualRecord')
+                                  AND [crudex].[IS_EQUAL]([IsConfirmed], JSON_VALUE(@LastRecord, '$.IsConfirmed'), 'bit') = 1)
                 THROW 51000, 'Registro de Operations alterado por outro usuário', 1
         END
 
         IF @Action <> 'delete' BEGIN
 
-            DECLARE @W_TransactionId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TransactionId') AS bigint)
-                   ,@W_TableName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableName') AS nvarchar(25))
-                   ,@W_Action nvarchar(15) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action') AS nvarchar(15))
-                   ,@W_LastRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.LastRecord') AS nvarchar(max))
-                   ,@W_ActualRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ActualRecord') AS nvarchar(max))
-                   ,@W_IsConfirmed bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed') AS bit)
+            DECLARE @W_TransactionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TransactionId') AS bigint)
+                   ,@W_TableName nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.TableName') AS nvarchar(25))
+                   ,@W_Action nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(15))
+                   ,@W_LastRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.LastRecord') AS nvarchar(max))
+                   ,@W_ActualRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ActualRecord') AS nvarchar(max))
+                   ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
 
             IF @W_TransactionId IS NULL
                 THROW 51000, 'Valor de TransactionId em @ActualRecord é requerido.', 1
@@ -26491,7 +26494,7 @@ ALTER PROCEDURE [dbo].[OperationPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -26504,7 +26507,7 @@ ALTER PROCEDURE [dbo].[OperationPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -26625,18 +26628,18 @@ ALTER PROCEDURE [dbo].[OperationCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[OperationValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Operations] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_TransactionId bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TransactionId') AS bigint)
-                   ,@W_TableName nvarchar(25) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.TableName') AS nvarchar(25))
-                   ,@W_Action nvarchar(15) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Action') AS nvarchar(15))
-                   ,@W_LastRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.LastRecord') AS nvarchar(max))
-                   ,@W_ActualRecord nvarchar(max) = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ActualRecord') AS nvarchar(max))
-                   ,@W_IsConfirmed bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsConfirmed') AS bit)
+            DECLARE @W_TransactionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TransactionId') AS bigint)
+                   ,@W_TableName nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.TableName') AS nvarchar(25))
+                   ,@W_Action nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(15))
+                   ,@W_LastRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.LastRecord') AS nvarchar(max))
+                   ,@W_ActualRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ActualRecord') AS nvarchar(max))
+                   ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Operations] ([Id]
@@ -26748,13 +26751,13 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TransactionId') AS bigint) AS [TransactionId]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.TableName') AS nvarchar(25)) AS [TableName]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Action') AS nvarchar(15)) AS [Action]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.LastRecord') AS nvarchar(max)) AS [LastRecord]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ActualRecord') AS nvarchar(max)) AS [ActualRecord]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsConfirmed') AS bit) AS [IsConfirmed]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.TransactionId') AS bigint) AS [TransactionId]
+              ,CAST(JSON_VALUE([ActualRecord], '$.TableName') AS nvarchar(25)) AS [TableName]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Action') AS nvarchar(15)) AS [Action]
+              ,CAST(JSON_VALUE([ActualRecord], '$.LastRecord') AS nvarchar(max)) AS [LastRecord]
+              ,CAST(JSON_VALUE([ActualRecord], '$.ActualRecord') AS nvarchar(max)) AS [ActualRecord]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsConfirmed') AS bit) AS [IsConfirmed]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -26767,7 +26770,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -26938,7 +26941,7 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
                ,@IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @TransactionId IS NULL
             THROW 51000, 'Não existe transação para este @SessionId', 1
@@ -26969,25 +26972,25 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF @Action = 'update'
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id'), [crudex].[JSON_EXTRACT](@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId1'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId1'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId2'), [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId2'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional'), [crudex].[JSON_EXTRACT](@LastRecord, '$.IsBidirectional'), 'bit') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ColumnId1'), JSON_VALUE(@LastRecord, '$.ColumnId1'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ColumnId2'), JSON_VALUE(@LastRecord, '$.ColumnId2'), 'bigint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsBidirectional'), JSON_VALUE(@LastRecord, '$.IsBidirectional'), 'bit') = 1
                 THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Unicities]
-                            WHERE [Id] = [crudex].[JSON_EXTRACT](@LastRecord, '$.Id')
-                                  AND [ColumnId1] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId1')
-                                  AND [ColumnId2] = [crudex].[JSON_EXTRACT](@LastRecord, '$.ColumnId2')
-                                  AND [IsBidirectional] = [crudex].[JSON_EXTRACT](@LastRecord, '$.IsBidirectional'))
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [ColumnId1] = JSON_VALUE(@LastRecord, '$.ColumnId1')
+                                  AND [ColumnId2] = JSON_VALUE(@LastRecord, '$.ColumnId2')
+                                  AND [IsBidirectional] = JSON_VALUE(@LastRecord, '$.IsBidirectional'))
                 THROW 51000, 'Registro de Unicities alterado por outro usuário', 1
         END
 
         IF @Action <> 'delete' BEGIN
 
-            DECLARE @W_ColumnId1 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId1') AS bigint)
-                   ,@W_ColumnId2 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId2') AS bigint)
-                   ,@W_IsBidirectional bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional') AS bit)
+            DECLARE @W_ColumnId1 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId1') AS bigint)
+                   ,@W_ColumnId2 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId2') AS bigint)
+                   ,@W_IsBidirectional bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBidirectional') AS bit)
 
             IF @W_ColumnId1 IS NULL
                 THROW 51000, 'Valor de ColumnId1 em @ActualRecord é requerido.', 1
@@ -27043,7 +27046,7 @@ ALTER PROCEDURE [dbo].[UnicityPersist](@SessionId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         BEGIN TRANSACTION
         SAVE TRANSACTION [SavePoint]
@@ -27056,7 +27059,7 @@ ALTER PROCEDURE [dbo].[UnicityPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             INSERT INTO [dbo].[Operations] ([TransactionId]
                                              ,[TableName]
@@ -27177,15 +27180,15 @@ ALTER PROCEDURE [dbo].[UnicityCommit](@SessionId BIGINT
         EXEC @TransactionIdAux = [dbo].[UnicityValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS bigint)
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
         IF @Action = 'delete'
             DELETE FROM [dbo].[Unicities] WHERE [Id] = @W_Id
         ELSE BEGIN
 
-            DECLARE @W_ColumnId1 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId1') AS bigint)
-                   ,@W_ColumnId2 bigint = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.ColumnId2') AS bigint)
-                   ,@W_IsBidirectional bit = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.IsBidirectional') AS bit)
+            DECLARE @W_ColumnId1 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId1') AS bigint)
+                   ,@W_ColumnId2 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId2') AS bigint)
+                   ,@W_IsBidirectional bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBidirectional') AS bit)
 
             IF @Action = 'create'
                 INSERT INTO [dbo].[Unicities] ([Id]
@@ -27288,10 +27291,10 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ColumnId1') AS bigint) AS [ColumnId1]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.ColumnId2') AS bigint) AS [ColumnId2]
-              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.IsBidirectional') AS bit) AS [IsBidirectional]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.ColumnId1') AS bigint) AS [ColumnId1]
+              ,CAST(JSON_VALUE([ActualRecord], '$.ColumnId2') AS bigint) AS [ColumnId2]
+              ,CAST(JSON_VALUE([ActualRecord], '$.IsBidirectional') AS bit) AS [IsBidirectional]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -27304,10 +27307,10 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
                ,@sql NVARCHAR(MAX)
 
         IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.Id') AS bigint)
-                   ,@W_ColumnId1 bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ColumnId1') AS bigint)
-                   ,@W_ColumnId2 bigint = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.ColumnId2') AS bigint)
-                   ,@W_IsBidirectional bit = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.IsBidirectional') AS bit)
+            DECLARE @W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
+                   ,@W_ColumnId1 bigint = CAST(JSON_VALUE(@RecordFilter, '$.ColumnId1') AS bigint)
+                   ,@W_ColumnId2 bigint = CAST(JSON_VALUE(@RecordFilter, '$.ColumnId2') AS bigint)
+                   ,@W_IsBidirectional bit = CAST(JSON_VALUE(@RecordFilter, '$.IsBidirectional') AS bit)
 
             IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)

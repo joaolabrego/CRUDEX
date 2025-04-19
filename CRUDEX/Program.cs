@@ -13,22 +13,16 @@ namespace CRUDA_LIB
 
             app.Use(async (context, next) =>
             {
-                if (context.Request.Method == "GET" && context.Request.Path.ToString().EndsWith(".class.mjs")) {
+                if (context.Request.Method == "GET" && (context.Request.Path.ToString().EndsWith(".class.mjs") || context.Request.Path.ToString().EndsWith(".min.js")))
+                {
                     context.Response.Headers.ContentType = "text/javascript";
                     await context.Response.WriteAsync(File.ReadAllText($"{Settings.Builder.Environment.ContentRootPath}\\StaticFiles{context.Request.Path}"), Encoding.UTF8);
                 }
                 else
                     await next.Invoke();
             });
-
-            app.MapGet("/", async (HttpContext context) =>
-            {
-                await ExecuteRoute(context);
-            });
-            app.MapGet("/{systemName}", async (HttpContext context, string systemName) =>
-            {
-                await ExecuteRoute(context, systemName, Actions.CHECK);
-            });
+            app.MapGet("/", async (HttpContext context) => await ExecuteRoute(context));
+            app.MapGet("/{systemName}", async (HttpContext context, string systemName) => await ExecuteRoute(context, systemName, Actions.CHECK));
             app.MapPost("/{systemName}/{action}", async (HttpContext context, string systemName, string action, dynamic body) =>
             {
                 await ExecuteRoute(context, systemName, action, body);
@@ -60,6 +54,7 @@ namespace CRUDA_LIB
                         await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
                         break;
                     case Actions.LOGIN:
+                    case Actions.CHANGE:
                     case Actions.LOGOUT:
                     case Actions.EXECUTE:
                         var request = Config.ToDictionary(JsonConvert.DeserializeObject(json["Request"]));

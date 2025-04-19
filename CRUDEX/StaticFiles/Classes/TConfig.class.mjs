@@ -17,7 +17,6 @@ export default class TConfig {
 
     static async GetAPI(action, parameters = {}, showSpinner = true) {
         let result,
-            crypto,
             body = {},
             request = {},
             headers = {
@@ -25,17 +24,20 @@ export default class TConfig {
                 "Content-Type": "application/json",
             },
             url = `${location}/${action}`
-
         if (action !== TActions.CONFIG) {
             if (showSpinner)
                 TSpinner.Show()
-            if (action === TActions.LOGIN) {
+            if (action === TActions.LOGIN || action === TActions.CHANGE) {
                 body.Login = {
                     Action: action,
                     SystemName: TSystem.Name,
                     UserName: TLogin.UserName,
                     Password: TLogin.Password,
+                    NewPassword: parameters.NewPassword ?? null,
+                    RetypedPassword: parameters.RetypedPassword ?? null,
                 }
+                if (action === TActions.CHANGE)
+                    parameters = {}
             }
             else {
                 request.LoginId = TLogin.LoginId
@@ -45,6 +47,8 @@ export default class TConfig {
                     UserName: TLogin.UserName,
                     Password: TLogin.Password,
                     LoginId: TLogin.LoginId,
+                    NewPassword: null,
+                    RetypedPassword: null,
                 }
             }
         }

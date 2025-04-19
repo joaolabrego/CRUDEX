@@ -58,7 +58,6 @@ namespace CRUDA_LIB
             var tableName = parms?["TableName"];
             var action = parms?["Action"];
             var config = GetConfig(systemName, databaseName, tableName).Result.DataSet.Tables;
-            var databaseAlias = config[2].Rows[0]["Alias"];
             var connectionRow = config[1].Rows[0];
             var connectionString = Settings.ConnectionString(connectionRow);
             var procedureName = action switch

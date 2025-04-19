@@ -28,8 +28,10 @@ namespace CRUDA_LIB
                                     SystemName = login["SystemName"],
                                     UserName = login["UserName"],
                                     Password = login["Password"],
-                                    LoginId = login["Action"] == Actions.LOGIN ? null : login["LoginId"],
+                                    LoginId = login["Action"] == Actions.LOGIN || login["Action"] == Actions.CHANGE ? null : login["LoginId"],
                                     Action = forceAuthenticate ? Actions.AUTHENTICATE : login["Action"],
+                                    NewPassword = login["NewPassword"],
+                                    RetypedPassword = login["RetypedPassword"],
                                 }),
                             },
                         }));

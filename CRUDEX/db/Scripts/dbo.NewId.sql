@@ -7,7 +7,7 @@ ALTER PROCEDURE [dbo].[NewId](@SystemName VARCHAR(25)
 							 ,@ReturnValue BIGINT OUT) AS BEGIN
 	BEGIN TRY
 		SET NOCOUNT ON
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+		SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
 
 		DECLARE @SystemId BIGINT
 				,@DatabaseId BIGINT
@@ -29,9 +29,12 @@ ALTER PROCEDURE [dbo].[NewId](@SystemName VARCHAR(25)
 						WHERE [SystemId] = @SystemId
 							  AND [DatabaseId] = @DatabaseId)
 			THROW 51000, 'Banco-de-dados não pertence ao sistema especificado', 1
+
+		BEGIN TRANSACTION
+
 		SELECT @TableId = [Id]
 			   ,@NextId = ISNULL([CurrentId], 0) + 1
-			FROM [dbo].[Tables]
+			FROM [dbo].[Tables] WITH (UPDLOCK, HOLDLOCK)
 			WHERE [Name] = @TableName
 		IF @TableId IS NULL
 			THROW 51000, 'Tabela não encontrada', 1
@@ -44,11 +47,14 @@ ALTER PROCEDURE [dbo].[NewId](@SystemName VARCHAR(25)
 			SET [CurrentId] = @NextId
 			WHERE [Id] = @TableId
 		SET @ReturnValue = @NextId
-
+		COMMIT
 		RETURN 0
 	END TRY
 	BEGIN CATCH
 		DECLARE @ErrorMessage VARCHAR(MAX) = ERROR_MESSAGE();
+
+		IF @@TRANCOUNT > 0
+			ROLLBACK;
 
         THROW 51000, @ErrorMessage, 1
 	END CATCH

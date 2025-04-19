@@ -314,10 +314,6 @@ namespace crudex.Classes
             result.Append($"**********************************************************************************/\r\n");
             result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudex.IS_EQUAL.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar stored procedure [crudex].[JSON_EXTRACT]\r\n");
-            result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudex.JSON_EXTRACT.sql")));
-            result.Append($"/**********************************************************************************\r\n");
             result.Append($"Criar stored procedure [crudex].TransactionBegin]\r\n");
             result.Append($"**********************************************************************************/\r\n");
             result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudex.TransactionBegin.sql")));
@@ -575,7 +571,7 @@ namespace crudex.Classes
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
                 result.Append($"               ,@ActionAux NVARCHAR(15)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
-                result.Append($"               ,@W_Id {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
+                result.Append($"               ,@W_Id {columnRows[0]["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
                 result.Append($"        SAVE TRANSACTION [SavePoint]\r\n");
@@ -588,7 +584,7 @@ namespace crudex.Classes
                 result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                  AND [TableName] = 'Columns'\r\n");
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
-                result.Append($"                  AND CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.Id') AS {columnRows[0]["#DataType"]}) = @W_Id\r\n");
+                result.Append($"                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS {columnRows[0]["#DataType"]}) = @W_Id\r\n");
                 result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
                 result.Append($"            INSERT INTO [dbo].[Operations] ([TransactionId]\r\n");
                 result.Append($"                                             ,[TableName]\r\n");
@@ -719,7 +715,7 @@ namespace crudex.Classes
                 result.Append($"        EXEC @TransactionIdAux = [dbo].[{table["Alias"]}Validate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
                 result.Append($"        IF @TransactionId <> @TransactionIdAux\r\n");
                 result.Append($"            THROW 51000, 'Transação da operação é inválida', 1\r\n");
-                result.Append($"        DECLARE @W_Id {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
+                result.Append($"        DECLARE @W_Id {columnRows[0]["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF @Action = 'delete'\r\n");
                 result.Append($"            DELETE FROM [dbo].[{table["Name"]}] WHERE [Id] = @W_Id\r\n");
@@ -735,11 +731,11 @@ namespace crudex.Classes
                         {
                             result.Append($"        ELSE BEGIN\r\n");
                             result.Append($"\r\n");
-                            result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                             firstTime = false;
                         }
                         else
-                            result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                     }
                     result.Append($"\r\n");
                 }
@@ -847,7 +843,7 @@ namespace crudex.Classes
                 result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
-                result.Append($"               ,@W_Id AS {columnRows[0]["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
+                result.Append($"               ,@W_Id AS {columnRows[0]["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF @TransactionId IS NULL\r\n");
                 result.Append($"            THROW 51000, 'Não existe transação para este @SessionId', 1\r\n");
@@ -899,7 +895,7 @@ namespace crudex.Classes
                         result.Append($"            IF @Action = 'update'\r\n");
                         firstTime = false;
                     }
-                    result.Append($"                AND [crudex].[IS_EQUAL]([crudex].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}'), [crudex].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1\r\n");
+                    result.Append($"                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.{column["Name"]}'), JSON_VALUE(@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1\r\n");
                 }
                 result.Append($"                THROW 51000, 'Nenhuma alteração feita no registro', 1\r\n");
                 firstTime = true;
@@ -918,9 +914,9 @@ namespace crudex.Classes
                         result.Append($"                                  AND ");
                     }
                     if (Settings.ToBoolean(column["IsRequired"]))
-                        result.Append($"[{column["Name"]}] = [crudex].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}')");
+                        result.Append($"[{column["Name"]}] = JSON_VALUE(@LastRecord, '$.{column["Name"]}')");
                     else
-                        result.Append($"[crudex].[IS_EQUAL]([{column["Name"]}], [crudex].[JSON_EXTRACT](@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1");
+                        result.Append($"[crudex].[IS_EQUAL]([{column["Name"]}], JSON_VALUE(@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1");
                 }
                 result.Append($")\r\n");
                 result.Append($"                THROW 51000, 'Registro de {table["Name"]} alterado por outro usuário', 1\r\n");
@@ -950,11 +946,11 @@ namespace crudex.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@ActualRecord, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
                 foreach (var column in nopkColumnRows)
@@ -1200,7 +1196,7 @@ namespace crudex.Classes
                         result.Append($"        SELECT [Action] AS [_]\r\n");
                         firstTime = false;
                     }
-                    result.Append($"              ,CAST([crudex].[JSON_EXTRACT]([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
+                    result.Append($"              ,CAST(JSON_VALUE([ActualRecord], '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
                 result.Append($"            INTO [#tmpOperations]\r\n");
                 result.Append($"            FROM [dbo].[Operations]\r\n");
@@ -1222,11 +1218,11 @@ namespace crudex.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST([crudex].[JSON_EXTRACT](@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
                 foreach (var column in filterableColumns)
