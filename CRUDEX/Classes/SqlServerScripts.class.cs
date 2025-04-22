@@ -10,7 +10,17 @@ namespace crudex.Classes
     public class SqlServerScripts
     {
         static readonly string DirectoryScripts = Path.Combine(Settings.Builder.Environment.ContentRootPath, Settings.Get("DIRECTORY_SCRIPTS"));
-        static readonly string ReservedColumnNames = ";Data;ClassName;ListItemValue;_;";
+        static readonly HashSet<string> ReservedColumnNames = new([
+            "Data",
+            "ClassName",
+            "ListItemValue",
+            "_", "CreatedAt",
+            "CreatedBy",
+            "UpdatedAt",
+            "UpdatedBy",
+            "UniqueIdentifier",
+            ], StringComparer.OrdinalIgnoreCase);
+        //static readonly string ReservedColumnNames = ";Data;ClassName;ListItemValue;_;CreatedAt;CreatedBy;UpdatedAt;UpdatedBy;UniqueIdentifier;";
         public static async Task Generate(string systemName = "crudex", string databaseName = "crudex", bool saveInDisk = true, bool? isExcel = null, bool withInsertData = true)
         {
             var result = new StringBuilder();
@@ -370,7 +380,7 @@ namespace crudex.Classes
                         result.Append($"CREATE TABLE [dbo].[{table["Name"]}]({definition}\r\n");
                         firstTime = false;
                     }
-                    else if (ReservedColumnNames.Contains($";{Settings.ToString(column["Name"])};", StringComparison.InvariantCultureIgnoreCase))
+                    else if (ReservedColumnNames.Contains($";{Settings.ToString(column["Name"])};"))
                         throw new Exception($"Nome de coluna {column["Name"]} é reservado.");
                     else
                     {
@@ -399,6 +409,7 @@ namespace crudex.Classes
                 result.Append($"                                    ,[CreatedBy] nvarchar(25) NOT NULL\r\n");
                 result.Append($"                                    ,[UpdatedAt] datetime NULL\r\n");
                 result.Append($"                                    ,[UpdatedBy] nvarchar(25) NULL)\r\n");
+                result.Append($"                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())\r\n");
                 result.Append($"ALTER TABLE [dbo].[{table["Name"]}] ADD CONSTRAINT PK_{table["Name"]} PRIMARY KEY CLUSTERED ([Id])\r\n");
 
                 var indexRows = indexes.FindAll(index => Settings.ToLong(index["TableId"]) == Settings.ToLong(table["Id"]));

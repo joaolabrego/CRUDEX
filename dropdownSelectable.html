@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Filterable Multi‑Select Dropdown</title>
+</head>
+<body>
+  <div style="height: 580px"></div>
+  <filterable-dropdown id="dropdownSingle" single-select></filterable-dropdown>
+  <filterable-dropdown id="dropdownMulti"></filterable-dropdown>
+
+  <script>
+    // Define a template for the component
+    const dropdownTemplate = document.createElement('template');
+    dropdownTemplate.innerHTML = `
+      <style>
+        :host { display: inline-block; position: relative; font-family: inherit; }
+        /* Trigger button/input z-index above list */
+        button.trigger, input.trigger-input {
+          position: relative;
+          z-index: 101;
+        }
+        .trigger-button, .trigger-input {
+          width: 200px;
+          box-sizing: border-box;
+          padding: 0.5rem 1rem;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          background: #fff;
+          cursor: pointer;
+          font-size: 1rem;
+        }
+        .trigger-button.single::after { content: ' ▼'; }
+        .trigger-button.multi::after  { content: ' ☑'; }
+        .trigger-button.open, .trigger-input.open { border-color: #007bff; }
+        .trigger-input { cursor: text; }
+        .dropdown-list {
+          position: absolute;
+          left: 0;
+          right: 0;
+          max-height: 200px;
+          overflow-y: auto;
+          background: white;
+          display: none;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          z-index: 100;
+        }
+        .dropdown-list.open { display: block; }
+        .dropdown-item { padding: 0.5rem; cursor: pointer; display: flex; align-items: center; }
+        .dropdown-item:hover { background-color: #f0f0f0; }
+        .dropdown-item input { margin-right: 0.5rem; }
+        .pagination {
+          display: flex; justify-content: space-between;
+          padding: 0.5rem; background: #f9f9f9;
+        }
+        .pagination button {
+          border: none; background: none; cursor: pointer;
+          font-size: 1rem; color: #007bff;
+        }
+        .pagination button[disabled] { color: #ccc; cursor: not-allowed; }
+      </style>
+      <!-- Single uses input filter, Multi uses button -->
+      <div class="trigger-container">
+        <input type="text" class="trigger-input" placeholder="Type to filter..." readonly />
+        <button type="button" class="trigger-button"></button>
+      </div>
+      <div class="dropdown-list">
+        <div class="dropdown-items"></div>
+        <div class="pagination">
+          <button class="prev-button" disabled>&#9664;</button>
+          <button class="next-button">&#9654;</button>
+        </div>
+      </div>
+    `;
+
+    class FilterableDropdown extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.appendChild(dropdownTemplate.content.cloneNode(true));
+
+        this.currentPage = 0;
+        this.itemsPerPage = 5;
+        this.data = [];
+        this.filteredData = [];
+        this.selectedItems = new Set();
+        this.isSingle = this.hasAttribute('single-select');
+
+        // Elements
+        this.triggerInput = this.shadowRoot.querySelector('.trigger-input');
+        this.triggerButton = this.shadowRoot.querySelector('.trigger-button');
+        this.dropdownList = this.shadowRoot.querySelector('.dropdown-list');
+        this.itemsContainer = this.shadowRoot.querySelector('.dropdown-items');
+        this.prevButton = this.shadowRoot.querySelector('.prev-button');
+        this.nextButton = this.shadowRoot.querySelector('.next-button');
+
+        // Initialize UI
+        if (this.isSingle) {
+          this.triggerInput.style.display = 'inline-block';
+          this.triggerButton.style.display = 'none';
+          this.triggerInput.removeAttribute('readonly');
+          this.triggerInput.placeholder = 'Type to filter...';
+        } else {
+          this.triggerInput.style.display = 'none';
+          this.triggerButton.style.display = 'inline-block';
+          this.triggerButton.classList.add('multi');
+          this.triggerButton.textContent = 'Select options';
+        }
+      }
+
+      connectedCallback() {
+        document.addEventListener('mousedown', this._onClickOutside = this.handleClickOutside.bind(this));
+        if (this.isSingle) {
+          this.triggerInput.addEventListener('input', e => { this.filterItems(e.target.value); this.showDropdown(); });
+          this.triggerInput.addEventListener('focus', () => {
+          this.filterItems(this.triggerInput.value);
+          this.showDropdown();
+        });
+        } else {
+          this.triggerButton.addEventListener('click', e => { e.stopPropagation(); this.toggleDropdown(); });
+        }
+        this.prevButton.addEventListener('click', () => this.changePage(-1));
+        this.nextButton.addEventListener('click', () => this.changePage(1));
+      }
+
+      disconnectedCallback() {
+        document.removeEventListener('mousedown', this._onClickOutside);
+      }
+
+      handleClickOutside(event) {
+        if (!this.contains(event.target)) this.hideDropdown();
+      }
+
+      set dataSource(items) {
+        this.data = items || [];
+        this.filteredData = [...this.data];
+        this.currentPage = 0;
+        this.selectedItems.clear();
+        this.renderItems();
+        this.updateTrigger();
+      }
+
+      set itemsPerPageCount(count) {
+        if (count > 0) this.itemsPerPage = count;
+        this.renderItems();
+      }
+
+      filterItems(query) {
+        this.filteredData = this.data.filter(item => item.toLowerCase().includes(query.toLowerCase()));
+        this.currentPage = 0;
+        this.renderItems();
+      }
+
+      changePage(dir) {
+        const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage) || 1;
+        this.currentPage = Math.max(0, Math.min(this.currentPage + dir, totalPages - 1));
+        this.renderItems();
+      }
+
+      renderItems() {
+        const start = this.currentPage * this.itemsPerPage;
+        const end = start + this.itemsPerPage;
+        this.itemsContainer.innerHTML = '';
+
+        this.filteredData.slice(start, end).forEach(item => {
+          const label = document.createElement('label');
+          label.className = 'dropdown-item';
+          if (!this.isSingle) {
+            const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = this.selectedItems.has(item);
+            chk.addEventListener('change', () => this.toggleItem(item));
+            label.appendChild(chk);
+          }
+          const span = document.createElement('span'); span.textContent = item;
+          label.appendChild(span);
+          label.addEventListener('click', () => {
+            if (this.isSingle) {
+              this.selectedItems.clear();
+              this.selectedItems.add(item);
+              this.hideDropdown();
+              this.triggerInput.value = item;
+            } else {
+              this.toggleItem(item);
+            }
+          });
+          this.itemsContainer.appendChild(label);
+        });
+        this.updatePagination();
+      }
+
+      updatePagination() {
+        const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage) || 1;
+        this.prevButton.disabled = this.currentPage <= 0;
+        this.nextButton.disabled = this.currentPage >= totalPages - 1;
+        this.dropdownList.querySelector('.pagination').style.display = totalPages > 1 ? 'flex' : 'none';
+      }
+
+      toggleItem(item) {
+        if (this.selectedItems.has(item)) this.selectedItems.delete(item);
+        else this.selectedItems.add(item);
+        this.updateTrigger();
+      }
+
+      updateTrigger() {
+        if (!this.isSingle) {
+          const text = this.selectedItems.size ? Array.from(this.selectedItems).join(', ') : 'Select options';
+          this.triggerButton.textContent = text;
+        }
+      }
+
+      toggleDropdown() {
+        if (this.dropdownList.classList.contains('open')) this.hideDropdown();
+        else this.showDropdown();
+      }
+
+      showDropdown() {
+        // Temporarily show to measure
+        this.dropdownList.style.visibility = 'hidden';
+        this.dropdownList.style.display = 'block';
+
+        const triggerEl = this.isSingle ? this.triggerInput : this.triggerButton;
+        const triggerRect = triggerEl.getBoundingClientRect();
+        const listHeight = this.dropdownList.scrollHeight;
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - triggerRect.bottom;
+        const spaceAbove = triggerRect.top;
+        const offset = 4; // px gap
+
+        if (spaceBelow < listHeight && spaceAbove > listHeight) {
+          this.dropdownList.style.top = 'auto';
+          this.dropdownList.style.bottom = `${triggerRect.height + offset}px`;
+        } else {
+          this.dropdownList.style.bottom = 'auto';
+          this.dropdownList.style.top = `${triggerRect.height + offset}px`;
+        }
+
+        this.dropdownList.style.visibility = 'visible';
+        this.dropdownList.classList.add('open');
+        if (this.isSingle) this.triggerInput.classList.add('open');
+        else this.triggerButton.classList.add('open');
+      }
+
+      hideDropdown() {
+        this.dropdownList.classList.remove('open');
+        if (this.isSingle) this.triggerInput.classList.remove('open');
+        else this.triggerButton.classList.remove('open');
+        this.dropdownList.style.display = 'none';
+        this.dropdownList.style.top = '';
+        this.dropdownList.style.bottom = '';
+      }
+    }
+
+    customElements.define('filterable-dropdown', FilterableDropdown);
+
+    // Usage examples
+    const single = document.getElementById('dropdownSingle');
+    single.itemsPerPageCount = 3;
+    single.dataSource = ['Option A','Option B','Option C','Option D'];
+
+    const multi = document.getElementById('dropdownMulti');
+    multi.itemsPerPageCount = 3;
+    multi.dataSource = ['dev','hml','prd','test','prod'];
+  </script>
+</body>
+</html>
