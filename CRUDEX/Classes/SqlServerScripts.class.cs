@@ -380,7 +380,7 @@ namespace crudex.Classes
                         result.Append($"CREATE TABLE [dbo].[{table["Name"]}]({definition}\r\n");
                         firstTime = false;
                     }
-                    else if (ReservedColumnNames.Contains($";{Settings.ToString(column["Name"])};"))
+                    else if (ReservedColumnNames.Contains($"{Settings.ToString(column["Name"])}"))
                         throw new Exception($"Nome de coluna {column["Name"]} é reservado.");
                     else
                     {
