@@ -114,10 +114,11 @@ CREATE TABLE [dbo].[Categories]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Categories] ADD CONSTRAINT PK_Categories PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Categories_Name] ON [dbo].[Categories]([Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Categories_UniqueIdentifier] ON [dbo].[Categories]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -143,10 +144,11 @@ CREATE TABLE [dbo].[Types]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tiny
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Types] ADD CONSTRAINT PK_Types PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Types_Name] ON [dbo].[Types]([Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Types_UniqueIdentifier] ON [dbo].[Types]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -160,10 +162,11 @@ CREATE TABLE [dbo].[Masks]([Id] bigint NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Masks] ADD CONSTRAINT PK_Masks PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Masks_Name] ON [dbo].[Masks]([Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Masks_UniqueIdentifier] ON [dbo].[Masks]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -185,10 +188,11 @@ CREATE TABLE [dbo].[Domains]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Domains] ADD CONSTRAINT PK_Domains PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Domains_Name] ON [dbo].[Domains]([Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Domains_UniqueIdentifier] ON [dbo].[Domains]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -205,10 +209,11 @@ CREATE TABLE [dbo].[Systems]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Systems] ADD CONSTRAINT PK_Systems PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Systems_Name] ON [dbo].[Systems]([Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Systems_UniqueIdentifier] ON [dbo].[Systems]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -226,11 +231,12 @@ CREATE TABLE [dbo].[Menus]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigin
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Menus] ADD CONSTRAINT PK_Menus PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Sequence] ON [dbo].[Menus]([SystemId] ASC, [Sequence] ASC)
 CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Caption] ON [dbo].[Menus]([SystemId] ASC, [Caption] ASC)
+CREATE UNIQUE INDEX [UNQ_Menus_UniqueIdentifier] ON [dbo].[Menus]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -247,10 +253,11 @@ CREATE TABLE [dbo].[Users]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigin
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Users] ADD CONSTRAINT PK_Users PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Users_Name] ON [dbo].[Users]([Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Users_UniqueIdentifier] ON [dbo].[Users]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -265,11 +272,12 @@ CREATE TABLE [dbo].[SystemsUsers]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' A
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[SystemsUsers] ADD CONSTRAINT PK_SystemsUsers PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_SystemsUsers_SystemId_UserId] ON [dbo].[SystemsUsers]([SystemId] ASC, [UserId] ASC)
 CREATE UNIQUE INDEX [UNQ_SystemsUsers_Name] ON [dbo].[SystemsUsers]([Name] ASC)
+CREATE UNIQUE INDEX [UNQ_SystemsUsers_UniqueIdentifier] ON [dbo].[SystemsUsers]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -283,8 +291,8 @@ CREATE TABLE [dbo].[Connections]([Id] bigint NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Connections] ADD CONSTRAINT PK_Connections PRIMARY KEY CLUSTERED ([Id])
 
 /**********************************************************************************
@@ -303,11 +311,12 @@ CREATE TABLE [dbo].[Databases]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS b
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Databases] ADD CONSTRAINT PK_Databases PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Databases_Name] ON [dbo].[Databases]([Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Databases_Alias] ON [dbo].[Databases]([Alias] ASC)
+CREATE UNIQUE INDEX [UNQ_Databases_UniqueIdentifier] ON [dbo].[Databases]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -322,11 +331,12 @@ CREATE TABLE [dbo].[SystemsDatabases]([Id] bigint NOT NULL CHECK ([Id] >= CAST('
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[SystemsDatabases] ADD CONSTRAINT PK_SystemsDatabases PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_SystemsDatabases_SystemId_DatabaseId] ON [dbo].[SystemsDatabases]([SystemId] ASC, [DatabaseId] ASC)
 CREATE UNIQUE INDEX [UNQ_SystemsDatabases_Name] ON [dbo].[SystemsDatabases]([Name] ASC)
+CREATE UNIQUE INDEX [UNQ_SystemsDatabases_UniqueIdentifier] ON [dbo].[SystemsDatabases]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -344,11 +354,12 @@ CREATE TABLE [dbo].[Tables]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigi
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Tables] ADD CONSTRAINT PK_Tables PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Tables_Name] ON [dbo].[Tables]([Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Tables_Alias] ON [dbo].[Tables]([Alias] ASC)
+CREATE UNIQUE INDEX [UNQ_Tables_UniqueIdentifier] ON [dbo].[Tables]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -363,11 +374,12 @@ CREATE TABLE [dbo].[DatabasesTables]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[DatabasesTables] ADD CONSTRAINT PK_DatabasesTables PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_DatabasesTables_DatabaseId_TableId] ON [dbo].[DatabasesTables]([DatabaseId] ASC, [TableId] ASC)
 CREATE UNIQUE INDEX [UNQ_DatabasesTables_Name] ON [dbo].[DatabasesTables]([Name] ASC)
+CREATE UNIQUE INDEX [UNQ_DatabasesTables_UniqueIdentifier] ON [dbo].[DatabasesTables]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -400,11 +412,12 @@ CREATE TABLE [dbo].[Columns]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Columns] ADD CONSTRAINT PK_Columns PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Columns_TableId_Name] ON [dbo].[Columns]([TableId] ASC, [Name] ASC)
 CREATE UNIQUE INDEX [UNQ_Columns_TableId_Sequence] ON [dbo].[Columns]([TableId] ASC, [Sequence] ASC)
+CREATE UNIQUE INDEX [UNQ_Columns_UniqueIdentifier] ON [dbo].[Columns]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -419,10 +432,11 @@ CREATE TABLE [dbo].[Indexes]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Indexes] ADD CONSTRAINT PK_Indexes PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Indexes_Name] ON [dbo].[Indexes]([Name] ASC)
+CREATE UNIQUE INDEX [UNQ_Indexes_UniqueIdentifier] ON [dbo].[Indexes]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -438,11 +452,12 @@ CREATE TABLE [dbo].[Indexkeys]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS b
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Indexkeys] ADD CONSTRAINT PK_Indexkeys PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_Sequence] ON [dbo].[Indexkeys]([IndexId] ASC, [Sequence] ASC)
 CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_ColumnId] ON [dbo].[Indexkeys]([IndexId] ASC, [ColumnId] ASC)
+CREATE UNIQUE INDEX [UNQ_Indexkeys_UniqueIdentifier] ON [dbo].[Indexkeys]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -458,10 +473,11 @@ CREATE TABLE [dbo].[Sessions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bi
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Sessions] ADD CONSTRAINT PK_Sessions PRIMARY KEY CLUSTERED ([Id])
 CREATE  INDEX [IDX_Sessions_SystemId_UserId_IsLogged] ON [dbo].[Sessions]([SystemId] ASC, [UserId] ASC, [IsLogged] ASC)
+CREATE UNIQUE INDEX [UNQ_Sessions_UniqueIdentifier] ON [dbo].[Sessions]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -475,10 +491,11 @@ CREATE TABLE [dbo].[Transactions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' A
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED ([Id])
 CREATE  INDEX [IDX_Transactions_SessionId_IsConfirmed] ON [dbo].[Transactions]([SessionId] ASC, [IsConfirmed] ASC)
+CREATE UNIQUE INDEX [UNQ_Transactions_UniqueIdentifier] ON [dbo].[Transactions]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -496,10 +513,11 @@ CREATE TABLE [dbo].[Operations]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS 
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED ([Id])
 CREATE  INDEX [IDX_Operations_TransactionId_TableName_IsConfirmed] ON [dbo].[Operations]([TransactionId] ASC, [TableName] ASC, [IsConfirmed] ASC)
+CREATE UNIQUE INDEX [UNQ_Operations_UniqueIdentifier] ON [dbo].[Operations]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************
@@ -514,11 +532,12 @@ CREATE TABLE [dbo].[Unicities]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS b
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL)
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Unicities] ADD CONSTRAINT PK_Unicities PRIMARY KEY CLUSTERED ([Id])
 CREATE UNIQUE INDEX [UNQ_Unicities_ColumnId1_ColumnId2] ON [dbo].[Unicities]([ColumnId1] ASC, [ColumnId2] ASC)
 CREATE UNIQUE INDEX [UNQ_Unicities_ColumnId2_ColumnId1] ON [dbo].[Unicities]([ColumnId2] ASC, [ColumnId1] ASC)
+CREATE UNIQUE INDEX [UNQ_Unicities_UniqueIdentifier] ON [dbo].[Unicities]([UniqueIdentifier] ASC)
 GO
 
 /**********************************************************************************

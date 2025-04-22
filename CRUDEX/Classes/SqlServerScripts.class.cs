@@ -409,8 +409,8 @@ namespace crudex.Classes
                 result.Append($"                                    ,[CreatedAt] datetime NOT NULL\r\n");
                 result.Append($"                                    ,[CreatedBy] nvarchar(25) NOT NULL\r\n");
                 result.Append($"                                    ,[UpdatedAt] datetime NULL\r\n");
-                result.Append($"                                    ,[UpdatedBy] nvarchar(25) NULL)\r\n");
-                result.Append($"                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT (NEWID())\r\n");
+                result.Append($"                                    ,[UpdatedBy] nvarchar(25) NULL\r\n");
+                result.Append($"                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())\r\n");
                 result.Append($"ALTER TABLE [dbo].[{table["Name"]}] ADD CONSTRAINT PK_{table["Name"]} PRIMARY KEY CLUSTERED ([Id])\r\n");
 
                 var indexRows = indexes.FindAll(index => Settings.ToLong(index["TableId"]) == Settings.ToLong(table["Id"]));
@@ -439,6 +439,7 @@ namespace crudex.Classes
                             result.Append($")\r\n");
                         }
                     }
+                    result.Append($"CREATE UNIQUE INDEX [UNQ_{table["Name"]}_UniqueIdentifier] ON [dbo].[{table["Name"]}]([UniqueIdentifier] ASC)\r\n");
                     result.Append($"GO\r\n");
                 }
             }
