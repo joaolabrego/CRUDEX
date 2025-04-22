@@ -543,6 +543,7 @@ export default class TGrid {
                 if (this.#HTML.SelectedRow)
                     this.#HTML.SelectedRow.removeAttribute("style");
                 this.#HTML.SelectedRow = event.currentTarget;
+                this.#HTML.SelectedRow.scrollIntoView({ behavior: 'auto', block: 'nearest' });
                 this.#HTML.SelectedRow.style =
                     "background-color: var(--background-color-control);";
             };
@@ -724,6 +725,7 @@ export default class TGrid {
         tr.appendChild(th);
 
         this.#HTML.Foot.innerHTML = null;
+        tr.setAttribute("hidden", "hidden");
         this.#HTML.Foot.appendChild(tr);
     }
     get Table() {
