@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using System.Data;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
-namespace CRUDA_LIB
+namespace CRUDEX.Classes
 {
     public class Config
     {

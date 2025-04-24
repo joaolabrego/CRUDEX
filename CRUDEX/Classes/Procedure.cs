@@ -3,7 +3,7 @@ using System.Data.OleDb;
 using crudex.Classes.Models;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
-namespace CRUDA_LIB
+namespace CRUDEX.Classes
 {
     public static class Procedure
     {

@@ -1,4 +1,4 @@
-﻿namespace CRUDA_LIB
+﻿namespace CRUDEX.Classes
 {
     public class Styles
     {

@@ -1,0 +1,26 @@
+{
+  "CustomerName": "ACME Corp",
+  "InvoiceDate": "2025-04-23",
+  "Items": [
+    {
+      "Description": "Widget",
+      "Quantity": 5,
+      "Price": 9.99
+    },
+    {
+      "Description": "Gadget",
+      "Quantity": 3,
+      "Price": 19.99
+    }
+  ],
+  "Summary": [
+    {
+      "Label": "Subtotal",
+      "Value": 109.92
+    },
+    {
+      "Label": "Tax",
+      "Value": 10.99
+    }
+  ]
+}

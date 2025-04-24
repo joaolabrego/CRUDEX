@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using System;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
-namespace CRUDA_LIB
+namespace CRUDEX.Classes
 {
     public static class Login
     {

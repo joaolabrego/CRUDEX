@@ -3,7 +3,7 @@ using crudex.Classes;
 using crudex.Classes.Models;
 using Newtonsoft.Json;
 
-namespace CRUDA_LIB
+namespace CRUDEX.Classes
 {
     public class Program
     {
@@ -40,6 +40,7 @@ namespace CRUDA_LIB
                     case null:
                         context.Response.Headers.ContentType = "text/html;";
                         await SqlServerScripts.Generate();
+                        new Report().Teste();
                         await context.Response.WriteAsync(Config.GetHTML("crudex", "Nome do sistema é requerido na URL."), Encoding.UTF8);
                         break;
                     case Actions.CHECK:

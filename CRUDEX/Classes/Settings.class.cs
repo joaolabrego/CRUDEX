@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Text;
 using Windows.System;
 
-namespace CRUDA_LIB
+namespace CRUDEX.Classes
 {
     public static class Settings
     {
@@ -61,6 +61,15 @@ namespace CRUDA_LIB
         public static string ConnectionString(DataRow connection)
         {
             return new OleDbConnectionStringBuilder(connection["ConnectionString"].ToString()).ToString();
+        }
+        public static string GetEnvironment()
+        {
+            var environment = Environment.GetEnvironmentVariable("CRUDEX_ENVIRONMENT")?.Trim().ToLowerInvariant();
+
+            if (environment != null && (environment == "hml" || environment == "prd"))
+                return environment;
+
+            return "dev";
         }
         public static string Get(string key)
         {
