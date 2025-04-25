@@ -725,7 +725,6 @@ export default class TGrid {
         tr.appendChild(th);
 
         this.#HTML.Foot.innerHTML = null;
-        tr.setAttribute("hidden", "hidden");
         this.#HTML.Foot.appendChild(tr);
     }
     get Table() {
