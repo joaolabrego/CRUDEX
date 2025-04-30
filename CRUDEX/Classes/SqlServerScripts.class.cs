@@ -410,6 +410,7 @@ namespace crudex.Classes
                 result.Append($"                                    ,[CreatedBy] nvarchar(25) NOT NULL\r\n");
                 result.Append($"                                    ,[UpdatedAt] datetime NULL\r\n");
                 result.Append($"                                    ,[UpdatedBy] nvarchar(25) NULL\r\n");
+                result.Append($"                                    ,[ClientId] bigint NOT NULL DEFAULT 1\r\n");
                 result.Append($"                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())\r\n");
                 result.Append($"ALTER TABLE [dbo].[{table["Name"]}] ADD CONSTRAINT PK_{table["Name"]} PRIMARY KEY CLUSTERED ([Id])\r\n");
 
@@ -430,7 +431,9 @@ namespace crudex.Classes
 
                                 if (firstTime)
                                 {
-                                    result.Append($"CREATE {(Settings.ToBoolean(index["IsUnique"]) ? "UNIQUE" : "")} INDEX [{index["Name"]}] ON [dbo].[{table["Name"]}]({definition}");
+                                    var isUnique = Settings.ToBoolean(index["IsUnique"]);
+
+                                    result.Append($"CREATE {(isUnique ? "UNIQUE" : "")} INDEX [{index["Name"]}] ON [dbo].[{table["Name"]}]([ClientId] ASC, {definition}");
                                     firstTime = false;
                                 }
                                 else
