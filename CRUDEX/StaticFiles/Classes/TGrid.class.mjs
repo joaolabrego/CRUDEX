@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 import TActions from "./TActions.class.mjs";
 import TForm from "./TForm.class.mjs";
@@ -26,6 +26,7 @@ export default class TGrid {
 
     #HTML = {
         Container: null,
+        Range: null,
         Table: null,
         Head: null,
         Body: null,
@@ -40,11 +41,6 @@ export default class TGrid {
         UnfilterButton: null,
         ExitButton: null,
         SelectedRow: null,
-        Scroll: {
-            Container: null,
-            Track: null,
-            Thumb: null,
-        },
     };
 
     static #Style = "";
@@ -70,9 +66,10 @@ export default class TGrid {
         this.#HTML.GridWrapper = document.createElement("div");
         this.#HTML.GridWrapper.className = "grid-wrapper";
         this.#CreateGrid();
-        this.#CreateScrollBar();
+        this.#CreateRange();
         this.#HTML.Container.appendChild(this.#HTML.GridWrapper);
-        this.#HTML.Container.appendChild(this.#HTML.Scroll.Container);
+        this.#HTML.Container.appendChild(this.#HTML.Range);
+        //this.#HTML.Container.appendChild(this.#HTML.Scroll.Container);
         this.#Table.Columns.filter((column) => column.IsFilterable).forEach(
             (column) => (this.#FilterValues[column.Name] = null)
         );
@@ -91,42 +88,6 @@ export default class TGrid {
         this.#Images.Unfilter = images.Unfilter;
         this.#Images.Unorder = images.Unorder;
         this.#Images.Insert = images.Insert;
-    }
-    #CalculatePage(relativeY) {
-        let trackHeight = this.#HTML.Scroll.Track.clientHeight,
-            thumbHeight = this.#HTML.Scroll.Thumb.clientHeight,
-            maxTop = trackHeight - thumbHeight;
-
-        relativeY = Math.max(0, Math.min(relativeY, maxTop));
-
-        if (this.#PageCount <= 1) return 1;
-
-        let pageSize = maxTop / (this.#PageCount - 1);
-
-        return Math.trunc(relativeY / pageSize + 1);
-    }
-    #UpdateScrollThumbFromInputs() {
-        let trackHeight = this.#HTML.Scroll.Track.clientHeight,
-            maxTop = trackHeight - this.#HTML.Scroll.Thumb.clientHeight,
-            scrollPosition = Math.trunc(((this.#PageNumber - 1) / (this.#PageCount - 1)) * maxTop);
-
-        this.#HTML.Scroll.Thumb.style.top = `${scrollPosition}px`;
-    }
-    #UpdateScrollbarPosition(newTop) {
-        let trackHeight = this.#HTML.Scroll.Track.clientHeight,
-            thumbHeight = this.#HTML.Scroll.Thumb.clientHeight,
-            maxTop = trackHeight - thumbHeight;
-
-        newTop = Math.max(0, Math.min(newTop, maxTop));
-        this.#HTML.Scroll.Thumb.style.top = `${newTop}px`;
-
-        let pageSize = maxTop / (this.#PageCount - 1);
-
-        this.#IsNavigateByScroll = true;
-        this.#LastPageNumber = this.#PageNumber;
-        this.#PageNumber = newTop / pageSize + 1;
-        this.#HTML.NumberInput.value = Math.trunc(this.#PageNumber);
-        this.#HTML.NumberInput.dispatchEvent(new Event("change"));
     }
     #CreateGrid() {
         let arrowUp = (event) => {
@@ -267,62 +228,20 @@ export default class TGrid {
 
         this.#HTML.GridWrapper.appendChild(this.#HTML.Table);
     };
-    #CreateScrollBar() {
-        this.#HTML.Scroll.Container = document.createElement("div");
-        this.#HTML.Scroll.Container.className = "scroll-container";
 
-        this.#HTML.Scroll.Track = document.createElement("div");
-        this.#HTML.Scroll.Track.className = "scroll-track";
-        this.#HTML.Scroll.Container.appendChild(this.#HTML.Scroll.Track);
-
-        this.#HTML.Scroll.Thumb = document.createElement("div");
-        this.#HTML.Scroll.Thumb.className = "scroll-thumb";
-        this.#HTML.Scroll.Track.appendChild(this.#HTML.Scroll.Thumb);
-        this.#HTML.Scroll.Track.onmousemove = (event) => {
-            if (event.buttons === 1) {
-                let trackRect = this.#HTML.Scroll.Track.getBoundingClientRect(),
-                    newTop = event.clientY - trackRect.top;
-
-                this.#UpdateScrollbarPosition(newTop);
-            } else {
-                let trackRect = this.#HTML.Scroll.Track.getBoundingClientRect(),
-                    relativeY = event.clientY - trackRect.top;
-
-                relativeY = Math.max(
-                    0,
-                    Math.min(
-                        relativeY,
-                        this.#HTML.Scroll.Track.clientHeight -
-                        this.#HTML.Scroll.Thumb.clientHeight
-                    )
-                );
-
-                let pageNumber = this.#CalculatePage(relativeY);
-
-                this.#HTML.Scroll.Track.title = `Página ${pageNumber}${pageNumber === this.#PageCount ? " (última)" : ""
-                    }`;
+    #CreateRange() {
+        this.#HTML.Range = document.createElement("input");
+        this.#HTML.Range.type = "range";
+        this.#HTML.Range.className = "vertical-range";
+        this.#HTML.Range.min = 1;
+        this.#HTML.Range.max = 100;
+        this.#HTML.Range.value = 90;
+        this.#HTML.Range.oninput = () => {
+            if (this.#HTML.Range.value != this.#PageNumber) {
+                //debugger
+                this.Renderize(Math.trunc(this.#HTML.Range.value));
             }
-        };
-        this.#HTML.Scroll.Track.addEventListener("wheel", (event) => {
-            event.preventDefault();
-
-            let delta = event.deltaY,
-                currentTop = parseFloat(this.#HTML.Scroll.Thumb.style.top) || 0,
-                trackHeight = this.#HTML.Scroll.Track.clientHeight,
-                thumbHeight = this.#HTML.Scroll.Thumb.clientHeight,
-                maxTop = trackHeight - thumbHeight,
-                scrollStep = maxTop / (this.#PageCount - 1),
-                newTop = currentTop + (delta > 0 ? scrollStep : -scrollStep);
-
-            this.#UpdateScrollbarPosition(newTop);
-        });
-        this.#HTML.Scroll.Track.onclick = (event) => {
-            const trackRect = this.#HTML.Scroll.Track.getBoundingClientRect();
-            const clickPosition = event.clientY - trackRect.top;
-            this.#UpdateScrollbarPosition(
-                clickPosition - this.#HTML.Scroll.Thumb.offsetHeight / 2
-            );
-        };
+        }
     }
     SaveFilters(record) {
         for (let key in this.#FilterValues)
@@ -363,8 +282,9 @@ export default class TGrid {
         let result = await TConfig.GetAPI(TActions.EXECUTE, parameters);
 
         this.#RowCount = result.Parameters.ReturnValue;
-        this.#PageNumber = result.Parameters.PageNumber;
-        this.#PageCount = result.Parameters.MaxPage;
+        this.#HTML.Range.min = 1;
+        this.#HTML.Range.value = this.#PageNumber = result.Parameters.PageNumber;
+        this.#HTML.Range.max = this.#PageCount = result.Parameters.MaxPage;
         if (
             result.Parameters.ReturnValue &&
             this.#RowNumber >= result.Parameters.ReturnValue
@@ -394,8 +314,6 @@ export default class TGrid {
         try {
             this.#Data = await this.#ReadDataPage(pageNumber);
             this.#PageNumber = pageNumber;
-            this.#HTML.Scroll.Thumb.title = `Página ${Math.floor(pageNumber)}${pageNumber === this.#PageCount ? " (última)" : ""
-                }`;
             if (this.#RowCount > 1)
                 TScreen.LastMessage = TScreen.Message =
                     "Clique na linha que deseja selecionar.";
@@ -407,10 +325,9 @@ export default class TGrid {
             TScreen.WithBackgroundImage = true;
             TScreen.Main = this.#HTML.Container;
             this.#HTML.Table.focus();
-            this.#UpdateScrollThumbFromInputs();
             if (this.#RowCount <= TSystem.RowsPerPage)
-                this.#HTML.Scroll.Container.classList.add("invisible");
-            else this.#HTML.Scroll.Container.classList.remove("invisible");
+                this.#HTML.Range.classList.add("invisible");
+            else this.#HTML.Range.classList.remove("invisible");
         } catch (error) {
             TScreen.ShowError(
                 error.message || error.Message,

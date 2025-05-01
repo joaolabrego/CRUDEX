@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Checkbox Ternário com ?</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background-color: #f2f2f2;
+        padding: 20px;
+      }
+
+      .checkbox-custom {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        user-select: none;
+        margin: 10px 0;
+      }
+
+      .checkbox-custom input[type="checkbox"] {
+        display: none;
+      }
+
+      .fakebox {
+        width: 20px;
+        height: 20px;
+        border: 1px solid #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-family: monospace;
+        background-color: white;
+      }
+
+      .fakebox:hover {
+        background-color: #ddd;
+      }
+    </style>
+  </head>
+  <body>
+    <label class="checkbox-custom">
+      <input type="checkbox" id="myBox" />
+      <span class="fakebox" id="fakeBox">☐</span>
+      Valor por extenso?
+    </label>
+
+    <script>
+      const fake = document.getElementById("fakeBox");
+
+      // Estados:
+      // 0 = false (☐), 1 = true (✔), 2 = null (–), 3 = null como valor (?)
+      let state = 0;
+
+      function updateFakebox() {
+        const symbols = [" ", "✔", "–", "?"];
+        fake.textContent = symbols[state];
+      }
+
+      fake.addEventListener("click", () => {
+        state = (state + 1) % 4;
+        updateFakebox();
+        console.log("Estado atual:", state);
+      });
+
+      updateFakebox();
+    </script>
+  </body>
+</html>

@@ -120,46 +120,45 @@
     overflow: hidden;
 }
 
-.grid-wrapper {
-    overflow-y: auto;
-    display: block;
-}
-
-.scroll-container {
-    width: 3dvmin;
-    background-color: #eee;
-    display: flex;
-    align-items: center;
-    position: relative;
-    pointer-events: auto;
-}
-
-.scroll-track {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background-color: var(--background-color-control);
-    border-radius: 0 var(--border-radius) var(--border-radius) 0;
-}
-
-.scroll-thumb {
-    position: absolute;
-    width: 100%;
-    background-color: darkblue;
-    cursor: grab;
-    border-radius: var(--border-radius);
-    min-height: 10dvmin;
-    max-height: 10dvmin;
-    top: 0;
-}
-
-.grid-container {
-    flex: 1;
-    overflow-y: auto;
-    /* Permite que o grid role verticalmente */
-    position: relative;
-}
-
 .invisible {
     display: none;
+}
+
+.vertical-range {
+    transform: rotate(180deg);
+    appearance: none;
+    writing-mode: vertical-lr; /* vertical de baixo pra cima */
+    direction: rtl; /* alinha do lado certo */
+    width: 2dvmin; /* engrossa a barra geral */
+    height: calc(100dvmin - 13dvmin);
+}
+
+/* Chrome, Edge, Safari */
+.vertical-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.5dvmin;           /* bolinha gorda */
+    height: 1.5dvmin;
+    background: blue;
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.vertical-range::-webkit-slider-runnable-track {
+    width: 2dvmin;             /* faixa grossa */
+    background: var(--background-color);
+}
+
+/* Firefox */
+.vertical-range::-moz-range-thumb {
+    width: 1.5dvmin;
+    height: 1.5dvmin;
+    background: blue;
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.vertical-range::-moz-range-track {
+    width: 2dvmin;
+    background: var(--background-color);
 }
