@@ -13,6 +13,7 @@ export default class TLogin {
         UserName: null,
         Password: null,
         ChangePassword: null,
+        Label: null,
         NewPassword: null,
         RetypedPassword: null,
         Confirm: null,
@@ -56,7 +57,38 @@ export default class TLogin {
                         focusableElements[nextIndex].focus();
                     }
                 }
-            };
+            },
+            oninput = () => {
+                if (this.#HTML.UserName.value === "" || this.#HTML.Password.value === "") {
+                    this.#HTML.ChangePassword.setAttribute("hidden", "hidden");
+                    this.#HTML.Label.setAttribute("hidden", "hidden")
+                    this.#HTML.ChangePassword.checked = false;
+                    this.#HTML.ChangePassword.dispatchEvent(new Event("change"));
+                }
+                else {
+                    this.#HTML.ChangePassword.removeAttribute("hidden");
+                    this.#HTML.Label.removeAttribute("hidden")
+                }
+            },
+            onchange = (event) => {
+                TScreen.ErrorMessage = "";
+                if (event.target.checked) {
+                    this.#HTML.NewPassword.removeAttribute("hidden");
+                    this.#HTML.RetypedPassword.removeAttribute("hidden");
+                    this.#HTML.NewPassword.focus();
+                }
+                else {
+                    this.#HTML.NewPassword.setAttribute("hidden", "hidden");
+                    this.#HTML.RetypedPassword.setAttribute("hidden", "hidden");
+                    this.#HTML.NewPassword.value = this.#HTML.RetypedPassword.value = ""
+                    if (this.#HTML.UserName.value === "")
+                        this.#HTML.UserName.focus();
+                    else if (this.#HTML.Password.value === "")
+                        this.#HTML.Password.focus();
+                    else
+                        this.#HTML.UserName.focus();
+                }
+            }
 
         this.#HTML.UserName = document.createElement("input");
         this.#HTML.UserName.setAttribute("id", "textUserName");
@@ -68,7 +100,10 @@ export default class TLogin {
         this.#HTML.UserName.setAttribute("value", "labrego");
         this.#HTML.UserName.onfocus = onfocus;
         this.#HTML.UserName.onkeydown = onkeydown;
-        this.#HTML.UserName.oninput = () => TScreen.UserName = this.#HTML.UserName.value;
+        this.#HTML.UserName.oninput = () => {
+            oninput();
+            TScreen.UserName = this.#HTML.UserName.value;
+        }
 
         this.#HTML.Container.appendChild(this.#HTML.UserName);
 
@@ -82,6 +117,7 @@ export default class TLogin {
         this.#HTML.Password.setAttribute("value", "diva");
         this.#HTML.Password.onfocus = onfocus;
         this.#HTML.Password.onkeydown = onkeydown;
+        this.#HTML.Password.oninput = oninput;
 
         this.#HTML.Container.appendChild(this.#HTML.Password);
 
@@ -90,28 +126,15 @@ export default class TLogin {
         this.#HTML.ChangePassword.setAttribute("type", "checkbox");
         this.#HTML.ChangePassword.setAttribute("tabindex", "-1");
         this.#HTML.ChangePassword.setAttribute("title", "Marque para trocar senha");
-        this.#HTML.ChangePassword.onchange = (event) => {
-            TScreen.ErrorMessage = "";
-            if (event.target.checked) {
-                this.#HTML.NewPassword.removeAttribute("hidden");
-                this.#HTML.RetypedPassword.removeAttribute("hidden");
-            }
-            else {
-                this.#HTML.NewPassword.setAttribute("hidden", "hidden");
-                this.#HTML.RetypedPassword.setAttribute("hidden", "hidden");
-                this.#HTML.NewPassword.value = this.#HTML.RetypedPassword.value = ""
-            }
-            this.#HTML.UserName.focus();
-        }
+        this.#HTML.ChangePassword.onchange = onchange;
 
         this.#HTML.Container.appendChild(this.#HTML.ChangePassword);
 
-        let label = document.createElement("label");
+        this.#HTML.Label = document.createElement("label");
+        this.#HTML.Label.htmlFor = "checkboxChangePassword";
+        this.#HTML.Label.innerHTML = "&nbsp;&nbsp;&nbsp;Trocar senha";
 
-        label.htmlFor = "checkboxChangePassword";
-        label.innerHTML = "&nbsp;&nbsp;&nbsp;Trocar senha";
-
-        this.#HTML.Container.appendChild(label);
+        this.#HTML.Container.appendChild(this.#HTML.Label);
 
         this.#HTML.NewPassword = document.createElement("input");
         this.#HTML.NewPassword.setAttribute("type", "password");
