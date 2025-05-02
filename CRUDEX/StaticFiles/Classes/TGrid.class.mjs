@@ -63,13 +63,9 @@ export default class TGrid {
             throw new Error("Tabela de banco-de-dados não encontrada.");
         this.#HTML.Container = document.createElement("div");
         this.#HTML.Container.className = "container";
-        this.#HTML.GridWrapper = document.createElement("div");
-        this.#HTML.GridWrapper.className = "grid-wrapper";
         this.#CreateGrid();
         this.#CreateRange();
-        this.#HTML.Container.appendChild(this.#HTML.GridWrapper);
         this.#HTML.Container.appendChild(this.#HTML.Range);
-        //this.#HTML.Container.appendChild(this.#HTML.Scroll.Container);
         this.#Table.Columns.filter((column) => column.IsFilterable).forEach(
             (column) => (this.#FilterValues[column.Name] = null)
         );
@@ -226,7 +222,7 @@ export default class TGrid {
         this.#HTML.Foot = document.createElement("tfoot");
         this.#HTML.Table.appendChild(this.#HTML.Foot);
 
-        this.#HTML.GridWrapper.appendChild(this.#HTML.Table);
+        this.#HTML.Container.appendChild(this.#HTML.Table);
     };
 
     #CreateRange() {
@@ -235,12 +231,9 @@ export default class TGrid {
         this.#HTML.Range.className = "vertical-range";
         this.#HTML.Range.min = 1;
         this.#HTML.Range.max = 100;
-        this.#HTML.Range.value = 90;
         this.#HTML.Range.oninput = () => {
-            if (this.#HTML.Range.value != this.#PageNumber) {
-                //debugger
+            if (this.#HTML.Range.value != this.#PageNumber)
                 this.Renderize(Math.trunc(this.#HTML.Range.value));
-            }
         }
     }
     SaveFilters(record) {
@@ -317,7 +310,8 @@ export default class TGrid {
             if (this.#RowCount > 1)
                 TScreen.LastMessage = TScreen.Message =
                     "Clique na linha que deseja selecionar.";
-            else TScreen.LastMessage = TScreen.Message = "Clique em um dos botões.";
+            else
+                TScreen.LastMessage = TScreen.Message = "Clique em um dos botões.";
             TScreen.Title = `Manutenção de ${this.#Table.Description}`;
             this.#BuildHtmlHead();
             this.#BuildHtmlBody(this.#Data);
@@ -327,7 +321,9 @@ export default class TGrid {
             this.#HTML.Table.focus();
             if (this.#RowCount <= TSystem.RowsPerPage)
                 this.#HTML.Range.classList.add("invisible");
-            else this.#HTML.Range.classList.remove("invisible");
+            else
+                this.#HTML.Range.classList.remove("invisible");
+            this.#HTML.Range.title = `Página atual: ${pageNumber}`;
         } catch (error) {
             TScreen.ShowError(
                 error.message || error.Message,

@@ -129,7 +129,7 @@
     appearance: none;
     writing-mode: vertical-lr; /* vertical de baixo pra cima */
     direction: rtl; /* alinha do lado certo */
-    width: 2dvmin; /* engrossa a barra geral */
+    width: 3dvmin; /* engrossa a barra geral */
     height: calc(100dvmin - 13dvmin);
 }
 
@@ -137,28 +137,29 @@
 .vertical-range::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 1.5dvmin;           /* bolinha gorda */
-    height: 1.5dvmin;
-    background: blue;
+    width: 3dvmin;           /* bolinha gorda */
+    height: 3dvmin;
+    background: var(--background-color-extra);
     cursor: pointer;
-    border-radius: 50%;
+    border-radius: var(--border-radius);
+    box-shadow: 0 0 1dvmin 0 rgba(0, 0, 0, 0.2), 0 1dvmin 1dvmin 0 rgba(0, 0, 0, 0.24);
 }
 
 .vertical-range::-webkit-slider-runnable-track {
-    width: 2dvmin;             /* faixa grossa */
+    width: 3dvmin;             /* faixa grossa */
     background: var(--background-color);
 }
 
 /* Firefox */
 .vertical-range::-moz-range-thumb {
-    width: 1.5dvmin;
-    height: 1.5dvmin;
+    width: 3dvmin;
+    height: 3dvmin;
     background: blue;
     cursor: pointer;
     border-radius: 50%;
 }
 
 .vertical-range::-moz-range-track {
-    width: 2dvmin;
+    width: 3dvmin;
     background: var(--background-color);
 }

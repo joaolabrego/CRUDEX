@@ -16,7 +16,7 @@ export default class TRecordSet {
     #Data = [];
     #References = {};
     constructor(table) {
-        if (table.ClassName !== "TTable")
+        if (!table instanceof TTable)
             throw new Error("Argumento table não é do tipo TTable.");
         this.#Table = table;
         this.#Table.Columns.filter(column => column.IsFilterable)

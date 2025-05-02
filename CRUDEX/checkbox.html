@@ -2,70 +2,98 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <title>Checkbox Ternário com ?</title>
+    <title>Checkbox Quaternário (Sem Shadow)</title>
     <style>
-      body {
-        font-family: sans-serif;
-        background-color: #f2f2f2;
-        padding: 20px;
-      }
-
-      .checkbox-custom {
-        display: flex;
+      tri-checkbox {
+        display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 1dvmin;
         cursor: pointer;
+        vertical-align: middle;
         user-select: none;
-        margin: 10px 0;
+        font-family: sans-serif;
       }
 
-      .checkbox-custom input[type="checkbox"] {
-        display: none;
-      }
-
-      .fakebox {
-        width: 20px;
-        height: 20px;
-        border: 1px solid #333;
-        display: flex;
+      tri-checkbox .fakebox {
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-weight: bold;
+        width: 1.5dvmin;
+        height: 1.5dvmin;
+        border: 1px solid #333;
         font-family: monospace;
+        font-size: 1.5dvmin;
+        line-height: 1;
         background-color: white;
+        vertical-align: middle;
+        user-select: none;
       }
 
-      .fakebox:hover {
+      tri-checkbox .fakebox[data-state="1"],
+      tri-checkbox .fakebox[data-state="2"],
+      tri-checkbox .fakebox[data-state="3"] {
         background-color: #ddd;
+      }
+
+      tri-checkbox .fakebox:hover,
+      tri-checkbox .fakebox:focus {
+        background-color: #ccc;
+        outline: none;
       }
     </style>
   </head>
   <body>
-    <label class="checkbox-custom">
-      <input type="checkbox" id="myBox" />
-      <span class="fakebox" id="fakeBox">☐</span>
-      Valor por extenso?
-    </label>
+    <tri-checkbox>Valor por extenso?</tri-checkbox>
+    <tri-checkbox>Requerida?</tri-checkbox>
 
     <script>
-      const fake = document.getElementById("fakeBox");
+      class TriCheckbox extends HTMLElement {
+        constructor() {
+          super();
+          this.state = 0;
+          this.symbols = ["", "✔", "–", "?"];
+          this.ariaStates = ["false", "true", "mixed", "undefined"];
+          this.tooltips = ["Desmarcado", "Marcado", "Nulo", "Null (ativo)"];
+        }
 
-      // Estados:
-      // 0 = false (☐), 1 = true (✔), 2 = null (–), 3 = null como valor (?)
-      let state = 0;
+        connectedCallback() {
+          const labelText = this.textContent.trim();
+          this.innerHTML = `
+        <span class="fakebox" role="checkbox" aria-checked="false" tabindex="0" title="Desmarcado" data-state="0"></span>
+        <span class="label-text">${labelText}</span>
+      `;
 
-      function updateFakebox() {
-        const symbols = [" ", "✔", "–", "?"];
-        fake.textContent = symbols[state];
+          this.fakebox = this.querySelector(".fakebox");
+          this.label = this.querySelector(".label-text");
+
+          this.fakebox.addEventListener("click", () => this.advanceState());
+          this.fakebox.addEventListener("keydown", (e) => {
+            if (e.key === " " || e.key === "Enter") {
+              this.advanceState();
+              e.preventDefault();
+            }
+          });
+
+          this.update();
+        }
+
+        advanceState() {
+          this.state = (this.state + 1) % 4;
+          this.update();
+        }
+
+        update() {
+          this.fakebox.textContent = this.symbols[this.state];
+          this.fakebox.setAttribute(
+            "aria-checked",
+            this.ariaStates[this.state]
+          );
+          this.fakebox.setAttribute("title", this.tooltips[this.state]);
+          this.fakebox.dataset.state = this.state;
+        }
       }
 
-      fake.addEventListener("click", () => {
-        state = (state + 1) % 4;
-        updateFakebox();
-        console.log("Estado atual:", state);
-      });
-
-      updateFakebox();
+      customElements.define("tri-checkbox", TriCheckbox);
     </script>
   </body>
 </html>
