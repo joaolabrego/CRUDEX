@@ -4,7 +4,7 @@ import TActions from "./TActions.class.mjs";
 import TScreen from "./TScreen.class.mjs";
 import TConfig from "./TConfig.class.mjs";
 import TLogin from "./TLogin.class.mjs";
-import TSystem from "./TSystem.class.mjs";
+import TGrid from "./TGrid.class.mjs";
 export default class TForm {
     #Action = "";
     #ReturnAction = "";
@@ -26,7 +26,7 @@ export default class TForm {
     #Record = null;
 
     constructor(grid, action) {
-        if (grid.ClassName !== "TGrid")
+        if (!grid instanceof TGrid)
             throw new Error("Argumento grid não é do tipo TGrid.");
         this.#Grid = grid;
         this.#Action = action;
@@ -196,7 +196,7 @@ export default class TForm {
         if (!this.#HTML.FirstInput)
             this.#HTML.FirstInput = control;
         if (column.Domain.Type.Category.HtmlInputType === "checkbox") {
-            let span = document.createElement("span")
+            let span = document.createElement("span");
 
             span.innerHTML = "&nbsp;&nbsp;&nbsp;";
             legend.appendChild(span);
@@ -204,8 +204,6 @@ export default class TForm {
         }
         else
             fieldset.appendChild(control);
-        //if (column.IsRequired)
-        //    fieldset.appendChild(document.createTextNode(" *"))
 
         return fieldset;
     }

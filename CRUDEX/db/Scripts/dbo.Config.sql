@@ -15,7 +15,7 @@ BEGIN
 		IF @SystemName IS NULL
 			THROW 51000, 'Nome de sistema é requerido.', 1
 		-- 0 [Systems]
-		SELECT 	'System' AS [ClassName]
+		SELECT 	'System' AS [Kind]
 				,[Id]
 				,[Name]
 				,[Description]
@@ -43,7 +43,7 @@ BEGIN
 		END
 
 		-- 1 [Databases]
-		SELECT 	'Database' AS [ClassName]
+		SELECT 	'Database' AS [Kind]
 				,[D].[Id]
 				,[D].[ConnectionId]
 				,[D].[Name]
@@ -63,7 +63,7 @@ BEGIN
 		END
 
 		-- 2 [Connections]
-		SELECT 'Connection' AS [ClassName]
+		SELECT 'Connection' AS [Kind]
 			  ,[Id]
 			  ,[Environment]
 			  ,[ConnectionString]
@@ -76,7 +76,7 @@ BEGIN
 		ALTER TABLE [#Connections] ADD PRIMARY KEY CLUSTERED([Id])
 
 		-- 3 [Tables]
-		SELECT	'Table' AS [ClassName]
+		SELECT	'Table' AS [Kind]
 				,[T].[Id]
 				,[DT].[DatabaseId]
 				,[T].[Name]
@@ -95,7 +95,7 @@ BEGIN
 
 		IF @DatabaseName IS NULL BEGIN
 			-- 4 [Columns]
-			SELECT	'Column' AS [ClassName]
+			SELECT	'Column' AS [Kind]
 					,[C].[Id]
 					,[C].[TableId]
 					,[C].[Sequence]
@@ -127,7 +127,7 @@ BEGIN
 			CREATE INDEX [#ColumnsDomainId] ON [#Columns]([DomainId])
 
 			-- 5 [Domains]
-			SELECT	'Domain' AS [ClassName]
+			SELECT	'Domain' AS [Kind]
 					,[D].[Id]
 					,[D].[TypeId]
 					,[D].[MaskId]
@@ -148,7 +148,7 @@ BEGIN
 			CREATE INDEX [#DomainsTypeId] ON [#Domains]([TypeId])
 
 			-- 6 [Types]
-			SELECT 	'Type' AS [ClassName]
+			SELECT 	'Type' AS [Kind]
 					,[T].[Id]
 					,[T].[CategoryId]
 					,[T].[Name]
@@ -171,7 +171,7 @@ BEGIN
 			CREATE INDEX [#TypesCategoryId] ON [#Types]([CategoryId])
 
 			-- 7 [Categories]
-			SELECT 	'Category' AS [ClassName]
+			SELECT 	'Category' AS [Kind]
 					,[C].[Id]
 					,[C].[Name]
 					,[C].[HtmlInputType]
@@ -190,7 +190,7 @@ BEGIN
 			   THROW 51000, 'Categoria(s) de tipos não cadastrada(s).', 1
 
 			-- 8 [Menus]
-			SELECT 	'Menu' AS [ClassName]
+			SELECT 	'Menu' AS [Kind]
 					,[M].[Id]
 					,[M].[SystemId]
 					,[M].[Sequence]
@@ -205,7 +205,7 @@ BEGIN
 			   THROW 51000, 'Menu(s) de sistema não cadastrado(s).', 1
 
 			-- 9 [Indexes]
-			SELECT 	'Index' AS [ClassName]
+			SELECT 	'Index' AS [Kind]
 					,[I].[Id]
 					,[I].[TableId]
 					,[I].[Name]
@@ -216,7 +216,7 @@ BEGIN
 			ALTER TABLE [#Indexes] ADD PRIMARY KEY NONCLUSTERED([Id])
 
 			-- 10 [Indexkeys]
-			SELECT 	'Indexkey' AS [ClassName]
+			SELECT 	'Indexkey' AS [Kind]
 					,[IK].[Id]
 					,[IK].[IndexId]
 					,[IK].[Sequence]
@@ -227,7 +227,7 @@ BEGIN
 					INNER JOIN [#Indexes] [I] ON [I].[Id] = [IK].IndexId
 			
 			-- 11 [Masks]
-			SELECT 	'Mask' AS [ClassName]
+			SELECT 	'Mask' AS [Kind]
 					,[M].[Id]
 					,[M].[Name]
 					,[M].[Mask]
@@ -236,7 +236,7 @@ BEGIN
 				WHERE EXISTS(SELECT TOP 1 1 FROM [#Domains] WHERE [MaskId] = [M].[Id])
 			
 			-- 12 [Unicities]
-			SELECT 'Unicity' AS [ClassName]
+			SELECT 'Unicity' AS [Kind]
 					,[U].[Id]
 					,[U].[ColumnId1]
 					,[U].[ColumnId2]

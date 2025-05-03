@@ -59,7 +59,7 @@ export default class TMenu {
         const ul = document.createElement("ul");
         rowsMenu.filter(row => !row.ParentMenuId)
             .forEach(row => {
-                if (row.ClassName !== "Menu")
+                if (row.Kind !== "Menu")
                     throw new Error("Item de argumento rowsMenu não é do tipo Menu.");
                 ul.appendChild(GetOptions(row));
             });

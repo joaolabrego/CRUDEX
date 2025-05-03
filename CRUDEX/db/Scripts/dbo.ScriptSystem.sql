@@ -7,7 +7,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 	BEGIN TRY
 		-- 1 [Systems]
-		SELECT 	'System' AS [ClassName]
+		SELECT 	'System' AS [Kind]
 				,[Id]
 				,[Name]
 				,[Description]
@@ -20,7 +20,7 @@ BEGIN
 			THROW 51000, 'Sistema não cadastrado', 1
 		ALTER TABLE [#Systems] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 2 [[SystemsDatabases]]
-		SELECT 	'SystemDatabase' AS [ClassName]
+		SELECT 	'SystemDatabase' AS [Kind]
 				,[SD].[Id]
 				,[SD].[SystemId]
 				,[S].[Name] AS [#SystemName]
@@ -42,7 +42,7 @@ BEGIN
 		  INTO [#Connections]
 		  FROM [dbo].[Connections]
 		-- 4 [Databases]
-		SELECT 	'Database' AS [ClassName]
+		SELECT 	'Database' AS [Kind]
 				,[D].[Id]
 				,[D].[ConnectionId]
 				,[D].[Name]
@@ -58,7 +58,7 @@ BEGIN
 			THROW 51000, 'Banco(s)-de-dados não cadastrado(s)', 1
 		ALTER TABLE [#Databases] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 5 [DatabasesTables]
-		SELECT 'DatabaseTable' AS [ClassName]
+		SELECT 'DatabaseTable' AS [Kind]
 			  ,[DT].[Id]
 			  ,[DT].[DatabaseId]
 			  ,[D].[Name] AS [#DatabaseName]
@@ -72,7 +72,7 @@ BEGIN
 				INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [DT].[TableId]
 		ALTER TABLE [#DatabasesTables] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 6 [Tables]
-		SELECT	'Table' AS [ClassName]
+		SELECT	'Table' AS [Kind]
 				,[T].[Id]
 				,[T].[Name]
 				,[T].[Alias]
@@ -89,7 +89,7 @@ BEGIN
 			THROW 51000, 'Tabela(s) não cadastrada(s)', 1
 		ALTER TABLE [#Tables] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 7 [Categories]
-		SELECT 	'Category' AS [ClassName]
+		SELECT 	'Category' AS [Kind]
 				,[C].[Id]
 				,[C].[Name]
 				,[C].[HtmlInputType]
@@ -107,7 +107,7 @@ BEGIN
 			THROW 51000, 'Categoria(s) de tipos não cadastrada(s)', 1
 		ALTER TABLE [#Categories] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 8 [Types]
-		SELECT 	'Type' AS [ClassName]
+		SELECT 	'Type' AS [Kind]
 				,[T].[Id]
 				,[T].[CategoryId]
 				,[C].[Name] AS [#CategoryName]
@@ -131,14 +131,14 @@ BEGIN
 			THROW 51000, 'Tipos de domínios não cadastrados', 1
 		ALTER TABLE [#Types] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 9 [Masks]
-		SELECT 	'Mask' AS [ClassName]
+		SELECT 	'Mask' AS [Kind]
 				,[M].[Id]
 				,[M].[Name]
 				,[M].[Mask]
 			INTO [#Masks]
 			FROM [dbo].[Masks] [M]
 		-- 10 [Domains]
-		SELECT	'Domain' AS [ClassName]
+		SELECT	'Domain' AS [Kind]
 				,[D].[Id]
 				,[D].[TypeId]
 				,[T].[Name] AS [#TypeName]
@@ -170,7 +170,7 @@ BEGIN
 			THROW 51000, 'Domínios de colunas não cadastrados', 1
 		ALTER TABLE [#Domains] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 11 [Menus]
-		SELECT 	'Menu' AS [ClassName]
+		SELECT 	'Menu' AS [Kind]
 				,[M].[Id]
 				,[M].[SystemId]
 				,[S].[Name] AS [#SystemName]
@@ -188,7 +188,7 @@ BEGIN
 			THROW 51000, 'Menu(s) de sistema não cadastrado(s)', 1
 		ALTER TABLE [#Menus] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 12 [SystemsUsers]
-		SELECT 'SystemUser' AS [ClassName] 
+		SELECT 'SystemUser' AS [Kind] 
 			  ,[SU].[Id]
 			  ,[SU].[SystemId]
 			  ,[S].[Name] AS [#SystemName]
@@ -203,7 +203,7 @@ BEGIN
 			THROW 51000, 'Menu(s) de sistema não cadastrado(s)', 1
 		ALTER TABLE [#SystemsUsers] ADD PRIMARY KEY NONCLUSTERED([Id])
 		-- 13 [Users]
-		SELECT 'User' AS [ClassName] 
+		SELECT 'User' AS [Kind] 
 			  ,[U].[Id]
 			  ,[U].[Name]
 			  ,[U].[Password]
@@ -215,7 +215,7 @@ BEGIN
 				INNER JOIN [#SystemsUsers] [SU] ON [SU].[UserId] = [U].[Id]
 		ALTER TABLE [#Users] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 14 [Columns]
-		SELECT 'Column' AS [ClassName]
+		SELECT 'Column' AS [Kind]
 			  ,[C].[Id]
 			  ,[C].[TableId]
 			  ,[T].[Name] AS [#TableName]
@@ -254,7 +254,7 @@ BEGIN
 			THROW 51000, 'Coluna(s) de tabela(s) não cadastrada(s)', 1
 		ALTER TABLE [#Columns] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 15 [Indexes]
-		SELECT 'Index' AS [ClassName]
+		SELECT 'Index' AS [Kind]
 			  ,[I].[Id]
 			  ,[I].[TableId]
 			  ,[T].[Name] AS [#TableName]
@@ -265,7 +265,7 @@ BEGIN
 			INNER JOIN [#Tables] [T] ON [T].[Id] = [I].[TableId]
 		ALTER TABLE [#Indexes] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 16 [Indexkeys]
-		SELECT 'Indexkey' AS [ClassName]
+		SELECT 'Indexkey' AS [Kind]
 			  ,[IK].[Id]
 			  ,[IK].[IndexId]
 			  ,[I].[Name] AS [#IndexName]
@@ -279,7 +279,7 @@ BEGIN
 			INNER JOIN [#Columns] [C] ON [C].[Id] = [IK].[ColumnId]
 		ALTER TABLE [#Indexkeys] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 17 [Sessions]
-		SELECT TOP 0 'Session' AS [ClassName]
+		SELECT TOP 0 'Session' AS [Kind]
 					,[Id]
 				    ,[SystemId]
 					,[UserId]
@@ -288,14 +288,14 @@ BEGIN
 			INTO [#Sessions]
 			FROM [dbo].[Sessions]
 		-- 18 [Transactions]
-		SELECT TOP 0 'Transaction' AS [ClassName]
+		SELECT TOP 0 'Transaction' AS [Kind]
 					,[Id]
 				    ,[SessionId]
 					,[IsConfirmed]
 			INTO [#Transactions]
 			FROM [dbo].[Transactions]
 		-- 19 [Operations]
-		SELECT TOP 0 'Operation' AS [ClassName]
+		SELECT TOP 0 'Operation' AS [Kind]
 					,[Id]
 				    ,[TransactionId]
 					,[TableName]
@@ -306,7 +306,7 @@ BEGIN
 			INTO [#Operations]
 			FROM [dbo].[Operations]
 		-- 21 [Unicities]
-		SELECT DISTINCT 'Unicity' AS [ClassName]
+		SELECT DISTINCT 'Unicity' AS [Kind]
 						,[U].[Id]
 						,[U].[ColumnId1]
 						,[T1].[Id] AS [#TableId1]

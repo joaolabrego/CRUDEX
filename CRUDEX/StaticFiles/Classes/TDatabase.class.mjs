@@ -1,15 +1,16 @@
 ﻿"use strict"
 
 import TConfig from "./TConfig.class.mjs"
+import TTable from "./TTable.class.mjs"
 export default class TDatabase {
     #Tables = []
     constructor(rowDatabase) {
-        if (rowDatabase.ClassName !== "Database")
+        if (rowDatabase.Kind !== "Database")
             throw new Error("Argumento rowDatabase não é do tipo Database.")
         TConfig.CreateProperties(rowDatabase, this)
     }
     AddTable(table) {
-        if (table.ClassName !== "TTable")
+        if (!table instanceof TTable)
             throw new Error("Argumento table não é do tipo TTable.")
         this.#Tables.push(table)
     }

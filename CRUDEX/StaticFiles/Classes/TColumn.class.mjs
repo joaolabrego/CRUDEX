@@ -2,6 +2,7 @@
 
 import TSystem from "./TSystem.class.mjs";
 import TConfig from "./TConfig.class.mjs";
+import TTable from "./TTable.class.mjs";
 export default class TColumn {
     #LastValue = null;
     #Value = null;
@@ -10,9 +11,9 @@ export default class TColumn {
     #Domain = null;
     #InputControl = null;
     constructor(table, rowColumn) {
-        if (table.ClassName !== "TTable")
+        if (!table instanceof TTable)
             throw new Error("Argumento table não é do tipo TTable.");
-        if (rowColumn.ClassName !== "Column")
+        if (rowColumn.Kind !== "Column")
             throw new Error("Argumento rowColumn não é do tipo Column.");
         TConfig.CreateProperties(rowColumn, this);
         this.#Table = table;

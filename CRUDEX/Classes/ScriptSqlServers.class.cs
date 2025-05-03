@@ -12,7 +12,7 @@ namespace crudex.Classes
         static readonly string DirectoryScripts = Path.Combine(Settings.Builder.Environment.ContentRootPath, Settings.Get("DIRECTORY_SCRIPTS"));
         static readonly HashSet<string> ReservedColumnNames = new([
             "Data",
-            "ClassName",
+            "Kind",
             "ListItemValue",
             "_", 
             "CreatedAt",
@@ -1107,7 +1107,7 @@ namespace crudex.Classes
                     if (spaces != "")
                         result.Append($"        INSERT INTO [{tmpName}]\r\n");
                         
-                    result.Append($"{spaces}        SELECT DISTINCT '{column["#TableAlias"]}' AS ClassName\r\n");
+                    result.Append($"{spaces}        SELECT DISTINCT '{column["#TableAlias"]}' AS [Kind]\r\n");
                     firstTime = false;
                 }
                 result.Append($"{spaces}              ,[R].[{column["Name"]}]\r\n");
@@ -1320,7 +1320,7 @@ namespace crudex.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]\r\n");
+                        result.Append($"        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]\r\n");
                         firstTime = false;
                     }
                     result.Append($"                    ,CAST(NULL AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
@@ -1328,14 +1328,14 @@ namespace crudex.Classes
                 result.Append($"            INTO [#result]\r\n");
 
                 result.Append($"        SET @sql = 'INSERT #result\r\n");
-                result.Append($"                        SELECT ''{table["Alias"]}'' AS [ClassName]\r\n");
+                result.Append($"                        SELECT ''{table["Alias"]}'' AS [Kind]\r\n");
                 foreach (var column in columnRows)
                     result.Append($"                              ,[T].[{column["Name"]}]\r\n");
                 result.Append($"                            FROM [#tmpTable] [#]\r\n");
                 result.Append($"                                INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[Id] = [#].[Id]\r\n");
                 result.Append($"                            WHERE [#].[_] = ''T''\r\n");
                 result.Append($"                        UNION ALL\r\n");
-                result.Append($"                            SELECT ''{table["Alias"]}'' AS [ClassName]\r\n");
+                result.Append($"                            SELECT ''{table["Alias"]}'' AS [Kind]\r\n");
                 foreach (var column in columnRows)
                     result.Append($"                                  ,[O].[{column["Name"]}]\r\n");
                 result.Append($"                                FROM [#tmpTable] [#]\r\n");
@@ -1350,7 +1350,7 @@ namespace crudex.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"        SELECT [ClassName]\r\n");
+                        result.Append($"        SELECT [Kind]\r\n");
                         firstTime = false;
                     }
                     result.Append($"              ,[{column["Name"]}]\r\n");

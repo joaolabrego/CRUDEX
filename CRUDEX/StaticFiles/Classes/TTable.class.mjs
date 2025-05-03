@@ -1,9 +1,10 @@
 ﻿"use strict";
 
-import TActions from "./TActions.class.mjs";
 import TConfig from "./TConfig.class.mjs";
-import TLogin from "./TLogin.class.mjs";
+import TDatabase from "./TDatabase.class.mjs";
 import TSystem from "./TSystem.class.mjs";
+import TColumn from "./TColumn.class.mjs";
+import TIndex from "./TIndex.class.mjs";
 
 export default class TTable {
     #Database = null;
@@ -12,15 +13,15 @@ export default class TTable {
     #References = [];
 
     constructor(database, rowTable) {
-        if (database.ClassName !== "TDatabase")
+        if (!database instanceof TDatabase)
             throw new Error("Argumento database não é do tipo TDatabase.");
-        if (rowTable.ClassName !== "Table")
+        if (rowTable.Kind !== "Table")
             throw new Error("Argumento rowTable não é do tipo Table.");
         TConfig.CreateProperties(rowTable, this);
         this.#Database = database;
     }
     AddColumn(column) {
-        if (column.ClassName !== "TColumn")
+        if (!column instanceof TColumn)
             throw new Error("Argumento column não é do tipo TColumn.");
         this.#Columns.push(column);
     }
@@ -31,7 +32,7 @@ export default class TTable {
         return this.#Columns.find(column => column.Id === columnNameOrId);
     }
     AddIndex(index) {
-        if (index.ClassName !== "TIndex")
+        if (!index  instanceof TIndex)
             throw new Error("Argumento index não é do tipo TIndex.");
         this.#Indexes.push(index);
     }

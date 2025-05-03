@@ -34,11 +34,6 @@ export default class TSystem {
     static Run(withBackgroundImage = true) {
         TConfig.GetAPI(TActions.CONFIG)
             .then(config => {
-                Object.defineProperty(Object.prototype, "ClassName", {
-                    get: function ClassName() {
-                        return this.constructor.name;
-                    }
-                });
                 document.addEventListener("wheel", event => {
                     if (event.ctrlKey)
                         event.preventDefault();

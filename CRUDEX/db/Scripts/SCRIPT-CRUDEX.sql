@@ -580,7 +580,7 @@ BEGIN
 		IF @SystemName IS NULL
 			THROW 51000, 'Nome de sistema é requerido.', 1
 		-- 0 [Systems]
-		SELECT 	'System' AS [ClassName]
+		SELECT 	'System' AS [Kind]
 				,[Id]
 				,[Name]
 				,[Description]
@@ -608,7 +608,7 @@ BEGIN
 		END
 
 		-- 1 [Databases]
-		SELECT 	'Database' AS [ClassName]
+		SELECT 	'Database' AS [Kind]
 				,[D].[Id]
 				,[D].[ConnectionId]
 				,[D].[Name]
@@ -628,7 +628,7 @@ BEGIN
 		END
 
 		-- 2 [Connections]
-		SELECT 'Connection' AS [ClassName]
+		SELECT 'Connection' AS [Kind]
 			  ,[Id]
 			  ,[Environment]
 			  ,[ConnectionString]
@@ -641,7 +641,7 @@ BEGIN
 		ALTER TABLE [#Connections] ADD PRIMARY KEY CLUSTERED([Id])
 
 		-- 3 [Tables]
-		SELECT	'Table' AS [ClassName]
+		SELECT	'Table' AS [Kind]
 				,[T].[Id]
 				,[DT].[DatabaseId]
 				,[T].[Name]
@@ -660,7 +660,7 @@ BEGIN
 
 		IF @DatabaseName IS NULL BEGIN
 			-- 4 [Columns]
-			SELECT	'Column' AS [ClassName]
+			SELECT	'Column' AS [Kind]
 					,[C].[Id]
 					,[C].[TableId]
 					,[C].[Sequence]
@@ -692,7 +692,7 @@ BEGIN
 			CREATE INDEX [#ColumnsDomainId] ON [#Columns]([DomainId])
 
 			-- 5 [Domains]
-			SELECT	'Domain' AS [ClassName]
+			SELECT	'Domain' AS [Kind]
 					,[D].[Id]
 					,[D].[TypeId]
 					,[D].[MaskId]
@@ -713,7 +713,7 @@ BEGIN
 			CREATE INDEX [#DomainsTypeId] ON [#Domains]([TypeId])
 
 			-- 6 [Types]
-			SELECT 	'Type' AS [ClassName]
+			SELECT 	'Type' AS [Kind]
 					,[T].[Id]
 					,[T].[CategoryId]
 					,[T].[Name]
@@ -736,7 +736,7 @@ BEGIN
 			CREATE INDEX [#TypesCategoryId] ON [#Types]([CategoryId])
 
 			-- 7 [Categories]
-			SELECT 	'Category' AS [ClassName]
+			SELECT 	'Category' AS [Kind]
 					,[C].[Id]
 					,[C].[Name]
 					,[C].[HtmlInputType]
@@ -755,7 +755,7 @@ BEGIN
 			   THROW 51000, 'Categoria(s) de tipos não cadastrada(s).', 1
 
 			-- 8 [Menus]
-			SELECT 	'Menu' AS [ClassName]
+			SELECT 	'Menu' AS [Kind]
 					,[M].[Id]
 					,[M].[SystemId]
 					,[M].[Sequence]
@@ -770,7 +770,7 @@ BEGIN
 			   THROW 51000, 'Menu(s) de sistema não cadastrado(s).', 1
 
 			-- 9 [Indexes]
-			SELECT 	'Index' AS [ClassName]
+			SELECT 	'Index' AS [Kind]
 					,[I].[Id]
 					,[I].[TableId]
 					,[I].[Name]
@@ -781,7 +781,7 @@ BEGIN
 			ALTER TABLE [#Indexes] ADD PRIMARY KEY NONCLUSTERED([Id])
 
 			-- 10 [Indexkeys]
-			SELECT 	'Indexkey' AS [ClassName]
+			SELECT 	'Indexkey' AS [Kind]
 					,[IK].[Id]
 					,[IK].[IndexId]
 					,[IK].[Sequence]
@@ -792,7 +792,7 @@ BEGIN
 					INNER JOIN [#Indexes] [I] ON [I].[Id] = [IK].IndexId
 			
 			-- 11 [Masks]
-			SELECT 	'Mask' AS [ClassName]
+			SELECT 	'Mask' AS [Kind]
 					,[M].[Id]
 					,[M].[Name]
 					,[M].[Mask]
@@ -801,7 +801,7 @@ BEGIN
 				WHERE EXISTS(SELECT TOP 1 1 FROM [#Domains] WHERE [MaskId] = [M].[Id])
 			
 			-- 12 [Unicities]
-			SELECT 'Unicity' AS [ClassName]
+			SELECT 'Unicity' AS [Kind]
 					,[U].[Id]
 					,[U].[ColumnId1]
 					,[U].[ColumnId2]
@@ -1143,7 +1143,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 	BEGIN TRY
 		-- 1 [Systems]
-		SELECT 	'System' AS [ClassName]
+		SELECT 	'System' AS [Kind]
 				,[Id]
 				,[Name]
 				,[Description]
@@ -1156,7 +1156,7 @@ BEGIN
 			THROW 51000, 'Sistema não cadastrado', 1
 		ALTER TABLE [#Systems] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 2 [[SystemsDatabases]]
-		SELECT 	'SystemDatabase' AS [ClassName]
+		SELECT 	'SystemDatabase' AS [Kind]
 				,[SD].[Id]
 				,[SD].[SystemId]
 				,[S].[Name] AS [#SystemName]
@@ -1178,7 +1178,7 @@ BEGIN
 		  INTO [#Connections]
 		  FROM [dbo].[Connections]
 		-- 4 [Databases]
-		SELECT 	'Database' AS [ClassName]
+		SELECT 	'Database' AS [Kind]
 				,[D].[Id]
 				,[D].[ConnectionId]
 				,[D].[Name]
@@ -1194,7 +1194,7 @@ BEGIN
 			THROW 51000, 'Banco(s)-de-dados não cadastrado(s)', 1
 		ALTER TABLE [#Databases] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 5 [DatabasesTables]
-		SELECT 'DatabaseTable' AS [ClassName]
+		SELECT 'DatabaseTable' AS [Kind]
 			  ,[DT].[Id]
 			  ,[DT].[DatabaseId]
 			  ,[D].[Name] AS [#DatabaseName]
@@ -1208,7 +1208,7 @@ BEGIN
 				INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [DT].[TableId]
 		ALTER TABLE [#DatabasesTables] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 6 [Tables]
-		SELECT	'Table' AS [ClassName]
+		SELECT	'Table' AS [Kind]
 				,[T].[Id]
 				,[T].[Name]
 				,[T].[Alias]
@@ -1225,7 +1225,7 @@ BEGIN
 			THROW 51000, 'Tabela(s) não cadastrada(s)', 1
 		ALTER TABLE [#Tables] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 7 [Categories]
-		SELECT 	'Category' AS [ClassName]
+		SELECT 	'Category' AS [Kind]
 				,[C].[Id]
 				,[C].[Name]
 				,[C].[HtmlInputType]
@@ -1243,7 +1243,7 @@ BEGIN
 			THROW 51000, 'Categoria(s) de tipos não cadastrada(s)', 1
 		ALTER TABLE [#Categories] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 8 [Types]
-		SELECT 	'Type' AS [ClassName]
+		SELECT 	'Type' AS [Kind]
 				,[T].[Id]
 				,[T].[CategoryId]
 				,[C].[Name] AS [#CategoryName]
@@ -1267,14 +1267,14 @@ BEGIN
 			THROW 51000, 'Tipos de domínios não cadastrados', 1
 		ALTER TABLE [#Types] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 9 [Masks]
-		SELECT 	'Mask' AS [ClassName]
+		SELECT 	'Mask' AS [Kind]
 				,[M].[Id]
 				,[M].[Name]
 				,[M].[Mask]
 			INTO [#Masks]
 			FROM [dbo].[Masks] [M]
 		-- 10 [Domains]
-		SELECT	'Domain' AS [ClassName]
+		SELECT	'Domain' AS [Kind]
 				,[D].[Id]
 				,[D].[TypeId]
 				,[T].[Name] AS [#TypeName]
@@ -1306,7 +1306,7 @@ BEGIN
 			THROW 51000, 'Domínios de colunas não cadastrados', 1
 		ALTER TABLE [#Domains] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 11 [Menus]
-		SELECT 	'Menu' AS [ClassName]
+		SELECT 	'Menu' AS [Kind]
 				,[M].[Id]
 				,[M].[SystemId]
 				,[S].[Name] AS [#SystemName]
@@ -1324,7 +1324,7 @@ BEGIN
 			THROW 51000, 'Menu(s) de sistema não cadastrado(s)', 1
 		ALTER TABLE [#Menus] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 12 [SystemsUsers]
-		SELECT 'SystemUser' AS [ClassName] 
+		SELECT 'SystemUser' AS [Kind] 
 			  ,[SU].[Id]
 			  ,[SU].[SystemId]
 			  ,[S].[Name] AS [#SystemName]
@@ -1339,7 +1339,7 @@ BEGIN
 			THROW 51000, 'Menu(s) de sistema não cadastrado(s)', 1
 		ALTER TABLE [#SystemsUsers] ADD PRIMARY KEY NONCLUSTERED([Id])
 		-- 13 [Users]
-		SELECT 'User' AS [ClassName] 
+		SELECT 'User' AS [Kind] 
 			  ,[U].[Id]
 			  ,[U].[Name]
 			  ,[U].[Password]
@@ -1351,7 +1351,7 @@ BEGIN
 				INNER JOIN [#SystemsUsers] [SU] ON [SU].[UserId] = [U].[Id]
 		ALTER TABLE [#Users] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 14 [Columns]
-		SELECT 'Column' AS [ClassName]
+		SELECT 'Column' AS [Kind]
 			  ,[C].[Id]
 			  ,[C].[TableId]
 			  ,[T].[Name] AS [#TableName]
@@ -1390,7 +1390,7 @@ BEGIN
 			THROW 51000, 'Coluna(s) de tabela(s) não cadastrada(s)', 1
 		ALTER TABLE [#Columns] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 15 [Indexes]
-		SELECT 'Index' AS [ClassName]
+		SELECT 'Index' AS [Kind]
 			  ,[I].[Id]
 			  ,[I].[TableId]
 			  ,[T].[Name] AS [#TableName]
@@ -1401,7 +1401,7 @@ BEGIN
 			INNER JOIN [#Tables] [T] ON [T].[Id] = [I].[TableId]
 		ALTER TABLE [#Indexes] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 16 [Indexkeys]
-		SELECT 'Indexkey' AS [ClassName]
+		SELECT 'Indexkey' AS [Kind]
 			  ,[IK].[Id]
 			  ,[IK].[IndexId]
 			  ,[I].[Name] AS [#IndexName]
@@ -1415,7 +1415,7 @@ BEGIN
 			INNER JOIN [#Columns] [C] ON [C].[Id] = [IK].[ColumnId]
 		ALTER TABLE [#Indexkeys] ADD PRIMARY KEY CLUSTERED([Id])
 		-- 17 [Sessions]
-		SELECT TOP 0 'Session' AS [ClassName]
+		SELECT TOP 0 'Session' AS [Kind]
 					,[Id]
 				    ,[SystemId]
 					,[UserId]
@@ -1424,14 +1424,14 @@ BEGIN
 			INTO [#Sessions]
 			FROM [dbo].[Sessions]
 		-- 18 [Transactions]
-		SELECT TOP 0 'Transaction' AS [ClassName]
+		SELECT TOP 0 'Transaction' AS [Kind]
 					,[Id]
 				    ,[SessionId]
 					,[IsConfirmed]
 			INTO [#Transactions]
 			FROM [dbo].[Transactions]
 		-- 19 [Operations]
-		SELECT TOP 0 'Operation' AS [ClassName]
+		SELECT TOP 0 'Operation' AS [Kind]
 					,[Id]
 				    ,[TransactionId]
 					,[TableName]
@@ -1442,7 +1442,7 @@ BEGIN
 			INTO [#Operations]
 			FROM [dbo].[Operations]
 		-- 21 [Unicities]
-		SELECT DISTINCT 'Unicity' AS [ClassName]
+		SELECT DISTINCT 'Unicity' AS [Kind]
 						,[U].[Id]
 						,[U].[ColumnId1]
 						,[T1].[Id] AS [#TableId1]
@@ -15712,7 +15712,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS tinyint) AS [Id]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(10)) AS [HtmlInputType]
@@ -15726,7 +15726,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@SessionId BIGINT
                     ,CAST(NULL AS bit) AS [AskInWords]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Category'' AS [ClassName]
+                        SELECT ''Category'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[HtmlInputType]
@@ -15742,7 +15742,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Categories] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Category'' AS [ClassName]
+                            SELECT ''Category'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[HtmlInputType]
@@ -15761,7 +15761,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[Name]
               ,[Name] AS [ListItemValue]
@@ -16457,7 +16457,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS tinyint) AS [Id]
                     ,CAST(NULL AS tinyint) AS [CategoryId]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
@@ -16475,7 +16475,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@SessionId BIGINT
                     ,CAST(NULL AS bit) AS [IsActive]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Type'' AS [ClassName]
+                        SELECT ''Type'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[CategoryId]
                               ,[T].[Name]
@@ -16495,7 +16495,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Types] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Type'' AS [ClassName]
+                            SELECT ''Type'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[CategoryId]
                                   ,[O].[Name]
@@ -16518,7 +16518,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[CategoryId]
               ,[Name]
@@ -16536,7 +16536,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@SessionId BIGINT
               ,[IsLikeable]
               ,[IsActive]
             FROM [#result]
-        SELECT DISTINCT 'Category' AS ClassName
+        SELECT DISTINCT 'Category' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[HtmlInputType]
@@ -17060,13 +17060,13 @@ ALTER PROCEDURE [dbo].[MasksRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(max)) AS [Mask]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Mask'' AS [ClassName]
+                        SELECT ''Mask'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[Mask]
@@ -17074,7 +17074,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Masks] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Mask'' AS [ClassName]
+                            SELECT ''Mask'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[Mask]
@@ -17085,7 +17085,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[Name]
               ,[Mask]
@@ -17637,7 +17637,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS tinyint) AS [TypeId]
                     ,CAST(NULL AS bigint) AS [MaskId]
@@ -17651,7 +17651,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@SessionId BIGINT
                     ,CAST(NULL AS nvarchar(5)) AS [Codification]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Domain'' AS [ClassName]
+                        SELECT ''Domain'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[TypeId]
                               ,[T].[MaskId]
@@ -17667,7 +17667,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Domains] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Domain'' AS [ClassName]
+                            SELECT ''Domain'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[TypeId]
                                   ,[O].[MaskId]
@@ -17686,7 +17686,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[TypeId]
               ,[MaskId]
@@ -17700,7 +17700,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@SessionId BIGINT
               ,[Maximum]
               ,[Codification]
             FROM [#result]
-        SELECT DISTINCT 'Type' AS ClassName
+        SELECT DISTINCT 'Type' AS [Kind]
               ,[R].[Id]
               ,[R].[CategoryId]
               ,[R].[Name]
@@ -17721,7 +17721,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Types] ON [#Types](Id)
-        SELECT DISTINCT 'Category' AS ClassName
+        SELECT DISTINCT 'Category' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[HtmlInputType]
@@ -17738,7 +17738,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Categories] ON [#Categories](Id)
-        SELECT DISTINCT 'Mask' AS ClassName
+        SELECT DISTINCT 'Mask' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Mask]
@@ -18304,7 +18304,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(50)) AS [Description]
@@ -18313,7 +18313,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@SessionId BIGINT
                     ,CAST(NULL AS bit) AS [IsOffAir]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''System'' AS [ClassName]
+                        SELECT ''System'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[Description]
@@ -18324,7 +18324,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Systems] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''System'' AS [ClassName]
+                            SELECT ''System'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[Description]
@@ -18338,7 +18338,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[Name]
               ,[Name] AS [ListItemValue]
@@ -18915,7 +18915,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [SystemId]
                     ,CAST(NULL AS smallint) AS [Sequence]
@@ -18925,7 +18925,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@SessionId BIGINT
                     ,CAST(NULL AS bigint) AS [ParentMenuId]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Menu'' AS [ClassName]
+                        SELECT ''Menu'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[SystemId]
                               ,[T].[Sequence]
@@ -18937,7 +18937,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Menus] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Menu'' AS [ClassName]
+                            SELECT ''Menu'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[SystemId]
                                   ,[O].[Sequence]
@@ -18952,7 +18952,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[SystemId]
               ,[Sequence]
@@ -18961,7 +18961,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@SessionId BIGINT
               ,[Action]
               ,[ParentMenuId]
             FROM [#result]
-        SELECT DISTINCT 'System' AS ClassName
+        SELECT DISTINCT 'System' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Description]
@@ -18973,7 +18973,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
-        SELECT DISTINCT 'Menu' AS ClassName
+        SELECT DISTINCT 'Menu' AS [Kind]
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[Sequence]
@@ -19481,7 +19481,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(256)) AS [Password]
@@ -19490,7 +19490,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@SessionId BIGINT
                     ,CAST(NULL AS bit) AS [IsActive]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''User'' AS [ClassName]
+                        SELECT ''User'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[Password]
@@ -19501,7 +19501,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Users] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''User'' AS [ClassName]
+                            SELECT ''User'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[Password]
@@ -19515,7 +19515,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[Name]
               ,[Name] AS [ListItemValue]
@@ -20069,14 +20069,14 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [SystemId]
                     ,CAST(NULL AS bigint) AS [UserId]
                     ,CAST(NULL AS nvarchar(50)) AS [Name]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''SystemUser'' AS [ClassName]
+                        SELECT ''SystemUser'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[SystemId]
                               ,[T].[UserId]
@@ -20085,7 +20085,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[SystemsUsers] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''SystemUser'' AS [ClassName]
+                            SELECT ''SystemUser'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[SystemId]
                                   ,[O].[UserId]
@@ -20097,14 +20097,14 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[SystemId]
               ,[UserId]
               ,[Name]
               ,[Name] AS [ListItemValue]
             FROM [#result]
-        SELECT DISTINCT 'System' AS ClassName
+        SELECT DISTINCT 'System' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Description]
@@ -20116,7 +20116,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
-        SELECT DISTINCT 'User' AS ClassName
+        SELECT DISTINCT 'User' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Password]
@@ -20636,13 +20636,13 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS nvarchar(3)) AS [Environment]
                     ,CAST(NULL AS nvarchar(256)) AS [ConnectionString]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Connection'' AS [ClassName]
+                        SELECT ''Connection'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[Environment]
                               ,[T].[ConnectionString]
@@ -20650,7 +20650,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Connections] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Connection'' AS [ClassName]
+                            SELECT ''Connection'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[Environment]
                                   ,[O].[ConnectionString]
@@ -20661,7 +20661,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[Environment]
               ,[ConnectionString]
@@ -21187,7 +21187,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [ConnectionId]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
@@ -21198,7 +21198,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@SessionId BIGINT
                     ,CAST(NULL AS bigint) AS [CurrentOperationId]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Database'' AS [ClassName]
+                        SELECT ''Database'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[ConnectionId]
                               ,[T].[Name]
@@ -21211,7 +21211,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Databases] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Database'' AS [ClassName]
+                            SELECT ''Database'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[ConnectionId]
                                   ,[O].[Name]
@@ -21227,7 +21227,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[ConnectionId]
               ,[Name]
@@ -21238,7 +21238,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@SessionId BIGINT
               ,[IsLegacy]
               ,[CurrentOperationId]
             FROM [#result]
-        SELECT DISTINCT 'Connection' AS ClassName
+        SELECT DISTINCT 'Connection' AS [Kind]
               ,[R].[Id]
               ,[R].[Environment]
               ,[R].[ConnectionString]
@@ -21793,14 +21793,14 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [SystemId]
                     ,CAST(NULL AS bigint) AS [DatabaseId]
                     ,CAST(NULL AS nvarchar(50)) AS [Name]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''SystemDatabase'' AS [ClassName]
+                        SELECT ''SystemDatabase'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[SystemId]
                               ,[T].[DatabaseId]
@@ -21809,7 +21809,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[SystemsDatabases] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''SystemDatabase'' AS [ClassName]
+                            SELECT ''SystemDatabase'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[SystemId]
                                   ,[O].[DatabaseId]
@@ -21821,14 +21821,14 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[SystemId]
               ,[DatabaseId]
               ,[Name]
               ,[Name] AS [ListItemValue]
             FROM [#result]
-        SELECT DISTINCT 'System' AS ClassName
+        SELECT DISTINCT 'System' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Description]
@@ -21840,7 +21840,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
-        SELECT DISTINCT 'Database' AS ClassName
+        SELECT DISTINCT 'Database' AS [Kind]
               ,[R].[Id]
               ,[R].[ConnectionId]
               ,[R].[Name]
@@ -21854,7 +21854,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Databases] [R] ON [R].[Id] = [T].[DatabaseId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Databases] ON [#Databases](Id)
-        SELECT DISTINCT 'Connection' AS ClassName
+        SELECT DISTINCT 'Connection' AS [Kind]
               ,[R].[Id]
               ,[R].[Environment]
               ,[R].[ConnectionString]
@@ -22452,7 +22452,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(25)) AS [Alias]
@@ -22462,7 +22462,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@SessionId BIGINT
                     ,CAST(NULL AS bigint) AS [CurrentId]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Table'' AS [ClassName]
+                        SELECT ''Table'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[Alias]
@@ -22474,7 +22474,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Table'' AS [ClassName]
+                            SELECT ''Table'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[Alias]
@@ -22489,7 +22489,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[Name]
               ,[Name] AS [ListItemValue]
@@ -22499,7 +22499,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@SessionId BIGINT
               ,[IsLegacy]
               ,[CurrentId]
             FROM [#result]
-        SELECT DISTINCT 'Table' AS ClassName
+        SELECT DISTINCT 'Table' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
@@ -23058,14 +23058,14 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [DatabaseId]
                     ,CAST(NULL AS bigint) AS [TableId]
                     ,CAST(NULL AS nvarchar(50)) AS [Name]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''DatabaseTable'' AS [ClassName]
+                        SELECT ''DatabaseTable'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[DatabaseId]
                               ,[T].[TableId]
@@ -23074,7 +23074,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[DatabasesTables] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''DatabaseTable'' AS [ClassName]
+                            SELECT ''DatabaseTable'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[DatabaseId]
                                   ,[O].[TableId]
@@ -23086,14 +23086,14 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[DatabaseId]
               ,[TableId]
               ,[Name]
               ,[Name] AS [ListItemValue]
             FROM [#result]
-        SELECT DISTINCT 'Database' AS ClassName
+        SELECT DISTINCT 'Database' AS [Kind]
               ,[R].[Id]
               ,[R].[ConnectionId]
               ,[R].[Name]
@@ -23107,7 +23107,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Databases] [R] ON [R].[Id] = [T].[DatabaseId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Databases] ON [#Databases](Id)
-        SELECT DISTINCT 'Connection' AS ClassName
+        SELECT DISTINCT 'Connection' AS [Kind]
               ,[R].[Id]
               ,[R].[Environment]
               ,[R].[ConnectionString]
@@ -23116,7 +23116,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Connections] ON [#Connections](Id)
-        SELECT DISTINCT 'Table' AS ClassName
+        SELECT DISTINCT 'Table' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
@@ -23130,7 +23130,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@SessionId BIGINT
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
+            SELECT DISTINCT 'Table' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
@@ -23919,7 +23919,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [TableId]
                     ,CAST(NULL AS smallint) AS [Sequence]
@@ -23944,7 +23944,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
                     ,CAST(NULL AS bit) AS [IsInWords]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Column'' AS [ClassName]
+                        SELECT ''Column'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[TableId]
                               ,[T].[Sequence]
@@ -23971,7 +23971,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Columns] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Column'' AS [ClassName]
+                            SELECT ''Column'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[TableId]
                                   ,[O].[Sequence]
@@ -24001,7 +24001,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[TableId]
               ,[Sequence]
@@ -24025,7 +24025,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
               ,[IsEncrypted]
               ,[IsInWords]
             FROM [#result]
-        SELECT DISTINCT 'Table' AS ClassName
+        SELECT DISTINCT 'Table' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
@@ -24039,7 +24039,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
+            SELECT DISTINCT 'Table' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
@@ -24051,7 +24051,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        SELECT DISTINCT 'Domain' AS ClassName
+        SELECT DISTINCT 'Domain' AS [Kind]
               ,[R].[Id]
               ,[R].[TypeId]
               ,[R].[MaskId]
@@ -24068,7 +24068,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Domains] ON [#Domains](Id)
-        SELECT DISTINCT 'Type' AS ClassName
+        SELECT DISTINCT 'Type' AS [Kind]
               ,[R].[Id]
               ,[R].[CategoryId]
               ,[R].[Name]
@@ -24089,7 +24089,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Types] ON [#Types](Id)
-        SELECT DISTINCT 'Category' AS ClassName
+        SELECT DISTINCT 'Category' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[HtmlInputType]
@@ -24107,7 +24107,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Categories] ON [#Categories](Id)
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
+            SELECT DISTINCT 'Table' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
@@ -24120,7 +24120,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
+            SELECT DISTINCT 'Table' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
@@ -24611,14 +24611,14 @@ ALTER PROCEDURE [dbo].[IndexesRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [TableId]
                     ,CAST(NULL AS nvarchar(50)) AS [Name]
                     ,CAST(NULL AS bit) AS [IsUnique]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Index'' AS [ClassName]
+                        SELECT ''Index'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[TableId]
                               ,[T].[Name]
@@ -24627,7 +24627,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Indexes] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Index'' AS [ClassName]
+                            SELECT ''Index'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[TableId]
                                   ,[O].[Name]
@@ -24639,14 +24639,14 @@ ALTER PROCEDURE [dbo].[IndexesRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[TableId]
               ,[Name]
               ,[Name] AS [ListItemValue]
               ,[IsUnique]
             FROM [#result]
-        SELECT DISTINCT 'Table' AS ClassName
+        SELECT DISTINCT 'Table' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
@@ -24660,7 +24660,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@SessionId BIGINT
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
+            SELECT DISTINCT 'Table' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
@@ -25230,7 +25230,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [IndexId]
                     ,CAST(NULL AS smallint) AS [Sequence]
@@ -25238,7 +25238,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
                     ,CAST(NULL AS bit) AS [IsDescending]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Indexkey'' AS [ClassName]
+                        SELECT ''Indexkey'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[IndexId]
                               ,[T].[Sequence]
@@ -25248,7 +25248,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Indexkeys] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Indexkey'' AS [ClassName]
+                            SELECT ''Indexkey'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[IndexId]
                                   ,[O].[Sequence]
@@ -25261,14 +25261,14 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[IndexId]
               ,[Sequence]
               ,[ColumnId]
               ,[IsDescending]
             FROM [#result]
-        SELECT DISTINCT 'Index' AS ClassName
+        SELECT DISTINCT 'Index' AS [Kind]
               ,[R].[Id]
               ,[R].[TableId]
               ,[R].[Name]
@@ -25278,7 +25278,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Indexes] [R] ON [R].[Id] = [T].[IndexId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Indexes] ON [#Indexes](Id)
-        SELECT DISTINCT 'Table' AS ClassName
+        SELECT DISTINCT 'Table' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
@@ -25292,7 +25292,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
+            SELECT DISTINCT 'Table' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
@@ -25304,7 +25304,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        SELECT DISTINCT 'Column' AS ClassName
+        SELECT DISTINCT 'Column' AS [Kind]
               ,[R].[Id]
               ,[R].[TableId]
               ,[R].[Sequence]
@@ -25333,7 +25333,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Columns] ON [#Columns](Id)
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
+            SELECT DISTINCT 'Table' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
@@ -25346,7 +25346,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
+            SELECT DISTINCT 'Table' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
@@ -25844,7 +25844,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [SystemId]
                     ,CAST(NULL AS bigint) AS [UserId]
@@ -25852,7 +25852,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@SessionId BIGINT
                     ,CAST(NULL AS bit) AS [IsLogged]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Session'' AS [ClassName]
+                        SELECT ''Session'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[SystemId]
                               ,[T].[UserId]
@@ -25862,7 +25862,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Sessions] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Session'' AS [ClassName]
+                            SELECT ''Session'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[SystemId]
                                   ,[O].[UserId]
@@ -25875,14 +25875,14 @@ ALTER PROCEDURE [dbo].[SessionsRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[SystemId]
               ,[UserId]
               ,[PublicKey]
               ,[IsLogged]
             FROM [#result]
-        SELECT DISTINCT 'System' AS ClassName
+        SELECT DISTINCT 'System' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Description]
@@ -25894,7 +25894,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
-        SELECT DISTINCT 'User' AS ClassName
+        SELECT DISTINCT 'User' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Password]
@@ -26349,13 +26349,13 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [SessionId]
                     ,CAST(NULL AS bit) AS [IsConfirmed]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Transaction'' AS [ClassName]
+                        SELECT ''Transaction'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[SessionId]
                               ,[T].[IsConfirmed]
@@ -26363,7 +26363,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Transactions] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Transaction'' AS [ClassName]
+                            SELECT ''Transaction'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[SessionId]
                                   ,[O].[IsConfirmed]
@@ -26374,12 +26374,12 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[SessionId]
               ,[IsConfirmed]
             FROM [#result]
-        SELECT DISTINCT 'Session' AS ClassName
+        SELECT DISTINCT 'Session' AS [Kind]
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[UserId]
@@ -26390,7 +26390,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Sessions] [R] ON [R].[Id] = [T].[SessionId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Sessions] ON [#Sessions](Id)
-        SELECT DISTINCT 'System' AS ClassName
+        SELECT DISTINCT 'System' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Description]
@@ -26876,7 +26876,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [TransactionId]
                     ,CAST(NULL AS nvarchar(25)) AS [TableName]
@@ -26886,7 +26886,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
                     ,CAST(NULL AS bit) AS [IsConfirmed]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Operation'' AS [ClassName]
+                        SELECT ''Operation'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[TransactionId]
                               ,[T].[TableName]
@@ -26898,7 +26898,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Operations] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Operation'' AS [ClassName]
+                            SELECT ''Operation'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[TransactionId]
                                   ,[O].[TableName]
@@ -26913,7 +26913,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[TransactionId]
               ,[TableName]
@@ -26922,7 +26922,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
               ,[ActualRecord]
               ,[IsConfirmed]
             FROM [#result]
-        SELECT DISTINCT 'Transaction' AS ClassName
+        SELECT DISTINCT 'Transaction' AS [Kind]
               ,[R].[Id]
               ,[R].[SessionId]
               ,[R].[IsConfirmed]
@@ -26931,7 +26931,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Transactions] [R] ON [R].[Id] = [T].[TransactionId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Transactions] ON [#Transactions](Id)
-        SELECT DISTINCT 'Session' AS ClassName
+        SELECT DISTINCT 'Session' AS [Kind]
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[UserId]
@@ -26942,7 +26942,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Sessions] [R] ON [R].[Id] = [T].[SessionId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Sessions] ON [#Sessions](Id)
-        SELECT DISTINCT 'System' AS ClassName
+        SELECT DISTINCT 'System' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Description]
@@ -27431,14 +27431,14 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [ClassName]
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [ColumnId1]
                     ,CAST(NULL AS bigint) AS [ColumnId2]
                     ,CAST(NULL AS bit) AS [IsBidirectional]
             INTO [#result]
         SET @sql = 'INSERT #result
-                        SELECT ''Unicity'' AS [ClassName]
+                        SELECT ''Unicity'' AS [Kind]
                               ,[T].[Id]
                               ,[T].[ColumnId1]
                               ,[T].[ColumnId2]
@@ -27447,7 +27447,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
                                 INNER JOIN [dbo].[Unicities] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Unicity'' AS [ClassName]
+                            SELECT ''Unicity'' AS [Kind]
                                   ,[O].[Id]
                                   ,[O].[ColumnId1]
                                   ,[O].[ColumnId2]
@@ -27459,13 +27459,13 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [ClassName]
+        SELECT [Kind]
               ,[Id]
               ,[ColumnId1]
               ,[ColumnId2]
               ,[IsBidirectional]
             FROM [#result]
-        SELECT DISTINCT 'Column' AS ClassName
+        SELECT DISTINCT 'Column' AS [Kind]
               ,[R].[Id]
               ,[R].[TableId]
               ,[R].[Sequence]
@@ -27493,7 +27493,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
                 INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId1]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Columns] ON [#Columns](Id)
-        SELECT DISTINCT 'Table' AS ClassName
+        SELECT DISTINCT 'Table' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
@@ -27507,7 +27507,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
+            SELECT DISTINCT 'Table' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
@@ -27520,7 +27520,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
         INSERT INTO [#Columns]
-            SELECT DISTINCT 'Column' AS ClassName
+            SELECT DISTINCT 'Column' AS [Kind]
                   ,[R].[Id]
                   ,[R].[TableId]
                   ,[R].[Sequence]
@@ -27548,7 +27548,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
                 WHERE NOT EXISTS(SELECT 1 FROM [#Columns] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
+            SELECT DISTINCT 'Table' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
@@ -27561,7 +27561,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS ClassName
+            SELECT DISTINCT 'Table' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
