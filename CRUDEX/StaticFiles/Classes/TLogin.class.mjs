@@ -132,7 +132,7 @@ export default class TLogin {
 
         this.#HTML.Label = document.createElement("label");
         this.#HTML.Label.htmlFor = "checkboxChangePassword";
-        this.#HTML.Label.innerHTML = "&nbsp;&nbsp;&nbsp;Trocar senha";
+        this.#HTML.Label.innerHTML = "&nbsp;Trocar senha";
 
         this.#HTML.Container.appendChild(this.#HTML.Label);
 

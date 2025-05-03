@@ -7,21 +7,20 @@ using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
 
 namespace crudex.Classes
 {
-    public class SqlServerScripts
+    public class ScriptsPostgreSql
     {
         static readonly string DirectoryScripts = Path.Combine(Settings.Builder.Environment.ContentRootPath, Settings.Get("DIRECTORY_SCRIPTS"));
         static readonly HashSet<string> ReservedColumnNames = new([
             "Data",
             "ClassName",
             "ListItemValue",
-            "_", 
+            "_",
             "CreatedAt",
             "CreatedBy",
             "UpdatedAt",
             "UpdatedBy",
             "UniqueIdentifier",
             ], StringComparer.OrdinalIgnoreCase);
-        //static readonly string ReservedColumnNames = ";Data;ClassName;ListItemValue;_;CreatedAt;CreatedBy;UpdatedAt;UpdatedBy;UniqueIdentifier;";
         public static async Task Generate(string systemName = "crudex", string databaseName = "crudex", bool saveInDisk = true, bool? isExcel = null, bool withInsertData = true)
         {
             var result = new StringBuilder();
@@ -112,7 +111,7 @@ namespace crudex.Classes
             var dataset = (await Procedure.Execute(Settings.ConnectionString(),
                                                Settings.Get("SCRIPT_SYSTEM_PROCEDURE"),
                                                Config.ToDictionary(Config.ToDictionary(new
-                                               {})))).DataSet;
+                                               { })))).DataSet;
 
             dataset.Tables[0].TableName = "Categories";
             dataset.Tables[1].TableName = "Types";
@@ -162,7 +161,7 @@ namespace crudex.Classes
                 if (result.ContainsKey("Range"))
                     result["Range"] += $" AND [{column["Name"]}] <= CAST('{value}' AS {column["#DataType"]}))";
                 else
-                    result.Add("Range", $" CHECK ([{column["Name"]}] <= CAST('{value}' AS {column["#DataType"]}))"); 
+                    result.Add("Range", $" CHECK ([{column["Name"]}] <= CAST('{value}' AS {column["#DataType"]}))");
                 result.Add("Maximum", value);
             }
 
@@ -343,7 +342,7 @@ namespace crudex.Classes
         {
             var result = new StringBuilder();
             var columnRows = columns.FindAll(column => Settings.ToLong(column["TableId"]) == Settings.ToLong(table["Id"]));
-            
+
             if (columnRows.Count > 0)
             {
                 var firstTime = true;
@@ -425,7 +424,8 @@ namespace crudex.Classes
                         if (indexkeyRows.Count > 0)
                         {
                             firstTime = true;
-                            foreach (var indexkey in indexkeyRows)                            {
+                            foreach (var indexkey in indexkeyRows)
+                            {
                                 var column = columns.First(column => Settings.ToLong(column["Id"]) == Settings.ToLong(indexkey["ColumnId"]));
                                 var definition = $"[{column["Name"]}] {(Settings.ToBoolean(indexkey["IsDescending"]) ? "DESC" : "ASC")}";
 
@@ -1038,7 +1038,7 @@ namespace crudex.Classes
                     foreach (var index in uniqueIndexRows)
                     {
                         var indexkeyRows = indexkeys.FindAll(indexkey => Settings.ToLong(indexkey["IndexId"]) == Settings.ToLong(index["Id"]));
-                        
+
                         firstTime = true;
                         foreach (var indexkey in indexkeyRows)
                         {
@@ -1101,13 +1101,13 @@ namespace crudex.Classes
             else
                 tmpNames.Add(referenceTableName, tmpName = $"#{referenceTableName}");
             ProcessedTableIds.Add(Settings.ToLong(reference["TableId"]));
-            foreach ( var column in columnRows)
+            foreach (var column in columnRows)
             {
                 if (firstTime)
                 {
                     if (spaces != "")
                         result.Append($"        INSERT INTO [{tmpName}]\r\n");
-                        
+
                     result.Append($"{spaces}        SELECT DISTINCT '{column["#TableAlias"]}' AS ClassName\r\n");
                     firstTime = false;
                 }
@@ -1370,7 +1370,7 @@ namespace crudex.Classes
                 }
                 foreach (var item in tmpTemps)
                     result.Append($"        SELECT [{item.Key}].* FROM [{item.Value}] AS [{item.Key}]\r\n");
-                
+
                 result.Append($"        SET @ReturnValue = @RowCount\r\n");
                 result.Append($"\r\n");
                 result.Append($"        RETURN 0\r\n");

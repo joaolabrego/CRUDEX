@@ -13,8 +13,8 @@ export default class TMenu {
         if (styles.ClassName !== "Styles")
             throw new Error("Argumento styles não é do tipo Styles.");
 
-        const GetOptions = (item, isPopup, firstItem, lastItem) => {
-            const li = document.createElement("li");
+        let GetOptions = (item, isPopup, firstItem, lastItem) => {
+            let li = document.createElement("li");
 
             li.title = item.Message;
             if (firstItem)
@@ -22,19 +22,21 @@ export default class TMenu {
             if (lastItem)
                 li.className = " lastItem";
 
-            const a = document.createElement("a");
+            let a = document.createElement("a");
+
             a.innerText = item.Caption;
             li.appendChild(a);
 
             let subItems = rowsMenu.filter(row => row.ParentMenuId == item.Id);
             if (subItems.length) {
                 if (isPopup) {
-                    const a = document.createElement("a");
+                    let a = document.createElement("a");
+
                     a.className = "parentMenu";
                     a.innerText = String.fromCharCode(9654);
                     li.appendChild(a);
                 }
-                const ul = document.createElement("ul");
+                let ul = document.createElement("ul");
 
                 subItems.forEach((row, index) => {
                     ul.appendChild(GetOptions(row, true, index === 0, index === subItems.length - 1));

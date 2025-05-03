@@ -9,7 +9,7 @@
 
 .main {
     height: var(--main-height);
-    overflow-x: hidden;
+    overflow-x: auto;
     overflow-y: auto;
     opacity: var(--opacity-screen);
 }
