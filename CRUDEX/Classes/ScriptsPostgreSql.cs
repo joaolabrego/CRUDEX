@@ -12,7 +12,7 @@ namespace crudex.Classes
         static readonly string DirectoryScripts = Path.Combine(Settings.Builder.Environment.ContentRootPath, Settings.Get("DIRECTORY_SCRIPTS"));
         static readonly HashSet<string> ReservedColumnNames = new([
             "Data",
-            "ClassName",
+            "Kind",
             "ListItemValue",
             "_",
             "CreatedAt",
