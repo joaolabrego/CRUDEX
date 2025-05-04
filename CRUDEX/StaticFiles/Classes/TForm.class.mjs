@@ -69,32 +69,49 @@ export default class TForm {
     }
     #GetCheckBox(column) {
         let control = document.createElement("input"),
-            isEmptyValue = TConfig.IsEmpty(this.#Record[column.Name]);
+            value = this.#Record[column.Name],
+            isEmptyValue = TConfig.IsEmpty(value),
+            isGreenNull = false;
 
         control.type = column.Domain.Type.Category.HtmlInputType;
         control.indeterminate = isEmptyValue;
-        control.checked = this.#Record[column.Name];
-        control.title = isEmptyValue ? 'nulo' : control.checked ? "sim" : "não";
-        control.onclick = (event) => {
-            if (event.target.readOnly)
-                return false;
+        control.checked = value;
+        control.title = isEmptyValue ? "nulo" : control.checked ? "sim" : "não";
+        control.style.accentColor = "";
 
+        control.onclick = (event) => {
+            if (event.target.readOnly) return false;
+
+            if (column.IsRequired || this.#Action !== TActions.FILTER) {
+                if (this.#Record[column.Name] === false) {
+                    this.#Record[column.Name] = true;
+                } else if (this.#Record[column.Name] === true) {
+                    this.#Record[column.Name] = null;
+                } else {
+                    this.#Record[column.Name] = false;
+                }
+            } else {
+                if (this.#Record[column.Name] === false) {
+                    this.#Record[column.Name] = true;
+                    isGreenNull = false;
+                } else if (this.#Record[column.Name] === true) {
+                    this.#Record[column.Name] = null;
+                    isGreenNull = false;
+                } else if (this.#Record[column.Name] === null && !isGreenNull) {
+                    isGreenNull = true;
+                } else {
+                    this.#Record[column.Name] = false;
+                    isGreenNull = false;
+                }
+            }
             let isEmptyValue = TConfig.IsEmpty(this.#Record[column.Name]);
 
-            if (isEmptyValue) {
-                this.#Record[column.Name] = false;
-                isEmptyValue = false;
-            }
-            else if (this.#Record[column.Name] === false)
-                this.#Record[column.Name] = true;
-            else {
-                this.#Record[column.Name] = null;
-                isEmptyValue = true;
-            }
             event.target.indeterminate = isEmptyValue;
-            event.target.checked = event.target.value = this.#Record[column.Name];
-            event.target.title = event.target.indeterminate ? "nulo" : event.target.checked ? "sim" : "não";
-        };
+            event.target.checked = this.#Record[column.Name];
+            event.target.value = this.#Record[column.Name];
+            event.target.title = isEmptyValue ? isGreenNull ? "valor nulo" : "nulo" : event.target.checked ? "sim" : "não";
+            event.target.style.accentColor = isEmptyValue && isGreenNull ? "green" : "";
+        }
 
         return control;
     }

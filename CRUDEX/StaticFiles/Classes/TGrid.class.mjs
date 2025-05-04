@@ -361,7 +361,8 @@ export default class TGrid {
 
         if (htmlInputType === "checkbox") {
             control = document.createElement("input");
-            if (TConfig.IsEmpty(value)) control.hidden = "hidden";
+            if (TConfig.IsEmpty(value))
+                control.hidden = "hidden";
             else {
                 control.type = htmlInputType;
                 control.checked = value;

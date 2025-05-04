@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulador ACCEPT COBOL — Insert, Overwrite, Delete</title>
+    <style>
+        body {
+            background: black;
+            color: green;
+            font-family: monospace;
+            white-space: pre;
+            font-size: 16px;
+        }
+        #terminal {
+            width: 80ch;
+            height: 25em;
+            border: 1px solid #444;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal"></div>
+    <script>
+        const screen = Array(25).fill(" ".repeat(80));
+        let currentInput = "";
+        let cursorPos = 0;
+        const maxLength = 25;
+        const lineIndex = 5;
+        let cursorVisible = true;
+        let insertMode = true;
+
+        function render() {
+            let displayInput = currentInput.padEnd(maxLength, "_");
+            if (cursorVisible) {
+                displayInput = displayInput.substring(0, cursorPos) + "█" + displayInput.substring(cursorPos + 1);
+            }
+            const mode = insertMode ? "[INS]" : "[OVR]";
+            const field = `Nome: ${displayInput} ${mode}`;
+            screen[lineIndex] = field.padEnd(80, " ");
+            document.getElementById("terminal").textContent = screen.join("\n");
+        }
+
+        function processInput(value) {
+            screen[lineIndex + 2] = `Você digitou: ${value}`;
+        }
+
+        document.addEventListener("keydown", e => {
+            if (e.key.length === 1 && currentInput.length < maxLength) {
+                if (insertMode) {
+                    currentInput = 
+                        currentInput.substring(0, cursorPos) + e.key + currentInput.substring(cursorPos);
+                } else {
+                    currentInput = 
+                        currentInput.substring(0, cursorPos) + e.key + currentInput.substring(cursorPos + 1);
+                }
+                if (cursorPos < maxLength) cursorPos++;
+            } 
+            else if (e.key === "Backspace") {
+                if (cursorPos > 0) {
+                    currentInput = 
+                        currentInput.substring(0, cursorPos - 1) + currentInput.substring(cursorPos);
+                    cursorPos--;
+                }
+            } 
+            else if (e.key === "Delete") {
+                if (cursorPos < currentInput.length) {
+                    currentInput = 
+                        currentInput.substring(0, cursorPos) + currentInput.substring(cursorPos + 1);
+                }
+            } 
+            else if (e.key === "ArrowLeft") {
+                if (cursorPos > 0) cursorPos--;
+            } 
+            else if (e.key === "ArrowRight") {
+                if (cursorPos < currentInput.length) cursorPos++;
+            } 
+            else if (e.key === "Insert") {
+                insertMode = !insertMode;
+            }
+            else if (e.key === "Enter") {
+                processInput(currentInput);
+                currentInput = "";
+                cursorPos = 0;
+            }
+            render();
+        });
+
+        setInterval(() => {
+            cursorVisible = !cursorVisible;
+            render();
+        }, 500);
+
+        screen[0] = "Simulador ACCEPT estilo COBOL";
+        screen[1] = "Digite seu nome abaixo e pressione Enter:";
+        render();
+    </script>
+</body>
+</html>
