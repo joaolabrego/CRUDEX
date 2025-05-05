@@ -13,41 +13,47 @@ export default class TMenu {
         if (styles.ClassName !== "Styles")
             throw new Error("Argumento styles não é do tipo Styles.");
 
-        let GetOptions = (item, isPopup, firstItem, lastItem) => {
-            let li = document.createElement("li");
+        let menuWidth = 0,
+            GetOptions = (item, isPopup, firstItem, lastItem) => {
+                let li = document.createElement("li");
 
-            li.title = item.Message;
-            if (firstItem)
-                li.className = "firstItem";
-            if (lastItem)
-                li.className = " lastItem";
+                li.title = item.Message;
+                if (firstItem)
+                    li.className = "firstItem";
+                if (lastItem)
+                    li.className = " lastItem";
 
-            let a = document.createElement("a");
-
-            a.innerText = item.Caption;
-            li.appendChild(a);
-
-            let subItems = rowsMenu.filter(row => row.ParentMenuId == item.Id);
-            if (subItems.length) {
-                if (isPopup) {
-                    let a = document.createElement("a");
-
-                    a.className = "parentMenu";
-                    a.innerText = String.fromCharCode(9654);
-                    li.appendChild(a);
+                if (item.Caption.length > menuWidth) {
+                    menuWidth = item.Caption.length
+                    document.documentElement.style.setProperty("--menu-width", `${Math.ceil(menuWidth * 1.10)}ch`);
                 }
-                let ul = document.createElement("ul");
 
-                subItems.forEach((row, index) => {
-                    ul.appendChild(GetOptions(row, true, index === 0, index === subItems.length - 1));
-                });
-                li.appendChild(ul);
-            }
-            else if (item.Action)
-                li.onclick = () => TSystem.Action = item.Action;
+                let a = document.createElement("a");
 
-            return li;
-        };
+                a.innerText = item.Caption;
+                li.appendChild(a);
+
+                let subItems = rowsMenu.filter(row => row.ParentMenuId == item.Id);
+                if (subItems.length) {
+                    if (isPopup) {
+                        let span = document.createElement("span");
+
+                        span.className = "parentMenu";
+                        span.innerText = String.fromCharCode(9654);
+                        li.appendChild(span);
+                    }
+                    let ul = document.createElement("ul");
+
+                    subItems.forEach((row, index) => {
+                        ul.appendChild(GetOptions(row, true, index === 0, index === subItems.length - 1));
+                    });
+                    li.appendChild(ul);
+                }
+                else if (item.Action)
+                    li.onclick = () => TSystem.Action = item.Action;
+
+                return li;
+            };
 
         this.#HTML.Container = document.createElement("nav");
         this.#HTML.Container.className = "menu";

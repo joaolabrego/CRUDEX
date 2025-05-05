@@ -5,7 +5,7 @@
     --background-color-focus: burlywood;
     --background-color-active: beige;
     --background-color-extra: brown;
-    --menu-width: 28ch;
+    --menu-width: 0;
     --main-height: 87dvmin;
     --control-height: 5dvmin;
     --opacity-screen: 0.5;

@@ -61,6 +61,14 @@
     font-size: 2dvmin;
 }
 
+.menu ul li a {
+    display: inline-block;
+    width: 90%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 .firstItem {
     border-top-left-radius: var(--border-radius);
     border-top-right-radius: var(--border-radius);
