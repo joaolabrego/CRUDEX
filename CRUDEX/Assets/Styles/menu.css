@@ -11,7 +11,7 @@
     display: inline;
     background-color: var(--background-color-control);
     float: left;
-    width: calc(var(--menu-width) * 1.4);
+    width: var(--menu-width);
     height: var(--control-height);
     line-height: var(--control-height);
     text-align: center;
