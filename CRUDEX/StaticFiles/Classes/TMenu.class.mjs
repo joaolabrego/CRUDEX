@@ -8,11 +8,12 @@ export default class TMenu {
         Container: null,
         Style: null,
     };
+    static #Message = "Selecione a opção desejada e clique nela.";
 
     static Initialize(styles, rowsMenu) {
         if (styles.ClassName !== "Styles")
             throw new Error("Argumento styles não é do tipo Styles.");
-
+        console.log(rowsMenu)
         let menuWidth = 0,
             GetOptions = (item, isPopup, firstItem, lastItem) => {
                 let li = document.createElement("li");
@@ -51,6 +52,8 @@ export default class TMenu {
                 }
                 else if (item.Action)
                     li.onclick = () => TSystem.Action = item.Action;
+                li.onmouseenter = () => TScreen.Message = item.Message;
+                li.onmouseleave = () => TScreen.Message = this.#Message;
 
                 return li;
             };
@@ -76,6 +79,6 @@ export default class TMenu {
     static Renderize() {
         TScreen.Title = "Menu Principal";
         TScreen.Main = this.#HTML.Container;
-        TScreen.Message = "Selecione a opção desejada e clique nela.";
+        TScreen.Message = this.#Message;
     }
 }
