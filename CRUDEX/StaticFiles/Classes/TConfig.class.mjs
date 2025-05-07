@@ -109,10 +109,11 @@ export default class TConfig {
     static Evaluate(JSexpression) {
         return eval(JSexpression)
     }
-    static evaluateTableExpression(expression, table) {
+    static EvaluateTableExpression(expression, table) {
         const resolveColumnValue = (table, columnName) => {
             let column = table.GetColumn(columnName);
-            if (column) return column.Value;
+            if (column)
+                return column.Value;
 
             // Se a coluna não existir na tabela atual, verifica na tabela pai.
             if (table.ParentTableId) {

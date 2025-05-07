@@ -32,6 +32,14 @@
 
 .menu ul ul {
     display: none;
+    margin-top: 0;
+    padding-top: 1dvmin;
+}
+.menu ul ul {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
 }
 
 .menu ul li:hover>ul {

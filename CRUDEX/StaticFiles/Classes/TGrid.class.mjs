@@ -9,6 +9,7 @@ import TConfig from "./TConfig.class.mjs";
 
 export default class TGrid {
     #FilterValues = {};
+    #SearchValues = {};
     #RowCount = 0;
     #LastPageNumber = 1;
     #PageNumber = 1;
@@ -36,6 +37,7 @@ export default class TGrid {
         UpdateButton: null,
         DeleteButton: null,
         QueryButton: null,
+        SearchButton: null,
         FilterButton: null,
         UnorderButton: null,
         UnfilterButton: null,
@@ -47,6 +49,7 @@ export default class TGrid {
     static #Images = {
         Insert: "",
         Edit: "",
+        Search: "",
         Filter: "",
         Unfilter: "",
         Unorder: "",
@@ -67,8 +70,7 @@ export default class TGrid {
         this.#CreateRange();
         this.#HTML.Container.appendChild(this.#HTML.Range);
         this.#Table.Columns.filter((column) => column.IsFilterable).forEach(
-            (column) => (this.#FilterValues[column.Name] = null)
-        );
+            column => this.#FilterValues[column.Name] = this.#SearchValues = null);
     }
     static Initialize(styles, images) {
         if (styles.ClassName !== "Styles")
@@ -80,6 +82,7 @@ export default class TGrid {
         this.#Images.Query = images.Query;
         this.#Images.Edit = images.Edit;
         this.#Images.Exit = images.Exit;
+        this.#Images.Search = images.Search;
         this.#Images.Filter = images.Filter;
         this.#Images.Unfilter = images.Unfilter;
         this.#Images.Unorder = images.Unorder;
@@ -252,6 +255,22 @@ export default class TGrid {
 
         return false;
     }
+    SaveSearchs(record) {
+        for (let key in this.#SearchValues)
+            if (record.hasOwnProperty(key))
+                this.#SearchValues[key] = TConfig.IsEmpty(record[key])
+                    ? null
+                    : record[key];
+    }
+    ClearSearches() {
+        for (let key in this.#SearchValues) this.#SearchValues[key] = null;
+    }
+    IsSearched() {
+        for (let key in this.#SearchValues)
+            if (this.#SearchValues[key] != null) return true;
+
+        return false;
+    }
     async #ReadDataPage(pageNumber) {
         let parameters = {
             DatabaseName: this.#Table.Database.Name,
@@ -260,6 +279,7 @@ export default class TGrid {
             InParams: {
                 LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(this.#FilterValues),
+                //RecordSearch: this.IsSearched() ? JSON.stringify(this.#SearchValues) : null,
                 OrderBy: this.OrderBy,
                 PaddingGridLastPage: TSystem.PaddingGridLastPage,
                 IsActionList: false,
@@ -572,6 +592,22 @@ export default class TGrid {
                 if (form) form.Renderize();
             });
         th.appendChild(this.#HTML.QueryButton);
+
+        this.#HTML.SearchButton = document.createElement("button");
+        this.#HTML.SearchButton.type = "button";
+        this.#HTML.SearchButton.style.backgroundImage = TGrid.#Images.Search;
+        this.#HTML.SearchButton.title = "Pesquisar registro (alt-p)";
+        this.#HTML.SearchButton.hidden =
+            !filtered && this.#RowCount <= TSystem.RowsPerPage;
+        this.#HTML.SearchButton.onmouseenter = () =>
+            (TScreen.Message = "Filtrar registros");
+        this.#HTML.SearchButton.onmouseleave = () =>
+            (TScreen.Message = TScreen.LastMessage);
+        this.#HTML.SearchButton.onclick = async () => {
+            (await new TForm(this, TActions.SEARCH).Configure()).Renderize();
+        };
+        th.appendChild(this.#HTML.SearchButton);
+
 
         this.#HTML.FilterButton = document.createElement("button");
         this.#HTML.FilterButton.type = "button";

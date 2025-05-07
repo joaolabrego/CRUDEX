@@ -9,6 +9,7 @@
         public readonly string Error;
         public readonly string Insert;
         public readonly string Edit;
+        public readonly string Search;
         public readonly string Filter;
         public readonly string Unfilter;
         public readonly string Unorder;
@@ -27,6 +28,7 @@
             Error = ReadImageFile(Path.Combine(directory, $"{Settings.Get("ERROR_IMAGE")}"));
             Insert = ReadImageFile(Path.Combine(directory, $"{Settings.Get("INSERT_IMAGE")}"), true);
             Edit = ReadImageFile(Path.Combine(directory, $"{Settings.Get("EDIT_IMAGE")}"), true);
+            Search = ReadImageFile(Path.Combine(directory, $"{Settings.Get("SEARCH_IMAGE")}"), true);
             Filter = ReadImageFile(Path.Combine(directory, $"{Settings.Get("FILTER_IMAGE")}"), true);
             Unfilter = ReadImageFile(Path.Combine(directory, $"{Settings.Get("UNFILTER_IMAGE")}"), true);
             Unorder = ReadImageFile(Path.Combine(directory, $"{Settings.Get("UNORDER_IMAGE")}"), true);

@@ -71,7 +71,7 @@ export default class TForm {
         let control = document.createElement("input"),
             value = this.#Record[column.Name],
             isEmptyValue = TConfig.IsEmpty(value),
-            isGreenNull = false;
+            isBlackNull = false;
 
         control.type = column.Domain.Type.Category.HtmlInputType;
         control.indeterminate = isEmptyValue;
@@ -82,7 +82,7 @@ export default class TForm {
         control.onclick = (event) => {
             if (event.target.readOnly) return false;
 
-            if (column.IsRequired || this.#Action !== TActions.FILTER) {
+            if (column.IsRequired || (this.#Action !== TActions.FILTER && this.#Action !== TActions.SEARCH)) {
                 if (this.#Record[column.Name] === false) {
                     this.#Record[column.Name] = true;
                 } else if (this.#Record[column.Name] === true) {
@@ -93,15 +93,15 @@ export default class TForm {
             } else {
                 if (this.#Record[column.Name] === false) {
                     this.#Record[column.Name] = true;
-                    isGreenNull = false;
+                    isBlackNull = false;
                 } else if (this.#Record[column.Name] === true) {
                     this.#Record[column.Name] = null;
-                    isGreenNull = false;
-                } else if (this.#Record[column.Name] === null && !isGreenNull) {
-                    isGreenNull = true;
+                    isBlackNull = false;
+                } else if (this.#Record[column.Name] === null && !isBlackNull) {
+                    isBlackNull = true;
                 } else {
                     this.#Record[column.Name] = false;
-                    isGreenNull = false;
+                    isBlackNull = false;
                 }
             }
             let isEmptyValue = TConfig.IsEmpty(this.#Record[column.Name]);
@@ -109,8 +109,8 @@ export default class TForm {
             event.target.indeterminate = isEmptyValue;
             event.target.checked = this.#Record[column.Name];
             event.target.value = this.#Record[column.Name];
-            event.target.title = isEmptyValue ? isGreenNull ? "valor nulo" : "nulo" : event.target.checked ? "sim" : "não";
-            event.target.style.accentColor = isEmptyValue && isGreenNull ? "green" : "";
+            event.target.title = isEmptyValue ? isBlackNull ? "valor nulo" : "nulo" : event.target.checked ? "sim" : "não";
+            event.target.style.accentColor = isEmptyValue && isBlackNull ? "black" : "";
         }
 
         return control;
@@ -233,6 +233,10 @@ export default class TForm {
                 columns = columns.filter(column => column.IsEditable);
                 columns.forEach(column => this.#Record[column.Name] = null);
                 break;
+            case TActions.SEARCH:
+                columns = columns.filter(column => column.IsFilterable);
+                columns.forEach(column => this.#Record[column.Name] = null);
+                break;
             case TActions.FILTER:
                 columns = columns.filter(column => column.IsFilterable);
                 columns.forEach(column => this.#Record[column.Name] = this.#Grid.FilterValues[column.Name]);
@@ -268,6 +272,10 @@ export default class TForm {
             case TActions.DELETE:
                 title = "Exclusão";
                 message = "Clique em confirmar para excluir...";
+                break;
+            case TActions.SEARCH:
+                title = "Pesquisa";
+                message = "Digite as informações e clique em confirmar para pesquisá-las...";
                 break;
             case TActions.FILTER:
                 title = "Filtragem";

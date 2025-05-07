@@ -19,6 +19,7 @@
     static get READ() { return "read" }
     static get UPDATE() { return "update" }
     static get DELETE() { return "delete" }
+    static get SEARCH() { return "search" }
     static get FILTER() { return "filter" }
     static get UNFILTER() { return "unfilter" }
     static get QUERY() { return "query" }
