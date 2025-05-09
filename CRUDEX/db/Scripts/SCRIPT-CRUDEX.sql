@@ -561,6 +561,23 @@ CREATE UNIQUE INDEX [UNQ_Unicities_UniqueIdentifier] ON [dbo].[Unicities]([Uniqu
 GO
 
 /**********************************************************************************
+Criar tabela [dbo].[Operators]
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Operators]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Operators]
+CREATE TABLE [dbo].[Operators]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
+                                    ,[Name] nvarchar(15) NOT NULL
+                                    ,[CodeSQL] nvarchar(15) NOT NULL
+                                    ,[CodeJS] nvarchar(15) NULL
+                                    ,[CreatedAt] datetime NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
+                                    ,[UpdatedAt] datetime NULL
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[ClientId] bigint NOT NULL DEFAULT 1
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
+ALTER TABLE [dbo].[Operators] ADD CONSTRAINT PK_Operators PRIMARY KEY CLUSTERED ([Id])
+
+/**********************************************************************************
 Criar stored procedure [dbo].[Config]
 **********************************************************************************/
 IF(SELECT object_id('[dbo].[Config]', 'P')) IS NULL
@@ -6099,6 +6116,29 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[ParentTableId]
+                                ,[IsLegacy]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('21' AS bigint)
+                                ,CAST('Operators' AS nvarchar(25))
+                                ,CAST('Operator' AS nvarchar(25))
+                                ,CAST('Operadores relacionais' AS nvarchar(50))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('9' AS bigint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[DatabasesTables]
@@ -6438,6 +6478,23 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('crudex x Unicities' AS nvarchar(50))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('21' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('crudex x Operators' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13814,6 +13871,218 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('140' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('5' AS bigint)
+                                ,NULL
+                                ,CAST('Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('ID do operador' AS nvarchar(50))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,CAST('ID' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('141' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('7' AS bigint)
+                                ,NULL
+                                ,CAST('Name' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Nome do operador' AS nvarchar(50))
+                                ,CAST('Nome' AS nvarchar(25))
+                                ,CAST('Nome' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('142' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('7' AS bigint)
+                                ,NULL
+                                ,CAST('CodeSQL' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Código SQL do operador' AS nvarchar(50))
+                                ,CAST('SQL' AS nvarchar(25))
+                                ,CAST('SQL' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('143' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('7' AS bigint)
+                                ,NULL
+                                ,CAST('CodeJS' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Código JS do operador' AS nvarchar(50))
+                                ,CAST('JS' AS nvarchar(25))
+                                ,CAST('JS' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Indexes]
@@ -15153,6 +15422,163 @@ INSERT INTO [dbo].[Unicities] ([Id]
                                 ,CAST('87' AS bigint)
                                 ,CAST('88' AS bigint)
                                 ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Operators]
+**********************************************************************************/
+INSERT INTO [dbo].[Operators] ([Id]
+                                ,[Name]
+                                ,[CodeSQL]
+                                ,[CodeJS]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS tinyint)
+                                ,CAST('<' AS nvarchar(15))
+                                ,CAST('<' AS nvarchar(15))
+                                ,CAST('<' AS nvarchar(15))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Operators] ([Id]
+                                ,[Name]
+                                ,[CodeSQL]
+                                ,[CodeJS]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS tinyint)
+                                ,CAST('≤' AS nvarchar(15))
+                                ,CAST('<=' AS nvarchar(15))
+                                ,CAST('<=' AS nvarchar(15))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Operators] ([Id]
+                                ,[Name]
+                                ,[CodeSQL]
+                                ,[CodeJS]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('3' AS tinyint)
+                                ,CAST('=' AS nvarchar(15))
+                                ,CAST('=' AS nvarchar(15))
+                                ,CAST('===' AS nvarchar(15))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Operators] ([Id]
+                                ,[Name]
+                                ,[CodeSQL]
+                                ,[CodeJS]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('4' AS tinyint)
+                                ,CAST('≥' AS nvarchar(15))
+                                ,CAST('>=' AS nvarchar(15))
+                                ,CAST('>=' AS nvarchar(15))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Operators] ([Id]
+                                ,[Name]
+                                ,[CodeSQL]
+                                ,[CodeJS]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('5' AS tinyint)
+                                ,CAST('>' AS nvarchar(15))
+                                ,CAST('>' AS nvarchar(15))
+                                ,CAST('>' AS nvarchar(15))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Operators] ([Id]
+                                ,[Name]
+                                ,[CodeSQL]
+                                ,[CodeJS]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('6' AS tinyint)
+                                ,CAST('#' AS nvarchar(15))
+                                ,CAST('<>' AS nvarchar(15))
+                                ,CAST('!==' AS nvarchar(15))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Operators] ([Id]
+                                ,[Name]
+                                ,[CodeSQL]
+                                ,[CodeJS]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('7' AS tinyint)
+                                ,CAST('a ≤ x ≤ b' AS nvarchar(15))
+                                ,CAST('BETWEEN' AS nvarchar(15))
+                                ,NULL
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Operators] ([Id]
+                                ,[Name]
+                                ,[CodeSQL]
+                                ,[CodeJS]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('8' AS tinyint)
+                                ,CAST('not' AS nvarchar(15))
+                                ,CAST('NOT' AS nvarchar(15))
+                                ,CAST('!' AS nvarchar(15))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Operators] ([Id]
+                                ,[Name]
+                                ,[CodeSQL]
+                                ,[CodeJS]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('9' AS tinyint)
+                                ,CAST('like' AS nvarchar(15))
+                                ,CAST('LIKE' AS nvarchar(15))
+                                ,NULL
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -27586,4 +28012,560 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
 END
 GO
 
+
+/**********************************************************************************
+Criar stored procedure [dbo].[OperatorValidate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperatorValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperatorValidate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperatorValidate](@SessionId BIGINT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @SessionId IS NULL
+            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName é requerido', 1
+        IF @Action IS NULL
+            THROW 51000, 'Valor de @Action é requerido', 1
+        IF @Action NOT IN ('create', 'update', 'delete')
+            THROW 51000, 'Valor de @Action é inválido', 1
+        IF @ActualRecord IS NULL
+            THROW 51000, 'Valor de @ActualRecord é requerido', 1
+        IF ISJSON(@ActualRecord) = 0
+            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+               ,@IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
+        IF @TransactionId IS NULL
+            THROW 51000, 'Não existe transação para este @SessionId', 1
+        SELECT @IsConfirmed = [IsConfirmed]
+              ,@CreatedBy = [CreatedBy]
+            FROM [dbo].[Transactions]
+            WHERE [Id] = @TransactionId
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1;
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS tinyint)
+            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
+        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+            IF @Action = 'create'
+                THROW 51000, 'Chave-primária já existe em Operators', 1
+        END ELSE IF @Action <> 'create'
+            THROW 51000, 'Chave-primária não existe em Operators', 1
+        IF @Action <> 'create' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF @Action = 'update'
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'tinyint') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.CodeSQL'), JSON_VALUE(@LastRecord, '$.CodeSQL'), 'nvarchar') = 1
+                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.CodeJS'), JSON_VALUE(@LastRecord, '$.CodeJS'), 'nvarchar') = 1
+                THROW 51000, 'Nenhuma alteração feita no registro', 1
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operators]
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [CodeSQL] = JSON_VALUE(@LastRecord, '$.CodeSQL')
+                                  AND [crudex].[IS_EQUAL]([CodeJS], JSON_VALUE(@LastRecord, '$.CodeJS'), 'nvarchar') = 1)
+                THROW 51000, 'Registro de Operators alterado por outro usuário', 1
+        END
+
+        IF @Action <> 'delete' BEGIN
+
+            DECLARE @W_Name nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(15))
+                   ,@W_CodeSQL nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.CodeSQL') AS nvarchar(15))
+                   ,@W_CodeJS nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.CodeJS') AS nvarchar(15))
+
+            IF @W_Name IS NULL
+                THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
+            IF @W_CodeSQL IS NULL
+                THROW 51000, 'Valor de CodeSQL em @ActualRecord é requerido.', 1
+        END
+
+        RETURN @TransactionId
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[OperatorPersist]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperatorPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperatorPersist] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperatorPersist](@SessionId BIGINT
+                                              ,@UserName NVARCHAR(25)
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
+           ,@ErrorMessage NVARCHAR(255)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @TransactionId BIGINT
+               ,@OperationId BIGINT
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
+               ,@IsConfirmed BIT
+               ,@W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        EXEC @TransactionId = [dbo].[OperatorValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
+              ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Columns'
+                  AND [IsConfirmed] IS NULL
+                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = @W_Id
+        IF @@ROWCOUNT = 0 BEGIN
+            INSERT INTO [dbo].[Operations] ([TransactionId]
+                                             ,[TableName]
+                                             ,[Action]
+                                             ,[LastRecord]
+                                             ,[ActualRecord]
+                                             ,[IsConfirmed]
+                                             ,[CreatedAt]
+                                             ,[CreatedBy])
+                                       VALUES(@TransactionId
+                                             ,'Operators'
+                                             ,@Action
+                                             ,@LastRecord
+                                             ,@ActualRecord
+                                             ,NULL
+                                             ,GETDATE()
+                                             ,@UserName)
+            SET @OperationId = @@IDENTITY
+        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END ELSE IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        ELSE IF @ActionAux = 'delete'
+            THROW 51000, 'Registro excluído nesta transação', 1
+        ELSE IF @Action = 'create'
+            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'update' BEGIN
+            IF @ActionAux = 'create'
+                EXEC [dbo].[OperatorValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END ELSE IF @ActionAux = 'create' BEGIN
+            UPDATE [dbo].[Operations] 
+                SET [IsConfirmed] = 0
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END ELSE BEGIN
+            UPDATE [dbo].[Operations]
+                SET [Action] = 'delete'
+                   ,[LastRecord] = @LastRecord
+                   ,[ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
+        COMMIT TRANSACTION
+
+        RETURN CAST(@OperationId AS BIGINT)
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[OperatorCommit]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperatorCommit]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperatorCommit] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperatorCommit](@SessionId BIGINT
+                                             ,@UserName NVARCHAR(25)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @TRANCOUNT INT = @@TRANCOUNT
+            ,@ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+        DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+        BEGIN TRANSACTION
+        SAVE TRANSACTION [SavePoint]
+        IF @SessionId IS NULL
+            THROW 51000, 'Valor de @SessionId requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName requerido', 1
+        IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Operators'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        EXEC @TransactionIdAux = [dbo].[OperatorValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
+        IF @Action = 'delete'
+            DELETE FROM [dbo].[Operators] WHERE [Id] = @W_Id
+        ELSE BEGIN
+
+            DECLARE @W_Name nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(15))
+                   ,@W_CodeSQL nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.CodeSQL') AS nvarchar(15))
+                   ,@W_CodeJS nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.CodeJS') AS nvarchar(15))
+
+            IF @Action = 'create'
+                INSERT INTO [dbo].[Operators] ([Id]
+                                                ,[Name]
+                                                ,[CodeSQL]
+                                                ,[CodeJS]
+                                                ,[CreatedAt]
+                                                ,[CreatedBy])
+                                          VALUES (@W_Id
+                                                 ,@W_Name
+                                                 ,@W_CodeSQL
+                                                 ,@W_CodeJS
+                                                 ,GETDATE()
+                                                 ,@UserName)
+            ELSE
+                UPDATE [dbo].[Operators] SET [Id] = @W_Id
+                                              ,[Name] = @W_Name
+                                              ,[CodeSQL] = @W_CodeSQL
+                                              ,[CodeJS] = @W_CodeJS
+                                              ,[UpdatedAt] = GETDATE()
+                                              ,[UpdatedBy] = @UserName
+                    WHERE [Id] = @W_Id
+        END
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+        COMMIT TRANSACTION
+
+        RETURN @TransactionId
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > @TRANCOUNT BEGIN
+            ROLLBACK TRANSACTION [SavePoint];
+            COMMIT TRANSACTION
+        END;
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[OperatorsRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperatorsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperatorsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperatorsRead](@SessionId BIGINT
+                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue BIGINT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @SessionId IS NULL
+            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @RecordFilter IS NULL
+            SET @RecordFilter = '{}'
+        ELSE IF ISJSON(@RecordFilter) = 0
+            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
+        IF @OrderBy = ''
+            SET @OrderBy = '[Id]'
+        ELSE BEGIN
+            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
+                                                    FROM [sys].[columns] [#1]
+                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
+                                                    WHERE [#2].[name] = 'Operators') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
+                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
+            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
+                                                         ELSE 'ASC'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
+        END
+
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
+        SELECT [Action] AS [_]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) AS [Id]
+              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(15)) AS [Name]
+              ,CAST(JSON_VALUE([ActualRecord], '$.CodeSQL') AS nvarchar(15)) AS [CodeSQL]
+              ,CAST(JSON_VALUE([ActualRecord], '$.CodeJS') AS nvarchar(15)) AS [CodeJS]
+            INTO [#tmpOperations]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Operators'
+                  AND [IsConfirmed] IS NULL
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+               ,@Where NVARCHAR(MAX) = ''
+               ,@sql NVARCHAR(MAX)
+
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS tinyint)
+                   ,@W_Name nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(15))
+                   ,@W_CodeSQL nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.CodeSQL') AS nvarchar(15))
+                   ,@W_CodeJS nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.CodeJS') AS nvarchar(15))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS tinyint)
+                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
+            END
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
+            END
+            IF @W_CodeSQL IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[CodeSQL] = @CodeSQL'
+            END
+            IF @W_CodeJS IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[CodeJS] = @CodeJS'
+            END
+        END ELSE
+            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'
+        SET @sql = 'INSERT [#tmpTable]
+                        SELECT ''T'' AS [_]
+                              ,[T].[Id]
+                            FROM [dbo].[Operators] [T]
+                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                            WHERE [#].[Id] IS NULL' + @Where + '
+                        UNION ALL
+                            SELECT ''O'' AS [_]
+                                  ,[T].[Id]
+                                FROM [#tmpOperations] [T]
+                                WHERE [T].[_] <> ''delete''' + @Where
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] tinyint)
+        IF @_ IS NULL
+            EXEC sp_executesql @sql
+                               ,N'@Id tinyint
+                               ,@Name nvarchar(15)
+                               ,@CodeSQL nvarchar(15)
+                               ,@CodeJS nvarchar(15)'
+                           ,@Id = @W_Id
+                           ,@Name = @W_Name
+                           ,@CodeSQL = @W_CodeSQL
+                           ,@CodeJS = @W_CodeJS
+        ELSE
+            EXEC sp_executesql @sql
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS tinyint) AS [Id]
+                    ,CAST(NULL AS nvarchar(15)) AS [Name]
+                    ,CAST(NULL AS nvarchar(15)) AS [CodeSQL]
+                    ,CAST(NULL AS nvarchar(15)) AS [CodeJS]
+            INTO [#result]
+        SET @sql = 'INSERT #result
+                        SELECT ''Operator'' AS [Kind]
+                              ,[T].[Id]
+                              ,[T].[Name]
+                              ,[T].[CodeSQL]
+                              ,[T].[CodeJS]
+                            FROM [#tmpTable] [#]
+                                INNER JOIN [dbo].[Operators] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Operator'' AS [Kind]
+                                  ,[O].[Id]
+                                  ,[O].[Name]
+                                  ,[O].[CodeSQL]
+                                  ,[O].[CodeJS]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY ' + @OrderBy + '
+                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT [Kind]
+              ,[Id]
+              ,[Name]
+              ,[Name] AS [ListItemValue]
+              ,[CodeSQL]
+              ,[CodeJS]
+            FROM [#result]
+        SET @ReturnValue = @RowCount
+
+        RETURN 0
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[OperatorsList]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperatorsList]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperatorsList] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperatorsList](@Value nvarchar(15)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue BIGINT OUT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    BEGIN TRY
+        SET NOCOUNT ON
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        IF @Value IS NULL
+            SET @Value = ''
+        SELECT [Id]
+            INTO [#query]
+            FROM [dbo].[Operators]
+            WHERE [Name] LIKE '%' + @Value + '%'
+            ORDER BY [Name]
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+               ,@sql NVARCHAR(MAX)
+
+        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
+                          ,[T].[Name] AS [ListItemName]
+                       FROM [#query] [Q]
+                           INNER JOIN [dbo].[Operators] [T] ON [T].[Id] = [Q].[Id]
+                       ORDER BY [T].[Name]
+                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SET @ReturnValue = @RowCount
+
+        RETURN 0
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
+        THROW 51000, @ErrorMessage, 1
+    END CATCH
+END
+GO
 

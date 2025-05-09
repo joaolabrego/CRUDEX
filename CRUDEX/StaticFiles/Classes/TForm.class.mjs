@@ -80,7 +80,8 @@ export default class TForm {
         control.style.accentColor = "";
 
         control.onclick = (event) => {
-            if (event.target.readOnly) return false;
+            if (event.target.readOnly)
+                return false;
 
             if (column.IsRequired || (this.#Action !== TActions.FILTER && this.#Action !== TActions.SEARCH)) {
                 if (this.#Record[column.Name] === false) {
@@ -109,7 +110,7 @@ export default class TForm {
             event.target.indeterminate = isEmptyValue;
             event.target.checked = this.#Record[column.Name];
             event.target.value = this.#Record[column.Name];
-            event.target.title = isEmptyValue ? isBlackNull ? "valor nulo" : "nulo" : event.target.checked ? "sim" : "não";
+            event.target.title = isEmptyValue ? isBlackNull ? "nulo" : "vazio" : event.target.checked ? "sim" : "não";
             event.target.style.accentColor = isEmptyValue && isBlackNull ? "black" : "";
         }
 
@@ -200,7 +201,7 @@ export default class TForm {
             else if (this.#Action == TActions.FILTER && !event.target.Column.IsRequired && (event.key == "Backspace" || event.key == "Delete")) {
                 if (event.target.value === "") {
                     event.preventDefault();
-                    event.target.placeholder = event.target.placeholder ? "" : "null";
+                    event.target.placeholder = event.target.placeholder ? "" : "nulo";
                 }
             }
         };
