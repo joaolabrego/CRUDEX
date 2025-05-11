@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.Data.OleDb;
 using crudex.Classes.Models;
+using Microsoft.Data.SqlClient;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
 namespace CRUDEX.Classes
@@ -11,10 +12,10 @@ namespace CRUDEX.Classes
         public static async Task<TResult> Execute(string? connectionString, string? procedureName, TDictionary? parameters = null)
         {
             using var dataset = new DataSet();
-            using var connection = new OleDbConnection(connectionString);
+            using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(); // Tornando a abertura de conexão assíncrona
 
-            using var command = new OleDbCommand(procedureName, connection);
+            using var command = new SqlCommand(procedureName, connection);
             command.CommandType = CommandType.StoredProcedure;
 
             if (parameters != null)
@@ -27,11 +28,11 @@ namespace CRUDEX.Classes
 
                     if (listParameters != null)
                         foreach (var subItem in listParameters)
-                            command.Parameters.Add(new OleDbParameter(subItem.Key, subItem.Value ?? DBNull.Value) { Direction = direction });
+                            command.Parameters.Add(new SqlParameter(subItem.Key, subItem.Value ?? DBNull.Value) { Direction = direction });
                 }
             }
-            command.Parameters.Add(new OleDbParameter("ReturnValue", OleDbType.BigInt) { Direction = ParameterDirection.Output });
-            using var adapter = new OleDbDataAdapter(command);
+            command.Parameters.Add(new SqlParameter("ReturnValue", SqlDbType.BigInt) { Direction = ParameterDirection.Output });
+            using var adapter = new SqlDataAdapter(command);
             adapter.Fill(dataset);
             
             return new TResult(dataset, command.Parameters);

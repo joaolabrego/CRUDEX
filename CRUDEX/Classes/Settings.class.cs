@@ -1,9 +1,7 @@
-﻿using Microsoft.Extensions.FileProviders;
+﻿using Microsoft.Data.SqlClient;
 using System.Data;
-using System.Data.OleDb;
 using System.Globalization;
 using System.Text;
-using Windows.System;
 
 namespace CRUDEX.Classes
 {
@@ -56,11 +54,11 @@ namespace CRUDEX.Classes
         }
         public static string ConnectionString()
         {
-            return new OleDbConnectionStringBuilder(Get("ConnectionString")).ToString();
+            return new SqlConnectionStringBuilder(Get("ConnectionString")).ToString();
         }
         public static string ConnectionString(DataRow connection)
         {
-            return new OleDbConnectionStringBuilder(connection["ConnectionString"].ToString()).ToString();
+            return new SqlConnectionStringBuilder(connection["ConnectionString"].ToString()).ToString();
         }
         public static string GetEnvironment()
         {

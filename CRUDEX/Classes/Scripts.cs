@@ -1150,7 +1150,7 @@ namespace crudex.Classes
                 result.Append($"IF(SELECT object_id('[dbo].[{table["Name"]}Read]', 'P')) IS NULL\r\n");
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}Read] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
-                result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}Read](@SessionId BIGINT\r\n");
+                result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}Read](@LoginId BIGINT\r\n");
                 result.Append($"                                          ,@RecordFilter NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@OrderBy NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@PaddingGridLastPage BIT\r\n");
@@ -1164,8 +1164,8 @@ namespace crudex.Classes
                 result.Append($"    BEGIN TRY\r\n");
                 result.Append($"        SET NOCOUNT ON\r\n");
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
-                result.Append($"        IF @SessionId IS NULL\r\n");
-                result.Append($"            THROW 51000, 'Valor de @SessionId é requerido', 1\r\n");
+                result.Append($"        IF @LoginId IS NULL\r\n");
+                result.Append($"            THROW 51000, 'Valor de @LoginId é requerido', 1\r\n");
                 result.Append($"        IF @RecordFilter IS NULL\r\n");
                 result.Append("            SET @RecordFilter = '{}'\r\n");
                 result.Append($"        ELSE IF ISJSON(@RecordFilter) = 0\r\n");
@@ -1198,7 +1198,7 @@ namespace crudex.Classes
                 result.Append($"                FROM STRING_SPLIT(@OrderBy, ',')\r\n");
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)\r\n");
+                result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)\r\n");
                 result.Append($"            SET @TransactionId = NULL\r\n");

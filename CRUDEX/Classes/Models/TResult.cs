@@ -1,8 +1,7 @@
-﻿using CRUDEX.Classes;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Data;
-using System.Data.OleDb;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
+
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
 namespace crudex.Classes.Models
@@ -12,10 +11,10 @@ namespace crudex.Classes.Models
         public readonly string ClassName = "TResult";
         public readonly DataSet DataSet;
         public TDictionary Parameters { get; } = [];
-        public TResult(DataSet dataset, OleDbParameterCollection parameters)
+        public TResult(DataSet dataset, SqlParameterCollection parameters)
         {
             DataSet = dataset;
-            foreach (OleDbParameter parameter in parameters)
+            foreach (SqlParameter parameter in parameters)
                 Parameters.Add(parameter.ParameterName[(parameter.ParameterName.StartsWith('@') ? 1 : 0)..], parameter.Value);
         }
         public override string ToString()

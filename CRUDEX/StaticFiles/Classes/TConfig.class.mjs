@@ -1,7 +1,6 @@
 ﻿"use strict"
 
 import TActions from "./TActions.class.mjs"
-import TCrypto from "./TCrypto.class.mjs"
 import TLogin from "./TLogin.class.mjs"
 import TScreen from "./TScreen.class.mjs"
 import TSystem from "./TSystem.class.mjs"

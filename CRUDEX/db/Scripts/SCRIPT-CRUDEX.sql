@@ -5596,7 +5596,7 @@ INSERT INTO [dbo].[Connections] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS bigint)
                                 ,CAST('dev' AS nvarchar(3))
-                                ,CAST('Provider=MSOLEDBSQL;Data Source=localhost,1433;Initial Catalog=crudex;Integrated Security=SSPI;Encrypt=yes;TrustServerCertificate=yes;Persist Security Info=False;Connect Timeout=30;' AS nvarchar(256))
+                                ,CAST('Data Source=localhost,1433;Initial Catalog=crudex;Integrated Security=SSPI;Encrypt=yes;TrustServerCertificate=yes;Persist Security Info=False;Connect Timeout=30;' AS nvarchar(256))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15967,7 +15967,7 @@ Criar stored procedure [dbo].[CategoriesRead]
 IF(SELECT object_id('[dbo].[CategoriesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[CategoriesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[CategoriesRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -15981,8 +15981,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -16015,7 +16015,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -16696,7 +16696,7 @@ Criar stored procedure [dbo].[TypesRead]
 IF(SELECT object_id('[dbo].[TypesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TypesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TypesRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -16710,8 +16710,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -16744,7 +16744,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -17367,7 +17367,7 @@ Criar stored procedure [dbo].[MasksRead]
 IF(SELECT object_id('[dbo].[MasksRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MasksRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MasksRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -17381,8 +17381,8 @@ ALTER PROCEDURE [dbo].[MasksRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -17415,7 +17415,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -17908,7 +17908,7 @@ Criar stored procedure [dbo].[DomainsRead]
 IF(SELECT object_id('[dbo].[DomainsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DomainsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DomainsRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -17922,8 +17922,8 @@ ALTER PROCEDURE [dbo].[DomainsRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -17956,7 +17956,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -18600,7 +18600,7 @@ Criar stored procedure [dbo].[SystemsRead]
 IF(SELECT object_id('[dbo].[SystemsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemsRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -18614,8 +18614,8 @@ ALTER PROCEDURE [dbo].[SystemsRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -18648,7 +18648,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -19208,7 +19208,7 @@ Criar stored procedure [dbo].[MenusRead]
 IF(SELECT object_id('[dbo].[MenusRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MenusRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MenusRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -19222,8 +19222,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -19256,7 +19256,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -19771,7 +19771,7 @@ Criar stored procedure [dbo].[UsersRead]
 IF(SELECT object_id('[dbo].[UsersRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UsersRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UsersRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -19785,8 +19785,8 @@ ALTER PROCEDURE [dbo].[UsersRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -19819,7 +19819,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -20357,7 +20357,7 @@ Criar stored procedure [dbo].[SystemsUsersRead]
 IF(SELECT object_id('[dbo].[SystemsUsersRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsUsersRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemsUsersRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -20371,8 +20371,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -20405,7 +20405,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -20937,7 +20937,7 @@ Criar stored procedure [dbo].[ConnectionsRead]
 IF(SELECT object_id('[dbo].[ConnectionsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ConnectionsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -20951,8 +20951,8 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -20985,7 +20985,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -21473,7 +21473,7 @@ Criar stored procedure [dbo].[DatabasesRead]
 IF(SELECT object_id('[dbo].[DatabasesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabasesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabasesRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -21487,8 +21487,8 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -21521,7 +21521,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -22081,7 +22081,7 @@ Criar stored procedure [dbo].[SystemsDatabasesRead]
 IF(SELECT object_id('[dbo].[SystemsDatabasesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -22095,8 +22095,8 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -22129,7 +22129,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -22733,7 +22733,7 @@ Criar stored procedure [dbo].[TablesRead]
 IF(SELECT object_id('[dbo].[TablesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TablesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TablesRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -22747,8 +22747,8 @@ ALTER PROCEDURE [dbo].[TablesRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -22781,7 +22781,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -23346,7 +23346,7 @@ Criar stored procedure [dbo].[DatabasesTablesRead]
 IF(SELECT object_id('[dbo].[DatabasesTablesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabasesTablesRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -23360,8 +23360,8 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -23394,7 +23394,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -24127,7 +24127,7 @@ Criar stored procedure [dbo].[ColumnsRead]
 IF(SELECT object_id('[dbo].[ColumnsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ColumnsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -24141,8 +24141,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -24175,7 +24175,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -24901,7 +24901,7 @@ Criar stored procedure [dbo].[IndexesRead]
 IF(SELECT object_id('[dbo].[IndexesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexesRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -24915,8 +24915,8 @@ ALTER PROCEDURE [dbo].[IndexesRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -24949,7 +24949,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -25517,7 +25517,7 @@ Criar stored procedure [dbo].[IndexkeysRead]
 IF(SELECT object_id('[dbo].[IndexkeysRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexkeysRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -25531,8 +25531,8 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -25565,7 +25565,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -26131,7 +26131,7 @@ Criar stored procedure [dbo].[SessionsRead]
 IF(SELECT object_id('[dbo].[SessionsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SessionsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SessionsRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[SessionsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -26145,8 +26145,8 @@ ALTER PROCEDURE [dbo].[SessionsRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -26179,7 +26179,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -26660,7 +26660,7 @@ Criar stored procedure [dbo].[TransactionsRead]
 IF(SELECT object_id('[dbo].[TransactionsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TransactionsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TransactionsRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -26674,8 +26674,8 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -26708,7 +26708,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -27183,7 +27183,7 @@ Criar stored procedure [dbo].[OperationsRead]
 IF(SELECT object_id('[dbo].[OperationsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[OperationsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -27197,8 +27197,8 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -27231,7 +27231,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -27723,7 +27723,7 @@ Criar stored procedure [dbo].[UnicitiesRead]
 IF(SELECT object_id('[dbo].[UnicitiesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UnicitiesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[UnicitiesRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -27737,8 +27737,8 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -27771,7 +27771,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -28325,7 +28325,7 @@ Criar stored procedure [dbo].[OperatorsRead]
 IF(SELECT object_id('[dbo].[OperatorsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[OperatorsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperatorsRead](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[OperatorsRead](@LoginId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -28339,8 +28339,8 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@SessionId BIGINT
     BEGIN TRY
         SET NOCOUNT ON
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @LoginId IS NULL
+            THROW 51000, 'Valor de @LoginId é requerido', 1
         IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
@@ -28373,7 +28373,7 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@SessionId BIGINT
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
