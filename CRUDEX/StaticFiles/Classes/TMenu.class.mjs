@@ -26,7 +26,7 @@ export default class TMenu {
 
                 if (item.Caption.length > menuWidth) {
                     menuWidth = item.Caption.length
-                    document.documentElement.style.setProperty("--menu-width", `${Math.ceil(menuWidth * 1.10)}ch`);
+                    document.documentElement.style.setProperty("--menu-width", `${Math.ceil(menuWidth * 1.35)}ch`);
                 }
 
                 let a = document.createElement("a");
