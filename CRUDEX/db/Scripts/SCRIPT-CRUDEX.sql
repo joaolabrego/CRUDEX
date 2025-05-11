@@ -15440,7 +15440,7 @@ INSERT INTO [dbo].[Operators] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS tinyint)
-                                ,CAST('<' AS nvarchar(15))
+                                ,CAST('menor' AS nvarchar(15))
                                 ,CAST('<' AS nvarchar(15))
                                 ,CAST('<' AS nvarchar(15))
                                 ,GETDATE()
@@ -15457,7 +15457,7 @@ INSERT INTO [dbo].[Operators] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('2' AS tinyint)
-                                ,CAST('≤' AS nvarchar(15))
+                                ,CAST('menor ou igual' AS nvarchar(15))
                                 ,CAST('<=' AS nvarchar(15))
                                 ,CAST('<=' AS nvarchar(15))
                                 ,GETDATE()
@@ -15474,7 +15474,7 @@ INSERT INTO [dbo].[Operators] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('3' AS tinyint)
-                                ,CAST('=' AS nvarchar(15))
+                                ,CAST('igual' AS nvarchar(15))
                                 ,CAST('=' AS nvarchar(15))
                                 ,CAST('===' AS nvarchar(15))
                                 ,GETDATE()
@@ -15491,7 +15491,7 @@ INSERT INTO [dbo].[Operators] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('4' AS tinyint)
-                                ,CAST('≥' AS nvarchar(15))
+                                ,CAST('maior ou igual' AS nvarchar(15))
                                 ,CAST('>=' AS nvarchar(15))
                                 ,CAST('>=' AS nvarchar(15))
                                 ,GETDATE()
@@ -15508,7 +15508,7 @@ INSERT INTO [dbo].[Operators] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('5' AS tinyint)
-                                ,CAST('>' AS nvarchar(15))
+                                ,CAST('maior' AS nvarchar(15))
                                 ,CAST('>' AS nvarchar(15))
                                 ,CAST('>' AS nvarchar(15))
                                 ,GETDATE()
@@ -15525,7 +15525,7 @@ INSERT INTO [dbo].[Operators] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('6' AS tinyint)
-                                ,CAST('#' AS nvarchar(15))
+                                ,CAST('diferente' AS nvarchar(15))
                                 ,CAST('<>' AS nvarchar(15))
                                 ,CAST('!==' AS nvarchar(15))
                                 ,GETDATE()
@@ -15542,8 +15542,8 @@ INSERT INTO [dbo].[Operators] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('7' AS tinyint)
-                                ,CAST('a ≤ x ≤ b' AS nvarchar(15))
-                                ,CAST('BETWEEN' AS nvarchar(15))
+                                ,CAST('entre' AS nvarchar(15))
+                                ,CAST('between' AS nvarchar(15))
                                 ,NULL
                                 ,GETDATE()
                                 ,'crudex'
@@ -15560,7 +15560,7 @@ INSERT INTO [dbo].[Operators] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('8' AS tinyint)
                                 ,CAST('not' AS nvarchar(15))
-                                ,CAST('NOT' AS nvarchar(15))
+                                ,CAST('not' AS nvarchar(15))
                                 ,CAST('!' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
@@ -15577,7 +15577,7 @@ INSERT INTO [dbo].[Operators] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('9' AS tinyint)
                                 ,CAST('like' AS nvarchar(15))
-                                ,CAST('LIKE' AS nvarchar(15))
+                                ,CAST('like' AS nvarchar(15))
                                 ,NULL
                                 ,GETDATE()
                                 ,'crudex'
