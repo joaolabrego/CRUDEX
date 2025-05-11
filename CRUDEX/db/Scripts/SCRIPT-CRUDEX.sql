@@ -5742,7 +5742,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Domínios de colunas' AS nvarchar(50))
                                 ,NULL
                                 ,CAST('0' AS bit)
-                                ,CAST('21' AS bigint)
+                                ,CAST('22' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5926,7 +5926,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Tabelas de bancos-de-dados' AS nvarchar(50))
                                 ,CAST('10' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('20' AS bigint)
+                                ,CAST('21' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5972,7 +5972,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Colunas de tabelas' AS nvarchar(50))
                                 ,CAST('12' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('152' AS bigint)
+                                ,CAST('143' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5995,7 +5995,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Índices de tabelas' AS nvarchar(50))
                                 ,CAST('12' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('30' AS bigint)
+                                ,CAST('28' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6018,7 +6018,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST('Chaves de índices' AS nvarchar(50))
                                 ,CAST('15' AS bigint)
                                 ,CAST('0' AS bit)
-                                ,CAST('48' AS bigint)
+                                ,CAST('44' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -22490,18 +22490,10 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                     THROW 51000, 'Chave única de UNQ_Tables_Name já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias)
                     THROW 51000, 'Chave única de UNQ_Tables_Alias já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Name)
-                    THROW 51000, 'Unicidade cruzada de [Table].[Id] => [Table].[Name] já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Id)
-                    THROW 51000, 'Unicidade cruzada de [Table].[Name] => [Table].[Id] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Tables_Name já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Tables_Alias já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Unicidade cruzada de [Table].[Id] => [Table].[Name] já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Id AND [Id] <> @W_Id)
-                THROW 51000, 'Unicidade cruzada de [Table].[Name] => [Table].[Id] já existe', 1
             END
         END
 
@@ -23115,10 +23107,18 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
                     THROW 51000, 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Name] = @W_Name)
                     THROW 51000, 'Chave única de UNQ_DatabasesTables_Name já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_TableId)
+                    THROW 51000, 'Unicidade cruzada de [DatabaseTable].[DatabaseId] => [DatabaseTable].[TableId] já existe', 1
+                IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [TableId] = @W_DatabaseId)
+                    THROW 51000, 'Unicidade cruzada de [DatabaseTable].[TableId] => [DatabaseTable].[DatabaseId] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId AND [TableId] = @W_TableId AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_DatabasesTables_Name já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_TableId AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [DatabaseTable].[DatabaseId] => [DatabaseTable].[TableId] já existe', 1
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [TableId] = @W_DatabaseId AND [Id] <> @W_Id)
+                THROW 51000, 'Unicidade cruzada de [DatabaseTable].[TableId] => [DatabaseTable].[DatabaseId] já existe', 1
             END
         END
 
