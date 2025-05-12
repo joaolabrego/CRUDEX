@@ -34,6 +34,10 @@ namespace CRUDEX.Classes
             try
             {
                 var json = Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body ?? "{}")));
+                var systems = systemName.Split('.');
+                var environment = systems.LastOrDefault();
+
+                systemName = systems.FirstOrDefault()!;
 
                 switch (action)
                 {

@@ -30,16 +30,15 @@ namespace CRUDEX.Classes
 
         public static void Teste()
         {
-            using var report = new Report("report_template.docx");
-            report.Generate("data.json", "report_result.docx");
+            using var report = new Report("./testes/report_template.docx");
+            report.Generate("./testes/data.json", "./testes/report_result.docx");
 
-            string docxPath = @"D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\report_result.docx";
+            string docxPath = @"D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\testes\report_result.docx";
             string outputFolder = Path.GetDirectoryName(docxPath)!;
             
             // Salva o PDF na mesma pasta
             report.SaveAsPdf(docxPath, outputFolder);
         }
-
 
         public void Generate(string jsonPath, string outputPath)
         {
@@ -49,8 +48,8 @@ namespace CRUDEX.Classes
 
             ReplaceTagsPreciselyPreservingFormatting(body, json);
 
-            //InsertImageInlineFromBase64(wordDoc, "<Logo>", File.ReadAllBytes("logo.png"), "Labrego");
-            this.ReplaceImageByName("EvadinLogo", File.ReadAllBytes("logo.png"));
+            InsertImageInlineFromBase64(wordDoc, "<Logo>", File.ReadAllBytes("./testes/logo.png"), "Labrego");
+            this.ReplaceImageByName("EvadinLogo", File.ReadAllBytes("./testes/logo.png"));
 
             FillTable("Items", json["Items"]!.Children<JObject>(), (row, item) =>
             {
@@ -356,7 +355,7 @@ namespace CRUDEX.Classes
 
         public void SaveAsPdf(string docxPath, string outputFolder)
         {
-            var libreOfficePath = "soffice"; // ou o caminho absoluto se necessário
+            var libreOfficePath = @"C:\Program Files\LibreOffice\program\soffice"; // ou o caminho absoluto se necessário
 
             var startInfo = new ProcessStartInfo
             {
