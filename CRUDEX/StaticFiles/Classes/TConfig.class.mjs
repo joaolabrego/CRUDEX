@@ -1,18 +1,21 @@
-﻿"use strict"
+﻿"use strict";
 
-import TActions from "./TActions.class.mjs"
-import TLogin from "./TLogin.class.mjs"
-import TScreen from "./TScreen.class.mjs"
-import TSystem from "./TSystem.class.mjs"
-import TSpinner from "./TSpinner.class.mjs"
+import TActions from "./TActions.class.mjs";
+import TLogin from "./TLogin.class.mjs";
+import TScreen from "./TScreen.class.mjs";
+import TSystem from "./TSystem.class.mjs";
+import TSpinner from "./TSpinner.class.mjs";
 
 export default class TConfig {
-    static #Locale = ""
-    static #DecimalSeparator = ""
-    static #ThousandSeparator = ""
-    static #MinusSignal = ""
-    static #IdleTimeInMinutesLimit = 0
-    static #Timer = null
+    static #Locale = "";
+    static #DecimalSeparator = "";
+    static #ThousandSeparator = "";
+    static #MinusSignal = "";
+    static #DateSeparator = "";
+    static #TimeSeparator = "";
+    static #YearDigits = 0;
+    static #IdleTimeInMinutesLimit = 0;
+    static #Timer = null;
 
     static async GetAPI(action, parameters = {}, showSpinner = true) {
         let result,
@@ -22,10 +25,10 @@ export default class TConfig {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             },
-            url = `${location}/${action}`
+            url = `${location}/${action}`;
         if (action !== TActions.CONFIG) {
             if (showSpinner)
-                TSpinner.Show()
+                TSpinner.Show();
             if (action === TActions.LOGIN || action === TActions.CHANGE) {
                 body.Login = {
                     Action: action,
@@ -34,12 +37,12 @@ export default class TConfig {
                     Password: TLogin.Password,
                     NewPassword: parameters.NewPassword ?? null,
                     RetypedPassword: parameters.RetypedPassword ?? null,
-                }
+                };
                 if (action === TActions.CHANGE)
-                    parameters = {}
+                    parameters = {};
             }
             else {
-                request.LoginId = TLogin.LoginId
+                request.LoginId = TLogin.LoginId;
                 body.Login = {
                     Action: action == TActions.LOGOUT ? action : TActions.AUTHENTICATE,
                     SystemName: TSystem.Name,
@@ -48,11 +51,11 @@ export default class TConfig {
                     LoginId: TLogin.LoginId,
                     NewPassword: null,
                     RetypedPassword: null,
-                }
+                };
             }
         }
-        body.Parameters = parameters
-        request.Request = JSON.stringify(body)
+        body.Parameters = parameters;
+        request.Request = JSON.stringify(body);
         if (action === TActions.LOGOUT && navigator.sendBeacon) {
             result = navigator.sendBeacon(url, new Blob([JSON.stringify(request)], { type: 'application/json' })) ? {} : { ClassName: "Error", Message: "Erro ao enviar LOGOUT via sendBeacon." };
         } else {
@@ -60,53 +63,53 @@ export default class TConfig {
                 method: "POST",
                 headers,
                 body: JSON.stringify(request),
-            })
-            result = JSON.parse((await response.json()).Response)
+            });
+            result = JSON.parse((await response.json()).Response);
         }
         if (showSpinner && action !== TActions.CONFIG)
-            TSpinner.Hide()
+            TSpinner.Hide();
         if (result.ClassName === "Error")
-            throw result
+            throw result;
 
-        return result
+        return result;
     }
     static SetIdleTime(activate = true) {
-        const setEvents = (value) => window.onload = window.onmousemove = window.onmousedown = window.ontouchstart = window.onclick = window.onbeforeinput = value
+        const setEvents = (value) => window.onload = window.onmousemove = window.onmousedown = window.ontouchstart = window.onclick = window.onbeforeinput = value;
         const resetTimer = () => {
-            clearTimeout(this.#Timer)
+            clearTimeout(this.#Timer);
             this.#Timer = setTimeout(() => {
-                clearTimeout(this.#Timer)
-                TScreen.ShowAlert(`Sistema ocioso por mais de ${this.#IdleTimeInMinutesLimit} minuto(s).`, TActions.RELOAD, 10000)
-            }, this.#IdleTimeInMinutesLimit * 60000)
-        }
+                clearTimeout(this.#Timer);
+                TScreen.ShowAlert(`Sistema ocioso por mais de ${this.#IdleTimeInMinutesLimit} minuto(s).`, TActions.RELOAD, 10000);
+            }, this.#IdleTimeInMinutesLimit * 60000);
+        };
         if (activate) {
-            setEvents(resetTimer)
-            resetTimer()
+            setEvents(resetTimer);
+            resetTimer();
         }
         else {
-            setEvents(null)
-            clearTimeout(this.#Timer)
+            setEvents(null);
+            clearTimeout(this.#Timer);
         }
     }
     static IsEmpty(value) {
-        return value === null || value === undefined || String(value).trim() === ""
+        return value === null || value === undefined || String(value).trim() === "";
     }
     static CreateProperties(origin, target) {
         for (let [key, value] of Object.entries(origin)) {
-            let propertyName = `#${key}`
+            let propertyName = `#${key}`;
 
             if (key !== "ClassName") {
-                target[propertyName] = value
+                target[propertyName] = value;
                 Object.defineProperty(target, key, {
                     get() { return target[propertyName]; },
                 });
             }
         }
 
-        return target
+        return target;
     }
     static Evaluate(JSexpression) {
-        return eval(JSexpression)
+        return eval(JSexpression);
     }
     static EvaluateTableExpression(expression, table) {
         const resolveColumnValue = (table, columnName) => {
@@ -137,32 +140,52 @@ export default class TConfig {
     }
     static get Locale() {
         if (this.#Locale)
-            return this.#Locale
+            return this.#Locale;
 
-        return this.#Locale = navigator.languages && navigator.languages.length ? navigator.languages[0] : navigator.language
+        return this.#Locale = navigator.languages && navigator.languages.length ? navigator.languages[0] : navigator.language;
     }
     static get DecimalSeparator() {
         if (this.#DecimalSeparator)
-            return this.#DecimalSeparator
+            return this.#DecimalSeparator;
 
-        return this.#DecimalSeparator = (0.1).toLocaleString(this.Locale).replace(/\d/g, "")
+        return this.#DecimalSeparator = (0.1).toLocaleString(this.Locale).replace(/\d/g, "");
     }
     static get ThousandSeparator() {
         if (this.#ThousandSeparator)
-            return this.#ThousandSeparator
+            return this.#ThousandSeparator;
 
-        return this.#ThousandSeparator = (1000).toLocaleString(this.Locale).replace(/\d/g, "")
+        return this.#ThousandSeparator = (1000).toLocaleString(this.Locale).replace(/\d/g, "");
     }
     static get MinusSignal() {
         if (this.#MinusSignal)
-            return this.#MinusSignal
+            return this.#MinusSignal;
 
-        return this.#MinusSignal = (-1).toLocaleString(this.Locale).replace(/\d/g, "")
+        return this.#MinusSignal = (-1).toLocaleString(this.Locale).replace(/\d/g, "");
     }
+    static get DateSeparator() {
+        if (this.#DateSeparator)
+            return this.#DateSeparator;
+
+        return this.#DateSeparator = (new Date(1900, 0, 1)).toLocaleDateString(this.Locale).replace(/\d/g, "").trim()[0] || "/";
+    }
+    static get TimeSeparator() {
+        if (this.#TimeSeparator)
+            return this.#TimeSeparator;
+
+        return this.#TimeSeparator = (new Date(1900, 0, 1)).toLocaleTimeString(this.Locale).replace(/\d/g, "").trim()[0] || ":";
+    }
+
+    static get YearDigits() {
+        if (this.#YearDigits)
+            return this.#YearDigits;
+
+        return this.#YearDigits = /\b\d{4}\b/.test(new Date(1900, 0, 1).toLocaleDateString(this.Locale)) ? 4 : 2;
+    }
+
     /**
      * @param {number} value
      */
     static set IdleTimeInMinutesLimit(value) {
-        this.#IdleTimeInMinutesLimit = value
+        this.#IdleTimeInMinutesLimit = value;
     }
 }

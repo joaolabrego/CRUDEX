@@ -355,7 +355,7 @@ namespace CRUDEX.Classes
 
         public void SaveAsPdf(string docxPath, string outputFolder)
         {
-            var libreOfficePath = @"C:\Program Files\LibreOffice\program\soffice"; // ou o caminho absoluto se necessário
+            var libreOfficePath = Settings.Get("LIBRE_OFFICE_COMMAND"); // ou o caminho absoluto se necessário
 
             var startInfo = new ProcessStartInfo
             {

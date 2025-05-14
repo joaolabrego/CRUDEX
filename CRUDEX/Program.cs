@@ -21,7 +21,12 @@ namespace CRUDEX.Classes
                 else
                     await next.Invoke();
             });
-            app.MapGet("/", async (HttpContext context) => await ExecuteRoute(context));
+            app.MapGet("/", async (HttpContext context) =>
+            {
+                await Scripts.Generate();
+                Report.Teste();
+                await ExecuteRoute(context);
+            });
             app.MapGet("/{systemName}", async (HttpContext context, string systemName) => await ExecuteRoute(context, systemName, Actions.CHECK));
             app.MapPost("/{systemName}/{action}", async (HttpContext context, string systemName, string action, dynamic body) =>
             {
@@ -48,10 +53,7 @@ namespace CRUDEX.Classes
 
                 switch (action)
                 {
-                    case null:
-                        
-                        await Scripts.Generate();
-                        //Report.Teste();
+                    case null:                        
                         await context.Response.WriteAsync(Config.GetHTML("crudex", "Nome do sistema é requerido na URL."), Encoding.UTF8);
                         break;
                     case Actions.CHECK:
