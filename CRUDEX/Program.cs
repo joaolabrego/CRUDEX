@@ -33,16 +33,23 @@ namespace CRUDEX.Classes
         {
             try
             {
-                var json = Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body ?? "{}")));
                 var systems = systemName.Split('.');
-                var environment = systems.LastOrDefault();
 
+                if (systems.Length < 2)
+                {
+                    context.Response.Headers.ContentType = "text/html;";
+                    await context.Response.WriteAsync(Config.GetHTML("crudex", "Nomes do sistema e do ambiente são requeridos na URL."), Encoding.UTF8);
+                    return;
+                }
                 systemName = systems.FirstOrDefault()!;
+
+                var environment = systems.LastOrDefault();
+                var json = Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body ?? "{}")));
 
                 switch (action)
                 {
                     case null:
-                        context.Response.Headers.ContentType = "text/html;";
+                        
                         await Scripts.Generate();
                         //Report.Teste();
                         await context.Response.WriteAsync(Config.GetHTML("crudex", "Nome do sistema é requerido na URL."), Encoding.UTF8);

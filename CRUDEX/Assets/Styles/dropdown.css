@@ -1,48 +1,52 @@
-﻿<style >
-:host {
+﻿:host {
     display: inline-block;
     position: relative;
     font-family: inherit;
 }
 
-.input-container {
+/* Trigger button/input z-index above list */
+button.trigger, input.trigger-input {
     position: relative;
+    z-index: 101;
 }
 
-.filter-input {
-    width: 100%;
-    height: 2.8dvmin;
-    padding: 0.5dvmin;
-    border: 0.1dvmin solid #000;
-    border-radius: 0.1dvmin;
+.trigger-button, .trigger-input {
+    width: 200px;
     box-sizing: border-box;
-    font-family: inherit;
+    padding: 0.5rem 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 1rem;
 }
 
-.dropdown-icon {
-    position: absolute;
-    top: 50%;
-    right: 0.5dvmin;
-    transform: translateY(-50%);
-    cursor: pointer;
-    font-size: 2dvmin;
-    color: #888;
-    user-select: none;
+.trigger-button.single::after {
+    content: ' ▼';
+}
+
+.trigger-button.multi::after {
+    content: ' ☑';
+}
+
+.trigger-button.open, .trigger-input.open {
+    border-color: #007bff;
+}
+
+.trigger-input {
+    cursor: text;
 }
 
 .dropdown-list {
     position: absolute;
-    top: calc(100% + 0.8dvmin);
     left: 0;
     right: 0;
-    max-height: 100dvmin;
+    max-height: 200px;
     overflow-y: auto;
     background: white;
     display: none;
-    box-shadow: 0 0.8dvmin 1.6dvmin rgba(0, 0, 0, 0.2);
-    font-family: inherit;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     z-index: 100;
-    border: none;
 }
 
 .dropdown-list.open {
@@ -50,24 +54,24 @@
 }
 
 .dropdown-item {
-    padding: 0.5dvmin;
+    padding: 0.5rem;
     cursor: pointer;
-    font-family: inherit;
+    display: flex;
+    align-items: center;
 }
 
 .dropdown-item:hover {
     background-color: #f0f0f0;
 }
 
-.dropdown-item.selected {
-    background-color: #007bff; /* Azul */
-    color: white;
+.dropdown-item input {
+    margin-right: 0.5rem;
 }
 
 .pagination {
     display: flex;
     justify-content: space-between;
-    padding: 0.5dvmin;
+    padding: 0.5rem;
     background: #f9f9f9;
 }
 
@@ -75,12 +79,11 @@
     border: none;
     background: none;
     cursor: pointer;
-    font-size: 2dvmin;
+    font-size: 1rem;
     color: #007bff;
 }
 
 .pagination button[disabled] {
     color: #ccc;
     cursor: not-allowed;
-    pointer-events: none;
 }
