@@ -5,7 +5,7 @@
     gap: 2dvmin;
     justify-items: center;
     align-items: start;
-    padding: 2dvmin;
+    padding: 1dvmin;
 }
 
 .form fieldset {
@@ -32,10 +32,10 @@
 }
 
 .buttonsBar {
-    grid-column: span 4;
+    grid-column: span 5;
     /* Ajusta para 5 caso use cinco colunas */
     text-align: center;
-    margin-top: 2dvmin;
+    margin-top: 1dvmin;
 }
 
 .buttonsBar .button {

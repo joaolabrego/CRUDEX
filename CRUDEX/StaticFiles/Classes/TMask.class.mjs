@@ -24,6 +24,12 @@ export default class TMask {
         this.#HoursMask +
         this.#MinutesMask +
         this.#SecondsMask;
+    static CheckDigitParameters = {
+        Module: 11,
+        Factors: [],
+        DigitGreaterThanNine: "0",
+        SubtractFromModule: false,
+    };
 
     constructor(rowMask) {
         if (rowMask.Kind !== "Mask")
@@ -31,7 +37,7 @@ export default class TMask {
         TConfig.CreateProperties(rowMask, this);
     }
 
-    static formatValueInput(
+    static FormatInputValue(
         input,
         masks,
         options = "",
@@ -44,31 +50,30 @@ export default class TMask {
             input.type = "text";
             cursorPosition = input.value.length;
         }
-        input.value = this.formatValue(input.value, masks, options);
-        input.style.backgroundColor =
-            validatorFunction && !validatorFunction() ? "red" : "";
-        input.selectionStart = input.selectionEnd = endOfText
-            ? input.value.length
-            : cursorPosition;
+        input.value = this.#FormatValue(input.value, masks, options);
+        input.style.backgroundColor = validatorFunction && !validatorFunction() ? "red" : "";
+        input.selectionStart = input.selectionEnd = endOfText ? input.value.length : cursorPosition;
     }
 
-    static formatValue(value, masks, options = "") {
+    static #FormatValue(value, masks, options = "") {
         let result = "",
             mask = "";
 
         if (Array.isArray(masks))
             for (let i = 0; i < masks.length; i++) {
                 mask = String(masks[i]);
-                if (mask.length >= value.length) break;
+                if (mask.length >= value.length)
+                    break;
             }
         else mask = masks;
 
         let rawMask = mask.replace(new RegExp(`[^${this.#AllMasks}]`, "g"), "");
 
         value = value.replace(/[^0-9A-Za-z]/g, "");
-        if (options.indexOf("upper") > -1)
+        options = options.toLowerCase();
+        if (options.includes("upper"))
             value = value.toUpperCase();
-        else if (options.indexOf("lower") > -1)
+        else if (options.includes("lower"))
             value = value.toLowerCase();
         for (let i = 0, j = 0; i < value.length && j < mask.length; j++) {
             if (mask[j] === this.#NumericMask) {
@@ -213,7 +218,7 @@ export default class TMask {
         return result;
     }
 
-    static formatDecimalInput(input, precision = 12, scale = 2) {
+    static FormatDecimalInput(input, precision = 12, scale = 2) {
         let cursorPosition = input.selectionStart,
             endOfText = input.selectionStart === input.value.length;
 
@@ -221,13 +226,13 @@ export default class TMask {
             input.type = "text";
             cursorPosition = input.value.length;
         }
-        input.value = this.formatDecimal(input.value, precision, scale);
+        input.value = this.#FormatDecimal(input.value, precision, scale);
         input.selectionStart = input.selectionEnd = endOfText
             ? input.value.length
             : cursorPosition;
     }
 
-    static formatDecimal(value, precision, scale) {
+    static #FormatDecimal(value, precision, scale) {
         let decimalswithcomma = 0,
             signal = "",
             mask = "",
@@ -255,23 +260,23 @@ export default class TMask {
         value = value.slice(0, mask.length).split("").reverse().join("");
         mask = mask.split("").reverse().join("");
 
-        let result = this.formatValue(value.replace(/\D/g, ""), mask);
+        let result = this.#FormatValue(value.replace(/\D/g, ""), mask);
 
         result = result.split("").reverse().join("");
         if (result.length > decimalswithcomma + 1)
             result = result.replace(/^0/g, "");
         else if (result.length < decimalswithcomma)
             result = "0," + "0".repeat(decimalswithcomma - result.length - 1) + result;
-        if (this.toFloat(result) > 0) {
+        if (this.ToFloat(result) > 0) {
             result = signal + result;
-            this.toFloat(result);
+            this.ToFloat(result);
         } else
             result = "";
 
         return result;
     }
 
-    static toFloat(value) {
+    static ToFloat(value) {
         value = value.trim();
         if (value === "")
             return 0;
@@ -280,7 +285,7 @@ export default class TMask {
         return Number.parseFloat(value);
     }
 
-    static toDate(value) {
+    static ToDate(value) {
         value = value.replace(/\D/g, "");
 
         let day = Number(value.slice(0, 2)),
@@ -290,7 +295,7 @@ export default class TMask {
         return new Date(year, month - 1, day);
     }
 
-    static toDateTime(value) {
+    static ToDateTime(value) {
         value = value.replace(/\D/g, "");
 
         let day = Number(value.slice(0, 2)),
@@ -303,25 +308,18 @@ export default class TMask {
         return new Date(year, month - 1, day, hours, minutes, seconds);
     }
 
-    static checkDigitParameters = {
-        module: 11,
-        factors: [],
-        digitGreaterThanNine: "0",
-        subtractDigitFromModule: false,
-    };
-
-    static checkDigit(value, parameters = TMask.checkDigitParameters) {
+    static CheckDigit(value, parameters = TMask.CheckDigitParameters) {
         let sum = 0,
             params = Object.assign(
-                Object.assign({}, TMask.checkDigitParameters),
+                Object.assign({}, TMask.CheckDigitParameters),
                 parameters
             ),
-            testvalue = value.slice(0, params.factors.length),
+            testvalue = value.slice(0, params.Factors.length),
             fullValue = value === testvalue,
             digit;
 
         for (let i = testvalue.length; i > 0; --i) {
-            let product = Number(testvalue[i - 1]) * params.factors[i - 1];
+            let product = Number(testvalue[i - 1]) * params.Factors[i - 1];
             while (fullValue && product > 9) {
                 let parcel1 = Math.trunc(product / 10),
                     parcel2 = product % 10;
@@ -330,14 +328,13 @@ export default class TMask {
             }
             sum += product;
         }
-        digit = sum % params.module;
-        if (fullValue) return !digit;
-        if (digit && params.subtractDigitFromModule)
-            digit = params.module - digit;
-        if (digit > 9) digit = params.digitGreaterThanNine;
+        digit = sum % params.Module;
+        if (fullValue)
+            return !digit;
+        if (digit && params.SubtractFromModule)
+            digit = params.Module - digit;
+        if (digit > 9) digit = params.DigitGreaterThanNine;
 
-        return (
-            `${testvalue}${digit}` === value.slice(0, params.factors.length + 1)
-        );
+        return (`${testvalue}${digit}` === value.slice(0, params.Factors.length + 1));
     }
 }

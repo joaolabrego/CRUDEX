@@ -136,7 +136,8 @@
     -webkit-appearance: none;
     appearance: none;
     width: 3dvmin;           /* bolinha gorda */
-    height: 3dvmin;
+    min-height: 3dvmin;
+    height: 10dvmin;
     background: var(--background-color-extra);
     cursor: pointer;
     border-radius: var(--border-radius);
@@ -151,10 +152,11 @@
 /* Firefox */
 .vertical-range::-moz-range-thumb {
     width: 3dvmin;
-    height: 3dvmin;
-    background: blue;
+    min-height: 3dvmin;
+    height: 10dvmin;
+    background: var(--background-color-extra);
     cursor: pointer;
-    border-radius: 50%;
+    border-radius: 25%;
 }
 
 .vertical-range::-moz-range-track {

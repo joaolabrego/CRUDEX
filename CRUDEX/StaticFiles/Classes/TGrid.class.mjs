@@ -233,7 +233,7 @@ export default class TGrid {
         this.#HTML.Range.type = "range";
         this.#HTML.Range.className = "vertical-range";
         this.#HTML.Range.min = 1;
-        this.#HTML.Range.max = 100;
+        this.#HTML.Range.max = this.#PageCount;
         this.#HTML.Range.oninput = () => {
             if (this.#HTML.Range.value != this.#PageNumber)
                 this.Renderize(Math.trunc(this.#HTML.Range.value));
@@ -298,10 +298,7 @@ export default class TGrid {
         this.#HTML.Range.min = 1;
         this.#HTML.Range.value = this.#PageNumber = result.Parameters.PageNumber;
         this.#HTML.Range.max = this.#PageCount = result.Parameters.MaxPage;
-        if (
-            result.Parameters.ReturnValue &&
-            this.#RowNumber >= result.Parameters.ReturnValue
-        )
+        if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
             this.#RowNumber = result.Parameters.ReturnValue - 1;
         this.#References.length = 0;
         Object.entries(result.DataSet).forEach(([, table], index) => {

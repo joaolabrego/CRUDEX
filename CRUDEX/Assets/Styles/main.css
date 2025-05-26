@@ -25,7 +25,6 @@ body {
     font-weight: bold;
     color: blue;
     background-color: grey;
-    padding: 0;
     overflow: hidden;
     user-select: none;
 }
@@ -35,6 +34,5 @@ body {
     border: 0.2dvmin solid black;
     background-color: var(--background-color);
     border-radius: var(--border-radius);
-    margin-top: 0;
     box-shadow: 0 0 1dvmin 0 rgba(0, 0, 0, 0.2), 0 1dvmin 1dvmin 0 rgba(0, 0, 0, 0.24);
 }
