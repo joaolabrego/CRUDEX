@@ -3,6 +3,8 @@
 import TField from "./TField.class.mjs";
 import TRecord from "./TRecord.class.mjs";
 import TSystem from "./TSystem.class.mjs";
+import TTable from "./TTable.class.mjs";
+import TSystem from "./TTable.class.mjs";
 
 export default class TRecordSet {
     #Table = null;

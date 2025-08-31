@@ -119,7 +119,7 @@ export default class TForm {
     #GetTextArea() {
         let control = document.createElement("textarea");
 
-        control.rows = 5;
+        control.rows = 2;
         control.cols = 50;
 
         return control;
