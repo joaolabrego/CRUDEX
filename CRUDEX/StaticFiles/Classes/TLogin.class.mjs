@@ -163,7 +163,6 @@ export default class TLogin {
         this.#HTML.Container.appendChild(this.#HTML.RetypedPassword);
 
         this.#HTML.Confirm = document.createElement("button");
-        this.#HTML.Confirm.setAttribute("type", "button");
         this.#HTML.Confirm.setAttribute("title", "Clique para confirmar nome e senha de usuário");
         this.#HTML.Confirm.innerText = "Confirmar";
         this.#HTML.Confirm.onclick = (event) => {

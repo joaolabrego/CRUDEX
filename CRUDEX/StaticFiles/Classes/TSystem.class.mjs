@@ -34,10 +34,11 @@ export default class TSystem {
     static Run(withBackgroundImage = true) {
         TConfig.GetAPI(TActions.CONFIG)
             .then(config => {
-                document.addEventListener("wheel", event => {
-                    if (event.ctrlKey)
-                        event.preventDefault();
-                },
+                document.addEventListener("wheel",
+                    event => {
+                        if (event.ctrlKey)
+                            event.preventDefault();
+                    },
                     { passive: false }
                 );
                 document.body.style = config.Styles.Body;

@@ -17,8 +17,6 @@ export default class TScreen {
         Title: null,
         Time: null,
         Main: null,
-        Iframe: null,
-        Div: null,
         Message: null,
     };
 
@@ -39,16 +37,13 @@ export default class TScreen {
 
         let span = document.createElement("span");
         span.textContent = TSystem.ClientName;
-
         header.appendChild(span);
 
         span = document.createElement("span");
         span.textContent = `${TSystem.Name} - ${TSystem.Description}`;
-
         header.appendChild(span);
 
         this.#HTML.Date = document.createElement("span");
-
         header.appendChild(this.#HTML.Date);
 
         this.#HTML.UserName = document.createElement("span");
@@ -62,24 +57,18 @@ export default class TScreen {
         header.appendChild(this.#HTML.Time);
 
         this.#HTML.Container.appendChild(header);
+        this.#HTML.Container.appendChild(TDialog.Container);
+        this.#HTML.Container.appendChild(TSpinner.Container);
 
         this.#HTML.Main = document.createElement("main");
         this.#HTML.Main.className = "box main";
-        this.#HTML.Main.appendChild(TDialog.Container);
-        this.#HTML.Main.appendChild(TSpinner.Container);
-
-        this.#HTML.Div = document.createElement("div");
-        this.#HTML.Main.appendChild(this.#HTML.Div);
-
         this.#HTML.Container.appendChild(this.#HTML.Main);
-
         this.#BackgroundImage = withBackgroundImage ? images.Background : null;
         this.WithBackgroundImage = withBackgroundImage;
 
         this.#HTML.Message = document.createElement("footer");
         this.#HTML.Message.textContent = this.#Message;
         this.#HTML.Message.className = "box footer";
-
         this.#HTML.Container.appendChild(this.#HTML.Message);
     }
 
@@ -118,7 +107,7 @@ export default class TScreen {
         TDialog.Show("error", message, okAction, null, timeout);
     }
     static set Main(container) {
-        this.#HTML.Div.replaceChildren(container);
+        this.#HTML.Main.replaceChildren(container);
     }
     static get Main() {
         return this.#HTML.Main;
@@ -165,8 +154,5 @@ export default class TScreen {
      */
     static set WithBackgroundImage(value) {
         this.#HTML.Main.style.backgroundImage = value ? this.#BackgroundImage : null;
-    }
-    static get Iframe() {
-        return this.#HTML.Iframe;
     }
 }
