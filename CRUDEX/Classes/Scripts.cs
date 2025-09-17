@@ -573,8 +573,8 @@ namespace crudex.Classes
                 result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Persist](@SessionId BIGINT\r\n");
                 result.Append($"                                              ,@UserName NVARCHAR(25)\r\n");
                 result.Append($"                                              ,@Action NVARCHAR(15)\r\n");
-                result.Append($"                                              ,@LastRecord NVARCHAR(max)\r\n");
-                result.Append($"                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN\r\n");
+                result.Append($"                                              ,@LastRecord NVARCHAR(MAX)\r\n");
+                result.Append($"                                              ,@ActualRecord NVARCHAR(MAX)) AS BEGIN\r\n");
                 result.Append($"    DECLARE @TRANCOUNT INT = @@TRANCOUNT\r\n");
                 result.Append($"           ,@ErrorMessage NVARCHAR(255)\r\n");
                 result.Append($"\r\n");
@@ -697,8 +697,8 @@ namespace crudex.Classes
                 result.Append($"               ,@TableName NVARCHAR(25)\r\n");
                 result.Append($"               ,@Action NVARCHAR(15)\r\n");
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
-                result.Append($"               ,@LastRecord NVARCHAR(max)\r\n");
-                result.Append($"               ,@ActualRecord NVARCHAR(max)\r\n");
+                result.Append($"               ,@LastRecord NVARCHAR(MAX)\r\n");
+                result.Append($"               ,@ActualRecord NVARCHAR(MAX)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
                 result.Append($"\r\n");
                 result.Append($"        BEGIN TRANSACTION\r\n");
@@ -837,8 +837,8 @@ namespace crudex.Classes
                 result.Append($"ALTER PROCEDURE [dbo].[{table["Alias"]}Validate](@SessionId BIGINT\r\n");
                 result.Append($"                                               ,@UserName NVARCHAR(25)\r\n");
                 result.Append($"                                               ,@Action NVARCHAR(15)\r\n");
-                result.Append($"                                               ,@LastRecord NVARCHAR(max)\r\n");
-                result.Append($"                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN\r\n");
+                result.Append($"                                               ,@LastRecord NVARCHAR(MAX)\r\n");
+                result.Append($"                                               ,@ActualRecord NVARCHAR(MAX)) AS BEGIN\r\n");
                 result.Append($"    DECLARE @ErrorMessage NVARCHAR(MAX)\r\n");
                 result.Append($"\r\n");
                 result.Append($"    BEGIN TRY\r\n");
