@@ -7,13 +7,16 @@ import TSystem from "./TSystem.class.mjs";
 import TSpinner from "./TSpinner.class.mjs";
 
 export default class TConfig {
-    static #Locale = "";
-    static #DecimalSeparator = "";
-    static #ThousandSeparator = "";
-    static #MinusSignal = "";
-    static #DateSeparator = "";
-    static #TimeSeparator = "";
-    static #YearDigits = 0;
+    static #Locale = null;
+    static #DecimalSeparator = null;
+    static #ThousandSeparator = null;
+    static #MinusSignal = null;
+    static #DateSeparator = null;
+    static #TimeSeparator = null;
+    static #YearDigits = null;;
+    static #DateFormat = null;
+    static #DateTimeFormat = null;
+    static #TimeFormat = null;
     static #IdleTimeInMinutesLimit = 0;
     static #Timer = null;
 
@@ -108,12 +111,13 @@ export default class TConfig {
 
         return target;
     }
-    static Evaluate(JSexpression) {
-        return eval(JSexpression);
+    static Evaluate(expression) {
+        return eval(expression);
     }
     static EvaluateTableExpression(expression, table) {
         const resolveColumnValue = (table, columnName) => {
             let column = table.GetColumn(columnName);
+
             if (column)
                 return column.Value;
 
@@ -139,47 +143,97 @@ export default class TConfig {
         }
     }
     static get Locale() {
-        if (this.#Locale)
-            return this.#Locale;
-
-        return this.#Locale = navigator.languages && navigator.languages.length ? navigator.languages[0] : navigator.language;
+        return this.#Locale ??= navigator.languages?.[0] ?? navigator.language;
     }
     static get DecimalSeparator() {
-        if (this.#DecimalSeparator)
-            return this.#DecimalSeparator;
-
-        return this.#DecimalSeparator = (0.1).toLocaleString(this.Locale).replace(/\d/g, "");
+        return this.#DecimalSeparator ??= (0.1).toLocaleString(this.Locale).replace(/\d/g, "");
     }
     static get ThousandSeparator() {
-        if (this.#ThousandSeparator)
-            return this.#ThousandSeparator;
-
-        return this.#ThousandSeparator = (1000).toLocaleString(this.Locale).replace(/\d/g, "");
+        return this.#ThousandSeparator ??= (1000).toLocaleString(this.Locale).replace(/\d/g, "");
     }
     static get MinusSignal() {
-        if (this.#MinusSignal)
-            return this.#MinusSignal;
-
-        return this.#MinusSignal = (-1).toLocaleString(this.Locale).replace(/\d/g, "");
+        return this.#MinusSignal ??= (-1).toLocaleString(this.Locale).replace(/\d/g, "");
     }
     static get DateSeparator() {
-        if (this.#DateSeparator)
-            return this.#DateSeparator;
-
-        return this.#DateSeparator = (new Date(1900, 0, 1)).toLocaleDateString(this.Locale).replace(/\d/g, "").trim()[0] || "/";
+        return this.#DateSeparator ??= (new Date(1900, 0, 1)).toLocaleDateString(this.Locale).replace(/\d/g, "").trim()[0] || "/";
     }
     static get TimeSeparator() {
-        if (this.#TimeSeparator)
-            return this.#TimeSeparator;
+        return this.#TimeSeparator ??= (new Date(1900, 0, 1)).toLocaleTimeString(this.Locale).replace(/[\dAPMapm\s]/g, "").trim()[0] || ":";
+    }
+    static get YearDigits() {
+        return this.#YearDigits ??= /\b\d{4}\b/.test(new Date(1900, 0, 1).toLocaleDateString(this.Locale)) ? 4 : 2;
+    }
+    static get DateFormat() {
+        if (this.#DateFormat)
+            return this.#DateFormat;
 
-        return this.#TimeSeparator = (new Date(1900, 0, 1)).toLocaleTimeString(this.Locale).replace(/\d/g, "").trim()[0] || ":";
+        let parts = new Date(2025, 11, 10).toLocaleDateString(this.Locale).match(/\d+/g),
+            dateSeparator = this.DateSeparator,
+            yearDigits = this.YearDigits;
+
+        if (!parts || parts.length < 3)
+            return this.#DateFormat = `dd${dateSeparator}MM${dateSeparator}${yearDigits === 4 ? "yyyy" : "yy"}`;
+
+        if (parts[0] === "10")
+            this.#DateFormat = "dd";
+        else if (parts[0] === "12")
+            this.#DateFormat = "MM";
+        else
+            this.#DateFormat = yearDigits === 4 ? "yyyy" : "yy";
+
+        if (parts[1] === "10")
+            this.#DateFormat += dateSeparator + "dd";
+        else if (parts[1] === "12")
+            this.#DateFormat += dateSeparator + "MM";
+        else
+            this.#DateFormat += dateSeparator + (yearDigits === 4 ? "yyyy" : "yy");
+
+        if (parts[2] === "10")
+            this.#DateFormat += dateSeparator + "dd";
+        else if (parts[2] === "12")
+            this.#DateFormat += dateSeparator + "MM";
+        else
+            this.#DateFormat += dateSeparator + (yearDigits === 4 ? "yyyy" : "yy");
+
+        return this.#DateFormat;
     }
 
-    static get YearDigits() {
-        if (this.#YearDigits)
-            return this.#YearDigits;
+    static get TimeFormat() {
+        if (this.#TimeFormat)
+            return this.#TimeFormat;
 
-        return this.#YearDigits = /\b\d{4}\b/.test(new Date(1900, 0, 1).toLocaleDateString(this.Locale)) ? 4 : 2;
+        let parts = new Date(2025, 11, 10, 23, 40, 50).toLocaleTimeString(this.Locale).match(/\d+/g),
+            timeSeparator = this.TimeSeparator;
+
+        if (!parts || parts.length < 3)
+            return this.#TimeFormat = `hh${timeSeparator}mm${timeSeparator}ss`;
+
+        if (parts[0] === "23")
+            this.#TimeFormat = "hh";
+        else if (parts[0] === "40")
+            this.#TimeFormat = "mm";
+        else
+            this.#TimeFormat = "ss";
+
+        if (parts[1] === "23")
+            this.#TimeFormat += timeSeparator + "hh";
+        else if (parts[1] === "40")
+            this.#TimeFormat += timeSeparator + "mm";
+        else
+            this.#TimeFormat += timeSeparator + "ss";
+
+        if (parts[2] === "23")
+            this.#TimeFormat += timeSeparator + "hh";
+        else if (parts[2] === "40")
+            this.#TimeFormat += timeSeparator + "mm";
+        else
+            this.#TimeFormat += timeSeparator + "ss";
+
+        return this.#TimeFormat;
+    }
+
+    static get DateTimeFormat() {
+        return this.#DateTimeFormat ??= `${this.DateFormat} ${this.TimeFormat}`;
     }
 
     /**

@@ -295,7 +295,8 @@
           if (fullValue) return !digit;
           if (digit && params.subtractDigitFromModule)
             digit = params.module - digit;
-          if (digit > 9) digit = params.digitGreaterThanNine;
+            if (digit > 9)
+                digit = params.digitGreaterThanNine;
 
           return (
             `${testvalue}${digit}` === value.slice(0, params.factors.length + 1)
