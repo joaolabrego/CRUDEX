@@ -1,6 +1,8 @@
-﻿using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Data;
+using System.Net;
+using System.Net.Mail;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
 namespace CRUDEX.Classes
@@ -54,6 +56,27 @@ namespace CRUDEX.Classes
                 };
 
             return config;
+        }
+        public static async Task SendMailAsync(string recipients, string subject, string body, bool isHtml = true)
+        {
+            using var smtp = new SmtpClient("smtp.seuservidor.com")
+            {
+                Port = 587,
+                EnableSsl = true,
+                Credentials = new NetworkCredential("usuario@dominio.com", "senha")
+            };
+
+            var mail = new MailMessage
+            {
+                From = new MailAddress("crudex@dominio.com", "CRUDEX Notifier"),
+                Subject = subject,
+                Body = body,
+                IsBodyHtml = isHtml
+            };
+            foreach (var addr in recipients.Split(';'))
+                mail.To.Add(addr.Trim());
+
+            await smtp.SendMailAsync(mail);
         }
         public static string GetHTML(string systemName, string? message = null)
         {

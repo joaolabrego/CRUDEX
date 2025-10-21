@@ -1,12 +1,12 @@
 ﻿:root {
-    --text-height: 4dvmin;
+    --text-height: 3dvmin;
     --background-color: bisque;
     --background-color-control: thistle;
     --background-color-focus: burlywood;
     --background-color-active: beige;
     --background-color-extra: brown;
-    --menu-width: 0;
-    --main-height: 87dvmin;
+    --menu-width: 0ch;
+    --main-height: 90dvmin;
     --control-height: 5dvmin;
     --opacity-screen: 0.5;
     --font-size-grid: 1.5dvmin;

@@ -17,6 +17,7 @@ export default class TConfig {
     static #DateFormat = null;
     static #DateTimeFormat = null;
     static #TimeFormat = null;
+    static #GroupingSize = null;
     static #IdleTimeInMinutesLimit = 0;
     static #Timer = null;
 
@@ -143,7 +144,7 @@ export default class TConfig {
         }
     }
     static get Locale() {
-        return this.#Locale ??= navigator.languages?.[0] ?? navigator.language;
+        return this.#Locale ??= navigator.languages?.[0] ?? navigator.language ?? "en-US";
     }
     static get DecimalSeparator() {
         return this.#DecimalSeparator ??= (0.1).toLocaleString(this.Locale).replace(/\d/g, "");
@@ -231,11 +232,20 @@ export default class TConfig {
 
         return this.#TimeFormat;
     }
-
     static get DateTimeFormat() {
         return this.#DateTimeFormat ??= `${this.DateFormat} ${this.TimeFormat}`;
     }
+    static get GroupingSize() {
+        if (this.#GroupingSize)
+            return this.#GroupingSize;
 
+        let match = new Intl.NumberFormat(this.Locale).format(123456789).match(/(\d+)[^\d](\d+)[^\d](\d+)/);
+
+        return this.#GroupingSize = match ? match[3].length : 3;
+    }
+    static GetNumericMask(precision, scale) {
+        return "#".repeat(precision - scale).replace(new RegExp(`\\B(?=(?:${"#".repeat(this.GroupingSize)})+(?!#))`, "g"), this.ThousandSeparator) + (scale > 0 ? this.DecimalSeparator + "#".repeat(scale) : "");
+    }
     /**
      * @param {number} value
      */

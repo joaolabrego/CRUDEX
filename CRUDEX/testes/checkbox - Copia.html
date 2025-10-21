@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkbox de Quatro Estados - CRUDEX</title>
+<style>
+  body {
+    font-family: sans-serif;
+    background: #f8f8f8;
+    padding: 40px;
+  }
+
+  .quadbox {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    margin: 6px;
+  }
+
+  .quadbox-button {
+    width: 2dvmin;
+    height: 2dvmin;
+    border: 2px solid #666;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5dvmin;
+    font-weight: bold;
+    line-height: 1;
+    color: black;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    margin-right: 8px;
+    box-sizing: border-box;
+  }
+
+  /* Estados visuais */
+  .quadbox[data-state="true"]  .quadbox-button {
+    background: #d9ffd9;
+    border-color: #009900;
+    color: #009900;
+  }
+
+  .quadbox[data-state="false"] .quadbox-button {
+    background: #fff;
+    border-color: #cc0000;
+    color: #cc0000;
+  }
+
+  .quadbox[data-state="empty"] .quadbox-button {
+    background: #ccc;
+    border-color: #777;
+    color: transparent; /* sem caractere */
+  }
+
+  .quadbox[data-state="null"]  .quadbox-button {
+    background: #fff;
+    border-color: #000;
+    color: transparent; /* sem caractere */
+  }
+
+  .quadbox-button span {
+    display: inline-block;
+    width: 10px;
+    text-align: center;
+  }
+
+  .quadbox:hover .quadbox-button {
+    transform: scale(1.05);
+  }
+
+  .quadbox span.label {
+    min-width: 60px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Checkbox de Quatro Estados - CRUDEX</h2>
+<p>Clique sobre o quadrado para alternar entre: <b>sim → não → vazio → nulo</b></p>
+
+<div class="quadbox" data-state="empty" id="chk1">
+  <div class="quadbox-button"><span></span></div>
+  <span class="label">Ativo</span>
+  <input type="hidden" name="Ativo" value="">
+</div>
+
+<div class="quadbox" data-state="false" id="chk2">
+  <div class="quadbox-button"><span></span></div>
+  <span class="label">Confirmado</span>
+  <input type="hidden" name="Confirmado" value="">
+</div>
+
+<script>
+  const STATES = ["true", "false", "null", "empty"];
+  const SYMBOLS = { 
+    "true": "✓", 
+    "false": "✗",   // X vermelho
+    "null": "\u00A0",
+    "empty": "\u00A0", 
+  };
+  const TITLES  = { 
+    "true": "sim", 
+    "false": "não", 
+    "null": "nulo (IS NULL)",
+    "empty": "vazio (ignorado)", 
+  };
+
+  document.querySelectorAll('.quadbox').forEach(box => {
+    const span = box.querySelector('.quadbox-button span');
+    const hidden = box.querySelector('input[type=hidden]');
+
+    function apply(state) {
+      box.dataset.state = state;
+      span.textContent = SYMBOLS[state];
+      box.title = TITLES[state];
+      hidden.value = state;
+    }
+
+    function next() {
+      const idx = STATES.indexOf(box.dataset.state);
+      const nextState = STATES[(idx + 1) % STATES.length];
+      apply(nextState);
+    }
+
+    apply(box.dataset.state);
+    box.addEventListener('click', next);
+    box.addEventListener('keydown', e => {
+      if ([" ", "Enter"].includes(e.key)) {
+        e.preventDefault();
+        next();
+      }
+    });
+    box.tabIndex = 0; // acessível por teclado
+  });
+</script>
+
+</body>
+</html>
