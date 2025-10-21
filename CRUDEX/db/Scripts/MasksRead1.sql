@@ -69,7 +69,7 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id]'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -84,7 +84,7 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
                                                     WHERE [#2].[name] = 'Masks') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -123,22 +123,26 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
             SET @Where = @Where + ' AND [T].[Name] = @Name'
         END
 
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] bigint, [Id] bigint)
         SET @sql = 'SELECT ''T'' AS [_]
+                          ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS Recno
                           ,[T].[Id]
                         FROM [dbo].[Masks] [T]
                             LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
                         WHERE [#].[Id] IS NULL' + @Where + '
                     UNION ALL
                     SELECT ''O'' AS [_]
+                          ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'')
                           ,[T].[Id]
                         FROM [#tmpOperations] [T]
                         WHERE [T].[_] <> ''delete''' + @Where
-        SET @sql = 'INSERT [#tmpTable]([_], [Id])
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
+                              ,[Recno]
                               ,[Id]
-                            FROM (' + @sql + ') AS X
-                        ORDER BY ' + @OrderBy + ';'
+                            FROM (' + @sql + ') AS T
+                        ORDER BY [Recno]' + ';'
+        print @sql
         EXEC sp_executesql @sql
                           ,N'@Id bigint
                           ,@Name nvarchar(25)'
@@ -146,8 +150,7 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
                           ,@Name = @W_Name
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-
-        ALTER TABLE [#tmpTable] ADD Recno BIGINT IDENTITY(1,1)
+        print 'ok'
         CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
 
         IF @RecordSearch IS NOT NULL BEGIN
@@ -189,12 +192,16 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS bigint) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(max)) AS [Mask]
             INTO [#result]
+        select * from [#tmpTable]
+
         SET @sql = 'INSERT [#result]
                         SELECT ''Mask'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[Mask]
@@ -203,17 +210,19 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Mask'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[Mask]
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
+                        ORDER BY [Recno]
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT [Kind]
+              ,[Recno]
               ,[Id]
               ,[Name]
               ,[Mask]
