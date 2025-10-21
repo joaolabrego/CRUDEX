@@ -197,8 +197,6 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(max)) AS [Mask]
             INTO [#result]
-        select * from [#tmpTable]
-
         SET @sql = 'INSERT [#result]
                         SELECT ''Mask'' AS [Kind]
                               ,[#].[Recno]
@@ -222,7 +220,6 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT [Kind]
-              ,[Recno]
               ,[Id]
               ,[Name]
               ,[Mask]
