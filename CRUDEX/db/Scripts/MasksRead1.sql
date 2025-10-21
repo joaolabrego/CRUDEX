@@ -6,13 +6,25 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 /*
-DECLARE @Page INT = 1, @Limit INT = 20, @Max INT, @Ret BIGINT;
+DECLARE @Page INT = 1, @Limit INT = 5, @Max INT, @Ret BIGINT;
+
+--EXEC dbo.MasksRead1 
+--    @SessionId = 1,
+--    @RecordFilter = '{}',
+--    @RecordSearch = NULL,
+--    @OrderBy = '[Name] ASC',
+--    @PaddingGridLastPage = 0,
+--    @IsActionList = 0,
+--    @PageNumber = @Page OUTPUT,
+--    @LimitRows = @Limit OUTPUT,
+--    @MaxPage = @Max OUTPUT,
+--    @ReturnValue = @Ret OUTPUT;
 
 EXEC dbo.MasksRead1 
     @SessionId = 1,
-    @RecordFilter = '{}',
+    @RecordFilter = '{"Name": "American Date"}',
     @RecordSearch = NULL,
-    @OrderBy = '[Name] ASC',
+    @OrderBy = '[Id] DESC',
     @PaddingGridLastPage = 0,
     @IsActionList = 0,
     @PageNumber = @Page OUTPUT,
@@ -20,31 +32,17 @@ EXEC dbo.MasksRead1
     @MaxPage = @Max OUTPUT,
     @ReturnValue = @Ret OUTPUT;
 
-SELECT @Page AS PageNumber, @Limit AS LimitRows, @Max AS MaxPage, @Ret AS ReturnValue;
-
-EXEC dbo.MasksRead1 
-    @SessionId = 1,
-    @RecordFilter = '{"Name": "NumericMask"}',
-    @RecordSearch = NULL,
-    @OrderBy = '[Id] DESC',
-    @PaddingGridLastPage = 0,
-    @IsActionList = 0,
-    @PageNumber = 1 OUTPUT,
-    @LimitRows = 10 OUTPUT,
-    @MaxPage = NULL OUTPUT,
-    @ReturnValue = NULL OUTPUT;
-
-EXEC dbo.MasksRead1 
-    @SessionId = 1,
-    @RecordFilter = '{}',
-    @RecordSearch = '{"Id": 5}',
-    @OrderBy = '[Name]',
-    @PaddingGridLastPage = 1,
-    @IsActionList = 0,
-    @PageNumber = 0 OUTPUT,
-    @LimitRows = 15 OUTPUT,
-    @MaxPage = NULL OUTPUT,
-    @ReturnValue = NULL OUTPUT;
+--EXEC dbo.MasksRead1 
+--    @SessionId = 1,
+--    @RecordFilter = NULL,
+--    @RecordSearch = '{"Id": 25}',
+--    @OrderBy = '[Name]',
+--    @PaddingGridLastPage = 1,
+--    @IsActionList = 0,
+--    @PageNumber = @Page OUTPUT,
+--    @LimitRows = @Limit OUTPUT,
+--    @MaxPage = @Max OUTPUT,
+--    @ReturnValue = @Ret OUTPUT;
 */
 ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
                                           ,@RecordFilter NVARCHAR(MAX)
@@ -110,7 +108,6 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        -- DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
         DECLARE @Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
                ,@W_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint)
@@ -142,7 +139,6 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
                               ,[Id]
                             FROM (' + @sql + ') AS T
                         ORDER BY [Recno]' + ';'
-        print @sql
         EXEC sp_executesql @sql
                           ,N'@Id bigint
                           ,@Name nvarchar(25)'
@@ -150,32 +146,8 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
                           ,@Name = @W_Name
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
-        print 'ok'
+
         CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
-
-        IF @RecordSearch IS NOT NULL BEGIN
-            DECLARE @Recno  BIGINT,
-                    @S_Id   BIGINT = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS BIGINT),
-                    @S_Name NVARCHAR(25) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS NVARCHAR(25))
-
-            SET @Where = ''
-            IF @S_Id IS NOT NULL
-                SET @Where += CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + '[T].[Id] = @Id';
-            IF @S_Name IS NOT NULL
-                SET @Where += CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + '[T].[Name] = @Name';
-            IF @Where <> '' BEGIN
-                SET @sql = N'SELECT TOP 1 @r = [Recno]
-                                FROM [#tmpTable] AS [T]
-                                WHERE ' + @Where + ';';
-                EXEC sp_executesql @sql,
-                                   N'@Id BIGINT, @Name NVARCHAR(25), @r BIGINT OUTPUT',
-                                   @Id = @S_Id,
-                                   @Name = @S_Name,
-                                   @r = @Recno OUTPUT;
-                IF ISNULL(@Recno, 0) > 0
-                    SET @PageNumber = ((@Recno - 1) / @LimitRows) + 1;
-            END
-        END
         IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
             SET @OffSet = 0
             SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
@@ -183,9 +155,31 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno  BIGINT,
+                        @S_Id   BIGINT = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS BIGINT),
+                        @S_Name NVARCHAR(25) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS NVARCHAR(25))
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where += CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + '[T].[Id] = @Id';
+                IF @S_Name IS NOT NULL
+                    SET @Where += CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + '[T].[Name] = @Name';
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [Recno]
+                                    FROM [#tmpTable] AS [T]
+                                    WHERE ' + @Where + ';';
+                    EXEC sp_executesql @sql,
+                                       N'@Id BIGINT, @Name NVARCHAR(25), @r BIGINT OUTPUT',
+                                       @Id = @S_Id,
+                                       @Name = @S_Name,
+                                       @r = @Recno OUTPUT;
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END;
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
             IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
