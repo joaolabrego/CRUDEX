@@ -80,7 +80,7 @@ namespace CRUDEX.Classes
         }
         public static string GetHTML(string systemName, string? message = null)
         {
-            var favIcon = Images.ReadImageFile($"{Path.Combine(Directory.GetCurrentDirectory(), "Assets/Images", Settings.Get("FAVICON_IMAGE"))}");
+            var favIcon = Images.ReadImageFile($"{Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("DIRECTORY_IMAGES"), Settings.Get("FAVICON_IMAGE"))}");
 
             return $"<!DOCTYPE html>" +
                    $"<html lang='pt-br'>\r\n" +

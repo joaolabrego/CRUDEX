@@ -29,10 +29,10 @@ namespace CRUDEX.Classes
 
         public static void Teste()
         {
-            using var report = new Report("./testes/report_template.docx");
-            report.Generate("./testes/data.json", "./testes/report_result.docx");
+            using var report = new Report("./StaticFiles/testes/report_template.docx");
+            report.Generate("./StaticFiles/testes/data.json", "./StaticFiles/testes/report_result.docx");
 
-            string docxPath = @"D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\testes\report_result.docx";
+            string docxPath = @"D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\StaticFilestestes\report_result.docx";
             string outputFolder = Path.GetDirectoryName(docxPath)!;
             
             // Salva o PDF na mesma pasta
@@ -47,8 +47,8 @@ namespace CRUDEX.Classes
 
             ReplaceTagsPreciselyPreservingFormatting(body, json);
 
-            InsertImageInlineFromBase64(wordDoc, "<Logo>", File.ReadAllBytes("./testes/logo.png"), "Labrego");
-            this.ReplaceImageByName("EvadinLogo", File.ReadAllBytes("./testes/logo.png"));
+            InsertImageInlineFromBase64(wordDoc, "<Logo>", File.ReadAllBytes("./StaticFiles/testes/logo.png"), "Labrego");
+            this.ReplaceImageByName("EvadinLogo", File.ReadAllBytes("./StaticFiles/testes/logo.png"));
 
             FillTable("Items", json["Items"]!.Children<JObject>(), (row, item) =>
             {

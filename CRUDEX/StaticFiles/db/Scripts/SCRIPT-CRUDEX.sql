@@ -9,9 +9,9 @@ GO
 CREATE DATABASE [crudex]
     CONTAINMENT = NONE
     ON PRIMARY
-    (NAME = N'$crudex', FILENAME = N'D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\db\crudex.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)
+    (NAME = N'$crudex', FILENAME = N'D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\StaticFiles\db\crudex.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)
     LOG ON
-    (NAME = N'$crudex_log', FILENAME = N'D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\db\crudex.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)
+    (NAME = N'$crudex_log', FILENAME = N'D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\StaticFiles\db\crudex.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)
     WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF
 GO
 ALTER DATABASE[crudex] SET COMPATIBILITY_LEVEL = 160
@@ -5623,7 +5623,7 @@ INSERT INTO [dbo].[Databases] ([Id]
                                 ,CAST('crudex' AS nvarchar(25))
                                 ,CAST('crudex' AS nvarchar(25))
                                 ,CAST('CRUD Express' AS nvarchar(50))
-                                ,CAST('D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\db\' AS nvarchar(256))
+                                ,CAST('D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\StaticFiles\db\' AS nvarchar(256))
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()

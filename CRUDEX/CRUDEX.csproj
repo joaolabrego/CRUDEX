@@ -38,25 +38,25 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Assets\Styles\3th\normalize.css" />
-    <Content Include="Assets\Styles\dialog.css" />
-    <Content Include="Assets\Styles\form.css" />
-    <Content Include="Assets\Styles\login.css" />
-    <Content Include="Assets\Styles\main.css" />
-    <Content Include="Assets\Styles\menu.css" />
-    <Content Include="Assets\Styles\screen.css" />
-    <Content Include="Assets\Images\alert.png" />
-    <Content Include="Assets\Images\cancel.png" />
-    <Content Include="Assets\Images\confirm.png" />
-    <Content Include="Assets\Images\delete.png" />
-    <Content Include="Assets\Images\edit.png" />
-    <Content Include="Assets\Images\error.png" />
-    <Content Include="Assets\Images\exit.png" />
-    <Content Include="Assets\Images\favicon.png" />
-    <Content Include="Assets\Images\filter.png" />
-    <Content Include="Assets\Images\insert.png" />
-    <Content Include="Assets\Images\question.png" />
-    <Content Include="Assets\Images\zoom.png" />
+    <Content Include="StaticFiles\Assets\Styles\3th\normalize.css" />
+    <Content Include="StaticFiles\Assets\Styles\dialog.css" />
+    <Content Include="StaticFiles\Assets\Styles\form.css" />
+    <Content Include="StaticFiles\Assets\Styles\login.css" />
+    <Content Include="StaticFiles\Assets\Styles\main.css" />
+    <Content Include="StaticFiles\Assets\Styles\menu.css" />
+    <Content Include="StaticFiles\Assets\Styles\screen.css" />
+    <Content Include="StaticFiles\Assets\Images\alert.png" />
+    <Content Include="StaticFiles\Assets\Images\cancel.png" />
+    <Content Include="StaticFiles\Assets\Images\confirm.png" />
+    <Content Include="StaticFiles\Assets\Images\delete.png" />
+    <Content Include="StaticFiles\Assets\Images\edit.png" />
+    <Content Include="StaticFiles\Assets\Images\error.png" />
+    <Content Include="StaticFiles\Assets\Images\exit.png" />
+    <Content Include="StaticFiles\Assets\Images\favicon.png" />
+    <Content Include="StaticFiles\Assets\Images\filter.png" />
+    <Content Include="StaticFiles\Assets\Images\insert.png" />
+    <Content Include="StaticFiles\Assets\Images\question.png" />
+    <Content Include="StaticFiles\Assets\Images\zoom.png" />
   </ItemGroup>
 
   <ItemGroup>

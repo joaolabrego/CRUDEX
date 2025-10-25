@@ -5,7 +5,7 @@ using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
 
-namespace crudex.Classes
+namespace CRUDEX.StaticFiles.testes
 {
     public class ScriptsSql
     {
@@ -24,7 +24,7 @@ namespace crudex.Classes
         public static async Task Generate(string systemName = "crudex", string databaseName = "crudex", bool saveInDisk = true, bool? isExcel = null, bool withInsertData = true)
         {
             var result = new StringBuilder();
-            var dataSet = (isExcel ?? systemName == "crudex") ? await ExcelToDataSet() : await GetDataSet();
+            var dataSet = isExcel ?? systemName == "crudex" ? await ExcelToDataSet() : await GetDataSet();
             var system = (dataSet.Tables["Systems"] ?? throw new Exception("Tabela Systems não existe.")).AsEnumerable().ToList()
                 .First(row => Settings.ToString(row["Name"]) == systemName);
             var database = (dataSet.Tables["Databases"] ?? throw new Exception("Tabela Databases não existe.")).AsEnumerable().ToList()
@@ -997,8 +997,8 @@ namespace crudex.Classes
                     }
                 }
                 var uniqueRows = unicities.FindAll(unique => Settings.ToLong(unique["#TableId1"]) == Settings.ToLong(table["Id"]) ||
-                                                           (Settings.ToBoolean(unique["IsBidirectional"]) &&
-                                                            Settings.ToLong(unique["#TableId2"]) == Settings.ToLong(table["Id"])));
+                                                           Settings.ToBoolean(unique["IsBidirectional"]) &&
+                                                            Settings.ToLong(unique["#TableId2"]) == Settings.ToLong(table["Id"]));
                 var uniqueIndexRows = indexes.FindAll(index => Settings.ToLong(index["TableId"]) == Settings.ToLong(table["Id"]) && Settings.ToBoolean(index["IsUnique"]));
 
                 if (uniqueIndexRows.Count > 0 || uniqueRows.Count > 0)
