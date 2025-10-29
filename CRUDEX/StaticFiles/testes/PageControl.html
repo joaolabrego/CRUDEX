@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>PageControl estilo Delphi</title>
+    <style>
+      .pagecontrol {
+        font-family: sans-serif;
+        border: 1px solid #aaa;
+        width: 400px;
+      }
+      .tabs {
+        display: flex;
+        background: #e0e0e0;
+        border-bottom: 1px solid #aaa;
+        font-size: 10px;
+      }
+      .tab {
+        padding: 2px 5px; /* altura menor (antes era 5px 12px) */
+        cursor: pointer;
+        border-right: 1px solid #aaa;
+        user-select: none;
+        font-size: 10px; /* mantém o texto pequeno e elegante */
+        line-height: 16px; /* evita que pareçam "altas" demais */
+      }
+      .tab.active {
+        background: #fff;
+        border-bottom: 1px solid #fff;
+        font-weight: bold;
+      }
+      .tabcontent {
+        display: none;
+        padding: 10px;
+        height: 200px;
+        background: #fff;
+      }
+      .tabcontent.active {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pagecontrol">
+      <div class="tabs">
+        <div class="tab active" data-tab="t1">TabSheet1</div>
+        <div class="tab" data-tab="t2">TabSheet2</div>
+        <div class="tab" data-tab="t3">TabSheet3</div>
+      </div>
+
+      <div id="t1" class="tabcontent active">Conteúdo da aba 1</div>
+      <div id="t2" class="tabcontent">Conteúdo da aba 2</div>
+      <div id="t3" class="tabcontent">Conteúdo da aba 3</div>
+    </div>
+
+    <script>
+      const tabs = document.querySelectorAll(".tab");
+      const contents = document.querySelectorAll(".tabcontent");
+
+      tabs.forEach((tab) => {
+        tab.onclick = () => {
+          tabs.forEach((t) => t.classList.remove("active"));
+          contents.forEach((c) => c.classList.remove("active"));
+          tab.classList.add("active");
+          document.getElementById(tab.dataset.tab).classList.add("active");
+        };
+      });
+    </script>
+  </body>
+</html>
