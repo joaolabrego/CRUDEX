@@ -13,7 +13,7 @@ export default class TMenu {
     static Initialize(styles, rowsMenu) {
         if (styles.ClassName !== "Styles")
             throw new Error("Argumento styles não é do tipo Styles.");
-        console.log(rowsMenu)
+
         let menuWidth = 0,
             GetOptions = (item, isPopup, firstItem, lastItem) => {
                 let li = document.createElement("li");

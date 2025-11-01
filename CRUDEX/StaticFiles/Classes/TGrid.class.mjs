@@ -331,7 +331,7 @@ export default class TGrid {
                 TScreen.LastMessage = TScreen.Message = "Clique em um dos botões.";
             TScreen.Title = `Manutenção de ${this.#Table.Description}`;
             this.#BuildHtmlHead();
-            this.#BuildHtmlBody(this.#Data);
+            this.#BuildHtmlBody();
             this.#BuildHtmlFoot();
             TScreen.WithBackgroundImage = true;
             TScreen.Main = this.#HTML.Container;
@@ -448,7 +448,7 @@ export default class TGrid {
         tr.title = "Clique no cabeçalho da coluna para ordenar";
         this.#HTML.Head.appendChild(tr);
     }
-    #BuildHtmlBody(dataPage) {
+    #BuildHtmlBody() {
         this.#HTML.Body.innerHTML = null;
         this.#HTML.Body.onwheel = (event) => {
             let key = `${event.ctrlKey ? "Page" : "Arrow"}${event.deltaY > 0 ? "Down" : "Up"
@@ -465,7 +465,7 @@ export default class TGrid {
             );
         };
         this.#Rows.length = 0;
-        dataPage.forEach((row, index) => {
+        this.#Data.forEach((row, index) => {
             let tr = document.createElement("tr");
 
             tr.title = JSON.stringify(row).replace(/,/g, ",\n");
