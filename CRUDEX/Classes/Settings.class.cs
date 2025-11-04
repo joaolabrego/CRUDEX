@@ -52,6 +52,21 @@ namespace CRUDEX.Classes
 
             return Convert.ToString(value) ?? string.Empty;
         }
+        /*
+            try
+            {
+                DbProviderFactory factory = DbProviderFactories.GetFactory(providerName);
+                using DbConnection conn = factory.CreateConnection();
+                conn.ConnectionString = connectionString;
+                conn.Open();
+                if (!conn.Database.Equals(expectedDb, StringComparison.OrdinalIgnoreCase))
+                    throw new Exception($"Conectado a '{conn.Database}', mas esperado '{expectedDb}'.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Erro ao abrir conexão para o engine '{providerName}': {ex.Message}");
+            }         
+         */
         public static string ConnectionString()
         {
             return new SqlConnectionStringBuilder(Get("ConnectionString")).ToString();
