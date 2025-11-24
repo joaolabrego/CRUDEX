@@ -4,8 +4,8 @@ GO
 
 ALTER FUNCTION [crudex].[IS_EQUAL](
     @LeftValue NVARCHAR(MAX),
-    @RightValue NVARCHAR(4000),
-    @TypeValue VARCHAR(25)
+    @RightValue NVARCHAR(MAX),
+    @TypeValue NVARCHAR(25)
 )
 RETURNS BIT AS 
 BEGIN
