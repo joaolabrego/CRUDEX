@@ -65,7 +65,6 @@
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
     <PackageReference Include="Net.IBM.Data.Db2" Version="9.0.0.400" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Collections" Version="4.3.0" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.4" />
   </ItemGroup>
 

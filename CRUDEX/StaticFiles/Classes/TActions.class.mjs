@@ -1,30 +1,31 @@
-﻿export default class TActions {
-    static get CONFIG() { return "config" }
-    static get SCREEN() { return "screen" }
-    static get LOGIN() { return "login" }
-    static get CHANGE() { return "change" }
-    static get LOGOUT() { return "logout" }
-    static get AUTHENTICATE() { return "authenticate" }
-    static get EXECUTE() { return "execute" }
-    static get BEGIN() { return "begin" };
-    static get COMMIT() { return "commit" };
-    static get ROLLBACK() { return "rollback" };
-    static get PERSIST() { return "persist" };
-    static get MENU() { return "menu" }
-    static get GRID() { return "grid" }
-    static get RELOAD() { return "reload" }
-    static get EXIT() { return "exit" }
-    static get NONE() { return "none" }
-    static get CREATE() { return "create" }
-    static get READ() { return "read" }
-    static get UPDATE() { return "update" }
-    static get DELETE() { return "delete" }
-    static get SEARCH() { return "search" }
-    static get FILTER() { return "filter" }
-    static get UNFILTER() { return "unfilter" }
-    static get QUERY() { return "query" }
-    static get LIST() { return "list" }
-    static get GENERATE() { return "generate" }
-    static get CHECK() { return "check" }
+﻿let TActions = {
+    CONFIG: "config",
+    SCREEN: "screen",
+    LOGIN: "login",
+    CHANGE: "change",
+    LOGOUT: "logout",
+    AUTHENTICATE: "authenticate",
+    EXECUTE: "execute",
+    BEGIN: "begin",
+    COMMIT: "commit",
+    ROLLBACK: "rollback",
+    PERSIST: "persist",
+    MENU: "menu",
+    GRID: "grid",
+    RELOAD: "reload",
+    EXIT: "exit",
+    NONE: "none",
+    CREATE: "create",
+    READ: "read",
+    UPDATE: "update",
+    DELETE: "delete",
+    SEARCH: "search",
+    FILTER: "filter",
+    UNFILTER: "unfilter",
+    QUERY: "query",
+    LIST: "list",
+    GENERATE: "generate",
+    CHECK: "check",
 }
 Object.freeze(TActions)
+export default TActions
