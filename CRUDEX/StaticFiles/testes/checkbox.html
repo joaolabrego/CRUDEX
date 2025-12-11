@@ -51,13 +51,14 @@
 <body>
     <tri-checkbox>Valor por extenso?</tri-checkbox>
     <tri-checkbox>Requerida?</tri-checkbox>
+    <input type="checkbox">Requerida?</input>
 
     <script>
         class TriCheckbox extends HTMLElement {
             constructor() {
                 super();
                 this.state = 0;
-                this.symbols = ["", "✔", "–", "Ø", "✗"];
+                this.symbols = ["", "✔", "–", "Ø", "⊗"];
                 this.ariaStates = ["false", "true", "ignored", "null", "not null"];
                 this.tooltips = ["false", "true", "ignored", "null", "not null"];
             }
