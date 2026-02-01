@@ -399,12 +399,13 @@ namespace CRUDEX.Classes
 
         public void SaveAsPdf(string docxPath, string outputFolder)
         {
-            var libreOfficePath = Settings.Get("LIBRE_OFFICE_COMMAND");
+            var command = Settings.Get("LIBRE_OFFICE_COMMAND");
+            var arguments = Settings.Get("LIBRE_OFFICE_ARQGUMENTS");
 
             var startInfo = new ProcessStartInfo
             {
-                FileName = libreOfficePath,
-                Arguments = $"--headless --convert-to pdf \"{docxPath}\" --outdir \"{outputFolder}\"",
+                FileName = command,
+                Arguments = string.Format(arguments, docxPath, outputFolder),
                 CreateNoWindow = true,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
