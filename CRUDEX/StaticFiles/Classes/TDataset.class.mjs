@@ -2,6 +2,7 @@
 
 import TRecord from "./TRecord.class.mjs"
 import TSystem from "./TSystem.class.mjs"
+import TTable from "./TTable.class.mjs"
 
 export default class TDataset {
     #Table = null
@@ -13,7 +14,7 @@ export default class TDataset {
     #Data = []
     #References = []
     constructor(table) {
-        if (!table instanceof Table)
+        if (!table instanceof TTable)
             throw new Error("Argumento table não é do tipo TTable.")
         this.#Table = table
         this.#Table.Columns.filter(column => column.IsFilterable)

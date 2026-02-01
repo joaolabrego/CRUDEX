@@ -34,7 +34,7 @@ namespace CRUDEX.Classes
 
             string docxPath = @"D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\StaticFilestestes\report_result.docx";
             string outputFolder = Path.GetDirectoryName(docxPath)!;
-            
+
             // Salva o PDF na mesma pasta
             report.SaveAsPdf(docxPath, outputFolder);
         }
@@ -42,14 +42,26 @@ namespace CRUDEX.Classes
         public void Generate(string jsonPath, string outputPath)
         {
             var json = JObject.Parse(File.ReadAllText(jsonPath));
-            var body = wordDoc.MainDocumentPart!.Document.Body;
+            var main = wordDoc.MainDocumentPart!;
+            var body = main.Document.Body;
             if (body == null) return;
 
+            // ===== TAGS NO CORPO + CABEÇALHOS + RODAPÉS =====
             ReplaceTagsPreciselyPreservingFormatting(body, json);
 
-            InsertImageInlineFromBase64(wordDoc, "<Logo>", File.ReadAllBytes("./StaticFiles/testes/logo.png"), "Labrego");
+            foreach (var hp in main.HeaderParts)
+                ReplaceTagsPreciselyPreservingFormatting(hp.Header, json);
+
+            foreach (var fp in main.FooterParts)
+                ReplaceTagsPreciselyPreservingFormatting(fp.Footer, json);
+
+            // ===== IMAGEM POR PLACEHOLDER: CORPO + CABEÇALHOS + RODAPÉS =====
+            InsertImageInlineFromBytes(wordDoc, "<Logo>", File.ReadAllBytes("./StaticFiles/testes/logo.png"), "Labrego");
+
+            // ===== IMAGEM POR "NOME" (mantido como estava no seu código) =====
             this.ReplaceImageByName("EvadinLogo", File.ReadAllBytes("./StaticFiles/testes/logo.png"));
 
+            // ===== TABELAS (ficam no Body mesmo) =====
             FillTable("Items", json["Items"]!.Children<JObject>(), (row, item) =>
             {
                 var cells = row.Elements<TableCell>().ToArray();
@@ -65,16 +77,17 @@ namespace CRUDEX.Classes
                 SetCellText(cells[1], item["Value"]!.ToString());
             });
 
-            wordDoc.MainDocumentPart.Document.Save();
+            main.Document.Save();
             wordDoc.Dispose();
             File.WriteAllBytes(outputPath, memoryStream.ToArray());
         }
 
-        private static void ReplaceTagsPreciselyPreservingFormatting(Body body, JObject json)
+        // Agora recebe qualquer raiz (Body, Header, Footer) e percorre Descendants<Paragraph>()
+        private static void ReplaceTagsPreciselyPreservingFormatting(OpenXmlElement root, JObject json)
         {
             var replacements = json.Properties().ToDictionary(p => $"<{p.Name}>", p => p.Value.ToString());
 
-            foreach (var paragraph in body.Elements<Paragraph>())
+            foreach (var paragraph in root.Descendants<Paragraph>())
             {
                 var runs = paragraph.Elements<Run>().ToList();
                 if (runs.Count == 0) continue;
@@ -91,7 +104,9 @@ namespace CRUDEX.Classes
                     while ((globalPos = fullText.IndexOf(tag, globalPos, StringComparison.Ordinal)) != -1)
                     {
                         int tagEnd = globalPos + tag.Length;
-                        int currentPos = 0, startRun = -1, endRun = -1;
+
+                        int startRun = -1, endRun = -1;
+                        int currentPos = 0;
 
                         for (int i = 0; i < segments.Count; i++)
                         {
@@ -113,6 +128,7 @@ namespace CRUDEX.Classes
 
                         var firstRun = segments[startRun].run;
                         var firstText = segments[startRun].text;
+
                         int tagOffsetStart = globalPos - segments.Take(startRun).Sum(s => s.text.Length);
                         if (tagOffsetStart > 0)
                         {
@@ -125,6 +141,7 @@ namespace CRUDEX.Classes
 
                         var lastRun = segments[endRun].run;
                         var lastText = segments[endRun].text;
+
                         int tagOffsetEnd = tagEnd - segments.Take(endRun).Sum(s => s.text.Length);
                         if (tagOffsetEnd < lastText.Length)
                         {
@@ -142,9 +159,10 @@ namespace CRUDEX.Classes
                         if (firstRun.RunProperties != null)
                             newRun.RunProperties = (RunProperties)firstRun.RunProperties.CloneNode(true);
 
+                        // Coloca o valor no final do parágrafo (mantendo seu comportamento original)
                         paragraph.AppendChild(newRun);
 
-                        runs = [.. paragraph.Elements<Run>()];
+                        runs = paragraph.Elements<Run>().ToList();
                         segments = runs.Select(r => (r, r.GetFirstChild<Text>()?.Text ?? "")).ToList();
                         fullText = string.Concat(segments.Select(s => s.text));
                         globalPos = 0;
@@ -196,7 +214,8 @@ namespace CRUDEX.Classes
                     : null;
 
                 originalRunProps = originalPara.Descendants<Run>().FirstOrDefault()?.RunProperties != null
-                    ? originalPara?.Descendants<Run>().First().RunProperties?.CloneNode(true) as RunProperties : null;
+                    ? originalPara.Descendants<Run>().First().RunProperties?.CloneNode(true) as RunProperties
+                    : null;
             }
 
             var newRun = new Run(new Text(value));
@@ -209,25 +228,22 @@ namespace CRUDEX.Classes
 
             cell.RemoveAllChildren<Paragraph>();
             cell.AppendChild(newPara);
-
-
         }
-        public static void InsertImageInlineFromBase64(WordprocessingDocument doc, string placeholder, byte[] base64, string imageName)
+
+        // Substitui placeholder <Logo> por uma imagem, agora varrendo Body + Headers + Footers
+        public static void InsertImageInlineFromBytes(WordprocessingDocument doc, string placeholder, byte[] imageBytes, string imageName)
         {
             var mainPart = doc.MainDocumentPart!;
-            var body = mainPart.Document.Body!;
-
-            // Converte a string base64 em stream de imagem
-            using var imageStream = new MemoryStream(base64);
-
             var imagePart = mainPart.AddImagePart(ImagePartType.Png);
-            imagePart.FeedData(imageStream);
+
+            using (var imageStream = new MemoryStream(imageBytes))
+                imagePart.FeedData(imageStream);
+
             var imageId = mainPart.GetIdOfPart(imagePart);
 
-            using var imgStream = new MemoryStream(base64);
+            using var imgStream = new MemoryStream(imageBytes);
             using var image = System.Drawing.Image.FromStream(imgStream);
 
-            // Converte para EMU (1 polegada = 914400 EMUs, 1 polegada = 96 DPI padrão)
             const int emusPerInch = 914400;
             const int defaultDpi = 96;
 
@@ -289,31 +305,66 @@ namespace CRUDEX.Classes
                 )
             );
 
-            // Substituição da tag <Logo> pelo Drawing
-            foreach (var para in body.Elements<Paragraph>())
-            {
-                var allTexts = para.Descendants<Text>().ToList();
-                string fullText = string.Concat(allTexts.Select(t => t.Text));
+            bool replaced = ReplacePlaceholderWithDrawing(mainPart.Document.Body!, placeholder, drawing);
 
-                int index = fullText.IndexOf(placeholder);
+            foreach (var hp in mainPart.HeaderParts)
+                replaced = ReplacePlaceholderWithDrawing(hp.Header, placeholder, drawing) || replaced;
+
+            foreach (var fp in mainPart.FooterParts)
+                replaced = ReplacePlaceholderWithDrawing(fp.Footer, placeholder, drawing) || replaced;
+
+            if (!replaced)
+                throw new Exception($"Placeholder '{placeholder}' não encontrado no corpo/cabeçalho/rodapé.");
+        }
+
+        // Procura placeholder mesmo quando o texto está quebrado em runs e substitui por Drawing preservando antes/depois
+        private static bool ReplacePlaceholderWithDrawing(OpenXmlElement root, string placeholder, Drawing drawing)
+        {
+            foreach (var para in root.Descendants<Paragraph>())
+            {
+                var runs = para.Elements<Run>().ToList();
+                if (runs.Count == 0) continue;
+
+                var texts = runs.Select(r => r.GetFirstChild<Text>()?.Text ?? "").ToList();
+                string fullText = string.Concat(texts);
+
+                int index = fullText.IndexOf(placeholder, StringComparison.Ordinal);
                 if (index < 0) continue;
 
-                para.RemoveAllChildren<Run>();
-
+                // refaz o parágrafo: (before) + (drawing) + (after)
                 string before = fullText[..index];
                 string after = fullText[(index + placeholder.Length)..];
 
-                if (!string.IsNullOrEmpty(before))
-                    para.Append(new Run(new Text(before)));
+                var refRunProps = runs.FirstOrDefault()?.RunProperties != null
+                    ? (RunProperties)runs.First().RunProperties.CloneNode(true)
+                    : null;
 
-                para.Append(new Run(drawing));
+                para.RemoveAllChildren<Run>();
+
+                if (!string.IsNullOrEmpty(before))
+                {
+                    var rBefore = new Run(new Text(before));
+                    if (refRunProps != null) rBefore.RunProperties = (RunProperties)refRunProps.CloneNode(true);
+                    para.Append(rBefore);
+                }
+
+                var rImg = new Run(drawing);
+                if (refRunProps != null) rImg.RunProperties = (RunProperties)refRunProps.CloneNode(true);
+                para.Append(rImg);
 
                 if (!string.IsNullOrEmpty(after))
-                    para.Append(new Run(new Text(after)));
+                {
+                    var rAfter = new Run(new Text(after));
+                    if (refRunProps != null) rAfter.RunProperties = (RunProperties)refRunProps.CloneNode(true);
+                    para.Append(rAfter);
+                }
 
-                break;
+                return true;
             }
+
+            return false;
         }
+
         public void ReplaceImageByName(string imageNameToReplace, byte[] newImageBytes)
         {
             var mainPart = wordDoc.MainDocumentPart!;
@@ -331,26 +382,20 @@ namespace CRUDEX.Classes
             if (blip == null || extent == null)
                 throw new Exception("Estrutura do Drawing não contém Blip ou Extent válidos.");
 
-            // Remove a imagem antiga
             var oldImagePartId = blip.Embed?.Value;
             var oldImagePart = mainPart?.GetPartById(oldImagePartId!)!;
             mainPart?.DeletePart(oldImagePart);
 
-            // Adiciona nova imagem
             var newImagePart = mainPart?.AddImagePart(ImagePartType.Png);
             using (var ms = new MemoryStream(newImageBytes))
                 newImagePart?.FeedData(ms);
 
-            // Atualiza referência para nova imagem
             if (newImagePart != null && blip.Embed != null)
             {
                 var newId = mainPart?.GetIdOfPart(newImagePart);
                 blip.Embed.Value = newId;
             }
-            // Mantém as dimensões (Cx, Cy)
-            // Nada mais a fazer, pois o `Extent` já está certo
         }
-
 
         public void SaveAsPdf(string docxPath, string outputFolder)
         {
