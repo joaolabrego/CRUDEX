@@ -400,7 +400,7 @@ namespace CRUDEX.Classes
         public void SaveAsPdf(string docxPath, string outputFolder)
         {
             var command = Settings.Get("LIBRE_OFFICE_COMMAND");
-            var arguments = Settings.Get("LIBRE_OFFICE_ARQGUMENTS");
+            var arguments = Settings.Get("LIBRE_OFFICE_ARGUMENTS");
 
             var startInfo = new ProcessStartInfo
             {
