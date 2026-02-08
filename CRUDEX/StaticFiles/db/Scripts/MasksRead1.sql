@@ -67,7 +67,7 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[T].[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -91,6 +91,8 @@ ALTER PROCEDURE [dbo].[MasksRead1](@SessionId BIGINT
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)

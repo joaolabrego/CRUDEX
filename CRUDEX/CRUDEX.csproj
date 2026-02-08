@@ -13,7 +13,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>6d2b2f40-ad3b-41f8-b3ec-38b8a1ccc336</UserSecretsId>
-    <Platforms>AnyCPU</Platforms>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-arm64</RuntimeIdentifiers>
+    <Platforms>AnyCPU;x64;x86</Platforms>
     <StartupObject>CRUDEX.Classes.Program</StartupObject>
     <PlatformTarget>x64</PlatformTarget>
 	<NoWarn>$(NoWarn);AD0001</NoWarn>

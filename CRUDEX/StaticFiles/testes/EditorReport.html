@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<title>RELEX – Word-like (HF + caret estável)</title>
+
+<style>
+:root{
+  --page-w:210mm;
+  --page-h:297mm;
+
+  --margin:20mm;
+  --header-h:28mm;
+  --footer-h:24mm;
+
+  --guide:#777;
+  --tag-bg:#e6e6e6;
+  --tag-bd:#777;
+}
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:#111;
+  font-family:system-ui,Segoe UI,Arial;
+  overflow:hidden;
+}
+
+.topbar{
+  padding:10px;
+  background:#000;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.topbar button{margin-right:8px}
+
+.mode-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 10px;
+  border:1px solid #333;
+  border-radius:999px;
+  font-size:12px;
+  opacity:.95;
+}
+.mode-dot{
+  width:9px;height:9px;border-radius:50%;
+  background:#39ff14;
+  box-shadow:0 0 12px rgba(57,255,20,.95);
+}
+.mode-pill.ovr .mode-dot{
+  background:#ff0033;
+  box-shadow:0 0 12px rgba(255,0,51,.95);
+}
+
+.wrap{
+  height:calc(100vh - 48px);
+  overflow:auto;
+  padding:6px;
+}
+.stage{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:18px;
+}
+
+.page{
+  width:var(--page-w);
+  height:var(--page-h);
+  background:#fff;
+  border:1px solid #cfcfcf;
+  position:relative;
+  transform:scale(1.05);
+  transform-origin: top center;
+}
+
+.page-inner{
+  position:absolute;
+  inset:var(--margin);
+  display:flex;
+  flex-direction:column;
+  border:none;
+  overflow:hidden;
+}
+
+.band{
+  position:relative;
+  padding:0;
+  cursor:text;
+}
+
+.header{ min-height:var(--header-h); height:auto; }
+.footer{ min-height:var(--footer-h); height:auto; }
+.body{ flex:1; min-height:0; overflow:hidden; }
+
+.band .editable{
+  padding:6mm;
+  outline:none;
+  height:auto;
+  overflow:visible;
+  color:#111;
+}
+
+.editable.editing{
+  background:transparent;
+  outline:none;
+  border-radius:0;
+  padding:6mm;
+  caret-color:#39ff14;
+}
+.editable.editing.ovr-caret{ caret-color:#ff0033; }
+
+p{margin:0 0 6px 0}
+
+/* Labels só no modo HF */
+.band-label{ display:none; }
+
+/* ===== HF: linha tracejada como BACKGROUND (não corta label) ===== */
+.page.hf .header{
+  position:relative;
+  background-image:repeating-linear-gradient(to right, var(--guide) 0 6px, transparent 6px 12px);
+  background-repeat:repeat-x;
+  background-size:12px 1px;
+  background-position:left 100%;
+}
+.page.hf .footer{
+  position:relative;
+  background-image:repeating-linear-gradient(to right, var(--guide) 0 6px, transparent 6px 12px);
+  background-repeat:repeat-x;
+  background-size:12px 1px;
+  background-position:left 0%;
+}
+
+.page.hf .header .band-label{
+  display:inline-block;
+  position:absolute;
+  left:14px;
+  bottom:0;
+  transform:translateY(50%);
+  font-size:12px;
+  line-height:1;
+  background:var(--tag-bg);
+  border:1px solid var(--tag-bd);
+  border-radius:2px;
+  padding:3px 10px;
+  user-select:none;
+  pointer-events:none;
+  z-index:2;
+}
+.page.hf .footer .band-label{
+  display:inline-block;
+  position:absolute;
+  left:14px;
+  top:0;
+  transform:translateY(-50%);
+  font-size:12px;
+  line-height:1;
+  background:var(--tag-bg);
+  border:1px solid var(--tag-bd);
+  border-radius:2px;
+  padding:3px 10px;
+  user-select:none;
+  pointer-events:none;
+  z-index:2;
+}
+
+/* corpo apagado no modo HF (como Word) */
+.page.hf .body{ opacity:.45; }
+.page.hf .body *{ pointer-events:none; }
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <button id="btnEdit">Editar</button>
+  <button id="btnDone">Finalizar</button>
+
+  <span id="modePill" class="mode-pill" title="Tecla INS alterna modo">
+    <span class="mode-dot"></span>
+    <strong id="modeText">INS</strong>
+  </span>
+</div>
+
+<div class="wrap">
+  <div id="stage" class="stage"></div>
+</div>
+
+<script>
+(()=>{
+"use strict";
+
+const stage=document.getElementById("stage");
+let active=null;
+
+let insertMode = true;
+const MAX_P_HF = 10;
+
+const modePill = document.getElementById("modePill");
+const modeText = document.getElementById("modeText");
+
+function updateModeUI(){
+  modeText.textContent = insertMode ? "INS" : "OVR";
+  modePill.classList.toggle("ovr", !insertMode);
+  updateCaretUI();
+}
+function updateCaretUI(){
+  if(!active) return;
+  active.classList.toggle("ovr-caret", !insertMode);
+}
+updateModeUI();
+
+function getPageFrom(el){ return el?.closest?.(".page") || null; }
+function setHfModeForPage(pg,on){ if(pg) pg.classList.toggle("hf", !!on); }
+
+function isHeaderOrFooter(ed){
+  return ed.classList.contains("header-ed") || ed.classList.contains("footer-ed");
+}
+function countParagraphs(ed){
+  return ed.querySelectorAll(":scope > p").length;
+}
+
+function getSelectionRange(){
+  const sel=window.getSelection();
+  if(!sel || !sel.rangeCount) return null;
+  return sel.getRangeAt(0);
+}
+function getActiveParagraph(){
+  const r=getSelectionRange();
+  if(!r) return null;
+  const node = r.startContainer.nodeType===3 ? r.startContainer.parentNode : r.startContainer;
+  return node.closest?.("p") || null;
+}
+function placeCaretEnd(node){
+  const r=document.createRange();
+  r.selectNodeContents(node);
+  r.collapse(false);
+  const s=window.getSelection();
+  s.removeAllRanges();
+  s.addRange(r);
+}
+function placeCaretStart(node){
+  const r=document.createRange();
+  r.selectNodeContents(node);
+  r.collapse(true);
+  const s=window.getSelection();
+  s.removeAllRanges();
+  s.addRange(r);
+}
+
+function ensureHasParagraph(container){
+  if(container.querySelector(":scope > p")) return;
+  const p=document.createElement("p");
+  p.appendChild(document.createElement("br"));
+  container.appendChild(p);
+  placeCaretStart(p);
+}
+
+/* Normaliza o DOM produzido pelo contentEditable:
+   - tudo vira <p>
+   - <p> vazio vira <p><br></p>
+*/
+function normalizeParagraphs(ed){
+  // 1) transforma nós “soltos” (texto, div) em <p>
+  const nodes=[...ed.childNodes];
+  for(const n of nodes){
+    if(n.nodeType===3){ // text solto
+      const txt=n.textContent;
+      n.remove();
+      const p=document.createElement("p");
+      p.textContent=txt;
+      ed.appendChild(p);
+    }else if(n.nodeType===1){
+      const tag=n.tagName;
+      if(tag==="DIV"){
+        const p=document.createElement("p");
+        p.innerHTML=n.innerHTML;
+        n.replaceWith(p);
+      }else if(tag!=="P"){
+        // embrulha qualquer outra coisa num <p>
+        const p=document.createElement("p");
+        p.appendChild(n);
+        ed.appendChild(p);
+      }
+    }
+  }
+
+  // 2) garante que todo <p> vazio tenha <br>
+  ed.querySelectorAll(":scope > p").forEach(p=>{
+    const txt=(p.textContent||"").replace(/\u00A0/g," ").trim();
+    if(txt==="" && p.querySelectorAll("br").length===0){
+      p.innerHTML="";
+      p.appendChild(document.createElement("br"));
+    }
+  });
+
+  // 3) se ficou vazio, cria um p
+  ensureHasParagraph(ed);
+}
+
+/* ---------- page factory ---------- */
+function createPage(){
+  const p=document.createElement("div");
+  p.className="page";
+  p.innerHTML=`
+  <div class="page-inner">
+    <div class="band header">
+      <div class="band-label">Cabeçalho</div>
+      <div class="editable header-ed"></div>
+    </div>
+
+    <div class="band body">
+      <div class="editable body-ed"></div>
+    </div>
+
+    <div class="band footer">
+      <div class="band-label">Rodapé</div>
+      <div class="editable footer-ed"></div>
+    </div>
+  </div>`;
+
+  p.querySelectorAll(".editable").forEach(wireEditable);
+
+  p.querySelector(".header").addEventListener("mousedown",(e)=>{
+    e.preventDefault();
+    const hed=p.querySelector(".header-ed");
+    startEdit(hed);
+    ensureHasParagraph(hed);
+    placeCaretEnd(hed.querySelector("p:last-child"));
+  });
+
+  p.querySelector(".footer").addEventListener("mousedown",(e)=>{
+    e.preventDefault();
+    const fed=p.querySelector(".footer-ed");
+    startEdit(fed);
+    ensureHasParagraph(fed);
+    placeCaretStart(fed.querySelector("p:first-child"));
+  });
+
+  p.querySelector(".body").addEventListener("mousedown",(e)=>{
+    e.preventDefault();
+    const bed=p.querySelector(".body-ed");
+    startEdit(bed);
+    ensureHasParagraph(bed);
+    placeCaretEnd(bed.querySelector("p:last-child"));
+  });
+
+  return p;
+}
+stage.appendChild(createPage());
+
+/* ---------- edit mode ---------- */
+document.getElementById("btnEdit").onclick=()=>{
+  const b=stage.querySelector(".body-ed");
+  startEdit(b);
+  ensureHasParagraph(b);
+  placeCaretEnd(b.querySelector("p:last-child"));
+};
+document.getElementById("btnDone").onclick=stopEdit;
+
+function startEdit(el){
+  stopEdit();
+  active=el;
+
+  el.spellcheck=false;               // evita mexidas de selection por corretor
+  el.contentEditable="true";
+  el.classList.add("editing");
+  updateCaretUI();
+  el.focus({preventScroll:true});
+
+  normalizeParagraphs(el);
+
+  const pg=getPageFrom(el);
+  setHfModeForPage(pg, isHeaderOrFooter(el));
+}
+function stopEdit(){
+  if(!active) return;
+  const pg=getPageFrom(active);
+  active.contentEditable="false";
+  active.classList.remove("editing","ovr-caret");
+  active=null;
+  setHfModeForPage(pg,false);
+}
+
+/* ---------- global keys ---------- */
+document.addEventListener("keydown",(e)=>{
+  if(!active) return;
+  if(e.key==="Insert"){
+    e.preventDefault();
+    insertMode=!insertMode;
+    updateModeUI();
+  }
+});
+
+/* ---------- editor rules ---------- */
+function wireEditable(el){
+
+  // ✅ bloqueio do Enter no header/footer se já tem 10 parágrafos
+  el.addEventListener("beforeinput",(e)=>{
+    if(el!==active) return;
+    if(e.isComposing) return;
+
+    if(isHeaderOrFooter(el)){
+      const isEnter = (e.inputType==="insertParagraph" || e.inputType==="insertLineBreak");
+      if(isEnter && countParagraphs(el) >= MAX_P_HF){
+        e.preventDefault();
+        return;
+      }
+    }
+
+    // OVR (se for inserção de texto simples, a gente apaga 1 char à direita antes)
+    if(!insertMode && e.inputType==="insertText" && typeof e.data==="string" && e.data.length===1){
+      const r=getSelectionRange();
+      if(!r) return;
+      if(!r.collapsed) return;
+
+      const sc=r.startContainer;
+      const so=r.startOffset;
+
+      // apaga 1 caractere à direita se estiver em nó de texto
+      if(sc && sc.nodeType===3 && so < sc.data.length){
+        sc.deleteData(so,1);
+      }
+    }
+  });
+
+  // ✅ depois de qualquer mudança, normaliza e pagina
+  el.addEventListener("input",()=>{
+    if(el!==active) return;
+    normalizeParagraphs(el);
+    // paginação depois do browser assentar layout
+    requestAnimationFrame(()=>paginate());
+  });
+
+  // setas HF (troca header<->footer)
+  el.addEventListener("keydown",(e)=>{
+    if(el!==active) return;
+
+    if(e.key==="ArrowDown" && el.classList.contains("header-ed")){
+      const pg=getPageFrom(el);
+      const p=getActiveParagraph();
+      if(pg && p && !p.nextElementSibling){
+        e.preventDefault();
+        const fed=pg.querySelector(".footer-ed");
+        startEdit(fed);
+        normalizeParagraphs(fed);
+        placeCaretStart(fed.querySelector("p:first-child"));
+      }
+      return;
+    }
+
+    if(e.key==="ArrowUp" && el.classList.contains("footer-ed")){
+      const pg=getPageFrom(el);
+      const p=getActiveParagraph();
+      if(pg && p && !p.previousElementSibling){
+        e.preventDefault();
+        const hed=pg.querySelector(".header-ed");
+        startEdit(hed);
+        normalizeParagraphs(hed);
+        placeCaretEnd(hed.querySelector("p:last-child"));
+      }
+      return;
+    }
+  });
+}
+
+/* ---------- pagination (BODY only) ---------- */
+function paginate(){
+  const pages=[...stage.querySelectorAll(".page")];
+
+  function ensureNextPage(i){
+    if(pages[i+1]) return pages[i+1];
+    const created=createNextPage();
+    pages.push(created);
+    return created;
+  }
+
+  pages.forEach((pg,i)=>{
+    const bodyEd=pg.querySelector(".body-ed");
+    const bodyBox=pg.querySelector(".body");
+    if(!bodyEd || !bodyBox) return;
+
+    while(bodyEd.scrollHeight > bodyBox.clientHeight + 1){
+      const lastP=bodyEd.querySelector("p:last-child");
+      if(!lastP) break;
+
+      const next=ensureNextPage(i);
+      const nb=next.querySelector(".body-ed");
+      if(!nb) break;
+
+      nb.insertBefore(lastP, nb.firstChild);
+    }
+  });
+}
+
+function createNextPage(){
+  const p=createPage();
+  const first=stage.querySelector(".page");
+  p.querySelector(".header-ed").innerHTML=first.querySelector(".header-ed").innerHTML;
+  p.querySelector(".footer-ed").innerHTML=first.querySelector(".footer-ed").innerHTML;
+  stage.appendChild(p);
+  return p;
+}
+
+/* ---------- seed ---------- */
+const h=stage.querySelector(".header-ed");
+const f=stage.querySelector(".footer-ed");
+const b=stage.querySelector(".body-ed");
+
+h.innerHTML="<p>Empresa XYZ</p>";
+f.innerHTML="<p>Rodapé</p>";
+b.innerHTML="<p>Duplo clique para editar.</p>";
+
+// ✅ auto-start: já entra no BODY em INS com caret visível
+setTimeout(()=>{
+  insertMode=true;
+  updateModeUI();
+  startEdit(b);
+  normalizeParagraphs(b);
+  placeCaretEnd(b.querySelector("p:last-child"));
+},0);
+
+})();
+</script>
+</body>
+</html>

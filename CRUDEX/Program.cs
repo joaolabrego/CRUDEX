@@ -13,14 +13,35 @@ namespace CRUDEX.Classes
 
             app.Use(async (context, next) =>
             {
-                if (context.Request.Method == "GET" && (context.Request.Path.ToString().EndsWith(".class.mjs") || context.Request.Path.ToString().EndsWith(".min.js")))
+                var p = context.Request.Path.Value;
+
+                if (context.Request.Method == "GET" &&
+                    (p?.EndsWith(".class.mjs") == true || p?.EndsWith(".min.js") == true))
                 {
-                    context.Response.Headers.ContentType = "text/javascript";
-                    await context.Response.WriteAsync(File.ReadAllText($"{Settings.Builder.Environment.ContentRootPath}\\StaticFiles{context.Request.Path}"), Encoding.UTF8);
+                    var rel = p.TrimStart('/');
+
+                    if (rel.Contains("..") || rel.Contains(':') || rel.Contains('\\'))
+                    {
+                        context.Response.StatusCode = 400;
+                        return;
+                    }
+
+                    var file = Path.Combine(Settings.Builder.Environment.ContentRootPath, "StaticFiles", rel);
+
+                    if (!File.Exists(file))
+                    {
+                        context.Response.StatusCode = 404;
+                        return;
+                    }
+
+                    context.Response.ContentType = "text/javascript; charset=utf-8";
+                    await context.Response.SendFileAsync(file);
+                    return;
                 }
-                else
-                    await next.Invoke();
+
+                await next();
             });
+
             app.MapGet("/", async (HttpContext context) =>
             {
                 await Scripts.Generate();
@@ -42,7 +63,7 @@ namespace CRUDEX.Classes
 
                 if (systems.Length < 2)
                 {
-                    context.Response.Headers.ContentType = "text/html;";
+                    context.Response.ContentType = "text/html; charset=utf-8";
                     await context.Response.WriteAsync(Config.GetHTML("crudex", "Nomes do sistema e do ambiente são requeridos na URL."), Encoding.UTF8);
                     return;
                 }
@@ -64,7 +85,7 @@ namespace CRUDEX.Classes
                     case Actions.CONFIG:
                         var response = JsonConvert.SerializeObject(await Config.Create(systemName, "all"));
 
-                        context.Response.Headers.ContentType = "application/json";
+                        context.Response.ContentType = "application/json; charset=utf-8";
                         await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
                         break;
                     case Actions.LOGIN:
@@ -85,7 +106,7 @@ namespace CRUDEX.Classes
                         }
                         else
                             response = JsonConvert.SerializeObject(await Login.Execute(parameters));
-                        context.Response.Headers.ContentType = "application/json";
+                        context.Response.ContentType = "application/json; charset=utf-8";
                         await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
                         break;
                     default:
@@ -103,7 +124,7 @@ namespace CRUDEX.Classes
                 {
                     var response = JsonConvert.SerializeObject(new Error(ex.Message, Actions.LOGIN));
 
-                    context.Response.Headers.ContentType = "application/json";
+                    context.Response.ContentType = "application/json; charset=utf-8";
                     await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
                 }
             }
