@@ -326,6 +326,9 @@ function createPage(){
   p.querySelectorAll(".editable").forEach(wireEditable);
 
   p.querySelector(".header").addEventListener("mousedown",(e)=>{
+    // ✅ se clicou/arrastou dentro do conteúdo, deixa o browser selecionar
+    if (e.target.closest(".editable")) return;
+
     e.preventDefault();
     const hed=p.querySelector(".header-ed");
     startEdit(hed);
@@ -334,6 +337,8 @@ function createPage(){
   });
 
   p.querySelector(".footer").addEventListener("mousedown",(e)=>{
+    if (e.target.closest(".editable")) return;
+
     e.preventDefault();
     const fed=p.querySelector(".footer-ed");
     startEdit(fed);
@@ -342,12 +347,15 @@ function createPage(){
   });
 
   p.querySelector(".body").addEventListener("mousedown",(e)=>{
+    if (e.target.closest(".editable")) return;
+
     e.preventDefault();
     const bed=p.querySelector(".body-ed");
     startEdit(bed);
     ensureHasParagraph(bed);
     placeCaretEnd(bed.querySelector("p:last-child"));
   });
+
 
   return p;
 }
