@@ -271,6 +271,50 @@
       [data-border~="right"] {
         border-right-width: var(--bw, 1px);
       }
+      .rx-img {
+        display: inline-block;
+        max-width: 100%;
+        height: auto;
+
+        /* ✅ X desloca sem alterar layout/sem encolher */
+        transform: translateX(var(--ix, 0ch));
+
+        /* ✅ Y empurra no layout (não sobrepõe) */
+        margin-top: var(--iy, 0em);
+
+        width: var(--iw, auto);
+        float: none;
+        margin-right: 0;
+        margin-bottom: 0;
+        vertical-align: baseline;
+      }
+
+      /* alinhamentos */
+      .rx-img[data-align="left"] {
+        display: block;
+        margin-right: auto;
+        margin-left: 0;
+      }
+      .rx-img[data-align="center"] {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .rx-img[data-align="right"] {
+        display: block;
+        margin-left: auto;
+        margin-right: 0;
+      }
+
+      /* stretch */
+      .rx-img[data-stretch="1"] {
+        display: block;
+        width: 100%;
+      }
+      .rx-img.sel {
+        outline: 2px solid rgba(57, 255, 20, 0.85);
+        outline-offset: 2px;
+      }
     </style>
   </head>
 
@@ -349,6 +393,25 @@
         </select>
 
         <input id="tbColor" type="color" title="Cor do texto" />
+
+        <span class="toolcap">Imagem:</span>
+        <button id="tbImgIns" title="Inserir imagem">🖼️+</button>
+
+        <button id="tbImgUp" title="Mover para cima (1em)">↑</button>
+        <button id="tbImgDown" title="Mover para baixo (1em)">↓</button>
+        <button id="tbImgLeft" title="Mover para esquerda (1ch)">←</button>
+        <button id="tbImgRight" title="Mover para direita (1ch)">→</button>
+
+        <button id="tbImgSm" title="Diminuir">－</button>
+        <button id="tbImgLg" title="Aumentar">＋</button>
+
+        <button id="tbImgStretch" title="Stretch ON/OFF">⤢</button>
+
+        <button id="tbImgAL" title="Alinhar esquerda">⟸</button>
+        <button id="tbImgAC" title="Centralizar">≡</button>
+        <button id="tbImgAR" title="Alinhar direita">⟹</button>
+
+        <input id="tbImgFile" type="file" accept="image/*" hidden />
       </div>
     </div>
 
@@ -584,6 +647,8 @@
 
           normalizeParagraphs(el);
 
+          saveSelection(); // ✅ <<< ADICIONE AQUI
+
           const pg = getPageFrom(el);
           setHfModeForPage(pg, isHeaderOrFooter(el));
 
@@ -611,6 +676,36 @@
         });
 
         function wireEditable(el) {
+          el.addEventListener(
+            "mousedown",
+            (e) => {
+              const img = e.target.closest?.("img.rx-img");
+              if (!img) return;
+
+              // ✅ marca a imagem como alvo (sem depender do range nativo)
+              setActiveImg(img);
+
+              // opcional: coloca caret depois da imagem pra continuar digitando
+              requestAnimationFrame(() => {
+                const r = document.createRange();
+                r.setStartAfter(img);
+                r.collapse(true);
+                const s = window.getSelection();
+                s.removeAllRanges();
+                s.addRange(r);
+                saveSelection();
+              });
+            },
+            true,
+          );
+          el.addEventListener(
+            "mousedown",
+            (e) => {
+              if (!e.target.closest?.("img.rx-img")) clearActiveImg();
+            },
+            false,
+          );
+
           el.addEventListener("beforeinput", (e) => {
             if (el !== active) return;
             if (e.isComposing) return;
@@ -801,13 +896,16 @@
             savedRange = sel.getRangeAt(0).cloneRange();
         }
         function restoreSelection() {
+          // ✅ se não tem savedRange ainda, tenta capturar o range atual
+          if (!savedRange) saveSelection();
           if (!savedRange) return false;
-          // ⚠️ restaurar só quando for APLICAR comando
+
           const sel = window.getSelection();
           sel.removeAllRanges();
           sel.addRange(savedRange);
           return true;
         }
+
         function selectionInsideActiveRange(r) {
           if (!active || !r) return false;
           const a =
@@ -1097,6 +1195,229 @@
           saveSelection();
           syncBorderPickers();
         };
+
+        /* =================================================
+   IMAGEM inline: inserir + mover + resize + stretch + alinhar
+================================================= */
+
+        const tbImgFile = document.getElementById("tbImgFile");
+
+        const tbImgIns = document.getElementById("tbImgIns");
+        const tbImgUp = document.getElementById("tbImgUp");
+        const tbImgDown = document.getElementById("tbImgDown");
+        const tbImgLeft = document.getElementById("tbImgLeft");
+        const tbImgRight = document.getElementById("tbImgRight");
+        const tbImgSm = document.getElementById("tbImgSm");
+        const tbImgLg = document.getElementById("tbImgLg");
+        const tbImgStretch = document.getElementById("tbImgStretch");
+        const tbImgAL = document.getElementById("tbImgAL");
+        const tbImgAC = document.getElementById("tbImgAC");
+        const tbImgAR = document.getElementById("tbImgAR");
+
+        let activeImg = null;
+
+        function setActiveImg(img) {
+          if (activeImg && activeImg !== img) activeImg.classList.remove("sel");
+          activeImg = img || null;
+          if (activeImg) activeImg.classList.add("sel");
+        }
+
+        function clearActiveImg() {
+          if (activeImg) activeImg.classList.remove("sel");
+          activeImg = null;
+        }
+
+        // pega o <img> “alvo” a partir do range inspecionado
+        function getTargetImg() {
+          // prioridade: última imagem clicada
+          if (activeImg && active && active.contains(activeImg))
+            return activeImg;
+
+          // fallback: tenta pelo range (se existir)
+          const r = getInspectionRange();
+          if (!r) return null;
+          let node = r.commonAncestorContainer;
+          if (node.nodeType === 3) node = node.parentNode;
+          return node.closest?.("img.rx-img") || null;
+        }
+
+        // =========================
+        // Inserir imagem do disco
+        // =========================
+        tbImgIns.onclick = () => {
+          if (!active) return;
+          if (!restoreSelection()) return;
+          tbImgFile.value = "";
+          tbImgFile.click();
+        };
+
+        tbImgFile.addEventListener("change", async () => {
+          if (!active) return;
+          if (!restoreSelection()) return;
+
+          const file = tbImgFile.files && tbImgFile.files[0];
+          if (!file) return;
+
+          const dataUrl = await new Promise((resolve, reject) => {
+            const fr = new FileReader();
+            fr.onload = () => resolve(fr.result);
+            fr.onerror = reject;
+            fr.readAsDataURL(file);
+          });
+
+          active.focus({ preventScroll: true });
+
+          const img = document.createElement("img");
+          img.className = "rx-img";
+          img.src = dataUrl;
+          img.alt = file.name || "imagem";
+
+          setActiveImg(img);
+
+          // defaults
+          img.style.setProperty("--ix", "0ch");
+          img.style.setProperty("--iy", "0em");
+
+          img.style.setProperty("--iw", "220px"); // tamanho inicial (ajuste se quiser)
+          img.dataset.stretch = "0";
+          img.dataset.align = "left";
+
+          // comportamento: clique coloca seleção “no” img (pra virar alvo)
+          img.addEventListener("mousedown", (e) => {
+            if (active !== null && active.contains(img)) {
+              // deixa o cursor “pegar” o elemento
+              // (não previne default aqui)
+            }
+          });
+
+          // insere no ponto do cursor
+          const r = getSelectionRange();
+          if (!r) return;
+          r.insertNode(img);
+
+          // insere um espaço depois pra continuar digitando
+          const spacer = document.createTextNode("\u00A0");
+          img.after(spacer);
+
+          // reposiciona caret depois da imagem
+          const nr = document.createRange();
+          nr.setStartAfter(spacer);
+          nr.collapse(true);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(nr);
+
+          saveSelection();
+          requestAnimationFrame(() => paginate());
+        });
+
+        function getNumVar(el, name, fallback, unit) {
+          const v = (el.style.getPropertyValue(name) || "").trim();
+          if (!v) return fallback;
+          const n = parseFloat(v);
+          return Number.isFinite(n) ? n : fallback;
+        }
+
+        function setNumVar(el, name, value, unit) {
+          el.style.setProperty(name, `${value}${unit}`);
+        }
+
+        // =========================
+        // Mover 1 “caractere” (X=1ch / Y=1em)
+        // =========================
+        function moveImg(dxCh, dyEm) {
+          if (!active) return;
+          if (!restoreSelection()) return;
+          active.focus({ preventScroll: true });
+
+          const img = getTargetImg();
+          if (!img) return;
+
+          const x = getNumVar(img, "--ix", 0, "ch") + dxCh;
+          let y = getNumVar(img, "--iy", 0, "em") + dyEm;
+
+          if (y < 0) y = 0; // ✅ não deixa subir (evita sobreposição)
+
+          setNumVar(img, "--ix", x, "ch");
+          setNumVar(img, "--iy", y, "em");
+
+          saveSelection();
+        }
+
+        tbImgLeft.onclick = () => moveImg(-1, 0);
+        tbImgRight.onclick = () => moveImg(1, 0);
+        tbImgUp.onclick = () => moveImg(0, -1);
+        tbImgDown.onclick = () => moveImg(0, 1);
+
+        // =========================
+        // Resize (+/-) por largura
+        // =========================
+        function resizeImg(deltaPx) {
+          if (!active) return;
+          if (!restoreSelection()) return;
+          active.focus({ preventScroll: true });
+
+          const img = getTargetImg();
+          if (!img) return;
+
+          // se estiver em stretch, desligue e vira width fixa
+          if (img.dataset.stretch === "1") img.dataset.stretch = "0";
+
+          // pega width atual
+          const cur = img.style.getPropertyValue("--iw").trim();
+          let w = 220;
+
+          if (cur.endsWith("px")) w = parseFloat(cur);
+          else {
+            // se não tiver --iw, tenta medir
+            w = Math.round(img.getBoundingClientRect().width);
+          }
+
+          w = Math.max(30, w + deltaPx);
+          img.style.setProperty("--iw", `${w}px`);
+
+          saveSelection();
+          requestAnimationFrame(() => paginate());
+        }
+
+        tbImgSm.onclick = () => resizeImg(-10);
+        tbImgLg.onclick = () => resizeImg(10);
+
+        // =========================
+        // Stretch ON/OFF
+        // =========================
+        tbImgStretch.onclick = () => {
+          if (!active) return;
+          if (!restoreSelection()) return;
+          active.focus({ preventScroll: true });
+
+          const img = getTargetImg();
+          if (!img) return;
+
+          img.dataset.stretch = img.dataset.stretch === "1" ? "0" : "1";
+          saveSelection();
+          requestAnimationFrame(() => paginate());
+        };
+
+        // =========================
+        // Alinhamento
+        // =========================
+        function alignImg(mode) {
+          if (!active) return;
+          if (!restoreSelection()) return;
+          active.focus({ preventScroll: true });
+
+          const img = getTargetImg();
+          if (!img) return;
+
+          img.dataset.align = mode; // left | center | right
+          saveSelection();
+          requestAnimationFrame(() => paginate());
+        }
+
+        tbImgAL.onclick = () => alignImg("left");
+        tbImgAC.onclick = () => alignImg("center");
+        tbImgAR.onclick = () => alignImg("right");
       })();
     </script>
   </body>
