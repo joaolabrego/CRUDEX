@@ -2,7 +2,9 @@
 <html lang="pt-br">
   <head>
     <meta charset="utf-8" />
-    <title>RELEX – Class (limpo) – Word-like + Toolbar + Imagem dentro do &lt;p&gt;</title>
+    <title>
+      RELEX – Class (limpo) – Word-like + Toolbar + Imagem dentro do &lt;p&gt;
+    </title>
 
     <style>
       :root {
@@ -17,192 +19,235 @@
         --tag-bg: #e6e6e6;
         --tag-bd: #777;
       }
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
 
       body {
         margin: 0;
         background: #111;
-        font-family: system-ui, Segoe UI, Arial;
+        font-family:
+          system-ui,
+          Segoe UI,
+          Arial;
         overflow: hidden;
       }
 
-      .topbar{
-        padding:10px;
-        background:#000;
-        color:#fff;
-        display:flex;
-        align-items:center;
-        gap:10px;
-        flex-wrap:wrap;
+      .topbar {
+        padding: 10px;
+        background: #000;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
       }
-      .topbar button{ margin-right:6px; }
-
-      .toolbar{
-        display:flex;
-        align-items:center;
-        gap:8px;
-        padding-left:10px;
-        border-left:1px solid rgba(255,255,255,.18);
+      .topbar button {
+        margin-right: 6px;
       }
 
-      .toolbar button{
-        background:#1b1b1b;
-        color:#fff;
-        border:1px solid rgba(255,255,255,.18);
-        border-radius:8px;
-        padding:4px 10px;
-        cursor:pointer;
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-left: 10px;
+        border-left: 1px solid rgba(255, 255, 255, 0.18);
       }
-      .toolbar button:hover{ background:#2a2a2a; }
+
+      .toolbar button {
+        background: #1b1b1b;
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 8px;
+        padding: 4px 10px;
+        cursor: pointer;
+      }
+      .toolbar button:hover {
+        background: #2a2a2a;
+      }
 
       .toolbar select,
-      .toolbar input[type="color"]{
-        height:28px;
+      .toolbar input[type="color"] {
+        height: 28px;
       }
 
-      .mode-pill{
-        display:inline-flex;
-        align-items:center;
-        gap:6px;
-        padding:4px 10px;
-        border:1px solid #333;
-        border-radius:999px;
-        font-size:12px;
-        opacity:.95;
+      .mode-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border: 1px solid #333;
+        border-radius: 999px;
+        font-size: 12px;
+        opacity: 0.95;
       }
-      .mode-dot{
-        width:9px;height:9px;border-radius:50%;
-        background:#39ff14;
-        box-shadow:0 0 12px rgba(57,255,20,.95);
+      .mode-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #39ff14;
+        box-shadow: 0 0 12px rgba(57, 255, 20, 0.95);
       }
-      .mode-pill.ovr .mode-dot{
-        background:#ff0033;
-        box-shadow:0 0 12px rgba(255,0,51,.95);
-      }
-
-      .wrap{
-        height:calc(100vh - 58px);
-        overflow:auto;
-        padding:6px;
-      }
-      .stage{
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        gap:18px;
+      .mode-pill.ovr .mode-dot {
+        background: #ff0033;
+        box-shadow: 0 0 12px rgba(255, 0, 51, 0.95);
       }
 
-      .page{
-        width:var(--page-w);
-        height:var(--page-h);
-        background:#fff;
-        border:1px solid #cfcfcf;
-        position:relative;
-        transform:scale(1.05);
+      .wrap {
+        height: calc(100vh - 58px);
+        overflow: auto;
+        padding: 6px;
+      }
+      .stage {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .page {
+        width: var(--page-w);
+        height: var(--page-h);
+        background: #fff;
+        border: 1px solid #cfcfcf;
+        position: relative;
+        transform: scale(1.05);
         transform-origin: top center;
       }
 
-      .page-inner{
-        position:absolute;
-        inset:var(--margin);
-        display:flex;
-        flex-direction:column;
-        border:none;
-        overflow:hidden;
+      .page-inner {
+        position: absolute;
+        inset: var(--margin);
+        display: flex;
+        flex-direction: column;
+        border: none;
+        overflow: hidden;
       }
 
-      .band{ position:relative; padding:0; cursor:text; }
-
-      .header{ min-height:var(--header-h); height:auto; }
-      .footer{ min-height:var(--footer-h); height:auto; }
-      .body{ flex:1; min-height:0; overflow:hidden; }
-
-      .band .editable{
-        padding:6mm;
-        outline:none;
-        height:auto;
-        overflow:visible;
-        color:#111;
+      .band {
+        position: relative;
+        padding: 0;
+        cursor: text;
       }
 
-      .editable.editing{
-        background:transparent;
-        outline:none;
-        border-radius:0;
-        padding:6mm;
-        caret-color:#39ff14;
+      .header {
+        min-height: var(--header-h);
+        height: auto;
       }
-      .editable.editing.ovr-caret{ caret-color:#ff0033; }
+      .footer {
+        min-height: var(--footer-h);
+        height: auto;
+      }
+      .body {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+      }
 
-      p{ margin:0 0 6px 0; }
+      .band .editable {
+        padding: 6mm;
+        outline: none;
+        height: auto;
+        overflow: visible;
+        color: #111;
+      }
+
+      .editable.editing {
+        background: transparent;
+        outline: none;
+        border-radius: 0;
+        padding: 6mm;
+        caret-color: #39ff14;
+      }
+      .editable.editing.ovr-caret {
+        caret-color: #ff0033;
+      }
+
+      p {
+        margin: 0 0 6px 0;
+      }
 
       /* Labels só no modo HF */
-      .band-label{ display:none; }
+      .band-label {
+        display: none;
+      }
 
       /* ===== HF: linha tracejada como BACKGROUND ===== */
-      .page.hf .header{
-        position:relative;
-        background-image: repeating-linear-gradient(to right, var(--guide) 0 6px, transparent 6px 12px);
+      .page.hf .header {
+        position: relative;
+        background-image: repeating-linear-gradient(
+          to right,
+          var(--guide) 0 6px,
+          transparent 6px 12px
+        );
         background-repeat: repeat-x;
         background-size: 12px 1px;
         background-position: left 100%;
       }
-      .page.hf .footer{
-        position:relative;
-        background-image: repeating-linear-gradient(to right, var(--guide) 0 6px, transparent 6px 12px);
+      .page.hf .footer {
+        position: relative;
+        background-image: repeating-linear-gradient(
+          to right,
+          var(--guide) 0 6px,
+          transparent 6px 12px
+        );
         background-repeat: repeat-x;
         background-size: 12px 1px;
         background-position: left 0%;
       }
 
-      .page.hf .header .band-label{
-        display:inline-block;
-        position:absolute;
-        left:14px;
-        bottom:0;
-        transform:translateY(50%);
-        font-size:12px;
-        line-height:1;
-        background:var(--tag-bg);
-        border:1px solid var(--tag-bd);
-        border-radius:2px;
-        padding:3px 10px;
-        user-select:none;
-        pointer-events:none;
-        z-index:2;
+      .page.hf .header .band-label {
+        display: inline-block;
+        position: absolute;
+        left: 14px;
+        bottom: 0;
+        transform: translateY(50%);
+        font-size: 12px;
+        line-height: 1;
+        background: var(--tag-bg);
+        border: 1px solid var(--tag-bd);
+        border-radius: 2px;
+        padding: 3px 10px;
+        user-select: none;
+        pointer-events: none;
+        z-index: 2;
       }
-      .page.hf .footer .band-label{
-        display:inline-block;
-        position:absolute;
-        left:14px;
-        top:0;
-        transform:translateY(-50%);
-        font-size:12px;
-        line-height:1;
-        background:var(--tag-bg);
-        border:1px solid var(--tag-bd);
-        border-radius:2px;
-        padding:3px 10px;
-        user-select:none;
-        pointer-events:none;
-        z-index:2;
+      .page.hf .footer .band-label {
+        display: inline-block;
+        position: absolute;
+        left: 14px;
+        top: 0;
+        transform: translateY(-50%);
+        font-size: 12px;
+        line-height: 1;
+        background: var(--tag-bg);
+        border: 1px solid var(--tag-bd);
+        border-radius: 2px;
+        padding: 3px 10px;
+        user-select: none;
+        pointer-events: none;
+        z-index: 2;
       }
 
       /* corpo apagado no modo HF */
-      .page.hf .body{ opacity:.45; }
-      .page.hf .body *{ pointer-events:none; }
+      .page.hf .body {
+        opacity: 0.45;
+      }
+      .page.hf .body * {
+        pointer-events: none;
+      }
 
       /* ===== IMAGEM dentro do <p> ===== */
-      .rx-img{
-        display:inline-block;
-        vertical-align:baseline;
-        max-width:100%;
-        height:auto;
+      .rx-img {
+        display: inline-block;
+        vertical-align: baseline;
+        max-width: 100%;
+        height: auto;
         width: var(--iw, 80px);
       }
-      .rx-img.sel{
-        outline:2px solid rgba(57,255,20,.85);
-        outline-offset:2px;
+      .rx-img.sel {
+        outline: 2px solid rgba(57, 255, 20, 0.85);
+        outline-offset: 2px;
       }
     </style>
   </head>
@@ -252,12 +297,26 @@
         <input id="tbColor" type="color" title="Cor" />
 
         <!-- ✅ IMAGEM -->
-        <span style="opacity:.7;margin-left:6px;">Imagem:</span>
+        <span style="opacity: 0.7; margin-left: 6px">Imagem:</span>
         <button id="tbImgIns" title="Inserir imagem (no cursor)">🖼️+</button>
-        <button id="tbImgLeft" title="Mover imagem 1 caractere para a esquerda">←</button>
-        <button id="tbImgRight" title="Mover imagem 1 caractere para a direita">→</button>
-        <button id="tbImgUp" title="Mover imagem para o 1º char do parágrafo acima">↑</button>
-        <button id="tbImgDown" title="Mover imagem para o 1º char do parágrafo abaixo">↓</button>
+        <button id="tbImgLeft" title="Mover imagem 1 caractere para a esquerda">
+          ←
+        </button>
+        <button id="tbImgRight" title="Mover imagem 1 caractere para a direita">
+          →
+        </button>
+        <button
+          id="tbImgUp"
+          title="Mover imagem para o 1º char do parágrafo acima"
+        >
+          ↑
+        </button>
+        <button
+          id="tbImgDown"
+          title="Mover imagem para o 1º char do parágrafo abaixo"
+        >
+          ↓
+        </button>
         <button id="tbImgSm" title="Diminuir largura">－</button>
         <button id="tbImgLg" title="Aumentar largura">＋</button>
 
@@ -277,7 +336,7 @@
           btnDone,
           modePill,
           modeText,
-          maxHeaderFooterParagraphs = 10
+          maxHeaderFooterParagraphs = 10,
         }) {
           this.stage = stage;
 
@@ -331,13 +390,25 @@
         _updateModeUI() {
           this.modeText.textContent = this.insertMode ? "INS" : "OVR";
           this.modePill.classList.toggle("ovr", !this.insertMode);
-          if (this.active) this.active.classList.toggle("ovr-caret", !this.insertMode);
+          if (this.active)
+            this.active.classList.toggle("ovr-caret", !this.insertMode);
         }
 
-        _getPageFrom(el) { return el?.closest?.(".page") || null; }
-        _setHfModeForPage(pg, on) { if (pg) pg.classList.toggle("hf", !!on); }
-        _isHeaderOrFooter(ed) { return ed.classList.contains("header-ed") || ed.classList.contains("footer-ed"); }
-        _countParagraphs(ed) { return ed.querySelectorAll(":scope > p").length; }
+        _getPageFrom(el) {
+          return el?.closest?.(".page") || null;
+        }
+        _setHfModeForPage(pg, on) {
+          if (pg) pg.classList.toggle("hf", !!on);
+        }
+        _isHeaderOrFooter(ed) {
+          return (
+            ed.classList.contains("header-ed") ||
+            ed.classList.contains("footer-ed")
+          );
+        }
+        _countParagraphs(ed) {
+          return ed.querySelectorAll(":scope > p").length;
+        }
 
         /* -------------------- seleção / caret -------------------- */
         _getSelectionRange() {
@@ -349,7 +420,10 @@
         _getActiveParagraph() {
           const r = this._getSelectionRange();
           if (!r) return null;
-          const node = r.startContainer.nodeType === 3 ? r.startContainer.parentNode : r.startContainer;
+          const node =
+            r.startContainer.nodeType === 3
+              ? r.startContainer.parentNode
+              : r.startContainer;
           return node.closest?.("p") || null;
         }
 
@@ -382,8 +456,10 @@
         _isEmptyP(p) {
           const txt = (p.textContent || "").replace(/\u00A0/g, " ").trim();
           if (txt !== "") return false;
-          const els = [...p.childNodes].filter(n => n.nodeType === 1);
-          return els.length === 0 || (els.length === 1 && els[0].tagName === "BR");
+          const els = [...p.childNodes].filter((n) => n.nodeType === 1);
+          return (
+            els.length === 0 || (els.length === 1 && els[0].tagName === "BR")
+          );
         }
 
         _isCaretAtEndOfParagraph(p, range) {
@@ -428,7 +504,7 @@
           }
 
           // 2) p vazio -> br
-          ed.querySelectorAll(":scope > p").forEach(p => {
+          ed.querySelectorAll(":scope > p").forEach((p) => {
             const txt = (p.textContent || "").replace(/\u00A0/g, " ").trim();
             if (txt === "" && p.querySelectorAll("br").length === 0) {
               p.innerHTML = "";
@@ -461,15 +537,19 @@
               </div>
             </div>`;
 
-          p.querySelectorAll(".editable").forEach(ed => this._wireEditable(ed));
+          p.querySelectorAll(".editable").forEach((ed) =>
+            this._wireEditable(ed),
+          );
           return p;
         }
 
         _createNextPage() {
           const p = this._createPage();
           const first = this.stage.querySelector(".page");
-          p.querySelector(".header-ed").innerHTML = first.querySelector(".header-ed").innerHTML;
-          p.querySelector(".footer-ed").innerHTML = first.querySelector(".footer-ed").innerHTML;
+          p.querySelector(".header-ed").innerHTML =
+            first.querySelector(".header-ed").innerHTML;
+          p.querySelector(".footer-ed").innerHTML =
+            first.querySelector(".footer-ed").innerHTML;
           this.stage.appendChild(p);
           return p;
         }
@@ -533,7 +613,11 @@
 
         /* -------------------- eventos: mouse -------------------- */
         _wireStageDelegation() {
-          this.stage.addEventListener("mousedown", this._onStageMouseDown, true);
+          this.stage.addEventListener(
+            "mousedown",
+            this._onStageMouseDown,
+            true,
+          );
         }
 
         _onStageMouseDown(e) {
@@ -567,34 +651,38 @@
         /* -------------------- editable: teclado / input -------------------- */
         _wireEditable(ed) {
           // clique em img: torna alvo
-          ed.addEventListener("mousedown", (e) => {
-            const img = e.target.closest?.("img.rx-img");
-            if (!img) return;
-            this._setActiveImg(img);
+          ed.addEventListener(
+            "mousedown",
+            (e) => {
+              const img = e.target.closest?.("img.rx-img");
 
-            // posiciona caret depois da imagem (pra continuar digitando)
-            requestAnimationFrame(() => {
-              const r = document.createRange();
-              r.setStartAfter(img);
-              r.collapse(true);
-              const s = window.getSelection();
-              s.removeAllRanges();
-              s.addRange(r);
-              this._saveSelection();
-            });
-          }, true);
+              if (img) {
+                this._setActiveImg(img);
 
-          // clique fora da img dentro do editor: limpa seleção de img
-          ed.addEventListener("mousedown", (e) => {
-            if (!e.target.closest?.("img.rx-img")) this._clearActiveImg();
-          }, false);
+                requestAnimationFrame(() => {
+                  const r = document.createRange();
+                  r.setStartAfter(img);
+                  r.collapse(true);
+                  const s = window.getSelection();
+                  s.removeAllRanges();
+                  s.addRange(r);
+                  this._saveSelection();
+                });
+              } else {
+                this._clearActiveImg();
+              }
+            },
+            true,
+          );
 
           ed.addEventListener("beforeinput", (e) => {
             if (ed !== this.active) return;
             if (e.isComposing) return;
 
             if (this._isHeaderOrFooter(ed)) {
-              const isEnter = (e.inputType === "insertParagraph" || e.inputType === "insertLineBreak");
+              const isEnter =
+                e.inputType === "insertParagraph" ||
+                e.inputType === "insertLineBreak";
               if (isEnter && this._countParagraphs(ed) >= this.MAX_P_HF) {
                 e.preventDefault();
                 return;
@@ -611,7 +699,8 @@
               if (!r || !r.collapsed) return;
               const sc = r.startContainer;
               const so = r.startOffset;
-              if (sc && sc.nodeType === 3 && so < sc.data.length) sc.deleteData(so, 1);
+              if (sc && sc.nodeType === 3 && so < sc.data.length)
+                sc.deleteData(so, 1);
             }
           });
 
@@ -655,14 +744,21 @@
             if (e.key === "Delete" && ed.classList.contains("body-ed")) {
               const r = this._getSelectionRange();
               const p = this._getActiveParagraph();
-              if (r && p && this._isCaretAtEndOfParagraph(p, r) && !p.nextElementSibling) {
+              if (
+                r &&
+                p &&
+                this._isCaretAtEndOfParagraph(p, r) &&
+                !p.nextElementSibling
+              ) {
                 const pages = [...this.stage.querySelectorAll(".page")];
                 const pg = this._getPageFrom(ed);
                 const i = pages.indexOf(pg);
                 const nextPg = i >= 0 ? pages[i + 1] : null;
                 if (nextPg) {
                   const nextBody = nextPg.querySelector(".body-ed");
-                  const firstNextP = nextBody?.querySelector(":scope > p:first-child");
+                  const firstNextP = nextBody?.querySelector(
+                    ":scope > p:first-child",
+                  );
                   if (firstNextP) {
                     e.preventDefault();
                     ed.appendChild(firstNextP);
@@ -679,14 +775,21 @@
             if (e.key === "Backspace" && ed.classList.contains("body-ed")) {
               const r = this._getSelectionRange();
               const p = this._getActiveParagraph();
-              if (r && p && this._isCaretAtStartOfParagraph(p, r) && !p.previousElementSibling) {
+              if (
+                r &&
+                p &&
+                this._isCaretAtStartOfParagraph(p, r) &&
+                !p.previousElementSibling
+              ) {
                 const pages = [...this.stage.querySelectorAll(".page")];
                 const pg = this._getPageFrom(ed);
                 const i = pages.indexOf(pg);
                 const prevPg = i > 0 ? pages[i - 1] : null;
                 if (prevPg) {
                   const prevBody = prevPg.querySelector(".body-ed");
-                  const lastPrevP = prevBody?.querySelector(":scope > p:last-child");
+                  const lastPrevP = prevBody?.querySelector(
+                    ":scope > p:last-child",
+                  );
                   if (prevBody && lastPrevP) {
                     e.preventDefault();
                     prevBody.appendChild(p);
@@ -768,7 +871,8 @@
 
           const applyCmd = (cmd, value = null) => {
             if (!this.active) return;
-            if (!this._restoreSelection() && !this._selectionInsideActive()) return;
+            if (!this._restoreSelection() && !this._selectionInsideActive())
+              return;
             this.active.focus({ preventScroll: true });
             document.execCommand(cmd, false, value);
             this._saveSelection();
@@ -817,7 +921,8 @@
           tbImgFile.addEventListener("change", async () => {
             if (!this.active) return;
             if (!this.savedRange) this._saveSelection();
-            if (!this._restoreSelection() && !this._selectionInsideActive()) return;
+            if (!this._restoreSelection() && !this._selectionInsideActive())
+              return;
 
             const file = tbImgFile.files && tbImgFile.files[0];
             if (!file) return;
@@ -845,10 +950,10 @@
             requestAnimationFrame(() => this.paginate());
           });
 
-          $("tbImgLeft").onclick  = () => this._moveImgChar(-1);
+          $("tbImgLeft").onclick = () => this._moveImgChar(-1);
           $("tbImgRight").onclick = () => this._moveImgChar(1);
-          $("tbImgUp").onclick    = () => this._moveImgToParagraph(-1);
-          $("tbImgDown").onclick  = () => this._moveImgToParagraph(1);
+          $("tbImgUp").onclick = () => this._moveImgToParagraph(-1);
+          $("tbImgDown").onclick = () => this._moveImgToParagraph(1);
 
           $("tbImgSm").onclick = () => this._resizeImg(-10);
           $("tbImgLg").onclick = () => this._resizeImg(10);
@@ -859,9 +964,10 @@
           const sel = window.getSelection();
           if (!sel || sel.rangeCount === 0) return false;
           const r = sel.getRangeAt(0);
-          const a = r.commonAncestorContainer.nodeType === 3
-            ? r.commonAncestorContainer.parentNode
-            : r.commonAncestorContainer;
+          const a =
+            r.commonAncestorContainer.nodeType === 3
+              ? r.commonAncestorContainer.parentNode
+              : r.commonAncestorContainer;
           return this.active.contains(a);
         }
 
@@ -873,7 +979,8 @@
 
         _saveSelection() {
           const sel = window.getSelection();
-          if (sel && sel.rangeCount) this.savedRange = sel.getRangeAt(0).cloneRange();
+          if (sel && sel.rangeCount)
+            this.savedRange = sel.getRangeAt(0).cloneRange();
         }
 
         _restoreSelection() {
@@ -889,7 +996,8 @@
         ========================== */
 
         _setActiveImg(img) {
-          if (this.activeImg && this.activeImg !== img) this.activeImg.classList.remove("sel");
+          if (this.activeImg && this.activeImg !== img)
+            this.activeImg.classList.remove("sel");
           this.activeImg = img || null;
           if (this.activeImg) this.activeImg.classList.add("sel");
         }
@@ -899,11 +1007,19 @@
         }
 
         _getTargetImg() {
-          if (this.activeImg && this.active && this.active.contains(this.activeImg)) return this.activeImg;
+          if (
+            this.activeImg &&
+            this.active &&
+            this.active.contains(this.activeImg)
+          )
+            return this.activeImg;
 
           const r = this.savedRange || this._getSelectionRange();
           if (!r || !this.active) return null;
-          const node = r.commonAncestorContainer.nodeType === 3 ? r.commonAncestorContainer.parentNode : r.commonAncestorContainer;
+          const node =
+            r.commonAncestorContainer.nodeType === 3
+              ? r.commonAncestorContainer.parentNode
+              : r.commonAncestorContainer;
           return node.closest?.("img.rx-img") || null;
         }
 
@@ -935,13 +1051,15 @@
 
         _getTextOffsetBeforeNode(container, node) {
           const r = document.createRange();
-          r.setStart(container, 0);
+          r.selectNodeContents(container);
           r.setEndBefore(node);
           return r.toString().length;
         }
 
         _getTextLength(container) {
-          return container.textContent ? container.textContent.length : 0;
+          const r = document.createRange();
+          r.selectNodeContents(container);
+          return r.toString().length;
         }
 
         _insertNodeAtTextOffset(container, node, offset) {
@@ -949,7 +1067,11 @@
           if (offset < 0) offset = 0;
           if (offset > total) offset = total;
 
-          const tw = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+          const tw = document.createTreeWalker(
+            container,
+            NodeFilter.SHOW_TEXT,
+            null,
+          );
           let cur;
           let remaining = offset;
 
@@ -980,9 +1102,12 @@
             const t = (n.nodeValue || "").replace(/\u00A0/g, "");
             if (t === "") toRemove.push(n);
           }
-          toRemove.forEach(n => n.remove());
+          toRemove.forEach((n) => n.remove());
           // garante um <br> se ficou vazio
-          if (!p.textContent.trim() && p.querySelectorAll("img.rx-img").length === 0) {
+          if (
+            !p.textContent.trim() &&
+            p.querySelectorAll("img.rx-img").length === 0
+          ) {
             p.innerHTML = "";
             p.appendChild(document.createElement("br"));
           }
@@ -991,7 +1116,6 @@
         _moveImgChar(dir) {
           if (!this.active) return;
           if (!this.savedRange) this._saveSelection();
-          this._restoreSelection(); // só pra manter consistência com toolbar
           this.active.focus({ preventScroll: true });
 
           const img = this._getTargetImg();
@@ -1028,7 +1152,6 @@
         _moveImgToParagraph(dir) {
           if (!this.active) return;
           if (!this.savedRange) this._saveSelection();
-          this._restoreSelection();
           this.active.focus({ preventScroll: true });
 
           const img = this._getTargetImg();
@@ -1037,7 +1160,8 @@
           const p = img.closest("p");
           if (!p) return;
 
-          const target = dir > 0 ? p.nextElementSibling : p.previousElementSibling;
+          const target =
+            dir > 0 ? p.nextElementSibling : p.previousElementSibling;
           if (!target || target.tagName !== "P") return;
 
           img.remove();
@@ -1062,7 +1186,6 @@
         _resizeImg(deltaPx) {
           if (!this.active) return;
           if (!this.savedRange) this._saveSelection();
-          this._restoreSelection();
           this.active.focus({ preventScroll: true });
 
           const img = this._getTargetImg();
