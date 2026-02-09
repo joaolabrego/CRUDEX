@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>
-      RELEX – Word-like + Toolbar + Moldura (por elemento) + Fix toolbar selects
+      RELEX – Class (limpo) – Word-like + Toolbar + Imagem dentro do &lt;p&gt;
     </title>
 
     <style>
@@ -38,7 +38,8 @@
         background: #000;
         color: #fff;
         display: flex;
-        align-items: center;
+        align-items: stretch;
+        flex-direction: column;
         gap: 10px;
         flex-wrap: wrap;
       }
@@ -61,32 +62,14 @@
         border-radius: 8px;
         padding: 4px 10px;
         cursor: pointer;
-        user-select: none;
       }
       .toolbar button:hover {
         background: #2a2a2a;
       }
 
-      .toolbar button.on {
-        outline: 2px solid rgba(57, 255, 20, 0.8);
-        outline-offset: 0px;
-      }
-      .toolbar button.mix {
-        outline: 2px dashed rgba(255, 221, 0, 0.85);
-        outline-offset: 0px;
-      }
-
       .toolbar select,
       .toolbar input[type="color"] {
         height: 28px;
-      }
-
-      .toolcap {
-        font-size: 12px;
-        opacity: 0.8;
-        margin-left: 4px;
-        margin-right: -4px;
-        user-select: none;
       }
 
       .mode-pill {
@@ -180,20 +163,17 @@
       .editable.editing.ovr-caret {
         caret-color: #ff0033;
       }
-      .editable p::after {
-        content: "";
-        display: block;
-        clear: both;
-      }
 
       p {
         margin: 0 0 6px 0;
       }
 
+      /* Labels só no modo HF */
       .band-label {
         display: none;
       }
 
+      /* ===== HF: linha tracejada como BACKGROUND ===== */
       .page.hf .header {
         position: relative;
         background-image: repeating-linear-gradient(
@@ -250,6 +230,7 @@
         z-index: 2;
       }
 
+      /* corpo apagado no modo HF */
       .page.hf .body {
         opacity: 0.45;
       }
@@ -257,63 +238,13 @@
         pointer-events: none;
       }
 
-      /* ✅ Moldura parcial por elemento (vars no próprio elemento) */
-      [data-border] {
-        border-style: solid;
-        border-color: var(--bc, #000);
-        border-width: 0;
-        border-radius: var(--br, 0px);
-      }
-      [data-border~="top"] {
-        border-top-width: var(--bw, 1px);
-      }
-      [data-border~="bottom"] {
-        border-bottom-width: var(--bw, 1px);
-      }
-      [data-border~="left"] {
-        border-left-width: var(--bw, 1px);
-      }
-      [data-border~="right"] {
-        border-right-width: var(--bw, 1px);
-      }
+      /* ===== IMAGEM dentro do <p> ===== */
       .rx-img {
+        display: inline-block;
+        vertical-align: baseline;
         max-width: 100%;
         height: auto;
-        width: var(--iw, auto);
-        margin-top: var(--iy, 0em);
-        vertical-align: baseline;
-      }
-
-      /* alinhamentos */
-      .rx-img[data-align="left"] {
-        float: left;
-        display: inline;
-        margin-left: var(--ix, 0ch);
-        margin-right: 1ch;
-        margin-bottom: 0.5em;
-      }
-
-      .rx-img[data-align="center"] {
-        float: none;
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        margin-top: var(--iy, 0em);
-        margin-bottom: 0.5em;
-      }
-
-      .rx-img[data-align="right"] {
-        float: right;
-        display: inline;
-        margin-right: var(--ix, 0ch);
-        margin-left: 1ch;
-        margin-bottom: 0.5em;
-      }
-
-      /* stretch */
-      .rx-img[data-stretch="1"] {
-        display: block;
-        width: 100%;
+        width: var(--iw, 80px);
       }
       .rx-img.sel {
         outline: 2px solid rgba(57, 255, 20, 0.85);
@@ -324,15 +255,12 @@
 
   <body>
     <div class="topbar">
-      <button id="btnEdit">Editar</button>
-      <button id="btnDone">Finalizar</button>
+      <div class="toolbar">
+        <span id="modePill" class="mode-pill" title="Tecla INS alterna modo">
+          <span class="mode-dot"></span>
+          <strong id="modeText">INS</strong>
+        </span>
 
-      <span id="modePill" class="mode-pill" title="Tecla INS alterna modo">
-        <span class="mode-dot"></span>
-        <strong id="modeText">INS</strong>
-      </span>
-
-      <div class="toolbar" id="toolbar" aria-label="Formatação">
         <button id="tbBold" title="Negrito"><b>B</b></button>
         <button id="tbItalic" title="Itálico"><i>I</i></button>
         <button id="tbUnder" title="Sublinhado"><u>U</u></button>
@@ -342,38 +270,6 @@
         <button id="tbCenter" title="Centralizar">≡</button>
         <button id="tbRight" title="Alinhar à direita">⟹</button>
         <button id="tbJust" title="Justificar">☰</button>
-
-        <span class="toolcap">Borda:</span>
-        <button id="tbBAll" title="Moldura: todas (tri-state)">⬚</button>
-        <button id="tbBTop" title="Moldura: topo">▔</button>
-        <button id="tbBBot" title="Moldura: base">▁</button>
-        <button id="tbBLeft" title="Moldura: esquerda">▏</button>
-        <button id="tbBRight" title="Moldura: direita">▕</button>
-
-        <select id="tbFrameW" title="Espessura da borda">
-          <option value="0.5px">0.5</option>
-          <option value="1px" selected>1</option>
-          <option value="2px">2</option>
-          <option value="3px">3</option>
-          <option value="4px">4</option>
-        </select>
-
-        <select id="tbFrameR" title="Arredondamento (radius)">
-          <option value="0px" selected>R0</option>
-          <option value="2px">R2</option>
-          <option value="4px">R4</option>
-          <option value="6px">R6</option>
-          <option value="8px">R8</option>
-          <option value="12px">R12</option>
-          <option value="16px">R16</option>
-        </select>
-
-        <input
-          id="tbFrameColor"
-          type="color"
-          title="Cor da borda"
-          value="#000000"
-        />
 
         <select id="tbFont" title="Fonte">
           <option value="">Fonte</option>
@@ -396,26 +292,44 @@
           <option value="7">36</option>
         </select>
 
-        <input id="tbColor" type="color" title="Cor do texto" />
+        <input id="tbColor" type="color" title="Cor" />
 
-        <span class="toolcap">Imagem:</span>
-        <button id="tbImgIns" title="Inserir imagem">🖼️+</button>
-
-        <button id="tbImgUp" title="Mover para cima (1em)">↑</button>
-        <button id="tbImgDown" title="Mover para baixo (1em)">↓</button>
-        <button id="tbImgLeft" title="Mover para esquerda (1ch)">←</button>
-        <button id="tbImgRight" title="Mover para direita (1ch)">→</button>
-
-        <button id="tbImgSm" title="Diminuir">－</button>
-        <button id="tbImgLg" title="Aumentar">＋</button>
-
-        <button id="tbImgStretch" title="Stretch ON/OFF">⤢</button>
-
-        <button id="tbImgAL" title="Alinhar esquerda">⟸</button>
-        <button id="tbImgAC" title="Centralizar">≡</button>
-        <button id="tbImgAR" title="Alinhar direita">⟹</button>
+        <!-- ✅ IMAGEM -->
+        <span style="opacity: 0.7; margin-left: 6px">Imagem:</span>
+        <button id="tbImgIns" title="Inserir imagem (no cursor)">🖼️+</button>
+        <button id="tbImgLeft" title="Mover imagem 1 caractere para a esquerda">
+          ←
+        </button>
+        <button id="tbImgRight" title="Mover imagem 1 caractere para a direita">
+          →
+        </button>
+        <button
+          id="tbImgUp"
+          title="Mover imagem para o 1º char do parágrafo acima"
+        >
+          ↑
+        </button>
+        <button
+          id="tbImgDown"
+          title="Mover imagem para o 1º char do parágrafo abaixo"
+        >
+          ↓
+        </button>
+        <button id="tbImgSm" title="Diminuir largura">－</button>
+        <button id="tbImgLg" title="Aumentar largura">＋</button>
 
         <input id="tbImgFile" type="file" accept="image/*" hidden />
+      </div>
+      <div class="toolbar">
+        <span>Tabela:</span>
+        <button id="tbTblNew" title="Inserir tabela">▦+</button>
+        <select id="tbRowKind" title="Tipo da linha selecionada">
+          <option value="">Tipo da linha</option>
+          <option value="titles">Títulos de coluna</option>
+          <option value="detail">Detalhe</option>
+          <option value="group">Grupo</option>
+          <option value="total">Total de grupo</option>
+        </select>
       </div>
     </div>
 
@@ -424,69 +338,90 @@
     </div>
 
     <script>
-      (() => {
-        "use strict";
+      class RelexEditor {
+        constructor({
+          stage,
+          modePill,
+          modeText,
+          maxHeaderFooterParagraphs = 10,
+        }) {
+          this.stage = stage;
+          this.modePill = modePill;
+          this.modeText = modeText;
 
-        const stage = document.getElementById("stage");
-        const toolbarEl = document.getElementById("toolbar");
+          this.MAX_P_HF = maxHeaderFooterParagraphs;
 
-        let active = null;
-        let insertMode = true;
-        const MAX_P_HF = 10;
+          this.active = null;
+          this.insertMode = true;
 
-        // ✅ evita “roubar foco” da toolbar
-        let toolbarInteracting = false;
-        toolbarEl.addEventListener(
-          "pointerdown",
-          () => (toolbarInteracting = true),
-          true,
-        );
-        window.addEventListener(
-          "pointerup",
-          () => {
-            // dá um micro tempo pra dropdown fechar/abrir sem interferência
-            setTimeout(() => (toolbarInteracting = false), 0);
-          },
-          true,
-        );
+          this.savedRange = null;
 
-        const modePill = document.getElementById("modePill");
-        const modeText = document.getElementById("modeText");
+          // imagem
+          this.activeImg = null;
 
-        function updateModeUI() {
-          modeText.textContent = insertMode ? "INS" : "OVR";
-          modePill.classList.toggle("ovr", !insertMode);
-          updateCaretUI();
+          // bind
+          this._onGlobalKeyDown = this._onGlobalKeyDown.bind(this);
+          this._onStageMouseDown = this._onStageMouseDown.bind(this);
+          this._onSelectionChange = this._onSelectionChange.bind(this);
         }
-        function updateCaretUI() {
-          if (!active) return;
-          active.classList.toggle("ovr-caret", !insertMode);
-        }
-        updateModeUI();
 
-        function getPageFrom(el) {
+        init() {
+          this.stage.appendChild(this._createPage());
+          this._wireTopbar();
+          this._wireStageDelegation();
+          this._wireToolbar();
+
+          // seed
+          const first = this.stage.querySelector(".page");
+          first.querySelector(".header-ed").innerHTML = "<p>Empresa XYZ</p>";
+          first.querySelector(".footer-ed").innerHTML = "<p>Rodapé</p>";
+          first.querySelector(".body-ed").innerHTML =
+            "<p>JOAO DA ROCHA LABREGO</p><p>PARÁGRAFO SEGUINTE</p><p>MAIS UM PARÁGRAFO</p>";
+
+          // auto-start no BODY
+          queueMicrotask(() => {
+            const b = first.querySelector(".body-ed");
+            this.insertMode = true;
+            this._updateModeUI();
+            this.startEdit(b);
+            this._normalizeParagraphs(b);
+            this._placeCaretEnd(b.querySelector("p:last-child"));
+          });
+        }
+
+        /* -------------------- UI / estado -------------------- */
+        _updateModeUI() {
+          this.modeText.textContent = this.insertMode ? "INS" : "OVR";
+          this.modePill.classList.toggle("ovr", !this.insertMode);
+          if (this.active)
+            this.active.classList.toggle("ovr-caret", !this.insertMode);
+        }
+
+        _getPageFrom(el) {
           return el?.closest?.(".page") || null;
         }
-        function setHfModeForPage(pg, on) {
+        _setHfModeForPage(pg, on) {
           if (pg) pg.classList.toggle("hf", !!on);
         }
-
-        function isHeaderOrFooter(ed) {
+        _isHeaderOrFooter(ed) {
           return (
             ed.classList.contains("header-ed") ||
             ed.classList.contains("footer-ed")
           );
         }
-        function countParagraphs(ed) {
+        _countParagraphs(ed) {
           return ed.querySelectorAll(":scope > p").length;
         }
 
-        function getSelectionRange() {
+        /* -------------------- seleção / caret -------------------- */
+        _getSelectionRange() {
           const sel = window.getSelection();
           if (!sel || !sel.rangeCount) return null;
           return sel.getRangeAt(0);
         }
-        function getActiveParagraphFromRange(r) {
+
+        _getActiveParagraph() {
+          const r = this._getSelectionRange();
           if (!r) return null;
           const node =
             r.startContainer.nodeType === 3
@@ -494,7 +429,8 @@
               : r.startContainer;
           return node.closest?.("p") || null;
         }
-        function placeCaretEnd(node) {
+
+        _placeCaretEnd(node) {
           const r = document.createRange();
           r.selectNodeContents(node);
           r.collapse(false);
@@ -502,7 +438,8 @@
           s.removeAllRanges();
           s.addRange(r);
         }
-        function placeCaretStart(node) {
+
+        _placeCaretStart(node) {
           const r = document.createRange();
           r.selectNodeContents(node);
           r.collapse(true);
@@ -511,15 +448,15 @@
           s.addRange(r);
         }
 
-        function ensureHasParagraph(container) {
-          if (container.querySelector(":scope > p")) return;
+        _ensureHasParagraph(ed) {
+          if (ed.querySelector(":scope > p")) return;
           const p = document.createElement("p");
           p.appendChild(document.createElement("br"));
-          container.appendChild(p);
-          placeCaretStart(p);
+          ed.appendChild(p);
+          this._placeCaretStart(p);
         }
 
-        function isEmptyP(p) {
+        _isEmptyP(p) {
           const txt = (p.textContent || "").replace(/\u00A0/g, " ").trim();
           if (txt !== "") return false;
           const els = [...p.childNodes].filter((n) => n.nodeType === 1);
@@ -527,14 +464,27 @@
             els.length === 0 || (els.length === 1 && els[0].tagName === "BR")
           );
         }
-        function isBodyEffectivelyEmpty(bodyEd) {
-          const ps = [...bodyEd.querySelectorAll(":scope > p")];
-          if (ps.length !== 1) return false;
-          return isEmptyP(ps[0]);
+
+        _isCaretAtEndOfParagraph(p, range) {
+          if (!range || !range.collapsed) return false;
+          const post = document.createRange();
+          post.selectNodeContents(p);
+          post.setStart(range.startContainer, range.startOffset);
+          return post.toString() === "";
+        }
+        _isCaretAtStartOfParagraph(p, range) {
+          if (!range || !range.collapsed) return false;
+          const pre = document.createRange();
+          pre.selectNodeContents(p);
+          pre.setEnd(range.startContainer, range.startOffset);
+          return pre.toString() === "";
         }
 
-        function normalizeParagraphs(ed) {
+        /* -------------------- normalização -------------------- */
+        _normalizeParagraphs(ed) {
           const nodes = [...ed.childNodes];
+
+          // 1) nós soltos / div -> p
           for (const n of nodes) {
             if (n.nodeType === 3) {
               const txt = n.textContent;
@@ -556,6 +506,7 @@
             }
           }
 
+          // 2) p vazio -> br
           ed.querySelectorAll(":scope > p").forEach((p) => {
             const txt = (p.textContent || "").replace(/\u00A0/g, " ").trim();
             if (txt === "" && p.querySelectorAll("br").length === 0) {
@@ -564,222 +515,300 @@
             }
           });
 
-          ensureHasParagraph(ed);
+          // 3) garante 1 p
+          this._ensureHasParagraph(ed);
         }
 
-        function createPage() {
+        /* -------------------- páginas -------------------- */
+        _createPage() {
           const p = document.createElement("div");
           p.className = "page";
           p.innerHTML = `
-  <div class="page-inner">
-    <div class="band header">
-      <div class="band-label">Cabeçalho</div>
-      <div class="editable header-ed"></div>
-    </div>
+            <div class="page-inner">
+              <div class="band header">
+                <div class="band-label">Cabeçalho</div>
+                <div class="editable header-ed"></div>
+              </div>
 
-    <div class="band body">
-      <div class="editable body-ed"></div>
-    </div>
+              <div class="band body">
+                <div class="editable body-ed"></div>
+              </div>
 
-    <div class="band footer">
-      <div class="band-label">Rodapé</div>
-      <div class="editable footer-ed"></div>
-    </div>
-  </div>`;
+              <div class="band footer">
+                <div class="band-label">Rodapé</div>
+                <div class="editable footer-ed"></div>
+              </div>
+            </div>`;
 
-          p.querySelectorAll(".editable").forEach(wireEditable);
-
-          p.querySelector(".header").addEventListener("mousedown", (e) => {
-            if (e.target.closest(".editable")) return;
-            e.preventDefault();
-            const hed = p.querySelector(".header-ed");
-            startEdit(hed);
-            ensureHasParagraph(hed);
-            placeCaretEnd(hed.querySelector("p:last-child"));
-          });
-
-          p.querySelector(".footer").addEventListener("mousedown", (e) => {
-            if (e.target.closest(".editable")) return;
-            e.preventDefault();
-            const fed = p.querySelector(".footer-ed");
-            startEdit(fed);
-            ensureHasParagraph(fed);
-            placeCaretStart(fed.querySelector("p:first-child"));
-          });
-
-          p.querySelector(".body").addEventListener("mousedown", (e) => {
-            if (e.target.closest(".editable")) return;
-            e.preventDefault();
-            const bed = p.querySelector(".body-ed");
-            startEdit(bed);
-            ensureHasParagraph(bed);
-            placeCaretEnd(bed.querySelector("p:last-child"));
-          });
-
+          p.querySelectorAll(".editable").forEach((ed) =>
+            this._wireEditable(ed),
+          );
           return p;
         }
 
-        stage.appendChild(createPage());
-
-        stage.addEventListener(
-          "mousedown",
-          (e) => {
-            const ed = e.target.closest(".editable");
-            if (!ed) return;
-            if (ed !== active) startEdit(ed);
-          },
-          true,
-        );
-
-        document.getElementById("btnEdit").onclick = () => {
-          const b = stage.querySelector(".body-ed");
-          startEdit(b);
-          ensureHasParagraph(b);
-          placeCaretEnd(b.querySelector("p:last-child"));
-        };
-        document.getElementById("btnDone").onclick = stopEdit;
-
-        function startEdit(el) {
-          stopEdit();
-          active = el;
-
-          el.spellcheck = false;
-          el.contentEditable = "true";
-          el.classList.add("editing");
-          updateCaretUI();
-          el.focus({ preventScroll: true });
-
-          normalizeParagraphs(el);
-
-          saveSelection(); // ✅ <<< ADICIONE AQUI
-
-          const pg = getPageFrom(el);
-          setHfModeForPage(pg, isHeaderOrFooter(el));
-
-          syncBorderUI();
-          syncBorderPickers();
+        _createNextPage() {
+          const p = this._createPage();
+          const first = this.stage.querySelector(".page");
+          p.querySelector(".header-ed").innerHTML =
+            first.querySelector(".header-ed").innerHTML;
+          p.querySelector(".footer-ed").innerHTML =
+            first.querySelector(".footer-ed").innerHTML;
+          this.stage.appendChild(p);
+          return p;
         }
 
-        function stopEdit() {
-          if (!active) return;
-          const pg = getPageFrom(active);
-          active.contentEditable = "false";
-          active.classList.remove("editing", "ovr-caret");
-          active = null;
-          setHfModeForPage(pg, false);
-          clearBorderUI();
+        /* -------------------- edição -------------------- */
+        startEdit(ed) {
+          if (this.active === ed) return;
+
+          this.stopEdit();
+
+          this.active = ed;
+          ed.spellcheck = false;
+          ed.contentEditable = "true";
+          ed.classList.add("editing");
+          ed.classList.toggle("ovr-caret", !this.insertMode);
+          ed.focus({ preventScroll: true });
+
+          this._normalizeParagraphs(ed);
+
+          const pg = this._getPageFrom(ed);
+          this._setHfModeForPage(pg, this._isHeaderOrFooter(ed));
         }
 
-        document.addEventListener("keydown", (e) => {
-          if (!active) return;
+        stopEdit() {
+          if (!this.active) return;
+          const pg = this._getPageFrom(this.active);
+
+          this.active.contentEditable = "false";
+          this.active.classList.remove("editing", "ovr-caret");
+          this.active = null;
+
+          this._setHfModeForPage(pg, false);
+        }
+
+        /* -------------------- eventos: topbar / globais -------------------- */
+        _wireTopbar() {
+          this._updateModeUI();
+
+          document.addEventListener("keydown", this._onGlobalKeyDown);
+          document.addEventListener("selectionchange", this._onSelectionChange);
+        }
+
+        _onGlobalKeyDown(e) {
+          if (!this.active) return;
+
           if (e.key === "Insert") {
             e.preventDefault();
-            insertMode = !insertMode;
-            updateModeUI();
+            this.insertMode = !this.insertMode;
+            this._updateModeUI();
           }
-        });
+        }
 
-        function wireEditable(el) {
-          el.addEventListener(
+        /* -------------------- eventos: mouse -------------------- */
+        _wireStageDelegation() {
+          this.stage.addEventListener(
+            "mousedown",
+            this._onStageMouseDown,
+            true,
+          );
+        }
+
+        _onStageMouseDown(e) {
+          if (e.target.closest(".topbar")) return;
+          if (e.button !== 0) return;
+
+          const ed = e.target.closest(".editable");
+          if (ed) {
+            if (ed !== this.active) this.startEdit(ed);
+            return;
+          }
+
+          const band = e.target.closest(".band");
+          if (!band) return;
+
+          e.preventDefault();
+
+          const targetEd = band.querySelector(".editable");
+          if (!targetEd) return;
+
+          this.startEdit(targetEd);
+          this._ensureHasParagraph(targetEd);
+
+          if (targetEd.classList.contains("footer-ed")) {
+            this._placeCaretStart(targetEd.querySelector("p:first-child"));
+          } else {
+            this._placeCaretEnd(targetEd.querySelector("p:last-child"));
+          }
+        }
+
+        /* -------------------- editable: teclado / input -------------------- */
+        _wireEditable(ed) {
+          // clique em img: torna alvo
+          ed.addEventListener(
             "mousedown",
             (e) => {
               const img = e.target.closest?.("img.rx-img");
-              if (!img) return;
 
-              // ✅ marca a imagem como alvo (sem depender do range nativo)
-              setActiveImg(img);
+              if (img) {
+                this._setActiveImg(img);
 
-              // opcional: coloca caret depois da imagem pra continuar digitando
-              requestAnimationFrame(() => {
-                const r = document.createRange();
-                r.setStartAfter(img);
-                r.collapse(true);
-                const s = window.getSelection();
-                s.removeAllRanges();
-                s.addRange(r);
-                saveSelection();
-              });
+                requestAnimationFrame(() => {
+                  const r = document.createRange();
+                  r.setStartAfter(img);
+                  r.collapse(true);
+                  const s = window.getSelection();
+                  s.removeAllRanges();
+                  s.addRange(r);
+                  this._saveSelection();
+                });
+              } else {
+                this._clearActiveImg();
+              }
             },
             true,
           );
-          el.addEventListener(
-            "mousedown",
-            (e) => {
-              if (!e.target.closest?.("img.rx-img")) clearActiveImg();
-            },
-            false,
-          );
 
-          el.addEventListener("beforeinput", (e) => {
-            if (el !== active) return;
+          ed.addEventListener("beforeinput", (e) => {
+            if (ed !== this.active) return;
             if (e.isComposing) return;
 
-            if (isHeaderOrFooter(el)) {
+            if (this._isHeaderOrFooter(ed)) {
               const isEnter =
                 e.inputType === "insertParagraph" ||
                 e.inputType === "insertLineBreak";
-              if (isEnter && countParagraphs(el) >= MAX_P_HF) {
+              if (isEnter && this._countParagraphs(ed) >= this.MAX_P_HF) {
                 e.preventDefault();
                 return;
               }
             }
 
             if (
-              !insertMode &&
+              !this.insertMode &&
               e.inputType === "insertText" &&
               typeof e.data === "string" &&
               e.data.length === 1
             ) {
-              const r = getSelectionRange();
+              const r = this._getSelectionRange();
               if (!r || !r.collapsed) return;
               const sc = r.startContainer;
               const so = r.startOffset;
-              if (sc && sc.nodeType === 3 && so < sc.data.length) {
+              if (sc && sc.nodeType === 3 && so < sc.data.length)
                 sc.deleteData(so, 1);
-              }
             }
           });
-          el.addEventListener("keydown", (e) => {
-            if (el !== active) return;
 
-            // ✅ SHIFT+ENTER = quebra de linha (não cria novo <p>)
-            if (e.key === "Enter" && e.shiftKey) {
-              e.preventDefault();
+          ed.addEventListener("input", () => {
+            if (ed !== this.active) return;
+            this._normalizeParagraphs(ed);
+            requestAnimationFrame(() => this.paginate());
+          });
 
-              // opção A (mais compatível)
-              document.execCommand("insertLineBreak");
+          ed.addEventListener("keydown", (e) => {
+            if (ed !== this.active) return;
 
-              // garante paginação/normalização depois do browser assentar
-              requestAnimationFrame(() => {
-                normalizeParagraphs(el);
-                paginate();
-              });
+            // troca HF via setas
+            if (e.key === "ArrowDown" && ed.classList.contains("header-ed")) {
+              const pg = this._getPageFrom(ed);
+              const p = this._getActiveParagraph();
+              if (pg && p && !p.nextElementSibling) {
+                e.preventDefault();
+                const fed = pg.querySelector(".footer-ed");
+                this.startEdit(fed);
+                this._normalizeParagraphs(fed);
+                this._placeCaretStart(fed.querySelector("p:first-child"));
+              }
               return;
             }
 
-            // ...segue seu código atual (Delete/Backspace/ArrowUp/ArrowDown etc)
-          });
+            if (e.key === "ArrowUp" && ed.classList.contains("footer-ed")) {
+              const pg = this._getPageFrom(ed);
+              const p = this._getActiveParagraph();
+              if (pg && p && !p.previousElementSibling) {
+                e.preventDefault();
+                const hed = pg.querySelector(".header-ed");
+                this.startEdit(hed);
+                this._normalizeParagraphs(hed);
+                this._placeCaretEnd(hed.querySelector("p:last-child"));
+              }
+              return;
+            }
 
-          el.addEventListener("input", () => {
-            if (el !== active) return;
-            normalizeParagraphs(el);
-            requestAnimationFrame(() => paginate());
+            // Cross-page DEL no BODY
+            if (e.key === "Delete" && ed.classList.contains("body-ed")) {
+              const r = this._getSelectionRange();
+              const p = this._getActiveParagraph();
+              if (
+                r &&
+                p &&
+                this._isCaretAtEndOfParagraph(p, r) &&
+                !p.nextElementSibling
+              ) {
+                const pages = [...this.stage.querySelectorAll(".page")];
+                const pg = this._getPageFrom(ed);
+                const i = pages.indexOf(pg);
+                const nextPg = i >= 0 ? pages[i + 1] : null;
+                if (nextPg) {
+                  const nextBody = nextPg.querySelector(".body-ed");
+                  const firstNextP = nextBody?.querySelector(
+                    ":scope > p:first-child",
+                  );
+                  if (firstNextP) {
+                    e.preventDefault();
+                    ed.appendChild(firstNextP);
+                    this._ensureHasParagraph(nextBody);
+                    this._placeCaretEnd(p);
+                    requestAnimationFrame(() => this.paginate());
+                  }
+                }
+              }
+              return;
+            }
+
+            // Cross-page BACKSPACE no BODY
+            if (e.key === "Backspace" && ed.classList.contains("body-ed")) {
+              const r = this._getSelectionRange();
+              const p = this._getActiveParagraph();
+              if (
+                r &&
+                p &&
+                this._isCaretAtStartOfParagraph(p, r) &&
+                !p.previousElementSibling
+              ) {
+                const pages = [...this.stage.querySelectorAll(".page")];
+                const pg = this._getPageFrom(ed);
+                const i = pages.indexOf(pg);
+                const prevPg = i > 0 ? pages[i - 1] : null;
+                if (prevPg) {
+                  const prevBody = prevPg.querySelector(".body-ed");
+                  const lastPrevP = prevBody?.querySelector(
+                    ":scope > p:last-child",
+                  );
+                  if (prevBody && lastPrevP) {
+                    e.preventDefault();
+                    prevBody.appendChild(p);
+                    this._ensureHasParagraph(ed);
+                    this._placeCaretEnd(p);
+                    requestAnimationFrame(() => this.paginate());
+                  }
+                }
+              }
+              return;
+            }
           });
         }
 
-        function paginate() {
-          const pages = [...stage.querySelectorAll(".page")];
+        /* -------------------- paginação -------------------- */
+        paginate() {
+          const pages = [...this.stage.querySelectorAll(".page")];
 
-          function ensureNextPage(i) {
+          const ensureNextPage = (i) => {
             if (pages[i + 1]) return pages[i + 1];
-            const created = createNextPage();
+            const created = this._createNextPage();
             pages.push(created);
             return created;
-          }
+          };
 
-          // ==========================
-          // 1) PUSH DOWN (já existia)
-          // ==========================
           pages.forEach((pg, i) => {
             const bodyEd = pg.querySelector(".body-ed");
             const bodyBox = pg.querySelector(".body");
@@ -797,669 +826,440 @@
             }
           });
 
-          // ==========================
-          // 2) PULL UP (NOVO)
-          // ==========================
-          for (let i = 0; i < pages.length - 1; i++) {
-            const pg = pages[i];
-            const nextPg = pages[i + 1];
-
-            const bodyEd = pg.querySelector(".body-ed");
-            const bodyBox = pg.querySelector(".body");
-            const nextBody = nextPg.querySelector(".body-ed");
-
-            if (!bodyEd || !bodyBox || !nextBody) continue;
-
-            // Enquanto couber mais conteúdo nesta página,
-            // puxe o primeiro <p> da próxima.
-            while (
-              nextBody.firstElementChild &&
-              nextBody.firstElementChild.tagName === "P"
-            ) {
-              const candidate = nextBody.firstElementChild;
-
-              // não puxe se a próxima página só tem um <p> vazio (mantém "mínimo")
-              const nextPs = nextBody.querySelectorAll(":scope > p");
-              if (nextPs.length === 1 && isEmptyP(nextPs[0])) break;
-
-              // simula puxar: move, testa, e se não couber desfaz
-              bodyEd.appendChild(candidate);
-
-              if (bodyEd.scrollHeight > bodyBox.clientHeight + 1) {
-                // não coube -> desfaz
-                nextBody.insertBefore(candidate, nextBody.firstChild);
-                break;
-              }
-            }
-
-            // garante que a próxima página não fique sem <p>
-            ensureHasParagraph(nextBody);
-          }
-
-          pruneEmptyTailPages();
+          this._pruneEmptyTailPages();
         }
 
-        function pruneEmptyTailPages() {
-          let pages = [...stage.querySelectorAll(".page")];
+        _isBodyEffectivelyEmpty(bodyEd) {
+          const ps = [...bodyEd.querySelectorAll(":scope > p")];
+          return ps.length === 1 && this._isEmptyP(ps[0]);
+        }
+
+        _pruneEmptyTailPages() {
+          let pages = [...this.stage.querySelectorAll(".page")];
+
           for (let i = pages.length - 1; i > 0; i--) {
             const pg = pages[i];
             const body = pg.querySelector(".body-ed");
             if (!body) break;
 
-            if (isBodyEffectivelyEmpty(body)) {
-              if (active && pg.contains(active)) {
+            if (this._isBodyEffectivelyEmpty(body)) {
+              if (this.active && pg.contains(this.active)) {
                 const prev = pages[i - 1];
                 const prevBody = prev.querySelector(".body-ed");
-                startEdit(prevBody);
-                normalizeParagraphs(prevBody);
-                placeCaretEnd(prevBody.querySelector("p:last-child"));
+                this.startEdit(prevBody);
+                this._normalizeParagraphs(prevBody);
+                this._placeCaretEnd(prevBody.querySelector("p:last-child"));
               }
               pg.remove();
             } else {
               break;
             }
-            pages = [...stage.querySelectorAll(".page")];
+
+            pages = [...this.stage.querySelectorAll(".page")];
           }
         }
 
-        function createNextPage() {
-          const p = createPage();
-          const first = stage.querySelector(".page");
-          p.querySelector(".header-ed").innerHTML =
-            first.querySelector(".header-ed").innerHTML;
-          p.querySelector(".footer-ed").innerHTML =
-            first.querySelector(".footer-ed").innerHTML;
-          stage.appendChild(p);
-          return p;
+        /* -------------------- toolbar (formatação + imagem) -------------------- */
+        _wireToolbar() {
+          const $ = (id) => document.getElementById(id);
+
+          const applyCmd = (cmd, value = null) => {
+            if (!this.active) return;
+            if (!this._restoreSelection() && !this._selectionInsideActive())
+              return;
+            this.active.focus({ preventScroll: true });
+            document.execCommand(cmd, false, value);
+            this._saveSelection();
+          };
+
+          $("tbBold").onclick = () => applyCmd("bold");
+          $("tbItalic").onclick = () => applyCmd("italic");
+          $("tbUnder").onclick = () => applyCmd("underline");
+          $("tbClear").onclick = () => applyCmd("removeFormat");
+
+          $("tbLeft").onclick = () => applyCmd("justifyLeft");
+          $("tbCenter").onclick = () => applyCmd("justifyCenter");
+          $("tbRight").onclick = () => applyCmd("justifyRight");
+          $("tbJust").onclick = () => applyCmd("justifyFull");
+
+          $("tbFont").onchange = (e) => {
+            const v = e.target.value;
+            if (!v) return;
+            applyCmd("fontName", v);
+            e.target.value = "";
+          };
+
+          $("tbSize").onchange = (e) => {
+            const v = e.target.value;
+            if (!v) return;
+            applyCmd("fontSize", v);
+            e.target.value = "";
+          };
+
+          $("tbColor").oninput = (e) => {
+            const v = e.target.value;
+            applyCmd("foreColor", v);
+          };
+
+          // ===== imagem =====
+          const tbImgFile = $("tbImgFile");
+
+          $("tbImgIns").onclick = () => {
+            if (!this.active) return;
+            // garante ter um range salvo (se não tiver, usa o atual)
+            if (!this.savedRange) this._saveSelection();
+            tbImgFile.value = "";
+            tbImgFile.click();
+          };
+
+          tbImgFile.addEventListener("change", async () => {
+            if (!this.active) return;
+            if (!this.savedRange) this._saveSelection();
+            if (!this._restoreSelection() && !this._selectionInsideActive())
+              return;
+
+            const file = tbImgFile.files && tbImgFile.files[0];
+            if (!file) return;
+
+            const dataUrl = await new Promise((resolve, reject) => {
+              const fr = new FileReader();
+              fr.onload = () => resolve(fr.result);
+              fr.onerror = reject;
+              fr.readAsDataURL(file);
+            });
+
+            this.active.focus({ preventScroll: true });
+
+            const img = document.createElement("img");
+            img.className = "rx-img";
+            img.src = dataUrl;
+            img.alt = file.name || "imagem";
+            img.style.setProperty("--iw", "80px");
+
+            // insere NO <p> atual, na posição do cursor
+            this._insertImageInCurrentParagraphAtCaret(img);
+
+            this._setActiveImg(img);
+            this._saveSelection();
+            requestAnimationFrame(() => this.paginate());
+          });
+
+          $("tbImgLeft").onclick = () => this._moveImgChar(-1);
+          $("tbImgRight").onclick = () => this._moveImgChar(1);
+          $("tbImgUp").onclick = () => this._moveImgToParagraph(-1);
+          $("tbImgDown").onclick = () => this._moveImgToParagraph(1);
+
+          $("tbImgSm").onclick = () => this._resizeImg(-10);
+          $("tbImgLg").onclick = () => this._resizeImg(10);
         }
 
-        const h = stage.querySelector(".header-ed");
-        const f = stage.querySelector(".footer-ed");
-        const b = stage.querySelector(".body-ed");
-
-        h.innerHTML = "<p>Empresa XYZ</p>";
-        f.innerHTML = "<p>Rodapé</p>";
-        b.innerHTML = "<p>Duplo clique para editar.</p>";
-
-        setTimeout(() => {
-          insertMode = true;
-          updateModeUI();
-          startEdit(b);
-          normalizeParagraphs(b);
-          placeCaretEnd(b.querySelector("p:last-child"));
-        }, 0);
-
-        /* =================================================
-           Toolbar execCommand (seleção estável) - FIX foco
-        ================================================= */
-        let savedRange = null;
-
-        function saveSelection() {
+        _selectionInsideActive() {
+          if (!this.active) return false;
           const sel = window.getSelection();
-          if (sel && sel.rangeCount)
-            savedRange = sel.getRangeAt(0).cloneRange();
-        }
-        function restoreSelection() {
-          // ✅ se não tem savedRange ainda, tenta capturar o range atual
-          if (!savedRange) saveSelection();
-          if (!savedRange) return false;
-
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(savedRange);
-          return true;
-        }
-
-        function selectionInsideActiveRange(r) {
-          if (!active || !r) return false;
+          if (!sel || sel.rangeCount === 0) return false;
+          const r = sel.getRangeAt(0);
           const a =
             r.commonAncestorContainer.nodeType === 3
               ? r.commonAncestorContainer.parentNode
               : r.commonAncestorContainer;
-          return active.contains(a);
+          return this.active.contains(a);
         }
 
-        document.addEventListener("selectionchange", () => {
-          if (!active) return;
-          if (toolbarInteracting) return; // ✅ não mexe quando mexe na toolbar
-          const r = getSelectionRange();
-          if (!r) return;
-          if (!selectionInsideActiveRange(r)) return;
-          saveSelection();
-          syncBorderUI();
-          syncBorderPickers();
-        });
-
-        function applyCmd(cmd, value = null) {
-          if (!active) return;
-          // ✅ ao aplicar, restaura e garante foco no editor
-          if (!restoreSelection()) return;
-          active.focus({ preventScroll: true });
-          document.execCommand(cmd, false, value);
-          saveSelection();
+        _onSelectionChange() {
+          if (!this.active) return;
+          if (!this._selectionInsideActive()) return;
+          this._saveSelection();
         }
 
-        document.getElementById("tbBold").onclick = () => applyCmd("bold");
-        document.getElementById("tbItalic").onclick = () => applyCmd("italic");
-        document.getElementById("tbUnder").onclick = () =>
-          applyCmd("underline");
-        document.getElementById("tbClear").onclick = () =>
-          applyCmd("removeFormat");
-
-        document.getElementById("tbLeft").onclick = () =>
-          applyCmd("justifyLeft");
-        document.getElementById("tbCenter").onclick = () =>
-          applyCmd("justifyCenter");
-        document.getElementById("tbRight").onclick = () =>
-          applyCmd("justifyRight");
-        document.getElementById("tbJust").onclick = () =>
-          applyCmd("justifyFull");
-
-        document.getElementById("tbFont").onchange = (e) => {
-          const v = e.target.value;
-          if (!v) return;
-          applyCmd("fontName", v);
-          e.target.value = "";
-        };
-
-        document.getElementById("tbSize").onchange = (e) => {
-          const v = e.target.value;
-          if (!v) return;
-          applyCmd("fontSize", v);
-          e.target.value = "";
-        };
-
-        document.getElementById("tbColor").oninput = (e) => {
-          const v = e.target.value;
-          applyCmd("foreColor", v);
-        };
-
-        /* =================================================
-           Moldura por elemento (sem roubar foco da toolbar)
-        ================================================= */
-        const tbFrameW = document.getElementById("tbFrameW");
-        const tbFrameR = document.getElementById("tbFrameR");
-        const tbFrameColor = document.getElementById("tbFrameColor");
-
-        const btnAll = document.getElementById("tbBAll");
-        const btnTop = document.getElementById("tbBTop");
-        const btnBot = document.getElementById("tbBBot");
-        const btnLeft = document.getElementById("tbBLeft");
-        const btnRight = document.getElementById("tbBRight");
-
-        function clearBorderUI() {
-          [btnAll, btnTop, btnBot, btnLeft, btnRight].forEach((b) =>
-            b.classList.remove("on", "mix"),
-          );
+        _saveSelection() {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount)
+            this.savedRange = sel.getRangeAt(0).cloneRange();
         }
 
-        // ✅ para INSPECIONAR, usa savedRange sem restaurar seleção (não rouba foco)
-        function getInspectionRange() {
-          const r = savedRange || getSelectionRange();
-          if (!r) return null;
-          if (!selectionInsideActiveRange(r)) return null;
-          return r;
+        _restoreSelection() {
+          if (!this.savedRange) return false;
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(this.savedRange);
+          return true;
         }
 
-        function getTokenTargetFromInspection() {
-          const r = getInspectionRange();
-          if (!r) return null;
+        /* ==========================
+           IMAGEM: lógica “dentro do <p>”
+        ========================== */
 
-          let node = r.commonAncestorContainer;
-          if (node.nodeType === 3) node = node.parentNode;
-          if (!active.contains(node)) return null;
-
-          return (
-            node.closest?.("td,th,p,table,figure,img") ||
-            getActiveParagraphFromRange(r)
-          );
+        _setActiveImg(img) {
+          if (this.activeImg && this.activeImg !== img)
+            this.activeImg.classList.remove("sel");
+          this.activeImg = img || null;
+          if (this.activeImg) this.activeImg.classList.add("sel");
+        }
+        _clearActiveImg() {
+          if (this.activeImg) this.activeImg.classList.remove("sel");
+          this.activeImg = null;
         }
 
-        function getBorderTokens(el) {
-          const raw = (el?.getAttribute?.("data-border") || "").trim();
-          if (!raw) return [];
-          return raw.split(/\s+/).filter(Boolean);
-        }
-        function setBorderTokens(el, tokens) {
-          if (!tokens.length) el.removeAttribute("data-border");
-          else el.setAttribute("data-border", tokens.join(" "));
-        }
+        _getTargetImg() {
+          if (
+            this.activeImg &&
+            this.active &&
+            this.active.contains(this.activeImg)
+          )
+            return this.activeImg;
 
-        function getElVar(el, name, fallback) {
-          const v = el?.style?.getPropertyValue?.(name);
-          return v && v.trim() ? v.trim() : fallback;
-        }
-
-        function setFrameVarsOnTarget(el) {
-          if (!el) return;
-          el.style.setProperty("--bw", tbFrameW.value);
-          el.style.setProperty("--br", tbFrameR.value);
-          el.style.setProperty("--bc", tbFrameColor.value);
-        }
-
-        function syncBorderPickers() {
-          if (toolbarInteracting) return;
-          const el = getTokenTargetFromInspection();
-          if (!el) return;
-
-          const bw = getElVar(el, "--bw", tbFrameW.value);
-          const br = getElVar(el, "--br", tbFrameR.value);
-          const bc = getElVar(el, "--bc", tbFrameColor.value);
-
-          if ([...tbFrameW.options].some((o) => o.value === bw))
-            tbFrameW.value = bw;
-          if ([...tbFrameR.options].some((o) => o.value === br))
-            tbFrameR.value = br;
-          if (typeof bc === "string" && /^#([0-9a-f]{6})$/i.test(bc))
-            tbFrameColor.value = bc;
-        }
-
-        function syncBorderUI() {
-          if (toolbarInteracting) return;
-          if (!active) return clearBorderUI();
-          const el = getTokenTargetFromInspection();
-          if (!el) return clearBorderUI();
-
-          const cur = getBorderTokens(el);
-          const sides = ["top", "right", "bottom", "left"];
-          const count = sides.reduce(
-            (acc, s) => acc + (cur.includes(s) ? 1 : 0),
-            0,
-          );
-
-          btnAll.classList.remove("on", "mix");
-          if (count === 4) btnAll.classList.add("on");
-          else if (count > 0) btnAll.classList.add("mix");
-
-          btnTop.classList.toggle("on", cur.includes("top"));
-          btnRight.classList.toggle("on", cur.includes("right"));
-          btnBot.classList.toggle("on", cur.includes("bottom"));
-          btnLeft.classList.toggle("on", cur.includes("left"));
-        }
-
-        function toggleBorderSide(side) {
-          if (!active) return;
-          if (!restoreSelection()) return;
-          active.focus({ preventScroll: true });
-
-          const r = getSelectionRange();
-          if (!r || !selectionInsideActiveRange(r)) return;
-
-          let node = r.commonAncestorContainer;
-          if (node.nodeType === 3) node = node.parentNode;
-          const el =
-            node.closest?.("td,th,p,table,figure,img") ||
-            getActiveParagraphFromRange(r);
-          if (!el) return;
-
-          setFrameVarsOnTarget(el);
-
-          const cur = getBorderTokens(el);
-          const i = cur.indexOf(side);
-          if (i >= 0) cur.splice(i, 1);
-          else cur.push(side);
-
-          setBorderTokens(el, cur);
-          saveSelection();
-          syncBorderUI();
-        }
-
-        function toggleBorderAllTri() {
-          if (!active) return;
-          if (!restoreSelection()) return;
-          active.focus({ preventScroll: true });
-
-          const r = getSelectionRange();
-          if (!r || !selectionInsideActiveRange(r)) return;
-
-          let node = r.commonAncestorContainer;
-          if (node.nodeType === 3) node = node.parentNode;
-          const el =
-            node.closest?.("td,th,p,table,figure,img") ||
-            getActiveParagraphFromRange(r);
-          if (!el) return;
-
-          setFrameVarsOnTarget(el);
-
-          const cur = getBorderTokens(el);
-          const sides = ["top", "right", "bottom", "left"];
-          const hasAll = sides.every((s) => cur.includes(s));
-
-          const next = hasAll
-            ? cur.filter((t) => !sides.includes(t))
-            : Array.from(new Set([...cur, ...sides]));
-          setBorderTokens(el, next);
-
-          saveSelection();
-          syncBorderUI();
-        }
-
-        btnAll.onclick = () => toggleBorderAllTri();
-        btnTop.onclick = () => toggleBorderSide("top");
-        btnBot.onclick = () => toggleBorderSide("bottom");
-        btnLeft.onclick = () => toggleBorderSide("left");
-        btnRight.onclick = () => toggleBorderSide("right");
-
-        tbFrameW.onchange = () => {
-          if (!active) return;
-          if (!restoreSelection()) return;
-          active.focus({ preventScroll: true });
-
-          const r = getSelectionRange();
-          if (!r || !selectionInsideActiveRange(r)) return;
-
-          let node = r.commonAncestorContainer;
-          if (node.nodeType === 3) node = node.parentNode;
-          const el =
-            node.closest?.("td,th,p,table,figure,img") ||
-            getActiveParagraphFromRange(r);
-          if (!el) return;
-
-          setFrameVarsOnTarget(el);
-          saveSelection();
-          syncBorderPickers();
-        };
-
-        tbFrameR.onchange = () => {
-          if (!active) return;
-          if (!restoreSelection()) return;
-          active.focus({ preventScroll: true });
-
-          const r = getSelectionRange();
-          if (!r || !selectionInsideActiveRange(r)) return;
-
-          let node = r.commonAncestorContainer;
-          if (node.nodeType === 3) node = node.parentNode;
-          const el =
-            node.closest?.("td,th,p,table,figure,img") ||
-            getActiveParagraphFromRange(r);
-          if (!el) return;
-
-          setFrameVarsOnTarget(el);
-          saveSelection();
-          syncBorderPickers();
-        };
-
-        tbFrameColor.oninput = () => {
-          if (!active) return;
-          if (!restoreSelection()) return;
-          active.focus({ preventScroll: true });
-
-          const r = getSelectionRange();
-          if (!r || !selectionInsideActiveRange(r)) return;
-
-          let node = r.commonAncestorContainer;
-          if (node.nodeType === 3) node = node.parentNode;
-          const el =
-            node.closest?.("td,th,p,table,figure,img") ||
-            getActiveParagraphFromRange(r);
-          if (!el) return;
-
-          setFrameVarsOnTarget(el);
-          saveSelection();
-          syncBorderPickers();
-        };
-
-        /* =================================================
-   IMAGEM inline: inserir + mover + resize + stretch + alinhar
-================================================= */
-
-        const tbImgFile = document.getElementById("tbImgFile");
-
-        const tbImgIns = document.getElementById("tbImgIns");
-        const tbImgUp = document.getElementById("tbImgUp");
-        const tbImgDown = document.getElementById("tbImgDown");
-        const tbImgLeft = document.getElementById("tbImgLeft");
-        const tbImgRight = document.getElementById("tbImgRight");
-        const tbImgSm = document.getElementById("tbImgSm");
-        const tbImgLg = document.getElementById("tbImgLg");
-        const tbImgStretch = document.getElementById("tbImgStretch");
-        const tbImgAL = document.getElementById("tbImgAL");
-        const tbImgAC = document.getElementById("tbImgAC");
-        const tbImgAR = document.getElementById("tbImgAR");
-
-        let activeImg = null;
-
-        function setActiveImg(img) {
-          if (activeImg && activeImg !== img) activeImg.classList.remove("sel");
-          activeImg = img || null;
-          if (activeImg) activeImg.classList.add("sel");
-        }
-
-        function clearActiveImg() {
-          if (activeImg) activeImg.classList.remove("sel");
-          activeImg = null;
-        }
-
-        // pega o <img> “alvo” a partir do range inspecionado
-        function getTargetImg() {
-          // prioridade: última imagem clicada
-          if (activeImg && active && active.contains(activeImg))
-            return activeImg;
-
-          // fallback: tenta pelo range (se existir)
-          const r = getInspectionRange();
-          if (!r) return null;
-          let node = r.commonAncestorContainer;
-          if (node.nodeType === 3) node = node.parentNode;
+          const r = this.savedRange || this._getSelectionRange();
+          if (!r || !this.active) return null;
+          const node =
+            r.commonAncestorContainer.nodeType === 3
+              ? r.commonAncestorContainer.parentNode
+              : r.commonAncestorContainer;
           return node.closest?.("img.rx-img") || null;
         }
 
-        // =========================
-        // Inserir imagem do disco
-        // =========================
-        tbImgIns.onclick = () => {
-          if (!active) return;
-          if (!restoreSelection()) return;
-          tbImgFile.value = "";
-          tbImgFile.click();
-        };
+        _insertImageInCurrentParagraphAtCaret(img) {
+          // garante que o caret esteja dentro de um <p>
+          const r = this._getSelectionRange();
+          const p = this._getActiveParagraph();
+          if (!r || !p) return;
 
-        tbImgFile.addEventListener("change", async () => {
-          if (!active) return;
-          if (!restoreSelection()) return;
-
-          const file = tbImgFile.files && tbImgFile.files[0];
-          if (!file) return;
-
-          const dataUrl = await new Promise((resolve, reject) => {
-            const fr = new FileReader();
-            fr.onload = () => resolve(fr.result);
-            fr.onerror = reject;
-            fr.readAsDataURL(file);
-          });
-
-          active.focus({ preventScroll: true });
-
-          const img = document.createElement("img");
-          img.className = "rx-img";
-          img.src = dataUrl;
-          img.alt = file.name || "imagem";
-
-          setActiveImg(img);
-
-          // defaults
-          img.style.setProperty("--ix", "0ch");
-          img.style.setProperty("--iy", "0em");
-
-          img.style.setProperty("--iw", "220px"); // tamanho inicial (ajuste se quiser)
-          img.dataset.stretch = "0";
-          img.dataset.align = "left";
-
-          // comportamento: clique coloca seleção “no” img (pra virar alvo)
-          img.addEventListener("mousedown", (e) => {
-            if (active !== null && active.contains(img)) {
-              // deixa o cursor “pegar” o elemento
-              // (não previne default aqui)
-            }
-          });
-
-          // insere no ponto do cursor
-          insertImageAtCaret(img);
-          saveSelection();
-          requestAnimationFrame(() => paginate());
-
-          // reposiciona caret depois da imagem
-          const nr = document.createRange();
-          nr.setStartAfter(spacer);
-          nr.collapse(true);
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(nr);
-
-          saveSelection();
-          requestAnimationFrame(() => paginate());
-        });
-
-        function getNumVar(el, name, fallback, unit) {
-          const v = (el.style.getPropertyValue(name) || "").trim();
-          if (!v) return fallback;
-          const n = parseFloat(v);
-          return Number.isFinite(n) ? n : fallback;
-        }
-
-        function setNumVar(el, name, value, unit) {
-          el.style.setProperty(name, `${value}${unit}`);
-        }
-        function insertImageAtCaret(img) {
-          const r = getSelectionRange();
-          if (!r) return;
-
-          // se tiver seleção, colapsa no início
+          // colapsa no início da seleção
           if (!r.collapsed) r.collapse(true);
 
-          let sc = r.startContainer;
-          let so = r.startOffset;
-
-          // Caso 1: cursor está dentro de um TEXT NODE -> divide em esquerda/direita
-          if (sc && sc.nodeType === 3) {
-            const rightText = sc.splitText(so); // sc vira a parte esquerda
-            const parent = rightText.parentNode;
-
-            parent.insertBefore(img, rightText);
-
-            // spacer pra manter caret “depois” da imagem e permitir digitação
-            const spacer = document.createTextNode("\u00A0");
-            parent.insertBefore(spacer, rightText);
-
-            const nr = document.createRange();
-            nr.setStartAfter(spacer);
-            nr.collapse(true);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(nr);
-            return;
-          }
-
-          // Caso 2: cursor está em nó de elemento (ex.: <p>) -> insere normal
+          // insere IMG exatamente no range
           r.insertNode(img);
+
+          // spacer (pra caret não ficar “colado” e permitir digitação)
           const spacer = document.createTextNode("\u00A0");
           img.after(spacer);
 
+          // caret depois do spacer
           const nr = document.createRange();
           nr.setStartAfter(spacer);
           nr.collapse(true);
           const sel = window.getSelection();
           sel.removeAllRanges();
           sel.addRange(nr);
+          this._saveSelection();
         }
 
-        // =========================
-        // Mover 1 “caractere” (X=1ch / Y=1em)
-        // =========================
-        function moveImg(dxCh, dyEm) {
-          if (!active) return;
-          if (!restoreSelection()) return;
-          active.focus({ preventScroll: true });
-
-          const img = getTargetImg();
-          if (!img) return;
-
-          const x = getNumVar(img, "--ix", 0, "ch") + dxCh;
-          let y = getNumVar(img, "--iy", 0, "em") + dyEm;
-
-          if (y < 0) y = 0; // ✅ não deixa subir (evita sobreposição)
-
-          setNumVar(img, "--ix", x, "ch");
-          setNumVar(img, "--iy", y, "em");
-
-          saveSelection();
+        _getTextOffsetBeforeNode(container, node) {
+          const r = document.createRange();
+          r.selectNodeContents(container);
+          r.setEndBefore(node);
+          return r.toString().length;
         }
 
-        tbImgLeft.onclick = () => moveImg(-1, 0);
-        tbImgRight.onclick = () => moveImg(1, 0);
-        tbImgUp.onclick = () => moveImg(0, -1);
-        tbImgDown.onclick = () => moveImg(0, 1);
+        _getTextLength(container) {
+          const r = document.createRange();
+          r.selectNodeContents(container);
+          return r.toString().length;
+        }
 
-        // =========================
-        // Resize (+/-) por largura
-        // =========================
-        function resizeImg(deltaPx) {
-          if (!active) return;
-          if (!restoreSelection()) return;
-          active.focus({ preventScroll: true });
+        _insertNodeAtTextOffset(container, node, offset) {
+          const total = this._getTextLength(container);
+          if (offset < 0) offset = 0;
+          if (offset > total) offset = total;
 
-          const img = getTargetImg();
+          const tw = document.createTreeWalker(
+            container,
+            NodeFilter.SHOW_TEXT,
+            null,
+          );
+          let cur;
+          let remaining = offset;
+
+          while ((cur = tw.nextNode())) {
+            const len = cur.nodeValue.length;
+
+            if (remaining <= len) {
+              if (remaining === 0) {
+                cur.parentNode.insertBefore(node, cur);
+              } else if (remaining === len) {
+                cur.parentNode.insertBefore(node, cur.nextSibling);
+              } else {
+                const right = cur.splitText(remaining);
+                right.parentNode.insertBefore(node, right);
+              }
+              return;
+            }
+            remaining -= len;
+          }
+          container.appendChild(node);
+        }
+
+        _cleanupEmptyTextNodes(p) {
+          // remove text nodes vazios / só NBSP
+          const toRemove = [];
+          for (const n of p.childNodes) {
+            if (n.nodeType !== 3) continue;
+            const t = (n.nodeValue || "").replace(/\u00A0/g, "");
+            if (t === "") toRemove.push(n);
+          }
+          toRemove.forEach((n) => n.remove());
+          // garante um <br> se ficou vazio
+          if (
+            !p.textContent.trim() &&
+            p.querySelectorAll("img.rx-img").length === 0
+          ) {
+            p.innerHTML = "";
+            p.appendChild(document.createElement("br"));
+          }
+        }
+
+        _moveImgChar(dir) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this.active.focus({ preventScroll: true });
+
+          const img = this._getTargetImg();
           if (!img) return;
 
-          // se estiver em stretch, desligue e vira width fixa
-          if (img.dataset.stretch === "1") img.dataset.stretch = "0";
+          const p = img.closest("p");
+          if (!p) return;
 
-          // pega width atual
-          const cur = img.style.getPropertyValue("--iw").trim();
-          let w = 220;
+          const pos = this._getTextOffsetBeforeNode(p, img);
+          const total = this._getTextLength(p);
 
-          if (cur.endsWith("px")) w = parseFloat(cur);
-          else {
-            // se não tiver --iw, tenta medir
-            w = Math.round(img.getBoundingClientRect().width);
+          img.remove();
+          this._cleanupEmptyTextNodes(p);
+
+          let nextPos = pos + dir;
+          if (nextPos < 0) nextPos = 0;
+          if (nextPos > total) nextPos = total;
+
+          this._insertNodeAtTextOffset(p, img, nextPos);
+
+          // caret depois da imagem
+          const r = document.createRange();
+          r.setStartAfter(img);
+          r.collapse(true);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+          this._saveSelection();
+
+          this._setActiveImg(img);
+          requestAnimationFrame(() => this.paginate());
+        }
+
+        _moveImgToParagraph(dir) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this.active.focus({ preventScroll: true });
+
+          const img = this._getTargetImg();
+          if (!img) return;
+
+          const p = img.closest("p");
+          if (!p) return;
+
+          // ⚠️ regra: isso é navegação de parágrafos do BODY
+          const bodyEd = p.closest(".body-ed");
+          const pg = this._getPageFrom(bodyEd || p);
+
+          // alvo "normal": parágrafo anterior/próximo na mesma página
+          let target =
+            dir > 0 ? p.nextElementSibling : p.previousElementSibling;
+
+          // se existe, mas não é <p>, aborta (segurança)
+          if (target && target.tagName !== "P") return;
+
+          // ===== cross-page =====
+          if (!target && bodyEd && pg) {
+            const pages = [...this.stage.querySelectorAll(".page")];
+            const i = pages.indexOf(pg);
+
+            const firstP = bodyEd.querySelector(":scope > p:first-child");
+            const lastP = bodyEd.querySelector(":scope > p:last-child");
+
+            if (dir > 0 && p === lastP) {
+              // ↓ no último parágrafo: vai para o primeiro parágrafo da PRÓXIMA página
+              let nextPg = pages[i + 1];
+              if (!nextPg) {
+                nextPg = this._createNextPage();
+                pages.push(nextPg);
+              }
+
+              const nextBody = nextPg.querySelector(".body-ed");
+              this._ensureHasParagraph(nextBody);
+              target = nextBody.querySelector(":scope > p:first-child");
+            }
+
+            if (dir < 0 && p === firstP) {
+              // ↑ no primeiro parágrafo: vai para o último parágrafo da PÁGINA ANTERIOR
+              if (i <= 0) return; // exceção: primeira página -> para
+
+              const prevPg = pages[i - 1];
+              const prevBody = prevPg.querySelector(".body-ed");
+              this._ensureHasParagraph(prevBody);
+              target = prevBody.querySelector(":scope > p:last-child");
+            }
           }
 
-          w = Math.max(30, w + deltaPx);
+          // se ainda não achou alvo, não faz nada
+          if (!target || target.tagName !== "P") return;
+
+          img.remove();
+          this._cleanupEmptyTextNodes(p);
+
+          // início do parágrafo alvo (offset 0)
+          const at = dir > 0 ? 0 : this._getTextLength(target);
+          this._insertNodeAtTextOffset(target, img, at);
+          // ✅ garante que o editor destino vire o "active"
+          const targetEd = target.closest(".editable");
+          if (targetEd && targetEd !== this.active) {
+            this.startEdit(targetEd);
+          }
+
+          // opcional: rolar até o parágrafo destino
+          target.scrollIntoView({ block: "nearest" });
+
+          // caret depois da imagem
+          const r = document.createRange();
+          r.setStartAfter(img);
+          r.collapse(true);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+          this._saveSelection();
+
+          this._setActiveImg(img);
+          requestAnimationFrame(() => this.paginate());
+        }
+
+        _resizeImg(deltaPx) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this.active.focus({ preventScroll: true });
+
+          const img = this._getTargetImg();
+          if (!img) return;
+
+          const cur = (img.style.getPropertyValue("--iw") || "").trim();
+          let w = 80;
+
+          if (cur.endsWith("px")) w = parseFloat(cur);
+          else w = Math.round(img.getBoundingClientRect().width);
+
+          w = Math.max(20, w + deltaPx);
           img.style.setProperty("--iw", `${w}px`);
 
-          saveSelection();
-          requestAnimationFrame(() => paginate());
+          this._setActiveImg(img);
+          this._saveSelection();
+          requestAnimationFrame(() => this.paginate());
         }
+      }
 
-        tbImgSm.onclick = () => resizeImg(-10);
-        tbImgLg.onclick = () => resizeImg(10);
-
-        // =========================
-        // Stretch ON/OFF
-        // =========================
-        tbImgStretch.onclick = () => {
-          if (!active) return;
-          if (!restoreSelection()) return;
-          active.focus({ preventScroll: true });
-
-          const img = getTargetImg();
-          if (!img) return;
-
-          img.dataset.stretch = img.dataset.stretch === "1" ? "0" : "1";
-          saveSelection();
-          requestAnimationFrame(() => paginate());
-        };
-
-        // =========================
-        // Alinhamento
-        // =========================
-        function alignImg(mode) {
-          if (!active) return;
-          if (!restoreSelection()) return;
-          active.focus({ preventScroll: true });
-
-          const img = getTargetImg();
-          if (!img) return;
-
-          img.dataset.align = mode; // left | center | right
-          saveSelection();
-          requestAnimationFrame(() => paginate());
-        }
-
-        tbImgAL.onclick = () => alignImg("left");
-        tbImgAC.onclick = () => alignImg("center");
-        tbImgAR.onclick = () => alignImg("right");
+      // boot
+      (() => {
+        const relex = new RelexEditor({
+          stage: document.getElementById("stage"),
+          modePill: document.getElementById("modePill"),
+          modeText: document.getElementById("modeText"),
+          maxHeaderFooterParagraphs: 10,
+        });
+        relex.init();
       })();
     </script>
   </body>

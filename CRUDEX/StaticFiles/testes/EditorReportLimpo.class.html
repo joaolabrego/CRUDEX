@@ -254,9 +254,6 @@
 
   <body>
     <div class="topbar">
-      <button id="btnEdit">Editar</button>
-      <button id="btnDone">Finalizar</button>
-
       <span id="modePill" class="mode-pill" title="Tecla INS alterna modo">
         <span class="mode-dot"></span>
         <strong id="modeText">INS</strong>
@@ -332,17 +329,11 @@
       class RelexEditor {
         constructor({
           stage,
-          btnEdit,
-          btnDone,
           modePill,
           modeText,
           maxHeaderFooterParagraphs = 10,
         }) {
           this.stage = stage;
-
-          this.btnEdit = btnEdit;
-          this.btnDone = btnDone;
-
           this.modePill = modePill;
           this.modeText = modeText;
 
@@ -587,15 +578,6 @@
         /* -------------------- eventos: topbar / globais -------------------- */
         _wireTopbar() {
           this._updateModeUI();
-
-          this.btnEdit.addEventListener("click", () => {
-            const b = this.stage.querySelector(".page .body-ed");
-            this.startEdit(b);
-            this._ensureHasParagraph(b);
-            this._placeCaretEnd(b.querySelector("p:last-child"));
-          });
-
-          this.btnDone.addEventListener("click", () => this.stopEdit());
 
           document.addEventListener("keydown", this._onGlobalKeyDown);
           document.addEventListener("selectionchange", this._onSelectionChange);
@@ -1124,31 +1106,16 @@
           const p = img.closest("p");
           if (!p) return;
 
-          // posição atual (baseada em texto) antes de remover
           const pos = this._getTextOffsetBeforeNode(p, img);
+          const total = this._getTextLength(p);
 
-          // remove a imagem e limpa lixo
           img.remove();
           this._cleanupEmptyTextNodes(p);
 
-          // comprimento do texto (sem a imagem)
-          let total = this._getTextLength(p);
-
           let nextPos = pos + dir;
-
-          // ✅ se quer ir além do fim, cria "chão" com NBSP
-          if (dir > 0 && nextPos > total) {
-            const need = nextPos - total; // quantos chars faltam
-            // adiciona NBSPs no final pra permitir avançar
-            p.appendChild(document.createTextNode("\u00A0".repeat(need)));
-            total = this._getTextLength(p);
-          }
-
-          // limites à esquerda continuam valendo
           if (nextPos < 0) nextPos = 0;
           if (nextPos > total) nextPos = total;
 
-          // reinsere a imagem na nova posição
           this._insertNodeAtTextOffset(p, img, nextPos);
 
           // caret depois da imagem
@@ -1276,8 +1243,6 @@
       (() => {
         const relex = new RelexEditor({
           stage: document.getElementById("stage"),
-          btnEdit: document.getElementById("btnEdit"),
-          btnDone: document.getElementById("btnDone"),
           modePill: document.getElementById("modePill"),
           modeText: document.getElementById("modeText"),
           maxHeaderFooterParagraphs: 10,
