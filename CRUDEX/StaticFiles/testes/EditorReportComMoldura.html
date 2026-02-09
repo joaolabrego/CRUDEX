@@ -678,6 +678,9 @@
             return created;
           }
 
+          // ==========================
+          // 1) PUSH DOWN (já existia)
+          // ==========================
           pages.forEach((pg, i) => {
             const bodyEd = pg.querySelector(".body-ed");
             const bodyBox = pg.querySelector(".body");
@@ -694,6 +697,45 @@
               nb.insertBefore(lastP, nb.firstChild);
             }
           });
+
+          // ==========================
+          // 2) PULL UP (NOVO)
+          // ==========================
+          for (let i = 0; i < pages.length - 1; i++) {
+            const pg = pages[i];
+            const nextPg = pages[i + 1];
+
+            const bodyEd = pg.querySelector(".body-ed");
+            const bodyBox = pg.querySelector(".body");
+            const nextBody = nextPg.querySelector(".body-ed");
+
+            if (!bodyEd || !bodyBox || !nextBody) continue;
+
+            // Enquanto couber mais conteúdo nesta página,
+            // puxe o primeiro <p> da próxima.
+            while (
+              nextBody.firstElementChild &&
+              nextBody.firstElementChild.tagName === "P"
+            ) {
+              const candidate = nextBody.firstElementChild;
+
+              // não puxe se a próxima página só tem um <p> vazio (mantém "mínimo")
+              const nextPs = nextBody.querySelectorAll(":scope > p");
+              if (nextPs.length === 1 && isEmptyP(nextPs[0])) break;
+
+              // simula puxar: move, testa, e se não couber desfaz
+              bodyEd.appendChild(candidate);
+
+              if (bodyEd.scrollHeight > bodyBox.clientHeight + 1) {
+                // não coube -> desfaz
+                nextBody.insertBefore(candidate, nextBody.firstChild);
+                break;
+              }
+            }
+
+            // garante que a próxima página não fique sem <p>
+            ensureHasParagraph(nextBody);
+          }
 
           pruneEmptyTailPages();
         }
