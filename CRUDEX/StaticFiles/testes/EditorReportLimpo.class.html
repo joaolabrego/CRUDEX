@@ -2,7 +2,7 @@
 <html lang="pt-br">
   <head>
     <meta charset="utf-8" />
-    <title>RELEX – Class (limpo) – Word-like + Toolbar + Cross-page DEL/BS</title>
+    <title>RELEX – Class (limpo) – Word-like + Toolbar + Imagem dentro do &lt;p&gt;</title>
 
     <style>
       :root {
@@ -191,6 +191,19 @@
       /* corpo apagado no modo HF */
       .page.hf .body{ opacity:.45; }
       .page.hf .body *{ pointer-events:none; }
+
+      /* ===== IMAGEM dentro do <p> ===== */
+      .rx-img{
+        display:inline-block;
+        vertical-align:baseline;
+        max-width:100%;
+        height:auto;
+        width: var(--iw, 80px);
+      }
+      .rx-img.sel{
+        outline:2px solid rgba(57,255,20,.85);
+        outline-offset:2px;
+      }
     </style>
   </head>
 
@@ -237,6 +250,18 @@
         </select>
 
         <input id="tbColor" type="color" title="Cor" />
+
+        <!-- ✅ IMAGEM -->
+        <span style="opacity:.7;margin-left:6px;">Imagem:</span>
+        <button id="tbImgIns" title="Inserir imagem (no cursor)">🖼️+</button>
+        <button id="tbImgLeft" title="Mover imagem 1 caractere para a esquerda">←</button>
+        <button id="tbImgRight" title="Mover imagem 1 caractere para a direita">→</button>
+        <button id="tbImgUp" title="Mover imagem para o 1º char do parágrafo acima">↑</button>
+        <button id="tbImgDown" title="Mover imagem para o 1º char do parágrafo abaixo">↓</button>
+        <button id="tbImgSm" title="Diminuir largura">－</button>
+        <button id="tbImgLg" title="Aumentar largura">＋</button>
+
+        <input id="tbImgFile" type="file" accept="image/*" hidden />
       </div>
     </div>
 
@@ -272,7 +297,10 @@
 
           this.savedRange = null;
 
-          // bind (pra remover depois se quiser)
+          // imagem
+          this.activeImg = null;
+
+          // bind
           this._onGlobalKeyDown = this._onGlobalKeyDown.bind(this);
           this._onStageMouseDown = this._onStageMouseDown.bind(this);
           this._onSelectionChange = this._onSelectionChange.bind(this);
@@ -288,7 +316,8 @@
           const first = this.stage.querySelector(".page");
           first.querySelector(".header-ed").innerHTML = "<p>Empresa XYZ</p>";
           first.querySelector(".footer-ed").innerHTML = "<p>Rodapé</p>";
-          first.querySelector(".body-ed").innerHTML = "<p>Duplo clique para editar.</p>";
+          first.querySelector(".body-ed").innerHTML =
+            "<p>JOAO DA ROCHA LABREGO</p><p>PARÁGRAFO SEGUINTE</p><p>MAIS UM PARÁGRAFO</p>";
 
           // auto-start no BODY
           queueMicrotask(() => {
@@ -308,19 +337,10 @@
           if (this.active) this.active.classList.toggle("ovr-caret", !this.insertMode);
         }
 
-        _getPageFrom(el) {
-          return el?.closest?.(".page") || null;
-        }
-        _setHfModeForPage(pg, on) {
-          if (pg) pg.classList.toggle("hf", !!on);
-        }
-
-        _isHeaderOrFooter(ed) {
-          return ed.classList.contains("header-ed") || ed.classList.contains("footer-ed");
-        }
-        _countParagraphs(ed) {
-          return ed.querySelectorAll(":scope > p").length;
-        }
+        _getPageFrom(el) { return el?.closest?.(".page") || null; }
+        _setHfModeForPage(pg, on) { if (pg) pg.classList.toggle("hf", !!on); }
+        _isHeaderOrFooter(ed) { return ed.classList.contains("header-ed") || ed.classList.contains("footer-ed"); }
+        _countParagraphs(ed) { return ed.querySelectorAll(":scope > p").length; }
 
         /* -------------------- seleção / caret -------------------- */
         _getSelectionRange() {
@@ -328,6 +348,7 @@
           if (!sel || !sel.rangeCount) return null;
           return sel.getRangeAt(0);
         }
+
         _getActiveParagraph() {
           const r = this._getSelectionRange();
           if (!r) return null;
@@ -343,6 +364,7 @@
           s.removeAllRanges();
           s.addRange(r);
         }
+
         _placeCaretStart(node) {
           const r = document.createRange();
           r.selectNodeContents(node);
@@ -512,20 +534,17 @@
           }
         }
 
-        /* -------------------- eventos: mouse centralizado (SEM briga) -------------------- */
+        /* -------------------- eventos: mouse -------------------- */
         _wireStageDelegation() {
-          // Capture: decide troca de "active" SEM matar seleção.
           this.stage.addEventListener("mousedown", this._onStageMouseDown, true);
         }
 
         _onStageMouseDown(e) {
-          // ignora toolbar/topbar
           if (e.target.closest(".topbar")) return;
-          if (e.button !== 0) return; // só botão esquerdo
+          if (e.button !== 0) return;
 
           const ed = e.target.closest(".editable");
           if (ed) {
-            // clicou/arrastou dentro do conteúdo: só garante active correto; NÃO faz preventDefault
             if (ed !== this.active) this.startEdit(ed);
             return;
           }
@@ -533,7 +552,6 @@
           const band = e.target.closest(".band");
           if (!band) return;
 
-          // clique no "fundo" da banda: aqui sim podemos evitar seleção boba do label
           e.preventDefault();
 
           const targetEd = band.querySelector(".editable");
@@ -542,7 +560,6 @@
           this.startEdit(targetEd);
           this._ensureHasParagraph(targetEd);
 
-          // comportamento “Word-like”
           if (targetEd.classList.contains("footer-ed")) {
             this._placeCaretStart(targetEd.querySelector("p:first-child"));
           } else {
@@ -552,11 +569,33 @@
 
         /* -------------------- editable: teclado / input -------------------- */
         _wireEditable(ed) {
+          // clique em img: torna alvo
+          ed.addEventListener("mousedown", (e) => {
+            const img = e.target.closest?.("img.rx-img");
+            if (!img) return;
+            this._setActiveImg(img);
+
+            // posiciona caret depois da imagem (pra continuar digitando)
+            requestAnimationFrame(() => {
+              const r = document.createRange();
+              r.setStartAfter(img);
+              r.collapse(true);
+              const s = window.getSelection();
+              s.removeAllRanges();
+              s.addRange(r);
+              this._saveSelection();
+            });
+          }, true);
+
+          // clique fora da img dentro do editor: limpa seleção de img
+          ed.addEventListener("mousedown", (e) => {
+            if (!e.target.closest?.("img.rx-img")) this._clearActiveImg();
+          }, false);
+
           ed.addEventListener("beforeinput", (e) => {
             if (ed !== this.active) return;
             if (e.isComposing) return;
 
-            // limita Enter no header/footer
             if (this._isHeaderOrFooter(ed)) {
               const isEnter = (e.inputType === "insertParagraph" || e.inputType === "insertLineBreak");
               if (isEnter && this._countParagraphs(ed) >= this.MAX_P_HF) {
@@ -565,7 +604,6 @@
               }
             }
 
-            // OVR: apaga 1 char à direita antes de inserir texto simples
             if (
               !this.insertMode &&
               e.inputType === "insertText" &&
@@ -589,7 +627,7 @@
           ed.addEventListener("keydown", (e) => {
             if (ed !== this.active) return;
 
-            // troca HF via setas (Word-like)
+            // troca HF via setas
             if (e.key === "ArrowDown" && ed.classList.contains("header-ed")) {
               const pg = this._getPageFrom(ed);
               const p = this._getActiveParagraph();
@@ -711,7 +749,6 @@
             if (!body) break;
 
             if (this._isBodyEffectivelyEmpty(body)) {
-              // se o cursor estiver nessa página, manda pro fim da anterior
               if (this.active && pg.contains(this.active)) {
                 const prev = pages[i - 1];
                 const prevBody = prev.querySelector(".body-ed");
@@ -728,17 +765,16 @@
           }
         }
 
-        /* -------------------- toolbar (formatação) -------------------- */
+        /* -------------------- toolbar (formatação + imagem) -------------------- */
         _wireToolbar() {
           const $ = (id) => document.getElementById(id);
 
           const applyCmd = (cmd, value = null) => {
             if (!this.active) return;
-
-            // restaura seleção (caret incluso)
             if (!this._restoreSelection() && !this._selectionInsideActive()) return;
-
+            this.active.focus({ preventScroll: true });
             document.execCommand(cmd, false, value);
+            this._saveSelection();
           };
 
           $("tbBold").onclick = () => applyCmd("bold");
@@ -769,6 +805,56 @@
             const v = e.target.value;
             applyCmd("foreColor", v);
           };
+
+          // ===== imagem =====
+          const tbImgFile = $("tbImgFile");
+
+          $("tbImgIns").onclick = () => {
+            if (!this.active) return;
+            // garante ter um range salvo (se não tiver, usa o atual)
+            if (!this.savedRange) this._saveSelection();
+            tbImgFile.value = "";
+            tbImgFile.click();
+          };
+
+          tbImgFile.addEventListener("change", async () => {
+            if (!this.active) return;
+            if (!this.savedRange) this._saveSelection();
+            if (!this._restoreSelection() && !this._selectionInsideActive()) return;
+
+            const file = tbImgFile.files && tbImgFile.files[0];
+            if (!file) return;
+
+            const dataUrl = await new Promise((resolve, reject) => {
+              const fr = new FileReader();
+              fr.onload = () => resolve(fr.result);
+              fr.onerror = reject;
+              fr.readAsDataURL(file);
+            });
+
+            this.active.focus({ preventScroll: true });
+
+            const img = document.createElement("img");
+            img.className = "rx-img";
+            img.src = dataUrl;
+            img.alt = file.name || "imagem";
+            img.style.setProperty("--iw", "80px");
+
+            // insere NO <p> atual, na posição do cursor
+            this._insertImageInCurrentParagraphAtCaret(img);
+
+            this._setActiveImg(img);
+            this._saveSelection();
+            requestAnimationFrame(() => this.paginate());
+          });
+
+          $("tbImgLeft").onclick  = () => this._moveImgChar(-1);
+          $("tbImgRight").onclick = () => this._moveImgChar(1);
+          $("tbImgUp").onclick    = () => this._moveImgToParagraph(-1);
+          $("tbImgDown").onclick  = () => this._moveImgToParagraph(1);
+
+          $("tbImgSm").onclick = () => this._resizeImg(-10);
+          $("tbImgLg").onclick = () => this._resizeImg(10);
         }
 
         _selectionInsideActive() {
@@ -785,7 +871,7 @@
         _onSelectionChange() {
           if (!this.active) return;
           if (!this._selectionInsideActive()) return;
-          this._saveSelection(); // salva SEMPRE, colapsado ou não
+          this._saveSelection();
         }
 
         _saveSelection() {
@@ -799,6 +885,204 @@
           sel.removeAllRanges();
           sel.addRange(this.savedRange);
           return true;
+        }
+
+        /* ==========================
+           IMAGEM: lógica “dentro do <p>”
+        ========================== */
+
+        _setActiveImg(img) {
+          if (this.activeImg && this.activeImg !== img) this.activeImg.classList.remove("sel");
+          this.activeImg = img || null;
+          if (this.activeImg) this.activeImg.classList.add("sel");
+        }
+        _clearActiveImg() {
+          if (this.activeImg) this.activeImg.classList.remove("sel");
+          this.activeImg = null;
+        }
+
+        _getTargetImg() {
+          if (this.activeImg && this.active && this.active.contains(this.activeImg)) return this.activeImg;
+
+          const r = this.savedRange || this._getSelectionRange();
+          if (!r || !this.active) return null;
+          const node = r.commonAncestorContainer.nodeType === 3 ? r.commonAncestorContainer.parentNode : r.commonAncestorContainer;
+          return node.closest?.("img.rx-img") || null;
+        }
+
+        _insertImageInCurrentParagraphAtCaret(img) {
+          // garante que o caret esteja dentro de um <p>
+          const r = this._getSelectionRange();
+          const p = this._getActiveParagraph();
+          if (!r || !p) return;
+
+          // colapsa no início da seleção
+          if (!r.collapsed) r.collapse(true);
+
+          // insere IMG exatamente no range
+          r.insertNode(img);
+
+          // spacer (pra caret não ficar “colado” e permitir digitação)
+          const spacer = document.createTextNode("\u00A0");
+          img.after(spacer);
+
+          // caret depois do spacer
+          const nr = document.createRange();
+          nr.setStartAfter(spacer);
+          nr.collapse(true);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(nr);
+          this._saveSelection();
+        }
+
+        _getTextOffsetBeforeNode(container, node) {
+          const r = document.createRange();
+          r.setStart(container, 0);
+          r.setEndBefore(node);
+          return r.toString().length;
+        }
+
+        _getTextLength(container) {
+          return container.textContent ? container.textContent.length : 0;
+        }
+
+        _insertNodeAtTextOffset(container, node, offset) {
+          const total = this._getTextLength(container);
+          if (offset < 0) offset = 0;
+          if (offset > total) offset = total;
+
+          const tw = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+          let cur;
+          let remaining = offset;
+
+          while ((cur = tw.nextNode())) {
+            const len = cur.nodeValue.length;
+
+            if (remaining <= len) {
+              if (remaining === 0) {
+                cur.parentNode.insertBefore(node, cur);
+              } else if (remaining === len) {
+                cur.parentNode.insertBefore(node, cur.nextSibling);
+              } else {
+                const right = cur.splitText(remaining);
+                right.parentNode.insertBefore(node, right);
+              }
+              return;
+            }
+            remaining -= len;
+          }
+          container.appendChild(node);
+        }
+
+        _cleanupEmptyTextNodes(p) {
+          // remove text nodes vazios / só NBSP
+          const toRemove = [];
+          for (const n of p.childNodes) {
+            if (n.nodeType !== 3) continue;
+            const t = (n.nodeValue || "").replace(/\u00A0/g, "");
+            if (t === "") toRemove.push(n);
+          }
+          toRemove.forEach(n => n.remove());
+          // garante um <br> se ficou vazio
+          if (!p.textContent.trim() && p.querySelectorAll("img.rx-img").length === 0) {
+            p.innerHTML = "";
+            p.appendChild(document.createElement("br"));
+          }
+        }
+
+        _moveImgChar(dir) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this._restoreSelection(); // só pra manter consistência com toolbar
+          this.active.focus({ preventScroll: true });
+
+          const img = this._getTargetImg();
+          if (!img) return;
+
+          const p = img.closest("p");
+          if (!p) return;
+
+          const pos = this._getTextOffsetBeforeNode(p, img);
+          const total = this._getTextLength(p);
+
+          img.remove();
+          this._cleanupEmptyTextNodes(p);
+
+          let nextPos = pos + dir;
+          if (nextPos < 0) nextPos = 0;
+          if (nextPos > total) nextPos = total;
+
+          this._insertNodeAtTextOffset(p, img, nextPos);
+
+          // caret depois da imagem
+          const r = document.createRange();
+          r.setStartAfter(img);
+          r.collapse(true);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+          this._saveSelection();
+
+          this._setActiveImg(img);
+          requestAnimationFrame(() => this.paginate());
+        }
+
+        _moveImgToParagraph(dir) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this._restoreSelection();
+          this.active.focus({ preventScroll: true });
+
+          const img = this._getTargetImg();
+          if (!img) return;
+
+          const p = img.closest("p");
+          if (!p) return;
+
+          const target = dir > 0 ? p.nextElementSibling : p.previousElementSibling;
+          if (!target || target.tagName !== "P") return;
+
+          img.remove();
+          this._cleanupEmptyTextNodes(p);
+
+          // início do parágrafo alvo (offset 0)
+          this._insertNodeAtTextOffset(target, img, 0);
+
+          // caret depois da imagem
+          const r = document.createRange();
+          r.setStartAfter(img);
+          r.collapse(true);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+          this._saveSelection();
+
+          this._setActiveImg(img);
+          requestAnimationFrame(() => this.paginate());
+        }
+
+        _resizeImg(deltaPx) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this._restoreSelection();
+          this.active.focus({ preventScroll: true });
+
+          const img = this._getTargetImg();
+          if (!img) return;
+
+          const cur = (img.style.getPropertyValue("--iw") || "").trim();
+          let w = 80;
+
+          if (cur.endsWith("px")) w = parseFloat(cur);
+          else w = Math.round(img.getBoundingClientRect().width);
+
+          w = Math.max(20, w + deltaPx);
+          img.style.setProperty("--iw", `${w}px`);
+
+          this._setActiveImg(img);
+          this._saveSelection();
+          requestAnimationFrame(() => this.paginate());
         }
       }
 
