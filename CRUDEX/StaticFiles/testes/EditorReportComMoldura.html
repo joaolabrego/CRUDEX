@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <title>
+      RELEX – Word-like + Toolbar + Moldura (por elemento) + Fix toolbar selects
+    </title>
+
+    <style>
+      :root {
+        --page-w: 210mm;
+        --page-h: 297mm;
+
+        --margin: 20mm;
+        --header-h: 28mm;
+        --footer-h: 24mm;
+
+        --guide: #777;
+        --tag-bg: #e6e6e6;
+        --tag-bd: #777;
+      }
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #111;
+        font-family: system-ui, Segoe UI, Arial;
+        overflow: hidden;
+      }
+
+      .topbar {
+        padding: 10px;
+        background: #000;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .topbar button {
+        margin-right: 6px;
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-left: 10px;
+        border-left: 1px solid rgba(255, 255, 255, 0.18);
+      }
+
+      .toolbar button {
+        background: #1b1b1b;
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 8px;
+        padding: 4px 10px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .toolbar button:hover {
+        background: #2a2a2a;
+      }
+
+      .toolbar button.on {
+        outline: 2px solid rgba(57, 255, 20, 0.8);
+        outline-offset: 0px;
+      }
+      .toolbar button.mix {
+        outline: 2px dashed rgba(255, 221, 0, 0.85);
+        outline-offset: 0px;
+      }
+
+      .toolbar select,
+      .toolbar input[type="color"] {
+        height: 28px;
+      }
+
+      .toolcap {
+        font-size: 12px;
+        opacity: 0.8;
+        margin-left: 4px;
+        margin-right: -4px;
+        user-select: none;
+      }
+
+      .mode-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border: 1px solid #333;
+        border-radius: 999px;
+        font-size: 12px;
+        opacity: 0.95;
+      }
+      .mode-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #39ff14;
+        box-shadow: 0 0 12px rgba(57, 255, 20, 0.95);
+      }
+      .mode-pill.ovr .mode-dot {
+        background: #ff0033;
+        box-shadow: 0 0 12px rgba(255, 0, 51, 0.95);
+      }
+
+      .wrap {
+        height: calc(100vh - 58px);
+        overflow: auto;
+        padding: 6px;
+      }
+      .stage {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .page {
+        width: var(--page-w);
+        height: var(--page-h);
+        background: #fff;
+        border: 1px solid #cfcfcf;
+        position: relative;
+        transform: scale(1.05);
+        transform-origin: top center;
+      }
+
+      .page-inner {
+        position: absolute;
+        inset: var(--margin);
+        display: flex;
+        flex-direction: column;
+        border: none;
+        overflow: hidden;
+      }
+
+      .band {
+        position: relative;
+        padding: 0;
+        cursor: text;
+      }
+
+      .header {
+        min-height: var(--header-h);
+        height: auto;
+      }
+      .footer {
+        min-height: var(--footer-h);
+        height: auto;
+      }
+      .body {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .band .editable {
+        padding: 6mm;
+        outline: none;
+        height: auto;
+        overflow: visible;
+        color: #111;
+      }
+
+      .editable.editing {
+        background: transparent;
+        outline: none;
+        border-radius: 0;
+        padding: 6mm;
+        caret-color: #39ff14;
+      }
+      .editable.editing.ovr-caret {
+        caret-color: #ff0033;
+      }
+
+      p {
+        margin: 0 0 6px 0;
+      }
+
+      .band-label {
+        display: none;
+      }
+
+      .page.hf .header {
+        position: relative;
+        background-image: repeating-linear-gradient(
+          to right,
+          var(--guide) 0 6px,
+          transparent 6px 12px
+        );
+        background-repeat: repeat-x;
+        background-size: 12px 1px;
+        background-position: left 100%;
+      }
+      .page.hf .footer {
+        position: relative;
+        background-image: repeating-linear-gradient(
+          to right,
+          var(--guide) 0 6px,
+          transparent 6px 12px
+        );
+        background-repeat: repeat-x;
+        background-size: 12px 1px;
+        background-position: left 0%;
+      }
+
+      .page.hf .header .band-label {
+        display: inline-block;
+        position: absolute;
+        left: 14px;
+        bottom: 0;
+        transform: translateY(50%);
+        font-size: 12px;
+        line-height: 1;
+        background: var(--tag-bg);
+        border: 1px solid var(--tag-bd);
+        border-radius: 2px;
+        padding: 3px 10px;
+        user-select: none;
+        pointer-events: none;
+        z-index: 2;
+      }
+      .page.hf .footer .band-label {
+        display: inline-block;
+        position: absolute;
+        left: 14px;
+        top: 0;
+        transform: translateY(-50%);
+        font-size: 12px;
+        line-height: 1;
+        background: var(--tag-bg);
+        border: 1px solid var(--tag-bd);
+        border-radius: 2px;
+        padding: 3px 10px;
+        user-select: none;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .page.hf .body {
+        opacity: 0.45;
+      }
+      .page.hf .body * {
+        pointer-events: none;
+      }
+
+      /* ✅ Moldura parcial por elemento (vars no próprio elemento) */
+      [data-border] {
+        border-style: solid;
+        border-color: var(--bc, #000);
+        border-width: 0;
+        border-radius: var(--br, 0px);
+      }
+      [data-border~="top"] {
+        border-top-width: var(--bw, 1px);
+      }
+      [data-border~="bottom"] {
+        border-bottom-width: var(--bw, 1px);
+      }
+      [data-border~="left"] {
+        border-left-width: var(--bw, 1px);
+      }
+      [data-border~="right"] {
+        border-right-width: var(--bw, 1px);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="topbar">
+      <button id="btnEdit">Editar</button>
+      <button id="btnDone">Finalizar</button>
+
+      <span id="modePill" class="mode-pill" title="Tecla INS alterna modo">
+        <span class="mode-dot"></span>
+        <strong id="modeText">INS</strong>
+      </span>
+
+      <div class="toolbar" id="toolbar" aria-label="Formatação">
+        <button id="tbBold" title="Negrito"><b>B</b></button>
+        <button id="tbItalic" title="Itálico"><i>I</i></button>
+        <button id="tbUnder" title="Sublinhado"><u>U</u></button>
+        <button id="tbClear" title="Limpar formatação">Tx</button>
+
+        <button id="tbLeft" title="Alinhar à esquerda">⟸</button>
+        <button id="tbCenter" title="Centralizar">≡</button>
+        <button id="tbRight" title="Alinhar à direita">⟹</button>
+        <button id="tbJust" title="Justificar">☰</button>
+
+        <span class="toolcap">Borda:</span>
+        <button id="tbBAll" title="Moldura: todas (tri-state)">⬚</button>
+        <button id="tbBTop" title="Moldura: topo">▔</button>
+        <button id="tbBBot" title="Moldura: base">▁</button>
+        <button id="tbBLeft" title="Moldura: esquerda">▏</button>
+        <button id="tbBRight" title="Moldura: direita">▕</button>
+
+        <select id="tbFrameW" title="Espessura da borda">
+          <option value="0.5px">0.5</option>
+          <option value="1px" selected>1</option>
+          <option value="2px">2</option>
+          <option value="3px">3</option>
+          <option value="4px">4</option>
+        </select>
+
+        <select id="tbFrameR" title="Arredondamento (radius)">
+          <option value="0px" selected>R0</option>
+          <option value="2px">R2</option>
+          <option value="4px">R4</option>
+          <option value="6px">R6</option>
+          <option value="8px">R8</option>
+          <option value="12px">R12</option>
+          <option value="16px">R16</option>
+        </select>
+
+        <input id="tbFrameColor" type="color" title="Cor da borda" value="#000000" />
+
+        <select id="tbFont" title="Fonte">
+          <option value="">Fonte</option>
+          <option>Arial</option>
+          <option>Times New Roman</option>
+          <option>Calibri</option>
+          <option>Courier New</option>
+          <option>Georgia</option>
+          <option>Verdana</option>
+        </select>
+
+        <select id="tbSize" title="Tamanho">
+          <option value="">Tam</option>
+          <option value="1">8</option>
+          <option value="2">10</option>
+          <option value="3">12</option>
+          <option value="4">14</option>
+          <option value="5">18</option>
+          <option value="6">24</option>
+          <option value="7">36</option>
+        </select>
+
+        <input id="tbColor" type="color" title="Cor do texto" />
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div id="stage" class="stage"></div>
+    </div>
+
+    <script>
+      (() => {
+        "use strict";
+
+        const stage = document.getElementById("stage");
+        const toolbarEl = document.getElementById("toolbar");
+
+        let active = null;
+        let insertMode = true;
+        const MAX_P_HF = 10;
+
+        // ✅ evita “roubar foco” da toolbar
+        let toolbarInteracting = false;
+        toolbarEl.addEventListener("pointerdown", () => (toolbarInteracting = true), true);
+        window.addEventListener(
+          "pointerup",
+          () => {
+            // dá um micro tempo pra dropdown fechar/abrir sem interferência
+            setTimeout(() => (toolbarInteracting = false), 0);
+          },
+          true,
+        );
+
+        const modePill = document.getElementById("modePill");
+        const modeText = document.getElementById("modeText");
+
+        function updateModeUI() {
+          modeText.textContent = insertMode ? "INS" : "OVR";
+          modePill.classList.toggle("ovr", !insertMode);
+          updateCaretUI();
+        }
+        function updateCaretUI() {
+          if (!active) return;
+          active.classList.toggle("ovr-caret", !insertMode);
+        }
+        updateModeUI();
+
+        function getPageFrom(el) {
+          return el?.closest?.(".page") || null;
+        }
+        function setHfModeForPage(pg, on) {
+          if (pg) pg.classList.toggle("hf", !!on);
+        }
+
+        function isHeaderOrFooter(ed) {
+          return ed.classList.contains("header-ed") || ed.classList.contains("footer-ed");
+        }
+        function countParagraphs(ed) {
+          return ed.querySelectorAll(":scope > p").length;
+        }
+
+        function getSelectionRange() {
+          const sel = window.getSelection();
+          if (!sel || !sel.rangeCount) return null;
+          return sel.getRangeAt(0);
+        }
+        function getActiveParagraphFromRange(r) {
+          if (!r) return null;
+          const node = r.startContainer.nodeType === 3 ? r.startContainer.parentNode : r.startContainer;
+          return node.closest?.("p") || null;
+        }
+        function placeCaretEnd(node) {
+          const r = document.createRange();
+          r.selectNodeContents(node);
+          r.collapse(false);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+        }
+        function placeCaretStart(node) {
+          const r = document.createRange();
+          r.selectNodeContents(node);
+          r.collapse(true);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+        }
+
+        function ensureHasParagraph(container) {
+          if (container.querySelector(":scope > p")) return;
+          const p = document.createElement("p");
+          p.appendChild(document.createElement("br"));
+          container.appendChild(p);
+          placeCaretStart(p);
+        }
+
+        function isEmptyP(p) {
+          const txt = (p.textContent || "").replace(/\u00A0/g, " ").trim();
+          if (txt !== "") return false;
+          const els = [...p.childNodes].filter((n) => n.nodeType === 1);
+          return els.length === 0 || (els.length === 1 && els[0].tagName === "BR");
+        }
+        function isBodyEffectivelyEmpty(bodyEd) {
+          const ps = [...bodyEd.querySelectorAll(":scope > p")];
+          if (ps.length !== 1) return false;
+          return isEmptyP(ps[0]);
+        }
+
+        function normalizeParagraphs(ed) {
+          const nodes = [...ed.childNodes];
+          for (const n of nodes) {
+            if (n.nodeType === 3) {
+              const txt = n.textContent;
+              n.remove();
+              const p = document.createElement("p");
+              p.textContent = txt;
+              ed.appendChild(p);
+            } else if (n.nodeType === 1) {
+              const tag = n.tagName;
+              if (tag === "DIV") {
+                const p = document.createElement("p");
+                p.innerHTML = n.innerHTML;
+                n.replaceWith(p);
+              } else if (tag !== "P") {
+                const p = document.createElement("p");
+                p.appendChild(n);
+                ed.appendChild(p);
+              }
+            }
+          }
+
+          ed.querySelectorAll(":scope > p").forEach((p) => {
+            const txt = (p.textContent || "").replace(/\u00A0/g, " ").trim();
+            if (txt === "" && p.querySelectorAll("br").length === 0) {
+              p.innerHTML = "";
+              p.appendChild(document.createElement("br"));
+            }
+          });
+
+          ensureHasParagraph(ed);
+        }
+
+        function createPage() {
+          const p = document.createElement("div");
+          p.className = "page";
+          p.innerHTML = `
+  <div class="page-inner">
+    <div class="band header">
+      <div class="band-label">Cabeçalho</div>
+      <div class="editable header-ed"></div>
+    </div>
+
+    <div class="band body">
+      <div class="editable body-ed"></div>
+    </div>
+
+    <div class="band footer">
+      <div class="band-label">Rodapé</div>
+      <div class="editable footer-ed"></div>
+    </div>
+  </div>`;
+
+          p.querySelectorAll(".editable").forEach(wireEditable);
+
+          p.querySelector(".header").addEventListener("mousedown", (e) => {
+            if (e.target.closest(".editable")) return;
+            e.preventDefault();
+            const hed = p.querySelector(".header-ed");
+            startEdit(hed);
+            ensureHasParagraph(hed);
+            placeCaretEnd(hed.querySelector("p:last-child"));
+          });
+
+          p.querySelector(".footer").addEventListener("mousedown", (e) => {
+            if (e.target.closest(".editable")) return;
+            e.preventDefault();
+            const fed = p.querySelector(".footer-ed");
+            startEdit(fed);
+            ensureHasParagraph(fed);
+            placeCaretStart(fed.querySelector("p:first-child"));
+          });
+
+          p.querySelector(".body").addEventListener("mousedown", (e) => {
+            if (e.target.closest(".editable")) return;
+            e.preventDefault();
+            const bed = p.querySelector(".body-ed");
+            startEdit(bed);
+            ensureHasParagraph(bed);
+            placeCaretEnd(bed.querySelector("p:last-child"));
+          });
+
+          return p;
+        }
+
+        stage.appendChild(createPage());
+
+        stage.addEventListener(
+          "mousedown",
+          (e) => {
+            const ed = e.target.closest(".editable");
+            if (!ed) return;
+            if (ed !== active) startEdit(ed);
+          },
+          true,
+        );
+
+        document.getElementById("btnEdit").onclick = () => {
+          const b = stage.querySelector(".body-ed");
+          startEdit(b);
+          ensureHasParagraph(b);
+          placeCaretEnd(b.querySelector("p:last-child"));
+        };
+        document.getElementById("btnDone").onclick = stopEdit;
+
+        function startEdit(el) {
+          stopEdit();
+          active = el;
+
+          el.spellcheck = false;
+          el.contentEditable = "true";
+          el.classList.add("editing");
+          updateCaretUI();
+          el.focus({ preventScroll: true });
+
+          normalizeParagraphs(el);
+
+          const pg = getPageFrom(el);
+          setHfModeForPage(pg, isHeaderOrFooter(el));
+
+          syncBorderUI();
+          syncBorderPickers();
+        }
+
+        function stopEdit() {
+          if (!active) return;
+          const pg = getPageFrom(active);
+          active.contentEditable = "false";
+          active.classList.remove("editing", "ovr-caret");
+          active = null;
+          setHfModeForPage(pg, false);
+          clearBorderUI();
+        }
+
+        document.addEventListener("keydown", (e) => {
+          if (!active) return;
+          if (e.key === "Insert") {
+            e.preventDefault();
+            insertMode = !insertMode;
+            updateModeUI();
+          }
+        });
+
+        function wireEditable(el) {
+          el.addEventListener("beforeinput", (e) => {
+            if (el !== active) return;
+            if (e.isComposing) return;
+
+            if (isHeaderOrFooter(el)) {
+              const isEnter = e.inputType === "insertParagraph" || e.inputType === "insertLineBreak";
+              if (isEnter && countParagraphs(el) >= MAX_P_HF) {
+                e.preventDefault();
+                return;
+              }
+            }
+
+            if (
+              !insertMode &&
+              e.inputType === "insertText" &&
+              typeof e.data === "string" &&
+              e.data.length === 1
+            ) {
+              const r = getSelectionRange();
+              if (!r || !r.collapsed) return;
+              const sc = r.startContainer;
+              const so = r.startOffset;
+              if (sc && sc.nodeType === 3 && so < sc.data.length) {
+                sc.deleteData(so, 1);
+              }
+            }
+          });
+
+          el.addEventListener("input", () => {
+            if (el !== active) return;
+            normalizeParagraphs(el);
+            requestAnimationFrame(() => paginate());
+          });
+        }
+
+        function paginate() {
+          const pages = [...stage.querySelectorAll(".page")];
+
+          function ensureNextPage(i) {
+            if (pages[i + 1]) return pages[i + 1];
+            const created = createNextPage();
+            pages.push(created);
+            return created;
+          }
+
+          pages.forEach((pg, i) => {
+            const bodyEd = pg.querySelector(".body-ed");
+            const bodyBox = pg.querySelector(".body");
+            if (!bodyEd || !bodyBox) return;
+
+            while (bodyEd.scrollHeight > bodyBox.clientHeight + 1) {
+              const lastP = bodyEd.querySelector(":scope > p:last-child");
+              if (!lastP) break;
+
+              const next = ensureNextPage(i);
+              const nb = next.querySelector(".body-ed");
+              if (!nb) break;
+
+              nb.insertBefore(lastP, nb.firstChild);
+            }
+          });
+
+          pruneEmptyTailPages();
+        }
+
+        function pruneEmptyTailPages() {
+          let pages = [...stage.querySelectorAll(".page")];
+          for (let i = pages.length - 1; i > 0; i--) {
+            const pg = pages[i];
+            const body = pg.querySelector(".body-ed");
+            if (!body) break;
+
+            if (isBodyEffectivelyEmpty(body)) {
+              if (active && pg.contains(active)) {
+                const prev = pages[i - 1];
+                const prevBody = prev.querySelector(".body-ed");
+                startEdit(prevBody);
+                normalizeParagraphs(prevBody);
+                placeCaretEnd(prevBody.querySelector("p:last-child"));
+              }
+              pg.remove();
+            } else {
+              break;
+            }
+            pages = [...stage.querySelectorAll(".page")];
+          }
+        }
+
+        function createNextPage() {
+          const p = createPage();
+          const first = stage.querySelector(".page");
+          p.querySelector(".header-ed").innerHTML = first.querySelector(".header-ed").innerHTML;
+          p.querySelector(".footer-ed").innerHTML = first.querySelector(".footer-ed").innerHTML;
+          stage.appendChild(p);
+          return p;
+        }
+
+        const h = stage.querySelector(".header-ed");
+        const f = stage.querySelector(".footer-ed");
+        const b = stage.querySelector(".body-ed");
+
+        h.innerHTML = "<p>Empresa XYZ</p>";
+        f.innerHTML = "<p>Rodapé</p>";
+        b.innerHTML = "<p>Duplo clique para editar.</p>";
+
+        setTimeout(() => {
+          insertMode = true;
+          updateModeUI();
+          startEdit(b);
+          normalizeParagraphs(b);
+          placeCaretEnd(b.querySelector("p:last-child"));
+        }, 0);
+
+        /* =================================================
+           Toolbar execCommand (seleção estável) - FIX foco
+        ================================================= */
+        let savedRange = null;
+
+        function saveSelection() {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount) savedRange = sel.getRangeAt(0).cloneRange();
+        }
+        function restoreSelection() {
+          if (!savedRange) return false;
+          // ⚠️ restaurar só quando for APLICAR comando
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(savedRange);
+          return true;
+        }
+        function selectionInsideActiveRange(r) {
+          if (!active || !r) return false;
+          const a = r.commonAncestorContainer.nodeType === 3 ? r.commonAncestorContainer.parentNode : r.commonAncestorContainer;
+          return active.contains(a);
+        }
+
+        document.addEventListener("selectionchange", () => {
+          if (!active) return;
+          if (toolbarInteracting) return; // ✅ não mexe quando mexe na toolbar
+          const r = getSelectionRange();
+          if (!r) return;
+          if (!selectionInsideActiveRange(r)) return;
+          saveSelection();
+          syncBorderUI();
+          syncBorderPickers();
+        });
+
+        function applyCmd(cmd, value = null) {
+          if (!active) return;
+          // ✅ ao aplicar, restaura e garante foco no editor
+          if (!restoreSelection()) return;
+          active.focus({ preventScroll: true });
+          document.execCommand(cmd, false, value);
+          saveSelection();
+        }
+
+        document.getElementById("tbBold").onclick = () => applyCmd("bold");
+        document.getElementById("tbItalic").onclick = () => applyCmd("italic");
+        document.getElementById("tbUnder").onclick = () => applyCmd("underline");
+        document.getElementById("tbClear").onclick = () => applyCmd("removeFormat");
+
+        document.getElementById("tbLeft").onclick = () => applyCmd("justifyLeft");
+        document.getElementById("tbCenter").onclick = () => applyCmd("justifyCenter");
+        document.getElementById("tbRight").onclick = () => applyCmd("justifyRight");
+        document.getElementById("tbJust").onclick = () => applyCmd("justifyFull");
+
+        document.getElementById("tbFont").onchange = (e) => {
+          const v = e.target.value;
+          if (!v) return;
+          applyCmd("fontName", v);
+          e.target.value = "";
+        };
+
+        document.getElementById("tbSize").onchange = (e) => {
+          const v = e.target.value;
+          if (!v) return;
+          applyCmd("fontSize", v);
+          e.target.value = "";
+        };
+
+        document.getElementById("tbColor").oninput = (e) => {
+          const v = e.target.value;
+          applyCmd("foreColor", v);
+        };
+
+        /* =================================================
+           Moldura por elemento (sem roubar foco da toolbar)
+        ================================================= */
+        const tbFrameW = document.getElementById("tbFrameW");
+        const tbFrameR = document.getElementById("tbFrameR");
+        const tbFrameColor = document.getElementById("tbFrameColor");
+
+        const btnAll = document.getElementById("tbBAll");
+        const btnTop = document.getElementById("tbBTop");
+        const btnBot = document.getElementById("tbBBot");
+        const btnLeft = document.getElementById("tbBLeft");
+        const btnRight = document.getElementById("tbBRight");
+
+        function clearBorderUI() {
+          [btnAll, btnTop, btnBot, btnLeft, btnRight].forEach((b) => b.classList.remove("on", "mix"));
+        }
+
+        // ✅ para INSPECIONAR, usa savedRange sem restaurar seleção (não rouba foco)
+        function getInspectionRange() {
+          const r = savedRange || getSelectionRange();
+          if (!r) return null;
+          if (!selectionInsideActiveRange(r)) return null;
+          return r;
+        }
+
+        function getTokenTargetFromInspection() {
+          const r = getInspectionRange();
+          if (!r) return null;
+
+          let node = r.commonAncestorContainer;
+          if (node.nodeType === 3) node = node.parentNode;
+          if (!active.contains(node)) return null;
+
+          return node.closest?.("td,th,p,table,figure,img") || getActiveParagraphFromRange(r);
+        }
+
+        function getBorderTokens(el) {
+          const raw = (el?.getAttribute?.("data-border") || "").trim();
+          if (!raw) return [];
+          return raw.split(/\s+/).filter(Boolean);
+        }
+        function setBorderTokens(el, tokens) {
+          if (!tokens.length) el.removeAttribute("data-border");
+          else el.setAttribute("data-border", tokens.join(" "));
+        }
+
+        function getElVar(el, name, fallback) {
+          const v = el?.style?.getPropertyValue?.(name);
+          return v && v.trim() ? v.trim() : fallback;
+        }
+
+        function setFrameVarsOnTarget(el) {
+          if (!el) return;
+          el.style.setProperty("--bw", tbFrameW.value);
+          el.style.setProperty("--br", tbFrameR.value);
+          el.style.setProperty("--bc", tbFrameColor.value);
+        }
+
+        function syncBorderPickers() {
+          if (toolbarInteracting) return;
+          const el = getTokenTargetFromInspection();
+          if (!el) return;
+
+          const bw = getElVar(el, "--bw", tbFrameW.value);
+          const br = getElVar(el, "--br", tbFrameR.value);
+          const bc = getElVar(el, "--bc", tbFrameColor.value);
+
+          if ([...tbFrameW.options].some((o) => o.value === bw)) tbFrameW.value = bw;
+          if ([...tbFrameR.options].some((o) => o.value === br)) tbFrameR.value = br;
+          if (typeof bc === "string" && /^#([0-9a-f]{6})$/i.test(bc)) tbFrameColor.value = bc;
+        }
+
+        function syncBorderUI() {
+          if (toolbarInteracting) return;
+          if (!active) return clearBorderUI();
+          const el = getTokenTargetFromInspection();
+          if (!el) return clearBorderUI();
+
+          const cur = getBorderTokens(el);
+          const sides = ["top", "right", "bottom", "left"];
+          const count = sides.reduce((acc, s) => acc + (cur.includes(s) ? 1 : 0), 0);
+
+          btnAll.classList.remove("on", "mix");
+          if (count === 4) btnAll.classList.add("on");
+          else if (count > 0) btnAll.classList.add("mix");
+
+          btnTop.classList.toggle("on", cur.includes("top"));
+          btnRight.classList.toggle("on", cur.includes("right"));
+          btnBot.classList.toggle("on", cur.includes("bottom"));
+          btnLeft.classList.toggle("on", cur.includes("left"));
+        }
+
+        function toggleBorderSide(side) {
+          if (!active) return;
+          if (!restoreSelection()) return;
+          active.focus({ preventScroll: true });
+
+          const r = getSelectionRange();
+          if (!r || !selectionInsideActiveRange(r)) return;
+
+          let node = r.commonAncestorContainer;
+          if (node.nodeType === 3) node = node.parentNode;
+          const el = node.closest?.("td,th,p,table,figure,img") || getActiveParagraphFromRange(r);
+          if (!el) return;
+
+          setFrameVarsOnTarget(el);
+
+          const cur = getBorderTokens(el);
+          const i = cur.indexOf(side);
+          if (i >= 0) cur.splice(i, 1);
+          else cur.push(side);
+
+          setBorderTokens(el, cur);
+          saveSelection();
+          syncBorderUI();
+        }
+
+        function toggleBorderAllTri() {
+          if (!active) return;
+          if (!restoreSelection()) return;
+          active.focus({ preventScroll: true });
+
+          const r = getSelectionRange();
+          if (!r || !selectionInsideActiveRange(r)) return;
+
+          let node = r.commonAncestorContainer;
+          if (node.nodeType === 3) node = node.parentNode;
+          const el = node.closest?.("td,th,p,table,figure,img") || getActiveParagraphFromRange(r);
+          if (!el) return;
+
+          setFrameVarsOnTarget(el);
+
+          const cur = getBorderTokens(el);
+          const sides = ["top", "right", "bottom", "left"];
+          const hasAll = sides.every((s) => cur.includes(s));
+
+          const next = hasAll ? cur.filter((t) => !sides.includes(t)) : Array.from(new Set([...cur, ...sides]));
+          setBorderTokens(el, next);
+
+          saveSelection();
+          syncBorderUI();
+        }
+
+        btnAll.onclick = () => toggleBorderAllTri();
+        btnTop.onclick = () => toggleBorderSide("top");
+        btnBot.onclick = () => toggleBorderSide("bottom");
+        btnLeft.onclick = () => toggleBorderSide("left");
+        btnRight.onclick = () => toggleBorderSide("right");
+
+        tbFrameW.onchange = () => {
+          if (!active) return;
+          if (!restoreSelection()) return;
+          active.focus({ preventScroll: true });
+
+          const r = getSelectionRange();
+          if (!r || !selectionInsideActiveRange(r)) return;
+
+          let node = r.commonAncestorContainer;
+          if (node.nodeType === 3) node = node.parentNode;
+          const el = node.closest?.("td,th,p,table,figure,img") || getActiveParagraphFromRange(r);
+          if (!el) return;
+
+          setFrameVarsOnTarget(el);
+          saveSelection();
+          syncBorderPickers();
+        };
+
+        tbFrameR.onchange = () => {
+          if (!active) return;
+          if (!restoreSelection()) return;
+          active.focus({ preventScroll: true });
+
+          const r = getSelectionRange();
+          if (!r || !selectionInsideActiveRange(r)) return;
+
+          let node = r.commonAncestorContainer;
+          if (node.nodeType === 3) node = node.parentNode;
+          const el = node.closest?.("td,th,p,table,figure,img") || getActiveParagraphFromRange(r);
+          if (!el) return;
+
+          setFrameVarsOnTarget(el);
+          saveSelection();
+          syncBorderPickers();
+        };
+
+        tbFrameColor.oninput = () => {
+          if (!active) return;
+          if (!restoreSelection()) return;
+          active.focus({ preventScroll: true });
+
+          const r = getSelectionRange();
+          if (!r || !selectionInsideActiveRange(r)) return;
+
+          let node = r.commonAncestorContainer;
+          if (node.nodeType === 3) node = node.parentNode;
+          const el = node.closest?.("td,th,p,table,figure,img") || getActiveParagraphFromRange(r);
+          if (!el) return;
+
+          setFrameVarsOnTarget(el);
+          saveSelection();
+          syncBorderPickers();
+        };
+      })();
+    </script>
+  </body>
+</html>
