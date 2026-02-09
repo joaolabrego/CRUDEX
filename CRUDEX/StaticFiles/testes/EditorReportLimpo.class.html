@@ -1160,15 +1160,66 @@
           const p = img.closest("p");
           if (!p) return;
 
-          const target =
+          // ⚠️ regra: isso é navegação de parágrafos do BODY
+          const bodyEd = p.closest(".body-ed");
+          const pg = this._getPageFrom(bodyEd || p);
+
+          // alvo "normal": parágrafo anterior/próximo na mesma página
+          let target =
             dir > 0 ? p.nextElementSibling : p.previousElementSibling;
+
+          // se existe, mas não é <p>, aborta (segurança)
+          if (target && target.tagName !== "P") return;
+
+          // ===== cross-page =====
+          if (!target && bodyEd && pg) {
+            const pages = [...this.stage.querySelectorAll(".page")];
+            const i = pages.indexOf(pg);
+
+            const firstP = bodyEd.querySelector(":scope > p:first-child");
+            const lastP = bodyEd.querySelector(":scope > p:last-child");
+
+            if (dir > 0 && p === lastP) {
+              // ↓ no último parágrafo: vai para o primeiro parágrafo da PRÓXIMA página
+              let nextPg = pages[i + 1];
+              if (!nextPg) {
+                nextPg = this._createNextPage();
+                pages.push(nextPg);
+              }
+
+              const nextBody = nextPg.querySelector(".body-ed");
+              this._ensureHasParagraph(nextBody);
+              target = nextBody.querySelector(":scope > p:first-child");
+            }
+
+            if (dir < 0 && p === firstP) {
+              // ↑ no primeiro parágrafo: vai para o último parágrafo da PÁGINA ANTERIOR
+              if (i <= 0) return; // exceção: primeira página -> para
+
+              const prevPg = pages[i - 1];
+              const prevBody = prevPg.querySelector(".body-ed");
+              this._ensureHasParagraph(prevBody);
+              target = prevBody.querySelector(":scope > p:last-child");
+            }
+          }
+
+          // se ainda não achou alvo, não faz nada
           if (!target || target.tagName !== "P") return;
 
           img.remove();
           this._cleanupEmptyTextNodes(p);
 
           // início do parágrafo alvo (offset 0)
-          this._insertNodeAtTextOffset(target, img, 0);
+          const at = dir > 0 ? 0 : this._getTextLength(target);
+          this._insertNodeAtTextOffset(target, img, at);
+          // ✅ garante que o editor destino vire o "active"
+          const targetEd = target.closest(".editable");
+          if (targetEd && targetEd !== this.active) {
+            this.startEdit(targetEd);
+          }
+
+          // opcional: rolar até o parágrafo destino
+          target.scrollIntoView({ block: "nearest" });
 
           // caret depois da imagem
           const r = document.createRange();
