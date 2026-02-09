@@ -26,7 +26,10 @@
       body {
         margin: 0;
         background: #111;
-        font-family: system-ui, Segoe UI, Arial;
+        font-family:
+          system-ui,
+          Segoe UI,
+          Arial;
         overflow: hidden;
       }
 
@@ -317,7 +320,12 @@
           <option value="16px">R16</option>
         </select>
 
-        <input id="tbFrameColor" type="color" title="Cor da borda" value="#000000" />
+        <input
+          id="tbFrameColor"
+          type="color"
+          title="Cor da borda"
+          value="#000000"
+        />
 
         <select id="tbFont" title="Fonte">
           <option value="">Fonte</option>
@@ -361,7 +369,11 @@
 
         // ✅ evita “roubar foco” da toolbar
         let toolbarInteracting = false;
-        toolbarEl.addEventListener("pointerdown", () => (toolbarInteracting = true), true);
+        toolbarEl.addEventListener(
+          "pointerdown",
+          () => (toolbarInteracting = true),
+          true,
+        );
         window.addEventListener(
           "pointerup",
           () => {
@@ -393,7 +405,10 @@
         }
 
         function isHeaderOrFooter(ed) {
-          return ed.classList.contains("header-ed") || ed.classList.contains("footer-ed");
+          return (
+            ed.classList.contains("header-ed") ||
+            ed.classList.contains("footer-ed")
+          );
         }
         function countParagraphs(ed) {
           return ed.querySelectorAll(":scope > p").length;
@@ -406,7 +421,10 @@
         }
         function getActiveParagraphFromRange(r) {
           if (!r) return null;
-          const node = r.startContainer.nodeType === 3 ? r.startContainer.parentNode : r.startContainer;
+          const node =
+            r.startContainer.nodeType === 3
+              ? r.startContainer.parentNode
+              : r.startContainer;
           return node.closest?.("p") || null;
         }
         function placeCaretEnd(node) {
@@ -438,7 +456,9 @@
           const txt = (p.textContent || "").replace(/\u00A0/g, " ").trim();
           if (txt !== "") return false;
           const els = [...p.childNodes].filter((n) => n.nodeType === 1);
-          return els.length === 0 || (els.length === 1 && els[0].tagName === "BR");
+          return (
+            els.length === 0 || (els.length === 1 && els[0].tagName === "BR")
+          );
         }
         function isBodyEffectivelyEmpty(bodyEd) {
           const ps = [...bodyEd.querySelectorAll(":scope > p")];
@@ -596,7 +616,9 @@
             if (e.isComposing) return;
 
             if (isHeaderOrFooter(el)) {
-              const isEnter = e.inputType === "insertParagraph" || e.inputType === "insertLineBreak";
+              const isEnter =
+                e.inputType === "insertParagraph" ||
+                e.inputType === "insertLineBreak";
               if (isEnter && countParagraphs(el) >= MAX_P_HF) {
                 e.preventDefault();
                 return;
@@ -617,6 +639,26 @@
                 sc.deleteData(so, 1);
               }
             }
+          });
+          el.addEventListener("keydown", (e) => {
+            if (el !== active) return;
+
+            // ✅ SHIFT+ENTER = quebra de linha (não cria novo <p>)
+            if (e.key === "Enter" && e.shiftKey) {
+              e.preventDefault();
+
+              // opção A (mais compatível)
+              document.execCommand("insertLineBreak");
+
+              // garante paginação/normalização depois do browser assentar
+              requestAnimationFrame(() => {
+                normalizeParagraphs(el);
+                paginate();
+              });
+              return;
+            }
+
+            // ...segue seu código atual (Delete/Backspace/ArrowUp/ArrowDown etc)
           });
 
           el.addEventListener("input", () => {
@@ -682,8 +724,10 @@
         function createNextPage() {
           const p = createPage();
           const first = stage.querySelector(".page");
-          p.querySelector(".header-ed").innerHTML = first.querySelector(".header-ed").innerHTML;
-          p.querySelector(".footer-ed").innerHTML = first.querySelector(".footer-ed").innerHTML;
+          p.querySelector(".header-ed").innerHTML =
+            first.querySelector(".header-ed").innerHTML;
+          p.querySelector(".footer-ed").innerHTML =
+            first.querySelector(".footer-ed").innerHTML;
           stage.appendChild(p);
           return p;
         }
@@ -711,7 +755,8 @@
 
         function saveSelection() {
           const sel = window.getSelection();
-          if (sel && sel.rangeCount) savedRange = sel.getRangeAt(0).cloneRange();
+          if (sel && sel.rangeCount)
+            savedRange = sel.getRangeAt(0).cloneRange();
         }
         function restoreSelection() {
           if (!savedRange) return false;
@@ -723,7 +768,10 @@
         }
         function selectionInsideActiveRange(r) {
           if (!active || !r) return false;
-          const a = r.commonAncestorContainer.nodeType === 3 ? r.commonAncestorContainer.parentNode : r.commonAncestorContainer;
+          const a =
+            r.commonAncestorContainer.nodeType === 3
+              ? r.commonAncestorContainer.parentNode
+              : r.commonAncestorContainer;
           return active.contains(a);
         }
 
@@ -749,13 +797,19 @@
 
         document.getElementById("tbBold").onclick = () => applyCmd("bold");
         document.getElementById("tbItalic").onclick = () => applyCmd("italic");
-        document.getElementById("tbUnder").onclick = () => applyCmd("underline");
-        document.getElementById("tbClear").onclick = () => applyCmd("removeFormat");
+        document.getElementById("tbUnder").onclick = () =>
+          applyCmd("underline");
+        document.getElementById("tbClear").onclick = () =>
+          applyCmd("removeFormat");
 
-        document.getElementById("tbLeft").onclick = () => applyCmd("justifyLeft");
-        document.getElementById("tbCenter").onclick = () => applyCmd("justifyCenter");
-        document.getElementById("tbRight").onclick = () => applyCmd("justifyRight");
-        document.getElementById("tbJust").onclick = () => applyCmd("justifyFull");
+        document.getElementById("tbLeft").onclick = () =>
+          applyCmd("justifyLeft");
+        document.getElementById("tbCenter").onclick = () =>
+          applyCmd("justifyCenter");
+        document.getElementById("tbRight").onclick = () =>
+          applyCmd("justifyRight");
+        document.getElementById("tbJust").onclick = () =>
+          applyCmd("justifyFull");
 
         document.getElementById("tbFont").onchange = (e) => {
           const v = e.target.value;
@@ -790,7 +844,9 @@
         const btnRight = document.getElementById("tbBRight");
 
         function clearBorderUI() {
-          [btnAll, btnTop, btnBot, btnLeft, btnRight].forEach((b) => b.classList.remove("on", "mix"));
+          [btnAll, btnTop, btnBot, btnLeft, btnRight].forEach((b) =>
+            b.classList.remove("on", "mix"),
+          );
         }
 
         // ✅ para INSPECIONAR, usa savedRange sem restaurar seleção (não rouba foco)
@@ -809,7 +865,10 @@
           if (node.nodeType === 3) node = node.parentNode;
           if (!active.contains(node)) return null;
 
-          return node.closest?.("td,th,p,table,figure,img") || getActiveParagraphFromRange(r);
+          return (
+            node.closest?.("td,th,p,table,figure,img") ||
+            getActiveParagraphFromRange(r)
+          );
         }
 
         function getBorderTokens(el) {
@@ -843,9 +902,12 @@
           const br = getElVar(el, "--br", tbFrameR.value);
           const bc = getElVar(el, "--bc", tbFrameColor.value);
 
-          if ([...tbFrameW.options].some((o) => o.value === bw)) tbFrameW.value = bw;
-          if ([...tbFrameR.options].some((o) => o.value === br)) tbFrameR.value = br;
-          if (typeof bc === "string" && /^#([0-9a-f]{6})$/i.test(bc)) tbFrameColor.value = bc;
+          if ([...tbFrameW.options].some((o) => o.value === bw))
+            tbFrameW.value = bw;
+          if ([...tbFrameR.options].some((o) => o.value === br))
+            tbFrameR.value = br;
+          if (typeof bc === "string" && /^#([0-9a-f]{6})$/i.test(bc))
+            tbFrameColor.value = bc;
         }
 
         function syncBorderUI() {
@@ -856,7 +918,10 @@
 
           const cur = getBorderTokens(el);
           const sides = ["top", "right", "bottom", "left"];
-          const count = sides.reduce((acc, s) => acc + (cur.includes(s) ? 1 : 0), 0);
+          const count = sides.reduce(
+            (acc, s) => acc + (cur.includes(s) ? 1 : 0),
+            0,
+          );
 
           btnAll.classList.remove("on", "mix");
           if (count === 4) btnAll.classList.add("on");
@@ -878,7 +943,9 @@
 
           let node = r.commonAncestorContainer;
           if (node.nodeType === 3) node = node.parentNode;
-          const el = node.closest?.("td,th,p,table,figure,img") || getActiveParagraphFromRange(r);
+          const el =
+            node.closest?.("td,th,p,table,figure,img") ||
+            getActiveParagraphFromRange(r);
           if (!el) return;
 
           setFrameVarsOnTarget(el);
@@ -903,7 +970,9 @@
 
           let node = r.commonAncestorContainer;
           if (node.nodeType === 3) node = node.parentNode;
-          const el = node.closest?.("td,th,p,table,figure,img") || getActiveParagraphFromRange(r);
+          const el =
+            node.closest?.("td,th,p,table,figure,img") ||
+            getActiveParagraphFromRange(r);
           if (!el) return;
 
           setFrameVarsOnTarget(el);
@@ -912,7 +981,9 @@
           const sides = ["top", "right", "bottom", "left"];
           const hasAll = sides.every((s) => cur.includes(s));
 
-          const next = hasAll ? cur.filter((t) => !sides.includes(t)) : Array.from(new Set([...cur, ...sides]));
+          const next = hasAll
+            ? cur.filter((t) => !sides.includes(t))
+            : Array.from(new Set([...cur, ...sides]));
           setBorderTokens(el, next);
 
           saveSelection();
@@ -935,7 +1006,9 @@
 
           let node = r.commonAncestorContainer;
           if (node.nodeType === 3) node = node.parentNode;
-          const el = node.closest?.("td,th,p,table,figure,img") || getActiveParagraphFromRange(r);
+          const el =
+            node.closest?.("td,th,p,table,figure,img") ||
+            getActiveParagraphFromRange(r);
           if (!el) return;
 
           setFrameVarsOnTarget(el);
@@ -953,7 +1026,9 @@
 
           let node = r.commonAncestorContainer;
           if (node.nodeType === 3) node = node.parentNode;
-          const el = node.closest?.("td,th,p,table,figure,img") || getActiveParagraphFromRange(r);
+          const el =
+            node.closest?.("td,th,p,table,figure,img") ||
+            getActiveParagraphFromRange(r);
           if (!el) return;
 
           setFrameVarsOnTarget(el);
@@ -971,7 +1046,9 @@
 
           let node = r.commonAncestorContainer;
           if (node.nodeType === 3) node = node.parentNode;
-          const el = node.closest?.("td,th,p,table,figure,img") || getActiveParagraphFromRange(r);
+          const el =
+            node.closest?.("td,th,p,table,figure,img") ||
+            getActiveParagraphFromRange(r);
           if (!el) return;
 
           setFrameVarsOnTarget(el);
