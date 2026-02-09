@@ -257,6 +257,11 @@
         <button id="tbItalic" title="Itálico"><i>I</i></button>
         <button id="tbUnder" title="Sublinhado"><u>U</u></button>
         <button id="tbClear" title="Limpar formatação">Tx</button>
+<button id="tbLeft"  title="Alinhar à esquerda">⟸</button>
+<button id="tbCenter" title="Centralizar">≡</button>
+<button id="tbRight" title="Alinhar à direita">⟹</button>
+<button id="tbJust" title="Justificar">☰</button>
+
 
         <select id="tbFont" title="Fonte">
           <option value="">Fonte</option>
@@ -280,6 +285,7 @@
         </select>
 
         <input id="tbColor" type="color" title="Cor" />
+        
       </div>
     </div>
 
@@ -821,6 +827,10 @@
           applyCmd("underline");
         document.getElementById("tbClear").onclick = () =>
           applyCmd("removeFormat");
+document.getElementById("tbLeft").onclick   = () => applyCmd("justifyLeft");
+document.getElementById("tbCenter").onclick = () => applyCmd("justifyCenter");
+document.getElementById("tbRight").onclick  = () => applyCmd("justifyRight");
+document.getElementById("tbJust").onclick   = () => applyCmd("justifyFull");
 
         document.getElementById("tbFont").onchange = (e) => {
           const v = e.target.value;
