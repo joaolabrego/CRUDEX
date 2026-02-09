@@ -180,6 +180,11 @@
       .editable.editing.ovr-caret {
         caret-color: #ff0033;
       }
+      .editable p::after {
+        content: "";
+        display: block;
+        clear: both;
+      }
 
       p {
         margin: 0 0 6px 0;
@@ -272,38 +277,37 @@
         border-right-width: var(--bw, 1px);
       }
       .rx-img {
-        display: inline-block;
         max-width: 100%;
         height: auto;
-
-        /* ✅ X desloca sem alterar layout/sem encolher */
-        transform: translateX(var(--ix, 0ch));
-
-        /* ✅ Y empurra no layout (não sobrepõe) */
-        margin-top: var(--iy, 0em);
-
         width: var(--iw, auto);
-        float: none;
-        margin-right: 0;
-        margin-bottom: 0;
+        margin-top: var(--iy, 0em);
         vertical-align: baseline;
       }
 
       /* alinhamentos */
       .rx-img[data-align="left"] {
-        display: block;
-        margin-right: auto;
-        margin-left: 0;
+        float: left;
+        display: inline;
+        margin-left: var(--ix, 0ch);
+        margin-right: 1ch;
+        margin-bottom: 0.5em;
       }
+
       .rx-img[data-align="center"] {
+        float: none;
         display: block;
         margin-left: auto;
         margin-right: auto;
+        margin-top: var(--iy, 0em);
+        margin-bottom: 0.5em;
       }
+
       .rx-img[data-align="right"] {
-        display: block;
-        margin-left: auto;
-        margin-right: 0;
+        float: right;
+        display: inline;
+        margin-right: var(--ix, 0ch);
+        margin-left: 1ch;
+        margin-bottom: 0.5em;
       }
 
       /* stretch */
