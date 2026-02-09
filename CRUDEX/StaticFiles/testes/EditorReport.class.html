@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <title>
       RELEX – Word-like (HF + caret estável) + Toolbar (nativa) + Cross-page
-      DEL/BS
+      DEL/BS (Class)
     </title>
 
     <style>
@@ -27,10 +27,7 @@
       body {
         margin: 0;
         background: #111;
-        font-family:
-          system-ui,
-          Segoe UI,
-          Arial;
+        font-family: system-ui, Segoe UI, Arial;
         overflow: hidden;
       }
 
@@ -257,6 +254,7 @@
         <button id="tbItalic" title="Itálico"><i>I</i></button>
         <button id="tbUnder" title="Sublinhado"><u>U</u></button>
         <button id="tbClear" title="Limpar formatação">Tx</button>
+
         <button id="tbLeft" title="Alinhar à esquerda">⟸</button>
         <button id="tbCenter" title="Centralizar">≡</button>
         <button id="tbRight" title="Alinhar à direita">⟹</button>
@@ -292,53 +290,125 @@
     </div>
 
     <script>
-      (() => {
-        "use strict";
+      class RelexEditor {
+        constructor(opts = {}) {
+          // elementos
+          this.stage = opts.stage;
 
-        const stage = document.getElementById("stage");
-        let active = null;
+          this.btnEdit = opts.btnEdit;
+          this.btnDone = opts.btnDone;
 
-        let insertMode = true;
-        const MAX_P_HF = 10;
+          this.modePill = opts.modePill;
+          this.modeText = opts.modeText;
 
-        const modePill = document.getElementById("modePill");
-        const modeText = document.getElementById("modeText");
+          this.tbBold = opts.tbBold;
+          this.tbItalic = opts.tbItalic;
+          this.tbUnder = opts.tbUnder;
+          this.tbClear = opts.tbClear;
 
-        function updateModeUI() {
-          modeText.textContent = insertMode ? "INS" : "OVR";
-          modePill.classList.toggle("ovr", !insertMode);
-          updateCaretUI();
+          this.tbLeft = opts.tbLeft;
+          this.tbCenter = opts.tbCenter;
+          this.tbRight = opts.tbRight;
+          this.tbJust = opts.tbJust;
+
+          this.tbFont = opts.tbFont;
+          this.tbSize = opts.tbSize;
+          this.tbColor = opts.tbColor;
+
+          // estado
+          this.active = null;
+          this.insertMode = true;
+          this.MAX_P_HF = 10;
+
+          this.savedRange = null;
+
+          // binds
+          this._handlers = [];
+          this._mounted = false;
         }
-        function updateCaretUI() {
-          if (!active) return;
-          active.classList.toggle("ovr-caret", !insertMode);
-        }
-        updateModeUI();
 
-        function getPageFrom(el) {
+        mount() {
+          if (this._mounted) return;
+          this._mounted = true;
+
+          // 1) cria primeira página
+          this.stage.appendChild(this.createPage());
+
+          // 2) seed
+          const h = this.stage.querySelector(".header-ed");
+          const f = this.stage.querySelector(".footer-ed");
+          const b = this.stage.querySelector(".body-ed");
+          h.innerHTML = "<p>Empresa XYZ</p>";
+          f.innerHTML = "<p>Rodapé</p>";
+          b.innerHTML = "<p>Duplo clique para editar.</p>";
+
+          // 3) listeners globais + toolbar
+          this.bindUI();
+
+          // 4) auto-start
+          setTimeout(() => {
+            this.insertMode = true;
+            this.updateModeUI();
+            this.startEdit(b);
+            this.normalizeParagraphs(b);
+            this.placeCaretEnd(b.querySelector("p:last-child"));
+          }, 0);
+        }
+
+        destroy() {
+          for (const { target, type, fn, opt } of this._handlers) {
+            target.removeEventListener(type, fn, opt);
+          }
+          this._handlers = [];
+          this._mounted = false;
+          this.active = null;
+          this.savedRange = null;
+        }
+
+        on(target, type, fn, opt) {
+          target.addEventListener(type, fn, opt);
+          this._handlers.push({ target, type, fn, opt });
+        }
+
+        /* =========================
+           UI / STATE
+        ========================= */
+        updateModeUI() {
+          this.modeText.textContent = this.insertMode ? "INS" : "OVR";
+          this.modePill.classList.toggle("ovr", !this.insertMode);
+          this.updateCaretUI();
+        }
+        updateCaretUI() {
+          if (!this.active) return;
+          this.active.classList.toggle("ovr-caret", !this.insertMode);
+        }
+
+        getPageFrom(el) {
           return el?.closest?.(".page") || null;
         }
-        function setHfModeForPage(pg, on) {
+        setHfModeForPage(pg, on) {
           if (pg) pg.classList.toggle("hf", !!on);
         }
-
-        function isHeaderOrFooter(ed) {
+        isHeaderOrFooter(ed) {
           return (
             ed.classList.contains("header-ed") ||
             ed.classList.contains("footer-ed")
           );
         }
-        function countParagraphs(ed) {
+        countParagraphs(ed) {
           return ed.querySelectorAll(":scope > p").length;
         }
 
-        function getSelectionRange() {
+        /* =========================
+           SELECTION / CARET
+        ========================= */
+        getSelectionRange() {
           const sel = window.getSelection();
           if (!sel || !sel.rangeCount) return null;
           return sel.getRangeAt(0);
         }
-        function getActiveParagraph() {
-          const r = getSelectionRange();
+        getActiveParagraph() {
+          const r = this.getSelectionRange();
           if (!r) return null;
           const node =
             r.startContainer.nodeType === 3
@@ -346,7 +416,7 @@
               : r.startContainer;
           return node.closest?.("p") || null;
         }
-        function placeCaretEnd(node) {
+        placeCaretEnd(node) {
           const r = document.createRange();
           r.selectNodeContents(node);
           r.collapse(false);
@@ -354,7 +424,7 @@
           s.removeAllRanges();
           s.addRange(r);
         }
-        function placeCaretStart(node) {
+        placeCaretStart(node) {
           const r = document.createRange();
           r.selectNodeContents(node);
           r.collapse(true);
@@ -363,23 +433,22 @@
           s.addRange(r);
         }
 
-        function ensureHasParagraph(container) {
+        ensureHasParagraph(container) {
           if (container.querySelector(":scope > p")) return;
           const p = document.createElement("p");
           p.appendChild(document.createElement("br"));
           container.appendChild(p);
-          placeCaretStart(p);
+          this.placeCaretStart(p);
         }
 
-        /* caret fim/início “reais” (sem trim) */
-        function isCaretAtEndOfParagraph(p, range) {
+        isCaretAtEndOfParagraph(p, range) {
           if (!range || !range.collapsed) return false;
           const post = document.createRange();
           post.selectNodeContents(p);
           post.setStart(range.startContainer, range.startOffset);
           return post.toString() === "";
         }
-        function isCaretAtStartOfParagraph(p, range) {
+        isCaretAtStartOfParagraph(p, range) {
           if (!range || !range.collapsed) return false;
           const pre = document.createRange();
           pre.selectNodeContents(p);
@@ -387,7 +456,7 @@
           return pre.toString() === "";
         }
 
-        function isEmptyP(p) {
+        isEmptyP(p) {
           const txt = (p.textContent || "").replace(/\u00A0/g, " ").trim();
           if (txt !== "") return false;
           const els = [...p.childNodes].filter((n) => n.nodeType === 1);
@@ -395,14 +464,13 @@
             els.length === 0 || (els.length === 1 && els[0].tagName === "BR")
           );
         }
-        function isBodyEffectivelyEmpty(bodyEd) {
+        isBodyEffectivelyEmpty(bodyEd) {
           const ps = [...bodyEd.querySelectorAll(":scope > p")];
           if (ps.length !== 1) return false;
-          return isEmptyP(ps[0]);
+          return this.isEmptyP(ps[0]);
         }
 
-        /* Normaliza o DOM produzido pelo contentEditable */
-        function normalizeParagraphs(ed) {
+        normalizeParagraphs(ed) {
           const nodes = [...ed.childNodes];
           for (const n of nodes) {
             if (n.nodeType === 3) {
@@ -433,11 +501,13 @@
             }
           });
 
-          ensureHasParagraph(ed);
+          this.ensureHasParagraph(ed);
         }
 
-        /* ---------- page factory ---------- */
-        function createPage() {
+        /* =========================
+           PAGE FACTORY
+        ========================= */
+        createPage() {
           const p = document.createElement("div");
           p.className = "page";
           p.innerHTML = `
@@ -457,249 +527,90 @@
     </div>
   </div>`;
 
-          p.querySelectorAll(".editable").forEach(wireEditable);
+          p.querySelectorAll(".editable").forEach((ed) => this.wireEditable(ed));
 
           // clicar no fundo ativa; clicar/arrastar dentro do conteúdo mantém seleção
           p.querySelector(".header").addEventListener("mousedown", (e) => {
             if (e.target.closest(".editable")) return;
             e.preventDefault();
             const hed = p.querySelector(".header-ed");
-            startEdit(hed);
-            ensureHasParagraph(hed);
-            placeCaretEnd(hed.querySelector("p:last-child"));
+            this.startEdit(hed);
+            this.ensureHasParagraph(hed);
+            this.placeCaretEnd(hed.querySelector("p:last-child"));
           });
 
           p.querySelector(".footer").addEventListener("mousedown", (e) => {
             if (e.target.closest(".editable")) return;
             e.preventDefault();
             const fed = p.querySelector(".footer-ed");
-            startEdit(fed);
-            ensureHasParagraph(fed);
-            placeCaretStart(fed.querySelector("p:first-child"));
+            this.startEdit(fed);
+            this.ensureHasParagraph(fed);
+            this.placeCaretStart(fed.querySelector("p:first-child"));
           });
 
           p.querySelector(".body").addEventListener("mousedown", (e) => {
             if (e.target.closest(".editable")) return;
             e.preventDefault();
             const bed = p.querySelector(".body-ed");
-            startEdit(bed);
-            ensureHasParagraph(bed);
-            placeCaretEnd(bed.querySelector("p:last-child"));
+            this.startEdit(bed);
+            this.ensureHasParagraph(bed);
+            this.placeCaretEnd(bed.querySelector("p:last-child"));
           });
 
           return p;
         }
-        stage.appendChild(createPage());
 
-        // ✅ ao clicar/arrastar DENTRO de qualquer .editable (página 2, 3, ...),
-        // essa área vira o "active", sem bloquear seleção com o mouse.
-        stage.addEventListener(
-          "mousedown",
-          (e) => {
-            const ed = e.target.closest(".editable");
-            if (!ed) return;
+        createNextPage() {
+          const p = this.createPage();
+          const first = this.stage.querySelector(".page");
+          p.querySelector(".header-ed").innerHTML =
+            first.querySelector(".header-ed").innerHTML;
+          p.querySelector(".footer-ed").innerHTML =
+            first.querySelector(".footer-ed").innerHTML;
+          this.stage.appendChild(p);
+          return p;
+        }
 
-            // se clicou num editable de outra página, ativa ele
-            if (ed !== active) {
-              startEdit(ed);
-              // NÃO chama placeCaret* aqui e NÃO dá preventDefault
-              // (assim o arraste/seleção do mouse funciona normal)
-            }
-          },
-          true,
-        );
-
-        /* ---------- edit mode ---------- */
-        document.getElementById("btnEdit").onclick = () => {
-          const b = stage.querySelector(".body-ed");
-          startEdit(b);
-          ensureHasParagraph(b);
-          placeCaretEnd(b.querySelector("p:last-child"));
-        };
-        document.getElementById("btnDone").onclick = stopEdit;
-
-        function startEdit(el) {
-          stopEdit();
-          active = el;
+        /* =========================
+           EDIT MODE
+        ========================= */
+        startEdit(el) {
+          this.stopEdit();
+          this.active = el;
 
           el.spellcheck = false;
           el.contentEditable = "true";
           el.classList.add("editing");
-          updateCaretUI();
+          this.updateCaretUI();
           el.focus({ preventScroll: true });
 
-          normalizeParagraphs(el);
+          this.normalizeParagraphs(el);
 
-          const pg = getPageFrom(el);
-          setHfModeForPage(pg, isHeaderOrFooter(el));
-        }
-        function stopEdit() {
-          if (!active) return;
-          const pg = getPageFrom(active);
-          active.contentEditable = "false";
-          active.classList.remove("editing", "ovr-caret");
-          active = null;
-          setHfModeForPage(pg, false);
+          const pg = this.getPageFrom(el);
+          this.setHfModeForPage(pg, this.isHeaderOrFooter(el));
         }
 
-        /* ---------- global keys ---------- */
-        document.addEventListener("keydown", (e) => {
-          if (!active) return;
-          if (e.key === "Insert") {
-            e.preventDefault();
-            insertMode = !insertMode;
-            updateModeUI();
-          }
-        });
-
-        /* ---------- editor rules ---------- */
-        function wireEditable(el) {
-          el.addEventListener("beforeinput", (e) => {
-            if (el !== active) return;
-            if (e.isComposing) return;
-
-            // bloqueio do Enter no header/footer
-            if (isHeaderOrFooter(el)) {
-              const isEnter =
-                e.inputType === "insertParagraph" ||
-                e.inputType === "insertLineBreak";
-              if (isEnter && countParagraphs(el) >= MAX_P_HF) {
-                e.preventDefault();
-                return;
-              }
-            }
-
-            // OVR: apaga 1 char à direita antes de inserir
-            if (
-              !insertMode &&
-              e.inputType === "insertText" &&
-              typeof e.data === "string" &&
-              e.data.length === 1
-            ) {
-              const r = getSelectionRange();
-              if (!r || !r.collapsed) return;
-              const sc = r.startContainer;
-              const so = r.startOffset;
-              if (sc && sc.nodeType === 3 && so < sc.data.length) {
-                sc.deleteData(so, 1);
-              }
-            }
-          });
-
-          el.addEventListener("input", () => {
-            if (el !== active) return;
-            normalizeParagraphs(el);
-            requestAnimationFrame(() => paginate());
-          });
-
-          el.addEventListener("keydown", (e) => {
-            if (el !== active) return;
-
-            /* ✅ DEL cross-page no BODY:
-       no fim do último <p> da página, puxa o primeiro <p> da próxima página */
-            if (e.key === "Delete" && el.classList.contains("body-ed")) {
-              const r = getSelectionRange();
-              const p = getActiveParagraph();
-              if (r && p && isCaretAtEndOfParagraph(p, r)) {
-                const isLastP = !p.nextElementSibling;
-                if (isLastP) {
-                  const pages = [...stage.querySelectorAll(".page")];
-                  const pg = getPageFrom(el);
-                  const i = pages.indexOf(pg);
-                  const nextPg = i >= 0 ? pages[i + 1] : null;
-
-                  if (nextPg) {
-                    const nextBody = nextPg.querySelector(".body-ed");
-                    const firstNextP = nextBody?.querySelector(
-                      ":scope > p:first-child",
-                    );
-                    if (firstNextP) {
-                      e.preventDefault();
-
-                      el.appendChild(firstNextP);
-                      ensureHasParagraph(nextBody);
-                      placeCaretEnd(p);
-
-                      requestAnimationFrame(() => paginate());
-                      return;
-                    }
-                  }
-                }
-              }
-            }
-
-            /* ✅ BACKSPACE cross-page no BODY:
-       no início do primeiro <p> da página, “sobe” esse <p> pro fim da página anterior */
-            if (e.key === "Backspace" && el.classList.contains("body-ed")) {
-              const r = getSelectionRange();
-              const p = getActiveParagraph();
-              if (r && p && isCaretAtStartOfParagraph(p, r)) {
-                const isFirstP = !p.previousElementSibling;
-                if (isFirstP) {
-                  const pages = [...stage.querySelectorAll(".page")];
-                  const pg = getPageFrom(el);
-                  const i = pages.indexOf(pg);
-                  const prevPg = i > 0 ? pages[i - 1] : null;
-
-                  if (prevPg) {
-                    const prevBody = prevPg.querySelector(".body-ed");
-                    const lastPrevP = prevBody?.querySelector(
-                      ":scope > p:last-child",
-                    );
-                    if (prevBody && lastPrevP) {
-                      e.preventDefault();
-
-                      prevBody.appendChild(p);
-                      ensureHasParagraph(el);
-                      placeCaretEnd(p);
-
-                      requestAnimationFrame(() => paginate());
-                      return;
-                    }
-                  }
-                }
-              }
-            }
-
-            // setas HF (troca header<->footer)
-            if (e.key === "ArrowDown" && el.classList.contains("header-ed")) {
-              const pg = getPageFrom(el);
-              const p = getActiveParagraph();
-              if (pg && p && !p.nextElementSibling) {
-                e.preventDefault();
-                const fed = pg.querySelector(".footer-ed");
-                startEdit(fed);
-                normalizeParagraphs(fed);
-                placeCaretStart(fed.querySelector("p:first-child"));
-              }
-              return;
-            }
-
-            if (e.key === "ArrowUp" && el.classList.contains("footer-ed")) {
-              const pg = getPageFrom(el);
-              const p = getActiveParagraph();
-              if (pg && p && !p.previousElementSibling) {
-                e.preventDefault();
-                const hed = pg.querySelector(".header-ed");
-                startEdit(hed);
-                normalizeParagraphs(hed);
-                placeCaretEnd(hed.querySelector("p:last-child"));
-              }
-              return;
-            }
-          });
+        stopEdit() {
+          if (!this.active) return;
+          const pg = this.getPageFrom(this.active);
+          this.active.contentEditable = "false";
+          this.active.classList.remove("editing", "ovr-caret");
+          this.active = null;
+          this.setHfModeForPage(pg, false);
         }
 
-        /* ---------- pagination (BODY only) ---------- */
-        function paginate() {
-          const pages = [...stage.querySelectorAll(".page")];
+        /* =========================
+           PAGINATION (BODY only)
+        ========================= */
+        paginate() {
+          const pages = [...this.stage.querySelectorAll(".page")];
 
-          function ensureNextPage(i) {
+          const ensureNextPage = (i) => {
             if (pages[i + 1]) return pages[i + 1];
-            const created = createNextPage();
+            const created = this.createNextPage();
             pages.push(created);
             return created;
-          }
+          };
 
           pages.forEach((pg, i) => {
             const bodyEd = pg.querySelector(".body-ed");
@@ -718,82 +629,182 @@
             }
           });
 
-          // ✅ remove páginas “sobrando” no final (quando o body fica vazio)
-          pruneEmptyTailPages();
+          this.pruneEmptyTailPages();
         }
 
-        function pruneEmptyTailPages() {
-          let pages = [...stage.querySelectorAll(".page")];
+        pruneEmptyTailPages() {
+          let pages = [...this.stage.querySelectorAll(".page")];
           for (let i = pages.length - 1; i > 0; i--) {
             const pg = pages[i];
             const body = pg.querySelector(".body-ed");
             if (!body) break;
 
-            if (isBodyEffectivelyEmpty(body)) {
-              // se o cursor estiver nessa página, manda pro fim da anterior
-              if (active && pg.contains(active)) {
+            if (this.isBodyEffectivelyEmpty(body)) {
+              if (this.active && pg.contains(this.active)) {
                 const prev = pages[i - 1];
                 const prevBody = prev.querySelector(".body-ed");
-                startEdit(prevBody);
-                normalizeParagraphs(prevBody);
-                placeCaretEnd(prevBody.querySelector("p:last-child"));
+                this.startEdit(prevBody);
+                this.normalizeParagraphs(prevBody);
+                this.placeCaretEnd(prevBody.querySelector("p:last-child"));
               }
               pg.remove();
             } else {
               break;
             }
-            pages = [...stage.querySelectorAll(".page")];
+            pages = [...this.stage.querySelectorAll(".page")];
           }
         }
 
-        function createNextPage() {
-          const p = createPage();
-          const first = stage.querySelector(".page");
-          p.querySelector(".header-ed").innerHTML =
-            first.querySelector(".header-ed").innerHTML;
-          p.querySelector(".footer-ed").innerHTML =
-            first.querySelector(".footer-ed").innerHTML;
-          stage.appendChild(p);
-          return p;
+        /* =========================
+           EDITABLE RULES
+        ========================= */
+        wireEditable(el) {
+          el.addEventListener("beforeinput", (e) => {
+            if (el !== this.active) return;
+            if (e.isComposing) return;
+
+            // bloqueio do Enter no header/footer
+            if (this.isHeaderOrFooter(el)) {
+              const isEnter =
+                e.inputType === "insertParagraph" ||
+                e.inputType === "insertLineBreak";
+              if (isEnter && this.countParagraphs(el) >= this.MAX_P_HF) {
+                e.preventDefault();
+                return;
+              }
+            }
+
+            // OVR: apaga 1 char à direita antes de inserir
+            if (
+              !this.insertMode &&
+              e.inputType === "insertText" &&
+              typeof e.data === "string" &&
+              e.data.length === 1
+            ) {
+              const r = this.getSelectionRange();
+              if (!r || !r.collapsed) return;
+              const sc = r.startContainer;
+              const so = r.startOffset;
+              if (sc && sc.nodeType === 3 && so < sc.data.length) {
+                sc.deleteData(so, 1);
+              }
+            }
+          });
+
+          el.addEventListener("input", () => {
+            if (el !== this.active) return;
+            this.normalizeParagraphs(el);
+            requestAnimationFrame(() => this.paginate());
+          });
+
+          el.addEventListener("keydown", (e) => {
+            if (el !== this.active) return;
+
+            // DEL cross-page no BODY
+            if (e.key === "Delete" && el.classList.contains("body-ed")) {
+              const r = this.getSelectionRange();
+              const p = this.getActiveParagraph();
+              if (r && p && this.isCaretAtEndOfParagraph(p, r)) {
+                const isLastP = !p.nextElementSibling;
+                if (isLastP) {
+                  const pages = [...this.stage.querySelectorAll(".page")];
+                  const pg = this.getPageFrom(el);
+                  const i = pages.indexOf(pg);
+                  const nextPg = i >= 0 ? pages[i + 1] : null;
+
+                  if (nextPg) {
+                    const nextBody = nextPg.querySelector(".body-ed");
+                    const firstNextP = nextBody?.querySelector(
+                      ":scope > p:first-child",
+                    );
+                    if (firstNextP) {
+                      e.preventDefault();
+                      el.appendChild(firstNextP);
+                      this.ensureHasParagraph(nextBody);
+                      this.placeCaretEnd(p);
+                      requestAnimationFrame(() => this.paginate());
+                      return;
+                    }
+                  }
+                }
+              }
+            }
+
+            // BACKSPACE cross-page no BODY
+            if (e.key === "Backspace" && el.classList.contains("body-ed")) {
+              const r = this.getSelectionRange();
+              const p = this.getActiveParagraph();
+              if (r && p && this.isCaretAtStartOfParagraph(p, r)) {
+                const isFirstP = !p.previousElementSibling;
+                if (isFirstP) {
+                  const pages = [...this.stage.querySelectorAll(".page")];
+                  const pg = this.getPageFrom(el);
+                  const i = pages.indexOf(pg);
+                  const prevPg = i > 0 ? pages[i - 1] : null;
+
+                  if (prevPg) {
+                    const prevBody = prevPg.querySelector(".body-ed");
+                    const lastPrevP = prevBody?.querySelector(
+                      ":scope > p:last-child",
+                    );
+                    if (prevBody && lastPrevP) {
+                      e.preventDefault();
+                      prevBody.appendChild(p);
+                      this.ensureHasParagraph(el);
+                      this.placeCaretEnd(p);
+                      requestAnimationFrame(() => this.paginate());
+                      return;
+                    }
+                  }
+                }
+              }
+            }
+
+            // setas HF (troca header<->footer)
+            if (e.key === "ArrowDown" && el.classList.contains("header-ed")) {
+              const pg = this.getPageFrom(el);
+              const p = this.getActiveParagraph();
+              if (pg && p && !p.nextElementSibling) {
+                e.preventDefault();
+                const fed = pg.querySelector(".footer-ed");
+                this.startEdit(fed);
+                this.normalizeParagraphs(fed);
+                this.placeCaretStart(fed.querySelector("p:first-child"));
+              }
+              return;
+            }
+
+            if (e.key === "ArrowUp" && el.classList.contains("footer-ed")) {
+              const pg = this.getPageFrom(el);
+              const p = this.getActiveParagraph();
+              if (pg && p && !p.previousElementSibling) {
+                e.preventDefault();
+                const hed = pg.querySelector(".header-ed");
+                this.startEdit(hed);
+                this.normalizeParagraphs(hed);
+                this.placeCaretEnd(hed.querySelector("p:last-child"));
+              }
+              return;
+            }
+          });
         }
 
-        /* ---------- seed ---------- */
-        const h = stage.querySelector(".header-ed");
-        const f = stage.querySelector(".footer-ed");
-        const b = stage.querySelector(".body-ed");
-
-        h.innerHTML = "<p>Empresa XYZ</p>";
-        f.innerHTML = "<p>Rodapé</p>";
-        b.innerHTML = "<p>Duplo clique para editar.</p>";
-
-        // auto-start
-        setTimeout(() => {
-          insertMode = true;
-          updateModeUI();
-          startEdit(b);
-          normalizeParagraphs(b);
-          placeCaretEnd(b.querySelector("p:last-child"));
-        }, 0);
-
-        /* =================================================
-   Toolbar de formatação (estável)
-================================================= */
-        let savedRange = null;
-
-        function saveSelection() {
+        /* =========================
+           TOOLBAR
+        ========================= */
+        saveSelection() {
           const sel = window.getSelection();
-          if (sel && sel.rangeCount)
-            savedRange = sel.getRangeAt(0).cloneRange();
+          if (sel && sel.rangeCount) this.savedRange = sel.getRangeAt(0).cloneRange();
         }
-        function restoreSelection() {
-          if (!savedRange) return false;
+        restoreSelection() {
+          if (!this.savedRange) return false;
           const sel = window.getSelection();
           sel.removeAllRanges();
-          sel.addRange(savedRange);
+          sel.addRange(this.savedRange);
           return true;
         }
-        function selectionInsideActive() {
-          if (!active) return false;
+        selectionInsideActive() {
+          if (!this.active) return false;
           const sel = window.getSelection();
           if (!sel || sel.rangeCount === 0) return false;
           const r = sel.getRangeAt(0);
@@ -801,58 +812,121 @@
             r.commonAncestorContainer.nodeType === 3
               ? r.commonAncestorContainer.parentNode
               : r.commonAncestorContainer;
-          return active.contains(a);
+          return this.active.contains(a);
         }
-
-        document.addEventListener("selectionchange", () => {
-          if (!active) return;
-          if (!selectionInsideActive()) return;
-          const sel = window.getSelection();
-          if (!sel || sel.rangeCount === 0) return;
-
-          // ✅ salva MESMO quando está colapsado (caret)
-          saveSelection();
-        });
-        function applyCmd(cmd, value = null) {
-          if (!active) return;
-          if (!restoreSelection() && !selectionInsideActive()) return;
+        applyCmd(cmd, value = null) {
+          if (!this.active) return;
+          if (!this.restoreSelection() && !this.selectionInsideActive()) return;
           document.execCommand(cmd, false, value);
         }
 
-        document.getElementById("tbBold").onclick = () => applyCmd("bold");
-        document.getElementById("tbItalic").onclick = () => applyCmd("italic");
-        document.getElementById("tbUnder").onclick = () =>
-          applyCmd("underline");
-        document.getElementById("tbClear").onclick = () =>
-          applyCmd("removeFormat");
-        document.getElementById("tbLeft").onclick = () =>
-          applyCmd("justifyLeft");
-        document.getElementById("tbCenter").onclick = () =>
-          applyCmd("justifyCenter");
-        document.getElementById("tbRight").onclick = () =>
-          applyCmd("justifyRight");
-        document.getElementById("tbJust").onclick = () =>
-          applyCmd("justifyFull");
+        /* =========================
+           BIND UI (global + toolbar)
+        ========================= */
+        bindUI() {
+          this.updateModeUI();
 
-        document.getElementById("tbFont").onchange = (e) => {
-          const v = e.target.value;
-          if (!v) return;
-          applyCmd("fontName", v);
-          e.target.value = "";
-        };
+          // botões Edit/Done
+          this.on(this.btnEdit, "click", () => {
+            const b = this.stage.querySelector(".body-ed");
+            this.startEdit(b);
+            this.ensureHasParagraph(b);
+            this.placeCaretEnd(b.querySelector("p:last-child"));
+          });
 
-        document.getElementById("tbSize").onchange = (e) => {
-          const v = e.target.value;
-          if (!v) return;
-          applyCmd("fontSize", v);
-          e.target.value = "";
-        };
+          this.on(this.btnDone, "click", () => this.stopEdit());
 
-        document.getElementById("tbColor").oninput = (e) => {
-          const v = e.target.value;
-          applyCmd("foreColor", v);
-        };
-      })();
+          // INS
+          this.on(document, "keydown", (e) => {
+            if (!this.active) return;
+            if (e.key === "Insert") {
+              e.preventDefault();
+              this.insertMode = !this.insertMode;
+              this.updateModeUI();
+            }
+          });
+
+          // ✅ clique/arrasto dentro de qualquer .editable => vira active (sem bloquear seleção)
+          this.on(
+            this.stage,
+            "mousedown",
+            (e) => {
+              const ed = e.target.closest(".editable");
+              if (!ed) return;
+              if (ed !== this.active) this.startEdit(ed);
+            },
+            true,
+          );
+
+          // selectionchange: salva até caret colapsado
+          this.on(document, "selectionchange", () => {
+            if (!this.active) return;
+            if (!this.selectionInsideActive()) return;
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+            this.saveSelection();
+          });
+
+          // toolbar commands
+          this.on(this.tbBold, "click", () => this.applyCmd("bold"));
+          this.on(this.tbItalic, "click", () => this.applyCmd("italic"));
+          this.on(this.tbUnder, "click", () => this.applyCmd("underline"));
+          this.on(this.tbClear, "click", () => this.applyCmd("removeFormat"));
+
+          this.on(this.tbLeft, "click", () => this.applyCmd("justifyLeft"));
+          this.on(this.tbCenter, "click", () => this.applyCmd("justifyCenter"));
+          this.on(this.tbRight, "click", () => this.applyCmd("justifyRight"));
+          this.on(this.tbJust, "click", () => this.applyCmd("justifyFull"));
+
+          this.on(this.tbFont, "change", (e) => {
+            const v = e.target.value;
+            if (!v) return;
+            this.applyCmd("fontName", v);
+            e.target.value = "";
+          });
+
+          this.on(this.tbSize, "change", (e) => {
+            const v = e.target.value;
+            if (!v) return;
+            this.applyCmd("fontSize", v);
+            e.target.value = "";
+          });
+
+          this.on(this.tbColor, "input", (e) => {
+            const v = e.target.value;
+            this.applyCmd("foreColor", v);
+          });
+        }
+      }
+
+      // ======= Instância =======
+      const relex = new RelexEditor({
+        stage: document.getElementById("stage"),
+
+        btnEdit: document.getElementById("btnEdit"),
+        btnDone: document.getElementById("btnDone"),
+
+        modePill: document.getElementById("modePill"),
+        modeText: document.getElementById("modeText"),
+
+        tbBold: document.getElementById("tbBold"),
+        tbItalic: document.getElementById("tbItalic"),
+        tbUnder: document.getElementById("tbUnder"),
+        tbClear: document.getElementById("tbClear"),
+
+        tbLeft: document.getElementById("tbLeft"),
+        tbCenter: document.getElementById("tbCenter"),
+        tbRight: document.getElementById("tbRight"),
+        tbJust: document.getElementById("tbJust"),
+
+        tbFont: document.getElementById("tbFont"),
+        tbSize: document.getElementById("tbSize"),
+        tbColor: document.getElementById("tbColor"),
+      });
+
+      relex.mount();
+      // se quiser desmontar depois:
+      // relex.destroy();
     </script>
   </body>
 </html>
