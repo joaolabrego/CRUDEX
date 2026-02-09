@@ -1295,13 +1295,9 @@
           });
 
           // insere no ponto do cursor
-          const r = getSelectionRange();
-          if (!r) return;
-          r.insertNode(img);
-
-          // insere um espaço depois pra continuar digitando
-          const spacer = document.createTextNode("\u00A0");
-          img.after(spacer);
+          insertImageAtCaret(img);
+          saveSelection();
+          requestAnimationFrame(() => paginate());
 
           // reposiciona caret depois da imagem
           const nr = document.createRange();
@@ -1324,6 +1320,48 @@
 
         function setNumVar(el, name, value, unit) {
           el.style.setProperty(name, `${value}${unit}`);
+        }
+        function insertImageAtCaret(img) {
+          const r = getSelectionRange();
+          if (!r) return;
+
+          // se tiver seleção, colapsa no início
+          if (!r.collapsed) r.collapse(true);
+
+          let sc = r.startContainer;
+          let so = r.startOffset;
+
+          // Caso 1: cursor está dentro de um TEXT NODE -> divide em esquerda/direita
+          if (sc && sc.nodeType === 3) {
+            const rightText = sc.splitText(so); // sc vira a parte esquerda
+            const parent = rightText.parentNode;
+
+            parent.insertBefore(img, rightText);
+
+            // spacer pra manter caret “depois” da imagem e permitir digitação
+            const spacer = document.createTextNode("\u00A0");
+            parent.insertBefore(spacer, rightText);
+
+            const nr = document.createRange();
+            nr.setStartAfter(spacer);
+            nr.collapse(true);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(nr);
+            return;
+          }
+
+          // Caso 2: cursor está em nó de elemento (ex.: <p>) -> insere normal
+          r.insertNode(img);
+          const spacer = document.createTextNode("\u00A0");
+          img.after(spacer);
+
+          const nr = document.createRange();
+          nr.setStartAfter(spacer);
+          nr.collapse(true);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(nr);
         }
 
         // =========================
