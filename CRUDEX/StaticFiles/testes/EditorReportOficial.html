@@ -255,7 +255,18 @@
       .rx-tbl-wrap {
         display: inline-block;
         vertical-align: baseline;
+        user-select: none; /* evita seleção de texto na tabela */
       }
+
+      .rx-tbl-wrap.sel-table {
+        outline: 2px solid rgba(57, 255, 20, 0.85);
+        outline-offset: 2px;
+      }
+      .rx-tbl tr.sel-row > td {
+        outline: 2px solid rgba(57, 255, 20, 0.85);
+        outline-offset: -2px;
+      }
+
       .rx-tbl {
         border-collapse: collapse;
         border-spacing: 0;
@@ -266,6 +277,7 @@
         padding: 2px 6px;
         min-width: 28px;
         height: 22px;
+        user-select: text; /* se quiser permitir selecionar dentro da célula */
       }
       .rx-tbl tr.sel {
         outline: 2px solid rgba(57, 255, 20, 0.85);
@@ -314,6 +326,7 @@
         </select>
 
         <input id="tbColor" type="color" title="Cor" />
+        <button id="tbOrientation" title="Retrato / Paisagem">🗎⇄</button>
 
         <!-- ✅ IMAGEM -->
         <span style="opacity: 0.7; margin-left: 6px">Imagem:</span>
@@ -641,6 +654,7 @@
 
         _onStageMouseDown(e) {
           if (e.target.closest(".topbar")) return;
+          if (!e.target.closest(".rx-tbl-wrap")) this._clearActiveTable();
           if (e.button !== 0) return;
 
           const ed = e.target.closest(".editable");
@@ -667,28 +681,40 @@
           }
         }
 
+        _clearActiveTable() {
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+          if (this.activeTbl) this.activeTbl.classList.remove("sel-table");
+          this.activeTbl = null;
+          this.activeTblRow = null;
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = "";
+        }
+
         /* -------------------- editable: teclado / input -------------------- */
         _wireEditable(ed) {
           // clique em img: torna alvo
           ed.addEventListener(
             "mousedown",
             (e) => {
-              const img = e.target.closest?.("img.rx-img");
+              // 1) tabela primeiro
+              const tbl = e.target.closest?.(".rx-tbl-wrap");
+              if (tbl) {
+                const tr = e.target.closest?.("tr");
+                if (tr) this._setActiveTblRow(tbl, tr);
+                return;
+              }
 
+              // 2) imagem
+              const img = e.target.closest?.("img.rx-img");
               if (img) {
                 this._setActiveImg(img);
-
-                // clique em tabela: seleciona linha
-                const tbl = e.target.closest?.(".rx-tbl-wrap");
-                if (tbl) {
-                  const tr = e.target.closest?.("tr");
-                  if (tr) this._setActiveTblRow(tbl, tr);
-                  // mantém o editor ativo (pra não “desfocar”)
-                  return;
-                }
-              } else {
-                this._clearActiveImg();
+                return;
               }
+
+              // 3) clique em qualquer outra coisa
+              this._clearActiveImg();
+              this._clearActiveTable(); // (função que você vai criar)
             },
             true,
           );
@@ -1008,6 +1034,24 @@
             if (!this.activeTblRow) return;
             this._setRowKind(this.activeTblRow, kind);
           };
+
+          let portrait = true;
+
+          $("tbOrientation").onclick = () => {
+            portrait = !portrait;
+
+            const root = document.documentElement.style;
+
+            if (portrait) {
+              root.setProperty("--page-w", "210mm");
+              root.setProperty("--page-h", "297mm");
+            } else {
+              root.setProperty("--page-w", "297mm");
+              root.setProperty("--page-h", "210mm");
+            }
+
+            requestAnimationFrame(() => this.paginate());
+          };
         }
 
         _selectionInsideActive() {
@@ -1306,16 +1350,19 @@
           this._saveSelection();
           requestAnimationFrame(() => this.paginate());
         }
+
         _setActiveTblRow(tblWrap, tr) {
-          // limpa seleção anterior
-          if (this.activeTblRow) this.activeTblRow.classList.remove("sel");
+          // limpa anterior
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+          if (this.activeTbl && this.activeTbl !== tblWrap)
+            this.activeTbl.classList.remove("sel-table");
 
           this.activeTbl = tblWrap;
           this.activeTblRow = tr;
 
-          tr.classList.add("sel");
+          tblWrap.classList.add("sel-table");
+          tr.classList.add("sel-row");
 
-          // sincroniza combo
           const sel = document.getElementById("tbRowKind");
           if (sel) sel.value = tr.dataset.kind || "";
         }
@@ -1324,6 +1371,8 @@
           const wrap = document.createElement("span");
           wrap.className = "rx-tbl-wrap";
           wrap.dataset.cols = String(cols);
+          wrap.contentEditable = "false";
+          wrap.tabIndex = 0; // permite foco/teclado depois se quiser
 
           const table = document.createElement("table");
           table.className = "rx-tbl";
@@ -1336,6 +1385,7 @@
 
             for (let c = 0; c < cols; c++) {
               const td = document.createElement("td");
+              td.contentEditable = "true"; // ✅ ESSENCIAL
               td.appendChild(document.createElement("br"));
               tr.appendChild(td);
             }
@@ -1348,7 +1398,14 @@
         }
 
         _setRowKind(tr, kind) {
+          // unicidade
+          if (kind === "titles" || kind === "detail") {
+            const tbl = tr.closest(".rx-tbl");
+            const other = tbl.querySelector(`tr[data-kind="${kind}"]`);
+            if (other && other !== tr) other.dataset.kind = ""; // ou "none"
+          }
           if (!tr) return;
+
           tr.dataset.kind = kind || "";
 
           const wrap = tr.closest(".rx-tbl-wrap");
@@ -1356,8 +1413,12 @@
 
           // grupo/total => 1 célula com colspan
           if (kind === "group" || kind === "total") {
+            const tds = tr.querySelectorAll(":scope > td");
+            if (tds.length === 1 && tds[0].colSpan === cols) return; // já está ok
+
             const td = document.createElement("td");
             td.colSpan = cols;
+            td.contentEditable = "true";
             td.appendChild(document.createElement("br"));
             tr.innerHTML = "";
             tr.appendChild(td);
@@ -1372,6 +1433,7 @@
           tr.innerHTML = "";
           for (let c = 0; c < cols; c++) {
             const td = document.createElement("td");
+            td.contentEditable = "true";
             td.appendChild(document.createElement("br"));
             tr.appendChild(td);
           }
