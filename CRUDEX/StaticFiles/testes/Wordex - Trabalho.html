@@ -417,6 +417,10 @@
           <option value="detail">Detalhe</option>
           <option value="total">Total de grupo</option>
         </select>
+
+        <button id="tbPreview" title="Visualizar HTML montado (nova janela)">
+          👁️ Preview
+        </button>
       </div>
     </div>
 
@@ -425,6 +429,67 @@
     </div>
 
     <script>
+      // 2) COLE estas funções (em qualquer lugar do <script>, fora da classe, antes do boot).
+      // Se você já tiver buildDemoJson(), mantenha o seu e ignore o meu.
+
+      function buildDemoJson(qtd = 120) {
+        const it = [];
+        for (let i = 1; i <= qtd; i++) {
+          const q = (i % 7) + 1;
+          const pu = ((i % 23) + 1) * 3.75;
+          const tot = q * pu;
+
+          it.push({
+            Seq: i,
+            Produto: `Produto ${String(i).padStart(3, "0")}`,
+            Qtde: q,
+            Preco: pu.toFixed(2),
+            Total: tot.toFixed(2),
+            Grupo: i <= 40 ? "A" : i <= 80 ? "B" : "C",
+          });
+        }
+
+        return {
+          Nome: "João da Rocha Labrego",
+          Numero: "FAT-2026-0001",
+          Data: "10/02/2026",
+          Cliente: "EMPRESA CLIENTE LTDA",
+          Logo: makeLogoDataUrl(),
+          Itens: it,
+        };
+      }
+
+      function makeLogoDataUrl() {
+        // logo simples (SVG) pra cabeçalho
+        const svg =
+          `<svg xmlns="http://www.w3.org/2000/svg" width="260" height="70" viewBox="0 0 260 70">` +
+          `<rect x="1" y="1" width="258" height="68" rx="10" ry="10" fill="#ffffff" stroke="#111" stroke-width="2"/>` +
+          `<text x="22" y="45" font-family="Arial, sans-serif" font-size="28" fill="#111">WORDEX</text>` +
+          `<text x="150" y="45" font-family="Arial, sans-serif" font-size="16" fill="#444">Preview</text>` +
+          `</svg>`;
+        return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+      }
+
+      function openMountedPreview(templateHtml, json) {
+        let htmlMontado = mount(templateHtml, json);
+
+        // REMOVE TODOS OS SCRIPTS
+        htmlMontado = htmlMontado.replace(
+          /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+          "",
+        );
+
+        if (!window.__wordexPreviewWin || window.__wordexPreviewWin.closed) {
+          window.__wordexPreviewWin = window.open("", "wordex_preview");
+        }
+
+        const w = window.__wordexPreviewWin;
+        w.document.open();
+        w.document.write(htmlMontado);
+        w.document.close();
+        w.focus();
+      }
+
       class WordexEditor {
         constructor({
           stage,
@@ -1209,6 +1274,12 @@
 
             // opcional: volta pro placeholder
             e.target.value = "";
+          };
+
+          $("tbPreview").onclick = () => {
+            const template = document.documentElement.outerHTML;
+            const json = buildDemoJson(120); // ajuste a quantidade aqui se quiser
+            openMountedPreview(template, json);
           };
         }
 
