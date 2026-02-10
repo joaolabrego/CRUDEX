@@ -17,6 +17,7 @@
         --tag-bg: #e6e6e6;
         --tag-bd: #777;
       }
+
       * {
         box-sizing: border-box;
       }
@@ -41,6 +42,7 @@
         gap: 10px;
         flex-wrap: wrap;
       }
+
       .topbar button {
         margin-right: 6px;
       }
@@ -61,6 +63,7 @@
         padding: 4px 10px;
         cursor: pointer;
       }
+
       .toolbar button:hover {
         background: #2a2a2a;
       }
@@ -80,6 +83,7 @@
         font-size: 12px;
         opacity: 0.95;
       }
+
       .mode-dot {
         width: 9px;
         height: 9px;
@@ -87,6 +91,7 @@
         background: #39ff14;
         box-shadow: 0 0 12px rgba(57, 255, 20, 0.95);
       }
+
       .mode-pill.ovr .mode-dot {
         background: #ff0033;
         box-shadow: 0 0 12px rgba(255, 0, 51, 0.95);
@@ -97,6 +102,7 @@
         overflow: auto;
         padding: 6px;
       }
+
       .stage {
         display: flex;
         flex-direction: column;
@@ -133,10 +139,12 @@
         min-height: var(--header-h);
         height: auto;
       }
+
       .footer {
         min-height: var(--footer-h);
         height: auto;
       }
+
       .body {
         flex: 1;
         min-height: 0;
@@ -158,6 +166,7 @@
         padding: 6mm;
         caret-color: #39ff14;
       }
+
       .editable.editing.ovr-caret {
         caret-color: #ff0033;
       }
@@ -183,6 +192,7 @@
         background-size: 12px 1px;
         background-position: left 100%;
       }
+
       .page.hf .footer {
         position: relative;
         background-image: repeating-linear-gradient(
@@ -211,6 +221,7 @@
         pointer-events: none;
         z-index: 2;
       }
+
       .page.hf .footer .band-label {
         display: inline-block;
         position: absolute;
@@ -232,6 +243,7 @@
       .page.hf .body {
         opacity: 0.45;
       }
+
       .page.hf .body * {
         pointer-events: none;
       }
@@ -244,6 +256,7 @@
         height: auto;
         width: var(--iw, 80px);
       }
+
       .rx-img.sel {
         outline: 2px solid rgba(57, 255, 20, 0.85);
         outline-offset: 2px;
@@ -253,7 +266,8 @@
       .rx-tbl-wrap {
         display: inline-block;
         vertical-align: baseline;
-        user-select: none; /* evita seleção de texto na tabela */
+        user-select: none;
+        /* evita seleção de texto na tabela */
       }
 
       .rx-tbl-wrap.sel-table {
@@ -270,13 +284,16 @@
         border-spacing: 0;
         font-size: inherit;
       }
+
       .rx-tbl td {
         border: 1px solid #999;
         padding: 2px 6px;
         min-width: 28px;
         height: 22px;
-        user-select: text; /* se quiser permitir selecionar dentro da célula */
+        user-select: text;
+        /* se quiser permitir selecionar dentro da célula */
       }
+
       .rx-tbl tr.sel {
         outline: 2px solid rgba(57, 255, 20, 0.85);
         outline-offset: 2px;
@@ -396,8 +413,8 @@
         <select id="tbRowKind" title="Tipo da linha selecionada">
           <option value="">Tipo da linha</option>
           <option value="titles">Títulos de coluna</option>
-          <option value="detail">Detalhe</option>
           <option value="group">Grupo</option>
+          <option value="detail">Detalhe</option>
           <option value="total">Total de grupo</option>
         </select>
       </div>
@@ -1228,8 +1245,8 @@
         }
 
         /* ==========================
-           IMAGEM: lógica “dentro do <p>”
-        ========================== */
+         IMAGEM: lógica “dentro do <p>”
+      ========================== */
 
         _setActiveImg(img) {
           if (this.activeImg && this.activeImg !== img)
@@ -1539,6 +1556,7 @@
           return wrap;
         }
 
+        // SUBSTITUA o seu método _setRowKind INTEIRO por este aqui:
         _setRowKind(tr, kind) {
           // unicidade
           if (kind === "titles" || kind === "detail") {
@@ -1556,7 +1574,12 @@
           // grupo/total => 1 célula com colspan
           if (kind === "group" || kind === "total") {
             const tds = tr.querySelectorAll(":scope > td");
-            if (tds.length === 1 && tds[0].colSpan === cols) return; // já está ok
+            if (tds.length === 1 && tds[0].colSpan === cols) {
+              tr.title = this._labelRowKind(kind);
+              const sel = document.getElementById("tbRowKind");
+              if (sel) sel.value = "";
+              return;
+            }
 
             const td = document.createElement("td");
             td.colSpan = cols;
@@ -1564,13 +1587,21 @@
             td.appendChild(document.createElement("br"));
             tr.innerHTML = "";
             tr.appendChild(td);
+
+            tr.title = this._labelRowKind(kind);
+            const sel = document.getElementById("tbRowKind");
+            if (sel) sel.value = "";
             return;
           }
 
           // titles/detail => volta a ter colunas
-          // (se já tem cols, não mexe)
           const tds = tr.querySelectorAll(":scope > td");
-          if (tds.length === cols) return;
+          if (tds.length === cols) {
+            tr.title = this._labelRowKind(kind);
+            const sel = document.getElementById("tbRowKind");
+            if (sel) sel.value = "";
+            return;
+          }
 
           tr.innerHTML = "";
           for (let c = 0; c < cols; c++) {
@@ -1579,6 +1610,10 @@
             td.appendChild(document.createElement("br"));
             tr.appendChild(td);
           }
+
+          tr.title = this._labelRowKind(kind);
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = "";
         }
 
         _insertTableAtCaret(rows, cols) {
@@ -1689,7 +1724,8 @@
 
           const sel = document.getElementById("tbRowKind");
           if (sel) sel.value = "";
-          if (tblWrap?.dataset?.items) tblWrap.title = `{{${tblWrap.dataset.items}}}`;
+          if (tblWrap?.dataset?.items)
+            tblWrap.title = `{{${tblWrap.dataset.items}}}`;
         }
 
         _getTargetTbl() {
@@ -2036,6 +2072,20 @@
               this.activeTbl.title = `{{${tag}}}`;
             }
             return;
+          }
+        }
+        _labelRowKind(kind) {
+          switch (kind) {
+            case "titles":
+              return "Títulos de coluna";
+            case "detail":
+              return "Detalhe";
+            case "group":
+              return "Grupo";
+            case "total":
+              return "Total";
+            default:
+              return "Nenhum";
           }
         }
       }
