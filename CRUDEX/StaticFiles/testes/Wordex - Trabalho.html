@@ -425,7 +425,7 @@
     </div>
 
     <script>
-      class RelexEditor {
+      class WordexEditor {
         constructor({
           stage,
           modePill,
@@ -2088,17 +2088,300 @@
               return "Nenhum";
           }
         }
+
+        // ===== MOUNT (template + json) =====
+        // regra de tag: {{Nome}}  -> se existe no json: (null => ""), senão: "null"
+        // imagens: <img class="rx-img" data-img="Logo"> -> json.Logo (url/dataUrl). Se não existir: X (placeholder)
+        // tabelas: <span class="rx-tbl-wrap" data-items="Itens"> ... </span>
+      }
+      function mount(template, json) {
+        const html = normalizeDoctypeFirst(String(template || ""));
+
+        // Parseia como documento (mantém head/body quando vier completo)
+        const doc = new DOMParser().parseFromString(html, "text/html");
+
+        // 1) Parágrafos: tags simples (não coleções)
+        doc.querySelectorAll("p").forEach((p) => {
+          // só troca se existir {{...}} no texto/HTML do parágrafo
+          // (mantém <img>, <span>, tabela inline, etc.)
+          p.innerHTML = replaceTagsInHtml(p.innerHTML, json, {
+            undefinedAs: "null",
+            nullAs: "",
+          });
+        });
+
+        // 2) Imagens (tag via data-img)
+        applyImages(doc, json);
+
+        // 3) Tabelas (coleções via data-items)
+        doc.querySelectorAll(".rx-tbl-wrap").forEach((wrap) => {
+          const itemsTag = (wrap.dataset.items || "").trim();
+          if (!itemsTag) return;
+
+          const coll = json ? json[itemsTag] : undefined;
+
+          // se não for array => não monta: mantém tags como texto (literal)
+          if (!Array.isArray(coll)) {
+            // só garante tooltip coerente
+            wrap.title = `{{${itemsTag}}}`;
+            return;
+          }
+
+          mountTable(wrap, coll);
+          wrap.title = `{{${itemsTag}}}`;
+        });
+
+        // Serializa de volta (doctype no topo)
+        const out = "<!doctype html>\n" + doc.documentElement.outerHTML;
+        return out;
+      }
+
+      /* =======================
+   Helpers
+======================= */
+
+      function normalizeDoctypeFirst(input) {
+        let s = String(input || "");
+
+        // remove BOM + whitespace inicial
+        s = s.replace(/^\uFEFF?[\s\r\n\t]*/g, "");
+
+        // remove qualquer doctype em qualquer lugar (case-insensitive)
+        s = s.replace(/<!doctype\b[^>]*>/gi, "");
+
+        // garante 1 doctype na saída do mount() (lá em cima)
+        return s;
+      }
+
+      // Troca tags {{Nome}} dentro de HTML (sem destruir markup)
+      function replaceTagsInHtml(
+        html,
+        data,
+        { undefinedAs = "null", nullAs = "" } = {},
+      ) {
+        // case-sensitive por padrão. Se quiser insensitive: /.../gi
+        const rx = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+
+        return String(html).replace(rx, (_, key) => {
+          if (!data || !(key in data)) return undefinedAs;
+          const v = data[key];
+          if (v === null) return nullAs;
+          return escapeHtml(String(v));
+        });
+      }
+
+      function escapeHtml(s) {
+        // básico pra não quebrar HTML ao jogar valor dentro
+        return s
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      /* =======================
+   Imagens
+======================= */
+
+      function applyImages(doc, data) {
+        const placeholder = makeXPlaceholderDataUrl();
+
+        doc.querySelectorAll("img.rx-img").forEach((img) => {
+          const tag = (img.dataset.img || "").trim();
+          if (!tag) return;
+
+          img.title = `{{${tag}}}`;
+
+          if (data && tag in data) {
+            const v = data[tag];
+            img.src = v == null ? placeholder : String(v);
+          } else {
+            img.src = placeholder;
+          }
+        });
+      }
+
+      function makeXPlaceholderDataUrl() {
+        // SVG simples com X (data URL)
+        const svg =
+          `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="120" viewBox="0 0 180 120">` +
+          `<rect x="1" y="1" width="178" height="118" fill="#fff" stroke="#000" stroke-width="2"/>` +
+          `<line x1="15" y1="15" x2="165" y2="105" stroke="#000" stroke-width="6"/>` +
+          `<line x1="165" y1="15" x2="15" y2="105" stroke="#000" stroke-width="6"/>` +
+          `</svg>`;
+        return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+      }
+
+      /* =======================
+   Tabelas (coleções)
+======================= */
+
+      function mountTable(wrap, coll) {
+        const tbl = wrap.querySelector("table.rx-tbl");
+        if (!tbl) return;
+
+        const tbody = tbl.tBodies[0] || tbl.querySelector("tbody");
+        if (!tbody) return;
+
+        const rows = [...tbody.querySelectorAll("tr")];
+
+        const rowTitles =
+          rows.find((r) => (r.dataset.kind || "") === "titles") || null;
+        const rowDetail =
+          rows.find((r) => (r.dataset.kind || "") === "detail") || null;
+        const rowGroup =
+          rows.find((r) => (r.dataset.kind || "") === "group") || null;
+        const rowTotal =
+          rows.find((r) => (r.dataset.kind || "") === "total") || null;
+
+        // sem detail => não tem como montar
+        if (!rowDetail) return;
+
+        // 1) Descobre chaves de agrupamento (se houver rowGroup)
+        const groupKeys = rowGroup ? extractTagKeysFromRow(rowGroup) : [];
+
+        // 2) Ordena coleção por chaves de grupo (antes do processamento)
+        const sorted = groupKeys.length
+          ? [...coll].sort(byKeys(groupKeys))
+          : [...coll];
+
+        // 3) Agrupa (se houver chaves). Senão: 1 grupo só.
+        const groups = groupKeys.length
+          ? groupByKeys(sorted, groupKeys)
+          : [{ key: null, items: sorted }];
+
+        // 4) Limpa tbody e remonta
+        tbody.innerHTML = "";
+
+        // Titles: 1 vez (com “labels” no lugar das tags)
+        if (rowTitles) {
+          const rt = rowTitles.cloneNode(true);
+          setRowAsLabels(rt);
+          tbody.appendChild(rt);
+        }
+
+        // Para preencher tags do detail/group/total, usa tags do tipo {{Campo}}
+        for (const g of groups) {
+          const sample = g.items[0] || {};
+
+          // Group row
+          if (rowGroup) {
+            const rg = rowGroup.cloneNode(true);
+            fillRowTags(rg, sample, { undefinedAs: "null", nullAs: "" });
+            rg.title = `Grupo: ${labelRowKind("group")}`;
+            tbody.appendChild(rg);
+          }
+
+          // Details
+          for (const item of g.items) {
+            const rd = rowDetail.cloneNode(true);
+            fillRowTags(rd, item, { undefinedAs: "null", nullAs: "" });
+            rd.title = `Linha: ${labelRowKind("detail")}`;
+            tbody.appendChild(rd);
+          }
+
+          // Total row (por enquanto: só replica e preenche tags do sample)
+          if (rowTotal) {
+            const rt = rowTotal.cloneNode(true);
+            fillRowTags(rt, sample, { undefinedAs: "null", nullAs: "" });
+            rt.title = `Linha: ${labelRowKind("total")}`;
+            tbody.appendChild(rt);
+          }
+        }
+      }
+
+      // Extrai chaves: pega todas as {{Campo}} existentes nas células da linha
+      function extractTagKeysFromRow(tr) {
+        const rx = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+        const keys = [];
+        tr.querySelectorAll("td").forEach((td) => {
+          const txt = td.textContent || "";
+          let m;
+          while ((m = rx.exec(txt))) keys.push(m[1]);
+        });
+        // únicas, mantendo ordem
+        return [...new Set(keys)];
+      }
+
+      function byKeys(keys) {
+        return (a, b) => {
+          for (const k of keys) {
+            const av = a && a[k] != null ? String(a[k]) : "";
+            const bv = b && b[k] != null ? String(b[k]) : "";
+            if (av < bv) return -1;
+            if (av > bv) return 1;
+          }
+          return 0;
+        };
+      }
+
+      function groupByKeys(items, keys) {
+        const map = new Map();
+        for (const it of items) {
+          const key = keys
+            .map((k) => (it && it[k] != null ? String(it[k]) : ""))
+            .join("\u0001");
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push(it);
+        }
+        return [...map.entries()].map(([key, arr]) => ({ key, items: arr }));
+      }
+
+      // Preenche tags dentro das células (preserva <br>, etc.)
+      function fillRowTags(tr, data, opts) {
+        tr.querySelectorAll("td").forEach((td) => {
+          td.innerHTML = replaceTagsInHtml(td.innerHTML, data, opts);
+          // se ficou vazio total, mantém um <br> pra editabilidade ficar bonita
+          if (
+            (td.textContent || "").trim() === "" &&
+            td.querySelectorAll("br").length === 0
+          ) {
+            td.innerHTML = "";
+            td.appendChild(document.createElement("br"));
+          }
+        });
+      }
+
+      // Titles: troca {{Campo}} por "Campo" como label
+      function setRowAsLabels(tr) {
+        const rx = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+        tr.querySelectorAll("td").forEach((td) => {
+          const txt = td.textContent || "";
+          const m = rx.exec(txt);
+          if (m && m[1]) {
+            td.textContent = m[1];
+          } else {
+            // se não tinha tag, mantém o texto
+            td.textContent = txt;
+          }
+        });
+      }
+
+      function labelRowKind(kind) {
+        switch (kind) {
+          case "titles":
+            return "Títulos de coluna";
+          case "detail":
+            return "Detalhe";
+          case "group":
+            return "Grupo";
+          case "total":
+            return "Total";
+          default:
+            return "Nenhum";
+        }
       }
 
       // boot
       (() => {
-        const relex = new RelexEditor({
+        const wordex = new WordexEditor({
           stage: document.getElementById("stage"),
           modePill: document.getElementById("modePill"),
           modeText: document.getElementById("modeText"),
           maxHeaderFooterParagraphs: 10,
         });
-        relex.init();
+        wordex.init();
       })();
     </script>
   </body>
