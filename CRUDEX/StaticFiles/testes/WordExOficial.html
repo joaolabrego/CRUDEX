@@ -333,10 +333,16 @@
         <input id="tbColor" type="color" title="Cor" />
 
         <button id="tbOrientation" title="Retrato / Paisagem">🗎⇄</button>
-        <button id="tbImgLeft" title="Mover imagem/tabela 1 caractere para a esquerda">
+        <button
+          id="tbImgLeft"
+          title="Mover imagem/tabela 1 caractere para a esquerda"
+        >
           ←
         </button>
-        <button id="tbImgRight" title="Mover imagem/tabela 1 caractere para a direita">
+        <button
+          id="tbImgRight"
+          title="Mover imagem/tabela 1 caractere para a direita"
+        >
           →
         </button>
         <button
@@ -977,10 +983,16 @@
 
           const applyCmd = (cmd, value = null) => {
             if (!this.active) return;
+
             if (!this._restoreSelection() && !this._selectionInsideActive())
               return;
-            this.active.focus({ preventScroll: true });
+
+            const host = this._getCommandHost();
+            if (!host) return;
+
+            host.focus({ preventScroll: true }); // ✅ foco no TD quando for célula
             document.execCommand(cmd, false, value);
+
             this._saveSelection();
           };
 
@@ -1768,6 +1780,24 @@
 
           this._setActiveTable(tbl);
           requestAnimationFrame(() => this.paginate());
+        }
+
+        _getCommandHost() {
+          const r = this.savedRange || this._getSelectionRange();
+          if (!r) return this.active;
+
+          const node =
+            r.commonAncestorContainer.nodeType === 3
+              ? r.commonAncestorContainer.parentNode
+              : r.commonAncestorContainer;
+
+          // se a seleção está dentro de uma célula editável, o host é o TD
+          const td = node.closest?.(
+            "td[contenteditable='true'], td[contenteditable=true]",
+          );
+          if (td) return td;
+
+          return this.active;
         }
       }
 
