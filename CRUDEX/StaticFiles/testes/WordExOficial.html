@@ -331,29 +331,30 @@
         </select>
 
         <input id="tbColor" type="color" title="Cor" />
-        <button id="tbOrientation" title="Retrato / Paisagem">🗎⇄</button>
 
-        <!-- ✅ IMAGEM -->
-        <span style="opacity: 0.7; margin-left: 6px">Imagem:</span>
-        <button id="tbImgIns" title="Inserir imagem (no cursor)">🖼️+</button>
-        <button id="tbImgLeft" title="Mover imagem 1 caractere para a esquerda">
+        <button id="tbOrientation" title="Retrato / Paisagem">🗎⇄</button>
+        <button id="tbImgLeft" title="Mover imagem/tabela 1 caractere para a esquerda">
           ←
         </button>
-        <button id="tbImgRight" title="Mover imagem 1 caractere para a direita">
+        <button id="tbImgRight" title="Mover imagem/tabela 1 caractere para a direita">
           →
         </button>
         <button
           id="tbImgUp"
-          title="Mover imagem para o 1º char do parágrafo acima"
+          title="Mover imagem/tabela para o 1º char do parágrafo acima"
         >
           ↑
         </button>
         <button
           id="tbImgDown"
-          title="Mover imagem para o 1º char do parágrafo abaixo"
+          title="Mover imagem/tabela para o 1º char do parágrafo abaixo"
         >
           ↓
         </button>
+
+        <!-- ✅ IMAGEM -->
+        <span style="opacity: 0.7; margin-left: 6px">Imagem:</span>
+        <button id="tbImgIns" title="Inserir imagem (no cursor)">🖼️+</button>
         <button id="tbImgSm" title="Diminuir largura">－</button>
         <button id="tbImgLg" title="Aumentar largura">＋</button>
 
@@ -1063,6 +1064,27 @@
           $("tbImgSm").onclick = () => this._resizeImg(-10);
           $("tbImgLg").onclick = () => this._resizeImg(10);
 
+          // ===== tabela: mover como imagem =====
+          $("tbImgLeft").onclick = () => {
+            if (this.activeTbl) this._moveTblChar(-1);
+            else this._moveImgChar(-1);
+          };
+
+          $("tbImgRight").onclick = () => {
+            if (this.activeTbl) this._moveTblChar(1);
+            else this._moveImgChar(1);
+          };
+
+          $("tbImgUp").onclick = () => {
+            if (this.activeTbl) this._moveTblToParagraph(-1);
+            else this._moveImgToParagraph(-1);
+          };
+
+          $("tbImgDown").onclick = () => {
+            if (this.activeTbl) this._moveTblToParagraph(1);
+            else this._moveImgToParagraph(1);
+          };
+
           // ===== tabela =====
           const MAX_TABLE_RC = 20;
 
@@ -1617,6 +1639,135 @@
 
           const sel = document.getElementById("tbRowKind");
           if (sel) sel.value = "";
+        }
+
+        _getTargetTbl() {
+          if (
+            this.activeTbl &&
+            this.active &&
+            this.active.contains(this.activeTbl)
+          ) {
+            return this.activeTbl;
+          }
+
+          const r = this.savedRange || this._getSelectionRange();
+          if (!r || !this.active) return null;
+
+          const node =
+            r.commonAncestorContainer.nodeType === 3
+              ? r.commonAncestorContainer.parentNode
+              : r.commonAncestorContainer;
+
+          return node.closest?.(".rx-tbl-wrap") || null;
+        }
+
+        _moveTblChar(dir) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this.active.focus({ preventScroll: true });
+
+          const tbl = this._getTargetTbl();
+          if (!tbl) return;
+
+          const p = tbl.closest("p");
+          if (!p) return;
+
+          const pos = this._getTextOffsetBeforeNode(p, tbl);
+          const total = this._getTextLength(p);
+
+          tbl.remove();
+          this._cleanupEmptyTextNodes(p);
+
+          let nextPos = pos + dir;
+          if (nextPos < 0) nextPos = 0;
+          if (nextPos > total) nextPos = total;
+
+          this._insertNodeAtTextOffset(p, tbl, nextPos);
+
+          // caret depois da tabela
+          const r = document.createRange();
+          r.setStartAfter(tbl);
+          r.collapse(true);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+          this._saveSelection();
+
+          this._setActiveTable(tbl);
+          requestAnimationFrame(() => this.paginate());
+        }
+
+        _moveTblToParagraph(dir) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this.active.focus({ preventScroll: true });
+
+          const tbl = this._getTargetTbl();
+          if (!tbl) return;
+
+          const p = tbl.closest("p");
+          if (!p) return;
+
+          const bodyEd = p.closest(".body-ed");
+          const pg = this._getPageFrom(bodyEd || p);
+
+          let target =
+            dir > 0 ? p.nextElementSibling : p.previousElementSibling;
+
+          if (target && target.tagName !== "P") return;
+
+          if (!target && bodyEd && pg) {
+            const pages = [...this.stage.querySelectorAll(".page")];
+            const i = pages.indexOf(pg);
+
+            const firstP = bodyEd.querySelector(":scope > p:first-child");
+            const lastP = bodyEd.querySelector(":scope > p:last-child");
+
+            if (dir > 0 && p === lastP) {
+              let nextPg = pages[i + 1];
+              if (!nextPg) {
+                nextPg = this._createNextPage();
+                pages.push(nextPg);
+              }
+              const nextBody = nextPg.querySelector(".body-ed");
+              this._ensureHasParagraph(nextBody);
+              target = nextBody.querySelector(":scope > p:first-child");
+            }
+
+            if (dir < 0 && p === firstP) {
+              if (i <= 0) return;
+              const prevPg = pages[i - 1];
+              const prevBody = prevPg.querySelector(".body-ed");
+              this._ensureHasParagraph(prevBody);
+              target = prevBody.querySelector(":scope > p:last-child");
+            }
+          }
+
+          if (!target || target.tagName !== "P") return;
+
+          tbl.remove();
+          this._cleanupEmptyTextNodes(p);
+
+          const at = dir > 0 ? 0 : this._getTextLength(target);
+          this._insertNodeAtTextOffset(target, tbl, at);
+
+          const targetEd = target.closest(".editable");
+          if (targetEd && targetEd !== this.active) {
+            this.startEdit(targetEd);
+          }
+
+          target.scrollIntoView({ block: "nearest" });
+
+          const r = document.createRange();
+          r.setStartAfter(tbl);
+          r.collapse(true);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+          this._saveSelection();
+
+          this._setActiveTable(tbl);
+          requestAnimationFrame(() => this.paginate());
         }
       }
 
