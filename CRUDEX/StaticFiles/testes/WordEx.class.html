@@ -3,8 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>
-      RELEX – Word-like (HF + caret estável) + Toolbar (nativa) + Cross-page
-      DEL/BS (Class)
+      WordEx – Class (limpo) – Word-like + Toolbar + Imagem dentro do &lt;p&gt;
     </title>
 
     <style>
@@ -27,7 +26,10 @@
       body {
         margin: 0;
         background: #111;
-        font-family: system-ui, Segoe UI, Arial;
+        font-family:
+          system-ui,
+          Segoe UI,
+          Arial;
         overflow: hidden;
       }
 
@@ -36,7 +38,8 @@
         background: #000;
         color: #fff;
         display: flex;
-        align-items: center;
+        align-items: stretch;
+        flex-direction: column;
         gap: 10px;
         flex-wrap: wrap;
       }
@@ -52,7 +55,6 @@
         border-left: 1px solid rgba(255, 255, 255, 0.18);
       }
 
-      /* botões simples */
       .toolbar button {
         background: #1b1b1b;
         color: #fff;
@@ -65,7 +67,6 @@
         background: #2a2a2a;
       }
 
-      /* controles NATIVOS */
       .toolbar select,
       .toolbar input[type="color"] {
         height: 28px;
@@ -236,20 +237,68 @@
       .page.hf .body * {
         pointer-events: none;
       }
+
+      /* ===== IMAGEM dentro do <p> ===== */
+      .rx-img {
+        display: inline-block;
+        vertical-align: baseline;
+        max-width: 100%;
+        height: auto;
+        width: var(--iw, 80px);
+      }
+      .rx-img.sel {
+        outline: 2px solid rgba(57, 255, 20, 0.85);
+        outline-offset: 2px;
+      }
+
+      /* ===== TABELA (inline, dentro do <p>) ===== */
+      .rx-tbl-wrap {
+        display: inline-block;
+        vertical-align: baseline;
+        user-select: none; /* evita seleção de texto na tabela */
+      }
+
+      .rx-tbl-wrap.sel-table {
+        box-shadow: 0 0 0 2px rgba(57, 255, 20, 0.85);
+      }
+
+      .rx-tbl tr.sel-row > td {
+        outline: 2px solid rgba(57, 255, 20, 0.85);
+        outline-offset: -2px;
+      }
+
+      .rx-tbl {
+        border-collapse: collapse;
+        border-spacing: 0;
+        font-size: inherit;
+      }
+      .rx-tbl td {
+        border: 1px solid #999;
+        padding: 2px 6px;
+        min-width: 28px;
+        height: 22px;
+        user-select: text; /* se quiser permitir selecionar dentro da célula */
+      }
+      .rx-tbl tr.sel {
+        outline: 2px solid rgba(57, 255, 20, 0.85);
+        outline-offset: 2px;
+      }
+
+      .rx-tbl td.sel-cell {
+        outline: 2px solid rgba(57, 255, 20, 0.85);
+        outline-offset: -2px;
+      }
     </style>
   </head>
 
   <body>
     <div class="topbar">
-      <button id="btnEdit">Editar</button>
-      <button id="btnDone">Finalizar</button>
+      <div class="toolbar">
+        <span id="modePill" class="mode-pill" title="Tecla INS alterna modo">
+          <span class="mode-dot"></span>
+          <strong id="modeText">INS</strong>
+        </span>
 
-      <span id="modePill" class="mode-pill" title="Tecla INS alterna modo">
-        <span class="mode-dot"></span>
-        <strong id="modeText">INS</strong>
-      </span>
-
-      <div class="toolbar" aria-label="Formatação">
         <button id="tbBold" title="Negrito"><b>B</b></button>
         <button id="tbItalic" title="Itálico"><i>I</i></button>
         <button id="tbUnder" title="Sublinhado"><u>U</u></button>
@@ -282,6 +331,73 @@
         </select>
 
         <input id="tbColor" type="color" title="Cor" />
+
+        <button id="tbOrientation" title="Retrato / Paisagem">🗎⇄</button>
+
+        <select id="tbBorder" title="Borda (px)">
+          <option value="">Borda</option>
+          <option value="none">0 px</option>
+          <option value="1">1 px</option>
+          <option value="2">2 px</option>
+          <option value="3">3 px</option>
+          <option value="4">4 px</option>
+          <option value="6">6 px</option>
+          <option value="8">8 px</option>
+        </select>
+
+        <select id="tbRadius" title="Arredondamento">
+          <option value="">Arred.</option>
+          <option value="0">0</option>
+          <option value="4">4</option>
+          <option value="6">6</option>
+          <option value="8">8</option>
+          <option value="12">12</option>
+          <option value="16">16</option>
+        </select>
+
+        <button
+          id="tbImgLeft"
+          title="Mover imagem/tabela 1 caractere para a esquerda"
+        >
+          ←
+        </button>
+        <button
+          id="tbImgRight"
+          title="Mover imagem/tabela 1 caractere para a direita"
+        >
+          →
+        </button>
+        <button
+          id="tbImgUp"
+          title="Mover imagem/tabela para o 1º char do parágrafo acima"
+        >
+          ↑
+        </button>
+        <button
+          id="tbImgDown"
+          title="Mover imagem/tabela para o 1º char do parágrafo abaixo"
+        >
+          ↓
+        </button>
+
+        <!-- ✅ IMAGEM -->
+        <span style="opacity: 0.7; margin-left: 6px">Imagem:</span>
+        <button id="tbImgIns" title="Inserir imagem (no cursor)">🖼️+</button>
+        <button id="tbImgSm" title="Diminuir largura">－</button>
+        <button id="tbImgLg" title="Aumentar largura">＋</button>
+
+        <input id="tbImgFile" type="file" accept="image/*" hidden />
+      </div>
+      <div class="toolbar">
+        <span>Tabela:</span>
+        <button id="tbTblNew" title="Inserir tabela">▦+</button>
+        <select id="tbRowKind" title="Tipo da linha selecionada">
+          <option value="">Tipo da linha</option>
+          <option value="titles">Títulos de coluna</option>
+          <option value="detail">Detalhe</option>
+          <option value="group">Grupo</option>
+          <option value="total">Total de grupo</option>
+        </select>
       </div>
     </div>
 
@@ -291,124 +407,94 @@
 
     <script>
       class RelexEditor {
-        constructor(opts = {}) {
-          // elementos
-          this.stage = opts.stage;
+        constructor({
+          stage,
+          modePill,
+          modeText,
+          maxHeaderFooterParagraphs = 10,
+        }) {
+          this.stage = stage;
+          this.modePill = modePill;
+          this.modeText = modeText;
 
-          this.btnEdit = opts.btnEdit;
-          this.btnDone = opts.btnDone;
+          this.MAX_P_HF = maxHeaderFooterParagraphs;
 
-          this.modePill = opts.modePill;
-          this.modeText = opts.modeText;
-
-          this.tbBold = opts.tbBold;
-          this.tbItalic = opts.tbItalic;
-          this.tbUnder = opts.tbUnder;
-          this.tbClear = opts.tbClear;
-
-          this.tbLeft = opts.tbLeft;
-          this.tbCenter = opts.tbCenter;
-          this.tbRight = opts.tbRight;
-          this.tbJust = opts.tbJust;
-
-          this.tbFont = opts.tbFont;
-          this.tbSize = opts.tbSize;
-          this.tbColor = opts.tbColor;
-
-          // estado
           this.active = null;
           this.insertMode = true;
-          this.MAX_P_HF = 10;
 
           this.savedRange = null;
 
-          // binds
-          this._handlers = [];
-          this._mounted = false;
+          // imagem
+          this.activeImg = null;
+
+          // tabela
+          this.activeTbl = null; // span wrapper
+          this.activeTblRow = null; // <tr> selecionado
+          this.activeTblCell = null; // <td> selecionado
+
+          // bind
+          this._onGlobalKeyDown = this._onGlobalKeyDown.bind(this);
+          this._onStageMouseDown = this._onStageMouseDown.bind(this);
+          this._onSelectionChange = this._onSelectionChange.bind(this);
         }
 
-        mount() {
-          if (this._mounted) return;
-          this._mounted = true;
+        init() {
+          this.stage.appendChild(this._createPage());
+          this._wireTopbar();
+          this._wireStageDelegation();
+          this._wireToolbar();
 
-          // 1) cria primeira página
-          this.stage.appendChild(this.createPage());
+          // seed
+          const first = this.stage.querySelector(".page");
+          first.querySelector(".header-ed").innerHTML = "<p>Empresa XYZ</p>";
+          first.querySelector(".footer-ed").innerHTML = "<p>Rodapé</p>";
+          first.querySelector(".body-ed").innerHTML =
+            "<p>JOAO DA ROCHA LABREGO</p><p>PARÁGRAFO SEGUINTE</p><p>MAIS UM PARÁGRAFO</p>";
 
-          // 2) seed
-          const h = this.stage.querySelector(".header-ed");
-          const f = this.stage.querySelector(".footer-ed");
-          const b = this.stage.querySelector(".body-ed");
-          h.innerHTML = "<p>Empresa XYZ</p>";
-          f.innerHTML = "<p>Rodapé</p>";
-          b.innerHTML = "<p>Duplo clique para editar.</p>";
-
-          // 3) listeners globais + toolbar
-          this.bindUI();
-
-          // 4) auto-start
-          setTimeout(() => {
+          // auto-start no BODY
+          queueMicrotask(() => {
+            const b = first.querySelector(".body-ed");
             this.insertMode = true;
-            this.updateModeUI();
+            this._updateModeUI();
             this.startEdit(b);
-            this.normalizeParagraphs(b);
-            this.placeCaretEnd(b.querySelector("p:last-child"));
-          }, 0);
+            this._normalizeParagraphs(b);
+            this._placeCaretEnd(b.querySelector("p:last-child"));
+          });
         }
 
-        destroy() {
-          for (const { target, type, fn, opt } of this._handlers) {
-            target.removeEventListener(type, fn, opt);
-          }
-          this._handlers = [];
-          this._mounted = false;
-          this.active = null;
-          this.savedRange = null;
-        }
-
-        on(target, type, fn, opt) {
-          target.addEventListener(type, fn, opt);
-          this._handlers.push({ target, type, fn, opt });
-        }
-
-        /* =========================
-           UI / STATE
-        ========================= */
-        updateModeUI() {
+        /* -------------------- UI / estado -------------------- */
+        _updateModeUI() {
           this.modeText.textContent = this.insertMode ? "INS" : "OVR";
           this.modePill.classList.toggle("ovr", !this.insertMode);
-          this.updateCaretUI();
-        }
-        updateCaretUI() {
-          if (!this.active) return;
-          this.active.classList.toggle("ovr-caret", !this.insertMode);
+          if (this.active)
+            this.active.classList.toggle("ovr-caret", !this.insertMode);
         }
 
-        getPageFrom(el) {
+        _getPageFrom(el) {
           return el?.closest?.(".page") || null;
         }
-        setHfModeForPage(pg, on) {
+        _setHfModeForPage(pg, on) {
           if (pg) pg.classList.toggle("hf", !!on);
         }
-        isHeaderOrFooter(ed) {
+        _isHeaderOrFooter(ed) {
           return (
             ed.classList.contains("header-ed") ||
             ed.classList.contains("footer-ed")
           );
         }
-        countParagraphs(ed) {
+        _countParagraphs(ed) {
           return ed.querySelectorAll(":scope > p").length;
         }
 
-        /* =========================
-           SELECTION / CARET
-        ========================= */
-        getSelectionRange() {
+        /* -------------------- seleção / caret -------------------- */
+        _getSelectionRange() {
           const sel = window.getSelection();
           if (!sel || !sel.rangeCount) return null;
           return sel.getRangeAt(0);
         }
-        getActiveParagraph() {
-          const r = this.getSelectionRange();
+
+        _getActiveParagraph() {
+          const r = this._getSelectionRange();
           if (!r) return null;
           const node =
             r.startContainer.nodeType === 3
@@ -416,7 +502,8 @@
               : r.startContainer;
           return node.closest?.("p") || null;
         }
-        placeCaretEnd(node) {
+
+        _placeCaretEnd(node) {
           const r = document.createRange();
           r.selectNodeContents(node);
           r.collapse(false);
@@ -424,7 +511,8 @@
           s.removeAllRanges();
           s.addRange(r);
         }
-        placeCaretStart(node) {
+
+        _placeCaretStart(node) {
           const r = document.createRange();
           r.selectNodeContents(node);
           r.collapse(true);
@@ -433,30 +521,15 @@
           s.addRange(r);
         }
 
-        ensureHasParagraph(container) {
-          if (container.querySelector(":scope > p")) return;
+        _ensureHasParagraph(ed) {
+          if (ed.querySelector(":scope > p")) return;
           const p = document.createElement("p");
           p.appendChild(document.createElement("br"));
-          container.appendChild(p);
-          this.placeCaretStart(p);
+          ed.appendChild(p);
+          this._placeCaretStart(p);
         }
 
-        isCaretAtEndOfParagraph(p, range) {
-          if (!range || !range.collapsed) return false;
-          const post = document.createRange();
-          post.selectNodeContents(p);
-          post.setStart(range.startContainer, range.startOffset);
-          return post.toString() === "";
-        }
-        isCaretAtStartOfParagraph(p, range) {
-          if (!range || !range.collapsed) return false;
-          const pre = document.createRange();
-          pre.selectNodeContents(p);
-          pre.setEnd(range.startContainer, range.startOffset);
-          return pre.toString() === "";
-        }
-
-        isEmptyP(p) {
+        _isEmptyP(p) {
           const txt = (p.textContent || "").replace(/\u00A0/g, " ").trim();
           if (txt !== "") return false;
           const els = [...p.childNodes].filter((n) => n.nodeType === 1);
@@ -464,14 +537,27 @@
             els.length === 0 || (els.length === 1 && els[0].tagName === "BR")
           );
         }
-        isBodyEffectivelyEmpty(bodyEd) {
-          const ps = [...bodyEd.querySelectorAll(":scope > p")];
-          if (ps.length !== 1) return false;
-          return this.isEmptyP(ps[0]);
+
+        _isCaretAtEndOfParagraph(p, range) {
+          if (!range || !range.collapsed) return false;
+          const post = document.createRange();
+          post.selectNodeContents(p);
+          post.setStart(range.startContainer, range.startOffset);
+          return post.toString() === "";
+        }
+        _isCaretAtStartOfParagraph(p, range) {
+          if (!range || !range.collapsed) return false;
+          const pre = document.createRange();
+          pre.selectNodeContents(p);
+          pre.setEnd(range.startContainer, range.startOffset);
+          return pre.toString() === "";
         }
 
-        normalizeParagraphs(ed) {
+        /* -------------------- normalização -------------------- */
+        _normalizeParagraphs(ed) {
           const nodes = [...ed.childNodes];
+
+          // 1) nós soltos / div -> p
           for (const n of nodes) {
             if (n.nodeType === 3) {
               const txt = n.textContent;
@@ -493,6 +579,7 @@
             }
           }
 
+          // 2) p vazio -> br
           ed.querySelectorAll(":scope > p").forEach((p) => {
             const txt = (p.textContent || "").replace(/\u00A0/g, " ").trim();
             if (txt === "" && p.querySelectorAll("br").length === 0) {
@@ -501,67 +588,39 @@
             }
           });
 
-          this.ensureHasParagraph(ed);
+          // 3) garante 1 p
+          this._ensureHasParagraph(ed);
         }
 
-        /* =========================
-           PAGE FACTORY
-        ========================= */
-        createPage() {
+        /* -------------------- páginas -------------------- */
+        _createPage() {
           const p = document.createElement("div");
           p.className = "page";
           p.innerHTML = `
-  <div class="page-inner">
-    <div class="band header">
-      <div class="band-label">Cabeçalho</div>
-      <div class="editable header-ed"></div>
-    </div>
+            <div class="page-inner">
+              <div class="band header">
+                <div class="band-label">Cabeçalho</div>
+                <div class="editable header-ed"></div>
+              </div>
 
-    <div class="band body">
-      <div class="editable body-ed"></div>
-    </div>
+              <div class="band body">
+                <div class="editable body-ed"></div>
+              </div>
 
-    <div class="band footer">
-      <div class="band-label">Rodapé</div>
-      <div class="editable footer-ed"></div>
-    </div>
-  </div>`;
+              <div class="band footer">
+                <div class="band-label">Rodapé</div>
+                <div class="editable footer-ed"></div>
+              </div>
+            </div>`;
 
-          p.querySelectorAll(".editable").forEach((ed) => this.wireEditable(ed));
-
-          // clicar no fundo ativa; clicar/arrastar dentro do conteúdo mantém seleção
-          p.querySelector(".header").addEventListener("mousedown", (e) => {
-            if (e.target.closest(".editable")) return;
-            e.preventDefault();
-            const hed = p.querySelector(".header-ed");
-            this.startEdit(hed);
-            this.ensureHasParagraph(hed);
-            this.placeCaretEnd(hed.querySelector("p:last-child"));
-          });
-
-          p.querySelector(".footer").addEventListener("mousedown", (e) => {
-            if (e.target.closest(".editable")) return;
-            e.preventDefault();
-            const fed = p.querySelector(".footer-ed");
-            this.startEdit(fed);
-            this.ensureHasParagraph(fed);
-            this.placeCaretStart(fed.querySelector("p:first-child"));
-          });
-
-          p.querySelector(".body").addEventListener("mousedown", (e) => {
-            if (e.target.closest(".editable")) return;
-            e.preventDefault();
-            const bed = p.querySelector(".body-ed");
-            this.startEdit(bed);
-            this.ensureHasParagraph(bed);
-            this.placeCaretEnd(bed.querySelector("p:last-child"));
-          });
-
+          p.querySelectorAll(".editable").forEach((ed) =>
+            this._wireEditable(ed),
+          );
           return p;
         }
 
-        createNextPage() {
-          const p = this.createPage();
+        _createNextPage() {
+          const p = this._createPage();
           const first = this.stage.querySelector(".page");
           p.querySelector(".header-ed").innerHTML =
             first.querySelector(".header-ed").innerHTML;
@@ -571,43 +630,317 @@
           return p;
         }
 
-        /* =========================
-           EDIT MODE
-        ========================= */
-        startEdit(el) {
+        /* -------------------- edição -------------------- */
+        startEdit(ed) {
+          if (this.active === ed) return;
+
           this.stopEdit();
-          this.active = el;
 
-          el.spellcheck = false;
-          el.contentEditable = "true";
-          el.classList.add("editing");
-          this.updateCaretUI();
-          el.focus({ preventScroll: true });
+          this.active = ed;
+          ed.spellcheck = false;
+          ed.contentEditable = "true";
+          ed.classList.add("editing");
+          ed.classList.toggle("ovr-caret", !this.insertMode);
+          ed.focus({ preventScroll: true });
 
-          this.normalizeParagraphs(el);
+          this._normalizeParagraphs(ed);
 
-          const pg = this.getPageFrom(el);
-          this.setHfModeForPage(pg, this.isHeaderOrFooter(el));
+          const pg = this._getPageFrom(ed);
+          this._setHfModeForPage(pg, this._isHeaderOrFooter(ed));
         }
 
         stopEdit() {
           if (!this.active) return;
-          const pg = this.getPageFrom(this.active);
+          const pg = this._getPageFrom(this.active);
+
           this.active.contentEditable = "false";
           this.active.classList.remove("editing", "ovr-caret");
           this.active = null;
-          this.setHfModeForPage(pg, false);
+
+          this._setHfModeForPage(pg, false);
         }
 
-        /* =========================
-           PAGINATION (BODY only)
-        ========================= */
+        /* -------------------- eventos: topbar / globais -------------------- */
+        _wireTopbar() {
+          this._updateModeUI();
+
+          document.addEventListener("keydown", this._onGlobalKeyDown);
+          document.addEventListener("selectionchange", this._onSelectionChange);
+        }
+
+        _onGlobalKeyDown(e) {
+          if (!this.active) return;
+
+          if (e.key === "Insert") {
+            e.preventDefault();
+            this.insertMode = !this.insertMode;
+            this._updateModeUI();
+          }
+        }
+
+        /* -------------------- eventos: mouse -------------------- */
+        _wireStageDelegation() {
+          this.stage.addEventListener(
+            "mousedown",
+            this._onStageMouseDown,
+            true,
+          );
+        }
+
+        _onStageMouseDown(e) {
+          if (e.target.closest(".topbar")) return;
+          if (!e.target.closest(".rx-tbl-wrap")) this._clearActiveTable();
+          if (e.button !== 0) return;
+
+          const ed = e.target.closest(".editable");
+          if (ed) {
+            if (ed !== this.active) this.startEdit(ed);
+            return;
+          }
+
+          const band = e.target.closest(".band");
+          if (!band) return;
+
+          e.preventDefault();
+
+          const targetEd = band.querySelector(".editable");
+          if (!targetEd) return;
+
+          this.startEdit(targetEd);
+          this._ensureHasParagraph(targetEd);
+
+          if (targetEd.classList.contains("footer-ed")) {
+            this._placeCaretStart(targetEd.querySelector("p:first-child"));
+          } else {
+            this._placeCaretEnd(targetEd.querySelector("p:last-child"));
+          }
+        }
+
+        _clearActiveTable() {
+          if (this.activeTblCell)
+            this.activeTblCell.classList.remove("sel-cell");
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+          if (this.activeTbl) this.activeTbl.classList.remove("sel-table");
+
+          this.activeTbl = null;
+          this.activeTblRow = null;
+          this.activeTblCell = null;
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = "";
+        }
+
+        /* -------------------- editable: teclado / input -------------------- */
+        // ✅ helper novo
+        _toggleTblRow(tblWrap, tr) {
+          // se mudou de tabela, limpa tudo
+          if (this.activeTbl && this.activeTbl !== tblWrap)
+            this._clearActiveTable();
+
+          const isSame = this.activeTbl === tblWrap && this.activeTblRow === tr;
+
+          if (isSame) {
+            // ✅ desmarca linha, mas mantém tabela selecionada
+            if (this.activeTblRow)
+              this.activeTblRow.classList.remove("sel-row");
+            this.activeTblRow = null;
+
+            if (!this.activeTbl) this._setActiveTable(tblWrap);
+            const sel = document.getElementById("tbRowKind");
+            if (sel) sel.value = "";
+            return;
+          }
+
+          this._setActiveTblRow(tblWrap, tr);
+        }
+
+        _wireEditable(ed) {
+          ed.addEventListener(
+            "mousedown",
+            (e) => {
+              // 1) TABELA
+              const tbl = e.target.closest?.(".rx-tbl-wrap");
+              if (tbl) {
+                const tr = e.target.closest("tr");
+                const td = e.target.closest("td");
+
+                // ✅ CTRL: nunca seleciona célula
+                if (e.ctrlKey) {
+                  e.preventDefault();
+                  e.stopPropagation();
+
+                  // ctrl+clique em célula/linha => alterna linha
+                  if (tr) {
+                    this._toggleTblRow(tbl, tr);
+                    return;
+                  }
+
+                  // ctrl+clique fora de tr (ex: borda do wrap) => só tabela
+                  this._setActiveTable(tbl);
+                  return;
+                }
+
+                // ✅ clique normal: seleciona célula
+                if (td) {
+                  this._setActiveTblCell(tbl, td);
+                  return;
+                }
+
+                // clique normal no wrap mas não em td => só tabela
+                this._setActiveTable(tbl);
+                return;
+              }
+
+              // 2) IMAGEM
+              const img = e.target.closest?.("img.rx-img");
+              if (img) {
+                this._setActiveImg(img);
+                return;
+              }
+
+              // 3) clique fora
+              this._clearActiveImg();
+              this._clearActiveTable();
+            },
+            true,
+          );
+
+          ed.addEventListener("beforeinput", (e) => {
+            if (ed !== this.active) return;
+            if (e.isComposing) return;
+
+            if (this._isHeaderOrFooter(ed)) {
+              const isEnter =
+                e.inputType === "insertParagraph" ||
+                e.inputType === "insertLineBreak";
+              if (isEnter && this._countParagraphs(ed) >= this.MAX_P_HF) {
+                e.preventDefault();
+                return;
+              }
+            }
+
+            if (
+              !this.insertMode &&
+              e.inputType === "insertText" &&
+              typeof e.data === "string" &&
+              e.data.length === 1
+            ) {
+              const r = this._getSelectionRange();
+              if (!r || !r.collapsed) return;
+              const sc = r.startContainer;
+              const so = r.startOffset;
+              if (sc && sc.nodeType === 3 && so < sc.data.length)
+                sc.deleteData(so, 1);
+            }
+          });
+
+          ed.addEventListener("input", () => {
+            if (ed !== this.active) return;
+            this._normalizeParagraphs(ed);
+            requestAnimationFrame(() => this.paginate());
+          });
+
+          ed.addEventListener("keydown", (e) => {
+            if (ed !== this.active) return;
+
+            // troca HF via setas
+            if (e.key === "ArrowDown" && ed.classList.contains("header-ed")) {
+              const pg = this._getPageFrom(ed);
+              const p = this._getActiveParagraph();
+              if (pg && p && !p.nextElementSibling) {
+                e.preventDefault();
+                const fed = pg.querySelector(".footer-ed");
+                this.startEdit(fed);
+                this._normalizeParagraphs(fed);
+                this._placeCaretStart(fed.querySelector("p:first-child"));
+              }
+              return;
+            }
+
+            if (e.key === "ArrowUp" && ed.classList.contains("footer-ed")) {
+              const pg = this._getPageFrom(ed);
+              const p = this._getActiveParagraph();
+              if (pg && p && !p.previousElementSibling) {
+                e.preventDefault();
+                const hed = pg.querySelector(".header-ed");
+                this.startEdit(hed);
+                this._normalizeParagraphs(hed);
+                this._placeCaretEnd(hed.querySelector("p:last-child"));
+              }
+              return;
+            }
+
+            // Cross-page DEL no BODY
+            if (e.key === "Delete" && ed.classList.contains("body-ed")) {
+              const r = this._getSelectionRange();
+              const p = this._getActiveParagraph();
+              if (
+                r &&
+                p &&
+                this._isCaretAtEndOfParagraph(p, r) &&
+                !p.nextElementSibling
+              ) {
+                const pages = [...this.stage.querySelectorAll(".page")];
+                const pg = this._getPageFrom(ed);
+                const i = pages.indexOf(pg);
+                const nextPg = i >= 0 ? pages[i + 1] : null;
+                if (nextPg) {
+                  const nextBody = nextPg.querySelector(".body-ed");
+                  const firstNextP = nextBody?.querySelector(
+                    ":scope > p:first-child",
+                  );
+                  if (firstNextP) {
+                    e.preventDefault();
+                    ed.appendChild(firstNextP);
+                    this._ensureHasParagraph(nextBody);
+                    this._placeCaretEnd(p);
+                    requestAnimationFrame(() => this.paginate());
+                  }
+                }
+              }
+              return;
+            }
+
+            // Cross-page BACKSPACE no BODY
+            if (e.key === "Backspace" && ed.classList.contains("body-ed")) {
+              const r = this._getSelectionRange();
+              const p = this._getActiveParagraph();
+              if (
+                r &&
+                p &&
+                this._isCaretAtStartOfParagraph(p, r) &&
+                !p.previousElementSibling
+              ) {
+                const pages = [...this.stage.querySelectorAll(".page")];
+                const pg = this._getPageFrom(ed);
+                const i = pages.indexOf(pg);
+                const prevPg = i > 0 ? pages[i - 1] : null;
+                if (prevPg) {
+                  const prevBody = prevPg.querySelector(".body-ed");
+                  const lastPrevP = prevBody?.querySelector(
+                    ":scope > p:last-child",
+                  );
+                  if (prevBody && lastPrevP) {
+                    e.preventDefault();
+                    prevBody.appendChild(p);
+                    this._ensureHasParagraph(ed);
+                    this._placeCaretEnd(p);
+                    requestAnimationFrame(() => this.paginate());
+                  }
+                }
+              }
+              return;
+            }
+          });
+        }
+
+        /* -------------------- paginação -------------------- */
         paginate() {
           const pages = [...this.stage.querySelectorAll(".page")];
 
           const ensureNextPage = (i) => {
             if (pages[i + 1]) return pages[i + 1];
-            const created = this.createNextPage();
+            const created = this._createNextPage();
             pages.push(created);
             return created;
           };
@@ -629,181 +962,236 @@
             }
           });
 
-          this.pruneEmptyTailPages();
+          this._pruneEmptyTailPages();
         }
 
-        pruneEmptyTailPages() {
+        _isBodyEffectivelyEmpty(bodyEd) {
+          const ps = [...bodyEd.querySelectorAll(":scope > p")];
+          return ps.length === 1 && this._isEmptyP(ps[0]);
+        }
+
+        _pruneEmptyTailPages() {
           let pages = [...this.stage.querySelectorAll(".page")];
+
           for (let i = pages.length - 1; i > 0; i--) {
             const pg = pages[i];
             const body = pg.querySelector(".body-ed");
             if (!body) break;
 
-            if (this.isBodyEffectivelyEmpty(body)) {
+            if (this._isBodyEffectivelyEmpty(body)) {
               if (this.active && pg.contains(this.active)) {
                 const prev = pages[i - 1];
                 const prevBody = prev.querySelector(".body-ed");
                 this.startEdit(prevBody);
-                this.normalizeParagraphs(prevBody);
-                this.placeCaretEnd(prevBody.querySelector("p:last-child"));
+                this._normalizeParagraphs(prevBody);
+                this._placeCaretEnd(prevBody.querySelector("p:last-child"));
               }
               pg.remove();
             } else {
               break;
             }
+
             pages = [...this.stage.querySelectorAll(".page")];
           }
         }
 
-        /* =========================
-           EDITABLE RULES
-        ========================= */
-        wireEditable(el) {
-          el.addEventListener("beforeinput", (e) => {
-            if (el !== this.active) return;
-            if (e.isComposing) return;
+        /* -------------------- toolbar (formatação + imagem) -------------------- */
+        _wireToolbar() {
+          const $ = (id) => document.getElementById(id);
 
-            // bloqueio do Enter no header/footer
-            if (this.isHeaderOrFooter(el)) {
-              const isEnter =
-                e.inputType === "insertParagraph" ||
-                e.inputType === "insertLineBreak";
-              if (isEnter && this.countParagraphs(el) >= this.MAX_P_HF) {
-                e.preventDefault();
-                return;
-              }
-            }
+          const applyCmd = (cmd, value = null) => {
+            if (!this.active) return;
 
-            // OVR: apaga 1 char à direita antes de inserir
-            if (
-              !this.insertMode &&
-              e.inputType === "insertText" &&
-              typeof e.data === "string" &&
-              e.data.length === 1
-            ) {
-              const r = this.getSelectionRange();
-              if (!r || !r.collapsed) return;
-              const sc = r.startContainer;
-              const so = r.startOffset;
-              if (sc && sc.nodeType === 3 && so < sc.data.length) {
-                sc.deleteData(so, 1);
-              }
-            }
-          });
+            if (!this._restoreSelection() && !this._selectionInsideActive())
+              return;
 
-          el.addEventListener("input", () => {
-            if (el !== this.active) return;
-            this.normalizeParagraphs(el);
+            const host = this._getCommandHost();
+            if (!host) return;
+
+            host.focus({ preventScroll: true }); // ✅ foco no TD quando for célula
+            document.execCommand(cmd, false, value);
+
+            this._saveSelection();
+          };
+
+          $("tbBold").onclick = () => applyCmd("bold");
+          $("tbItalic").onclick = () => applyCmd("italic");
+          $("tbUnder").onclick = () => applyCmd("underline");
+          $("tbClear").onclick = () => applyCmd("removeFormat");
+
+          $("tbLeft").onclick = () => applyCmd("justifyLeft");
+          $("tbCenter").onclick = () => applyCmd("justifyCenter");
+          $("tbRight").onclick = () => applyCmd("justifyRight");
+          $("tbJust").onclick = () => applyCmd("justifyFull");
+
+          $("tbFont").onchange = (e) => {
+            const v = e.target.value;
+            if (!v) return;
+            applyCmd("fontName", v);
+            e.target.value = "";
+          };
+
+          $("tbSize").onchange = (e) => {
+            const v = e.target.value;
+            if (!v) return;
+            applyCmd("fontSize", v);
+            e.target.value = "";
+          };
+
+          $("tbColor").oninput = (e) => {
+            const v = e.target.value;
+            applyCmd("foreColor", v);
+          };
+
+          // ===== imagem =====
+          const tbImgFile = $("tbImgFile");
+
+          $("tbImgIns").onclick = () => {
+            if (!this.active) return;
+            // garante ter um range salvo (se não tiver, usa o atual)
+            if (!this.savedRange) this._saveSelection();
+            tbImgFile.value = "";
+            tbImgFile.click();
+          };
+
+          tbImgFile.addEventListener("change", async () => {
+            if (!this.active) return;
+            if (!this.savedRange) this._saveSelection();
+            if (!this._restoreSelection() && !this._selectionInsideActive())
+              return;
+
+            const file = tbImgFile.files && tbImgFile.files[0];
+            if (!file) return;
+
+            const dataUrl = await new Promise((resolve, reject) => {
+              const fr = new FileReader();
+              fr.onload = () => resolve(fr.result);
+              fr.onerror = reject;
+              fr.readAsDataURL(file);
+            });
+
+            this.active.focus({ preventScroll: true });
+
+            const img = document.createElement("img");
+            img.className = "rx-img";
+            img.src = dataUrl;
+            img.alt = file.name || "imagem";
+            img.style.setProperty("--iw", "80px");
+
+            // insere NO <p> atual, na posição do cursor
+            this._insertImageInCurrentParagraphAtCaret(img);
+
+            this._setActiveImg(img);
+            this._saveSelection();
             requestAnimationFrame(() => this.paginate());
           });
 
-          el.addEventListener("keydown", (e) => {
-            if (el !== this.active) return;
+          $("tbImgLeft").onclick = () => this._moveImgChar(-1);
+          $("tbImgRight").onclick = () => this._moveImgChar(1);
+          $("tbImgUp").onclick = () => this._moveImgToParagraph(-1);
+          $("tbImgDown").onclick = () => this._moveImgToParagraph(1);
 
-            // DEL cross-page no BODY
-            if (e.key === "Delete" && el.classList.contains("body-ed")) {
-              const r = this.getSelectionRange();
-              const p = this.getActiveParagraph();
-              if (r && p && this.isCaretAtEndOfParagraph(p, r)) {
-                const isLastP = !p.nextElementSibling;
-                if (isLastP) {
-                  const pages = [...this.stage.querySelectorAll(".page")];
-                  const pg = this.getPageFrom(el);
-                  const i = pages.indexOf(pg);
-                  const nextPg = i >= 0 ? pages[i + 1] : null;
+          $("tbImgSm").onclick = () => this._resizeImg(-10);
+          $("tbImgLg").onclick = () => this._resizeImg(10);
 
-                  if (nextPg) {
-                    const nextBody = nextPg.querySelector(".body-ed");
-                    const firstNextP = nextBody?.querySelector(
-                      ":scope > p:first-child",
-                    );
-                    if (firstNextP) {
-                      e.preventDefault();
-                      el.appendChild(firstNextP);
-                      this.ensureHasParagraph(nextBody);
-                      this.placeCaretEnd(p);
-                      requestAnimationFrame(() => this.paginate());
-                      return;
-                    }
-                  }
-                }
-              }
-            }
+          // ===== tabela: mover como imagem =====
+          $("tbImgLeft").onclick = () => {
+            if (this.activeTbl) this._moveTblChar(-1);
+            else this._moveImgChar(-1);
+          };
 
-            // BACKSPACE cross-page no BODY
-            if (e.key === "Backspace" && el.classList.contains("body-ed")) {
-              const r = this.getSelectionRange();
-              const p = this.getActiveParagraph();
-              if (r && p && this.isCaretAtStartOfParagraph(p, r)) {
-                const isFirstP = !p.previousElementSibling;
-                if (isFirstP) {
-                  const pages = [...this.stage.querySelectorAll(".page")];
-                  const pg = this.getPageFrom(el);
-                  const i = pages.indexOf(pg);
-                  const prevPg = i > 0 ? pages[i - 1] : null;
+          $("tbImgRight").onclick = () => {
+            if (this.activeTbl) this._moveTblChar(1);
+            else this._moveImgChar(1);
+          };
 
-                  if (prevPg) {
-                    const prevBody = prevPg.querySelector(".body-ed");
-                    const lastPrevP = prevBody?.querySelector(
-                      ":scope > p:last-child",
-                    );
-                    if (prevBody && lastPrevP) {
-                      e.preventDefault();
-                      prevBody.appendChild(p);
-                      this.ensureHasParagraph(el);
-                      this.placeCaretEnd(p);
-                      requestAnimationFrame(() => this.paginate());
-                      return;
-                    }
-                  }
-                }
-              }
-            }
+          $("tbImgUp").onclick = () => {
+            if (this.activeTbl) this._moveTblToParagraph(-1);
+            else this._moveImgToParagraph(-1);
+          };
 
-            // setas HF (troca header<->footer)
-            if (e.key === "ArrowDown" && el.classList.contains("header-ed")) {
-              const pg = this.getPageFrom(el);
-              const p = this.getActiveParagraph();
-              if (pg && p && !p.nextElementSibling) {
-                e.preventDefault();
-                const fed = pg.querySelector(".footer-ed");
-                this.startEdit(fed);
-                this.normalizeParagraphs(fed);
-                this.placeCaretStart(fed.querySelector("p:first-child"));
-              }
+          $("tbImgDown").onclick = () => {
+            if (this.activeTbl) this._moveTblToParagraph(1);
+            else this._moveImgToParagraph(1);
+          };
+
+          // ===== tabela =====
+          const MAX_TABLE_RC = 20;
+
+          $("tbTblNew").onclick = () => {
+            if (!this.active) return;
+
+            const r1 = prompt(`Número de linhas (1..${MAX_TABLE_RC})`, "3");
+            if (r1 == null) return;
+            const rows = parseInt(r1, 10);
+
+            const r2 = prompt(`Número de colunas (1..${MAX_TABLE_RC})`, "3");
+            if (r2 == null) return;
+            const cols = parseInt(r2, 10);
+
+            if (!Number.isFinite(rows) || !Number.isFinite(cols)) return;
+            if (rows < 1 || cols < 1) return;
+            if (rows > MAX_TABLE_RC || cols > MAX_TABLE_RC) return;
+
+            if (!this.savedRange) this._saveSelection();
+            if (!this._restoreSelection() && !this._selectionInsideActive())
               return;
+
+            this.active.focus({ preventScroll: true });
+            this._insertTableAtCaret(rows, cols);
+            requestAnimationFrame(() => this.paginate());
+          };
+
+          $("tbRowKind").onchange = (e) => {
+            const kind = e.target.value || "";
+            if (!this.activeTblRow) return;
+            this._setRowKind(this.activeTblRow, kind);
+          };
+
+          let portrait = true;
+
+          $("tbOrientation").onclick = () => {
+            portrait = !portrait;
+
+            const root = document.documentElement.style;
+
+            if (portrait) {
+              root.setProperty("--page-w", "210mm");
+              root.setProperty("--page-h", "297mm");
+            } else {
+              root.setProperty("--page-w", "297mm");
+              root.setProperty("--page-h", "210mm");
             }
 
-            if (e.key === "ArrowUp" && el.classList.contains("footer-ed")) {
-              const pg = this.getPageFrom(el);
-              const p = this.getActiveParagraph();
-              if (pg && p && !p.previousElementSibling) {
-                e.preventDefault();
-                const hed = pg.querySelector(".header-ed");
-                this.startEdit(hed);
-                this.normalizeParagraphs(hed);
-                this.placeCaretEnd(hed.querySelector("p:last-child"));
-              }
-              return;
-            }
-          });
+            requestAnimationFrame(() => this.paginate());
+          };
+
+          const borderColor = () =>
+            document.getElementById("tbColor")?.value || "#000";
+
+          $("tbBorder").onchange = (e) => {
+            const v = e.target.value;
+            if (v === "") return;
+
+            const color = borderColor();
+
+            const cssBorder = v === "none" ? "none" : `${v}px solid ${color}`;
+            this._applyBorder(cssBorder);
+
+            e.target.value = "";
+          };
+          $("tbRadius").onchange = (e) => {
+            const v = e.target.value;
+            if (v === "") return;
+
+            this._applyRadius(v + "px");
+
+            // opcional: volta pro placeholder
+            e.target.value = "";
+          };
         }
 
-        /* =========================
-           TOOLBAR
-        ========================= */
-        saveSelection() {
-          const sel = window.getSelection();
-          if (sel && sel.rangeCount) this.savedRange = sel.getRangeAt(0).cloneRange();
-        }
-        restoreSelection() {
-          if (!this.savedRange) return false;
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(this.savedRange);
-          return true;
-        }
-        selectionInsideActive() {
+        _selectionInsideActive() {
           if (!this.active) return false;
           const sel = window.getSelection();
           if (!sel || sel.rangeCount === 0) return false;
@@ -814,119 +1202,808 @@
               : r.commonAncestorContainer;
           return this.active.contains(a);
         }
-        applyCmd(cmd, value = null) {
+
+        _onSelectionChange() {
           if (!this.active) return;
-          if (!this.restoreSelection() && !this.selectionInsideActive()) return;
-          document.execCommand(cmd, false, value);
+          if (!this._selectionInsideActive()) return;
+          this._saveSelection();
         }
 
-        /* =========================
-           BIND UI (global + toolbar)
-        ========================= */
-        bindUI() {
-          this.updateModeUI();
+        _saveSelection() {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount)
+            this.savedRange = sel.getRangeAt(0).cloneRange();
+        }
 
-          // botões Edit/Done
-          this.on(this.btnEdit, "click", () => {
-            const b = this.stage.querySelector(".body-ed");
-            this.startEdit(b);
-            this.ensureHasParagraph(b);
-            this.placeCaretEnd(b.querySelector("p:last-child"));
-          });
+        _restoreSelection() {
+          if (!this.savedRange) return false;
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(this.savedRange);
+          return true;
+        }
 
-          this.on(this.btnDone, "click", () => this.stopEdit());
+        /* ==========================
+           IMAGEM: lógica “dentro do <p>”
+        ========================== */
 
-          // INS
-          this.on(document, "keydown", (e) => {
-            if (!this.active) return;
-            if (e.key === "Insert") {
-              e.preventDefault();
-              this.insertMode = !this.insertMode;
-              this.updateModeUI();
-            }
-          });
+        _setActiveImg(img) {
+          if (this.activeImg && this.activeImg !== img)
+            this.activeImg.classList.remove("sel");
+          this.activeImg = img || null;
+          if (this.activeImg) this.activeImg.classList.add("sel");
+        }
+        _clearActiveImg() {
+          if (this.activeImg) this.activeImg.classList.remove("sel");
+          this.activeImg = null;
+        }
 
-          // ✅ clique/arrasto dentro de qualquer .editable => vira active (sem bloquear seleção)
-          this.on(
-            this.stage,
-            "mousedown",
-            (e) => {
-              const ed = e.target.closest(".editable");
-              if (!ed) return;
-              if (ed !== this.active) this.startEdit(ed);
-            },
-            true,
+        _getTargetImg() {
+          if (
+            this.activeImg &&
+            this.active &&
+            this.active.contains(this.activeImg)
+          )
+            return this.activeImg;
+
+          const r = this.savedRange || this._getSelectionRange();
+          if (!r || !this.active) return null;
+          const node =
+            r.commonAncestorContainer.nodeType === 3
+              ? r.commonAncestorContainer.parentNode
+              : r.commonAncestorContainer;
+          return node.closest?.("img.rx-img") || null;
+        }
+
+        _insertImageInCurrentParagraphAtCaret(img) {
+          // garante que o caret esteja dentro de um <p>
+          const r = this._getSelectionRange();
+          const p = this._getActiveParagraph();
+          if (!r || !p) return;
+
+          // colapsa no início da seleção
+          if (!r.collapsed) r.collapse(true);
+
+          // insere IMG exatamente no range
+          r.insertNode(img);
+
+          // spacer (pra caret não ficar “colado” e permitir digitação)
+          const spacer = document.createTextNode("\u00A0");
+          img.after(spacer);
+
+          // caret depois do spacer
+          const nr = document.createRange();
+          nr.setStartAfter(spacer);
+          nr.collapse(true);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(nr);
+          this._saveSelection();
+        }
+
+        _getTextOffsetBeforeNode(container, node) {
+          const r = document.createRange();
+          r.selectNodeContents(container);
+          r.setEndBefore(node);
+          return r.toString().length;
+        }
+
+        _getTextLength(container) {
+          const r = document.createRange();
+          r.selectNodeContents(container);
+          return r.toString().length;
+        }
+
+        _insertNodeAtTextOffset(container, node, offset) {
+          const total = this._getTextLength(container);
+          if (offset < 0) offset = 0;
+          if (offset > total) offset = total;
+
+          const tw = document.createTreeWalker(
+            container,
+            NodeFilter.SHOW_TEXT,
+            null,
           );
+          let cur;
+          let remaining = offset;
 
-          // selectionchange: salva até caret colapsado
-          this.on(document, "selectionchange", () => {
-            if (!this.active) return;
-            if (!this.selectionInsideActive()) return;
-            const sel = window.getSelection();
-            if (!sel || sel.rangeCount === 0) return;
-            this.saveSelection();
+          while ((cur = tw.nextNode())) {
+            const len = cur.nodeValue.length;
+
+            if (remaining <= len) {
+              if (remaining === 0) {
+                cur.parentNode.insertBefore(node, cur);
+              } else if (remaining === len) {
+                cur.parentNode.insertBefore(node, cur.nextSibling);
+              } else {
+                const right = cur.splitText(remaining);
+                right.parentNode.insertBefore(node, right);
+              }
+              return;
+            }
+            remaining -= len;
+          }
+          container.appendChild(node);
+        }
+
+        _cleanupEmptyTextNodes(p) {
+          // remove text nodes vazios / só NBSP
+          const toRemove = [];
+          for (const n of p.childNodes) {
+            if (n.nodeType !== 3) continue;
+            const t = (n.nodeValue || "").replace(/\u00A0/g, "");
+            if (t === "") toRemove.push(n);
+          }
+          toRemove.forEach((n) => n.remove());
+          // garante um <br> se ficou vazio
+          if (
+            !p.textContent.trim() &&
+            p.querySelectorAll("img.rx-img").length === 0
+          ) {
+            p.innerHTML = "";
+            p.appendChild(document.createElement("br"));
+          }
+        }
+
+        _moveImgChar(dir) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this.active.focus({ preventScroll: true });
+
+          const img = this._getTargetImg();
+          if (!img) return;
+
+          const p = img.closest("p");
+          if (!p) return;
+
+          const pos = this._getTextOffsetBeforeNode(p, img);
+          const total = this._getTextLength(p);
+
+          img.remove();
+          this._cleanupEmptyTextNodes(p);
+
+          let nextPos = pos + dir;
+          if (nextPos < 0) nextPos = 0;
+          if (nextPos > total) nextPos = total;
+
+          this._insertNodeAtTextOffset(p, img, nextPos);
+
+          // caret depois da imagem
+          const r = document.createRange();
+          r.setStartAfter(img);
+          r.collapse(true);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+          this._saveSelection();
+
+          this._setActiveImg(img);
+          requestAnimationFrame(() => this.paginate());
+        }
+
+        _moveImgToParagraph(dir) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this.active.focus({ preventScroll: true });
+
+          const img = this._getTargetImg();
+          if (!img) return;
+
+          const p = img.closest("p");
+          if (!p) return;
+
+          // ⚠️ regra: isso é navegação de parágrafos do BODY
+          const bodyEd = p.closest(".body-ed");
+          const pg = this._getPageFrom(bodyEd || p);
+
+          // alvo "normal": parágrafo anterior/próximo na mesma página
+          let target =
+            dir > 0 ? p.nextElementSibling : p.previousElementSibling;
+
+          // se existe, mas não é <p>, aborta (segurança)
+          if (target && target.tagName !== "P") return;
+
+          // ===== cross-page =====
+          if (!target && bodyEd && pg) {
+            const pages = [...this.stage.querySelectorAll(".page")];
+            const i = pages.indexOf(pg);
+
+            const firstP = bodyEd.querySelector(":scope > p:first-child");
+            const lastP = bodyEd.querySelector(":scope > p:last-child");
+
+            if (dir > 0 && p === lastP) {
+              // ↓ no último parágrafo: vai para o primeiro parágrafo da PRÓXIMA página
+              let nextPg = pages[i + 1];
+              if (!nextPg) {
+                nextPg = this._createNextPage();
+                pages.push(nextPg);
+              }
+
+              const nextBody = nextPg.querySelector(".body-ed");
+              this._ensureHasParagraph(nextBody);
+              target = nextBody.querySelector(":scope > p:first-child");
+            }
+
+            if (dir < 0 && p === firstP) {
+              // ↑ no primeiro parágrafo: vai para o último parágrafo da PÁGINA ANTERIOR
+              if (i <= 0) return; // exceção: primeira página -> para
+
+              const prevPg = pages[i - 1];
+              const prevBody = prevPg.querySelector(".body-ed");
+              this._ensureHasParagraph(prevBody);
+              target = prevBody.querySelector(":scope > p:last-child");
+            }
+          }
+
+          // se ainda não achou alvo, não faz nada
+          if (!target || target.tagName !== "P") return;
+
+          img.remove();
+          this._cleanupEmptyTextNodes(p);
+
+          // início do parágrafo alvo (offset 0)
+          const at = dir > 0 ? 0 : this._getTextLength(target);
+          this._insertNodeAtTextOffset(target, img, at);
+          // ✅ garante que o editor destino vire o "active"
+          const targetEd = target.closest(".editable");
+          if (targetEd && targetEd !== this.active) {
+            this.startEdit(targetEd);
+          }
+
+          // opcional: rolar até o parágrafo destino
+          target.scrollIntoView({ block: "nearest" });
+
+          // caret depois da imagem
+          const r = document.createRange();
+          r.setStartAfter(img);
+          r.collapse(true);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+          this._saveSelection();
+
+          this._setActiveImg(img);
+          requestAnimationFrame(() => this.paginate());
+        }
+
+        _resizeImg(deltaPx) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this.active.focus({ preventScroll: true });
+
+          const img = this._getTargetImg();
+          if (!img) return;
+
+          const cur = (img.style.getPropertyValue("--iw") || "").trim();
+          let w = 80;
+
+          if (cur.endsWith("px")) w = parseFloat(cur);
+          else w = Math.round(img.getBoundingClientRect().width);
+
+          w = Math.max(20, w + deltaPx);
+          img.style.setProperty("--iw", `${w}px`);
+
+          this._setActiveImg(img);
+          this._saveSelection();
+          requestAnimationFrame(() => this.paginate());
+        }
+
+        _setActiveTblRow(tblWrap, tr) {
+          // limpa anterior
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+          if (this.activeTbl && this.activeTbl !== tblWrap)
+            this.activeTbl.classList.remove("sel-table");
+
+          this.activeTbl = tblWrap;
+          this.activeTblRow = tr;
+
+          tblWrap.classList.add("sel-table");
+          tr.classList.add("sel-row");
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = tr.dataset.kind || "";
+        }
+
+        _createTbl(rows, cols) {
+          const wrap = document.createElement("span");
+          wrap.className = "rx-tbl-wrap";
+          wrap.dataset.cols = String(cols);
+          wrap.contentEditable = "false";
+          wrap.tabIndex = 0; // permite foco/teclado depois se quiser
+
+          const table = document.createElement("table");
+          table.className = "rx-tbl";
+
+          const tb = document.createElement("tbody");
+
+          for (let r = 0; r < rows; r++) {
+            const tr = document.createElement("tr");
+            tr.dataset.kind = "detail"; // default
+
+            for (let c = 0; c < cols; c++) {
+              const td = document.createElement("td");
+              td.contentEditable = "true"; // ✅ ESSENCIAL
+              td.appendChild(document.createElement("br"));
+              tr.appendChild(td);
+            }
+            tb.appendChild(tr);
+          }
+
+          table.appendChild(tb);
+          wrap.appendChild(table);
+          return wrap;
+        }
+
+        _setRowKind(tr, kind) {
+          // unicidade
+          if (kind === "titles" || kind === "detail") {
+            const tbl = tr.closest(".rx-tbl");
+            const other = tbl.querySelector(`tr[data-kind="${kind}"]`);
+            if (other && other !== tr) other.dataset.kind = ""; // ou "none"
+          }
+          if (!tr) return;
+
+          tr.dataset.kind = kind || "";
+
+          const wrap = tr.closest(".rx-tbl-wrap");
+          const cols = parseInt(wrap?.dataset?.cols || "1", 10);
+
+          // grupo/total => 1 célula com colspan
+          if (kind === "group" || kind === "total") {
+            const tds = tr.querySelectorAll(":scope > td");
+            if (tds.length === 1 && tds[0].colSpan === cols) return; // já está ok
+
+            const td = document.createElement("td");
+            td.colSpan = cols;
+            td.contentEditable = "true";
+            td.appendChild(document.createElement("br"));
+            tr.innerHTML = "";
+            tr.appendChild(td);
+            return;
+          }
+
+          // titles/detail => volta a ter colunas
+          // (se já tem cols, não mexe)
+          const tds = tr.querySelectorAll(":scope > td");
+          if (tds.length === cols) return;
+
+          tr.innerHTML = "";
+          for (let c = 0; c < cols; c++) {
+            const td = document.createElement("td");
+            td.contentEditable = "true";
+            td.appendChild(document.createElement("br"));
+            tr.appendChild(td);
+          }
+        }
+
+        _insertTableAtCaret(rows, cols) {
+          const r = this._getSelectionRange();
+          const p = this._getActiveParagraph();
+          if (!r || !p) return;
+
+          if (!r.collapsed) r.collapse(true);
+
+          const wrap = this._createTbl(rows, cols);
+
+          r.insertNode(wrap);
+
+          // spacer pra caret e digitação depois da tabela
+          const spacer = document.createTextNode("\u00A0");
+          wrap.after(spacer);
+
+          const nr = document.createRange();
+          nr.setStartAfter(spacer);
+          nr.collapse(true);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(nr);
+          this._saveSelection();
+
+          // seleciona 1ª linha automaticamente e seta combo
+          const firstRow = wrap.querySelector("tr");
+          if (firstRow) this._setActiveTblRow(wrap, firstRow);
+        }
+
+        _tblApplyGridBorder(cssBorder) {
+          // prioridade: célula > linha > tabela
+          if (this.activeTblCell) {
+            this._applyBorderToCell(this.activeTblCell, cssBorder);
+            return;
+          }
+          if (this.activeTblRow) {
+            this._applyBorderToRow(this.activeTblRow, cssBorder);
+            return;
+          }
+          if (this.activeTbl) {
+            const tbl = this.activeTbl.querySelector("table.rx-tbl");
+            if (tbl) this._applyBorderToTable(tbl, cssBorder);
+          }
+        }
+
+        _applyBorderToCell(td, cssBorder) {
+          td.style.border = cssBorder;
+        }
+
+        _applyBorderToRow(tr, cssBorder) {
+          tr.querySelectorAll(":scope > td").forEach(
+            (td) => (td.style.border = cssBorder),
+          );
+        }
+
+        _applyBorderToTable(table, cssBorder) {
+          table
+            .querySelectorAll("td")
+            .forEach((td) => (td.style.border = cssBorder));
+        }
+
+        _tblApplyFrame(px, color) {
+          // prioridade: tabela selecionada (wrap)
+          const wrap =
+            this.activeTbl || this.activeTblRow?.closest(".rx-tbl-wrap");
+          if (!wrap) return;
+
+          // moldura externa sem brigar com border-collapse
+          if (px <= 0) {
+            wrap.style.boxShadow = "";
+          } else {
+            wrap.style.boxShadow = `inset 0 0 0 ${px}px ${color}`;
+          }
+        }
+        _setActiveTblCell(tblWrap, td) {
+          if (this.activeTblCell)
+            this.activeTblCell.classList.remove("sel-cell");
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+          if (this.activeTbl && this.activeTbl !== tblWrap)
+            this.activeTbl.classList.remove("sel-table");
+
+          this.activeTbl = tblWrap;
+          this.activeTblCell = td;
+          this.activeTblRow = td.closest("tr") || null;
+
+          tblWrap.classList.add("sel-table");
+          td.classList.add("sel-cell");
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel && this.activeTblRow)
+            sel.value = this.activeTblRow.dataset.kind || "";
+        }
+
+        _setActiveTable(tblWrap) {
+          // limpa tudo visualmente
+          if (this.activeTblCell)
+            this.activeTblCell.classList.remove("sel-cell");
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+          if (this.activeTbl && this.activeTbl !== tblWrap)
+            this.activeTbl.classList.remove("sel-table");
+
+          this.activeTbl = tblWrap;
+          this.activeTblRow = null;
+          this.activeTblCell = null;
+
+          tblWrap.classList.add("sel-table");
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = "";
+        }
+
+        _getTargetTbl() {
+          if (
+            this.activeTbl &&
+            this.active &&
+            this.active.contains(this.activeTbl)
+          ) {
+            return this.activeTbl;
+          }
+
+          const r = this.savedRange || this._getSelectionRange();
+          if (!r || !this.active) return null;
+
+          const node =
+            r.commonAncestorContainer.nodeType === 3
+              ? r.commonAncestorContainer.parentNode
+              : r.commonAncestorContainer;
+
+          return node.closest?.(".rx-tbl-wrap") || null;
+        }
+
+        _moveTblChar(dir) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this.active.focus({ preventScroll: true });
+
+          const tbl = this._getTargetTbl();
+          if (!tbl) return;
+
+          const p = tbl.closest("p");
+          if (!p) return;
+
+          const pos = this._getTextOffsetBeforeNode(p, tbl);
+          const total = this._getTextLength(p);
+
+          tbl.remove();
+          this._cleanupEmptyTextNodes(p);
+
+          let nextPos = pos + dir;
+          if (nextPos < 0) nextPos = 0;
+          if (nextPos > total) nextPos = total;
+
+          this._insertNodeAtTextOffset(p, tbl, nextPos);
+
+          // caret depois da tabela
+          const r = document.createRange();
+          r.setStartAfter(tbl);
+          r.collapse(true);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+          this._saveSelection();
+
+          this._setActiveTable(tbl);
+          requestAnimationFrame(() => this.paginate());
+        }
+
+        _moveTblToParagraph(dir) {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this.active.focus({ preventScroll: true });
+
+          const tbl = this._getTargetTbl();
+          if (!tbl) return;
+
+          const p = tbl.closest("p");
+          if (!p) return;
+
+          const bodyEd = p.closest(".body-ed");
+          const pg = this._getPageFrom(bodyEd || p);
+
+          let target =
+            dir > 0 ? p.nextElementSibling : p.previousElementSibling;
+
+          if (target && target.tagName !== "P") return;
+
+          if (!target && bodyEd && pg) {
+            const pages = [...this.stage.querySelectorAll(".page")];
+            const i = pages.indexOf(pg);
+
+            const firstP = bodyEd.querySelector(":scope > p:first-child");
+            const lastP = bodyEd.querySelector(":scope > p:last-child");
+
+            if (dir > 0 && p === lastP) {
+              let nextPg = pages[i + 1];
+              if (!nextPg) {
+                nextPg = this._createNextPage();
+                pages.push(nextPg);
+              }
+              const nextBody = nextPg.querySelector(".body-ed");
+              this._ensureHasParagraph(nextBody);
+              target = nextBody.querySelector(":scope > p:first-child");
+            }
+
+            if (dir < 0 && p === firstP) {
+              if (i <= 0) return;
+              const prevPg = pages[i - 1];
+              const prevBody = prevPg.querySelector(".body-ed");
+              this._ensureHasParagraph(prevBody);
+              target = prevBody.querySelector(":scope > p:last-child");
+            }
+          }
+
+          if (!target || target.tagName !== "P") return;
+
+          tbl.remove();
+          this._cleanupEmptyTextNodes(p);
+
+          const at = dir > 0 ? 0 : this._getTextLength(target);
+          this._insertNodeAtTextOffset(target, tbl, at);
+
+          const targetEd = target.closest(".editable");
+          if (targetEd && targetEd !== this.active) {
+            this.startEdit(targetEd);
+          }
+
+          target.scrollIntoView({ block: "nearest" });
+
+          const r = document.createRange();
+          r.setStartAfter(tbl);
+          r.collapse(true);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+          this._saveSelection();
+
+          this._setActiveTable(tbl);
+          requestAnimationFrame(() => this.paginate());
+        }
+
+        _getCommandHost() {
+          const r = this.savedRange || this._getSelectionRange();
+          if (!r) return this.active;
+
+          const node =
+            r.commonAncestorContainer.nodeType === 3
+              ? r.commonAncestorContainer.parentNode
+              : r.commonAncestorContainer;
+
+          // se a seleção está dentro de uma célula editável, o host é o TD
+          const td = node.closest?.(
+            "td[contenteditable='true'], td[contenteditable=true]",
+          );
+          if (td) return td;
+
+          return this.active;
+        }
+
+        _applyBorder(cssBorder) {
+          // 0) imagem
+          const img = this._getTargetImg?.();
+          if (img) {
+            // "none" => limpa
+            img.style.border = cssBorder === "none" ? "" : cssBorder;
+            return;
+          }
+
+          // 1) prioridade: tabela
+          if (this.activeTblCell) {
+            this._applyBorderToCell(this.activeTblCell, cssBorder);
+            return;
+          }
+          if (this.activeTblRow) {
+            this._applyBorderToRow(this.activeTblRow, cssBorder);
+            return;
+          }
+          if (this.activeTbl) {
+            const tbl = this.activeTbl.querySelector("table.rx-tbl");
+            if (tbl) this._applyBorderToTable(tbl, cssBorder);
+            return;
+          }
+
+          // 2) fallback: parágrafo(s)
+          this._applyBorderToParagraphs(cssBorder);
+        }
+
+        _applyBorderToParagraphs(cssBorder) {
+          if (!this.active) return;
+
+          const r = this._getSelectionRange() || this.savedRange;
+          const ps = new Set();
+
+          // caret simples
+          if (!r || r.collapsed) {
+            const p = this._getActiveParagraph();
+            if (p) ps.add(p);
+          } else {
+            // seleção múltipla
+            const root =
+              r.commonAncestorContainer.nodeType === 3
+                ? r.commonAncestorContainer.parentNode
+                : r.commonAncestorContainer;
+
+            const container = root.closest(".editable") || this.active;
+
+            container.querySelectorAll("p").forEach((p) => {
+              const pr = document.createRange();
+              pr.selectNodeContents(p);
+
+              const endsBefore =
+                r.compareBoundaryPoints(Range.END_TO_START, pr) <= 0;
+              const startsAfter =
+                r.compareBoundaryPoints(Range.START_TO_END, pr) >= 0;
+
+              if (!endsBefore && !startsAfter) ps.add(p);
+            });
+          }
+
+          // aplica
+          ps.forEach((p) => {
+            p.style.border = cssBorder === "none" ? "" : cssBorder;
           });
+        }
 
-          // toolbar commands
-          this.on(this.tbBold, "click", () => this.applyCmd("bold"));
-          this.on(this.tbItalic, "click", () => this.applyCmd("italic"));
-          this.on(this.tbUnder, "click", () => this.applyCmd("underline"));
-          this.on(this.tbClear, "click", () => this.applyCmd("removeFormat"));
+        _applyRadius(radius) {
+          // 0) imagem
+          const img = this._getTargetImg?.();
+          if (img) {
+            this._applyRadiusToImage(img, radius);
+            return;
+          }
 
-          this.on(this.tbLeft, "click", () => this.applyCmd("justifyLeft"));
-          this.on(this.tbCenter, "click", () => this.applyCmd("justifyCenter"));
-          this.on(this.tbRight, "click", () => this.applyCmd("justifyRight"));
-          this.on(this.tbJust, "click", () => this.applyCmd("justifyFull"));
+          // 1) célula
+          if (this.activeTblCell) {
+            this._applyRadiusToCell(this.activeTblCell, radius);
+            return;
+          }
 
-          this.on(this.tbFont, "change", (e) => {
-            const v = e.target.value;
-            if (!v) return;
-            this.applyCmd("fontName", v);
-            e.target.value = "";
+          // 2) linha
+          if (this.activeTblRow) {
+            this._applyRadiusToRow(this.activeTblRow, radius);
+            return;
+          }
+
+          // 3) tabela
+          if (this.activeTbl) {
+            this._applyRadiusToWrap(this.activeTbl, radius);
+            return;
+          }
+
+          // 4) parágrafo
+          this._applyRadiusToParagraphs(radius);
+        }
+
+        _applyRadiusToCell(td, radius) {
+          td.style.borderRadius = radius;
+        }
+
+        _applyRadiusToRow(tr, radius) {
+          tr.querySelectorAll(":scope > td").forEach((td) => {
+            td.style.borderRadius = radius;
           });
+        }
 
-          this.on(this.tbSize, "change", (e) => {
-            const v = e.target.value;
-            if (!v) return;
-            this.applyCmd("fontSize", v);
-            e.target.value = "";
-          });
+        _applyRadiusToWrap(wrap, radius) {
+          // arredonda o "frame" externo (wrap), e também a tabela por garantia
+          wrap.style.borderRadius = radius;
+          wrap.style.overflow = radius === "0px" ? "" : "hidden";
 
-          this.on(this.tbColor, "input", (e) => {
-            const v = e.target.value;
-            this.applyCmd("foreColor", v);
+          const tbl = wrap.querySelector("table.rx-tbl");
+          if (tbl) tbl.style.borderRadius = radius;
+
+          // importante pra ficar bonito quando houver borda/frame
+          wrap.style.overflow = radius === "0px" ? "" : "hidden";
+        }
+
+        _applyRadiusToParagraphs(radius) {
+          if (!this.active) return;
+
+          const r = this._getSelectionRange() || this.savedRange;
+          const ps = new Set();
+
+          if (!r || r.collapsed) {
+            const p = this._getActiveParagraph();
+            if (p) ps.add(p);
+          } else {
+            const root =
+              r.commonAncestorContainer.nodeType === 3
+                ? r.commonAncestorContainer.parentNode
+                : r.commonAncestorContainer;
+
+            const container = root.closest(".editable") || this.active;
+
+            container.querySelectorAll("p").forEach((p) => {
+              const pr = document.createRange();
+              pr.selectNodeContents(p);
+
+              const endsBefore =
+                r.compareBoundaryPoints(Range.END_TO_START, pr) <= 0;
+              const startsAfter =
+                r.compareBoundaryPoints(Range.START_TO_END, pr) >= 0;
+
+              if (!endsBefore && !startsAfter) ps.add(p);
+            });
+          }
+
+          ps.forEach((p) => {
+            p.style.borderRadius = radius;
+            // opcional: se quer que o raio apareça bem com borda
+            p.style.overflow = radius === "0px" ? "" : "hidden";
           });
+        }
+
+        _applyRadiusToImage(img, radius) {
+          img.style.borderRadius = radius;
+          img.style.overflow = radius === "0px" ? "" : "hidden";
         }
       }
 
-      // ======= Instância =======
-      const relex = new RelexEditor({
-        stage: document.getElementById("stage"),
-
-        btnEdit: document.getElementById("btnEdit"),
-        btnDone: document.getElementById("btnDone"),
-
-        modePill: document.getElementById("modePill"),
-        modeText: document.getElementById("modeText"),
-
-        tbBold: document.getElementById("tbBold"),
-        tbItalic: document.getElementById("tbItalic"),
-        tbUnder: document.getElementById("tbUnder"),
-        tbClear: document.getElementById("tbClear"),
-
-        tbLeft: document.getElementById("tbLeft"),
-        tbCenter: document.getElementById("tbCenter"),
-        tbRight: document.getElementById("tbRight"),
-        tbJust: document.getElementById("tbJust"),
-
-        tbFont: document.getElementById("tbFont"),
-        tbSize: document.getElementById("tbSize"),
-        tbColor: document.getElementById("tbColor"),
-      });
-
-      relex.mount();
-      // se quiser desmontar depois:
-      // relex.destroy();
+      // boot
+      (() => {
+        const relex = new RelexEditor({
+          stage: document.getElementById("stage"),
+          modePill: document.getElementById("modePill"),
+          modeText: document.getElementById("modeText"),
+          maxHeaderFooterParagraphs: 10,
+        });
+        relex.init();
+      })();
     </script>
   </body>
 </html>
