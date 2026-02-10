@@ -2,9 +2,7 @@
 <html lang="pt-br">
   <head>
     <meta charset="utf-8" />
-    <title>
-      Wordex
-    </title>
+    <title>Wordex</title>
 
     <style>
       :root {
@@ -378,6 +376,10 @@
           title="Mover imagem/tabela para o 1º char do parágrafo abaixo"
         >
           ↓
+        </button>
+
+        <button id="tbTag" title="Atribuir tag à imagem/tabela selecionada">
+          🏷️ Tag
         </button>
 
         <!-- ✅ IMAGEM -->
@@ -1043,6 +1045,8 @@
             applyCmd("foreColor", v);
           };
 
+          $("tbTag").onclick = () => this._tagSelected();
+
           // ===== imagem =====
           const tbImgFile = $("tbImgFile");
 
@@ -1232,6 +1236,7 @@
             this.activeImg.classList.remove("sel");
           this.activeImg = img || null;
           if (this.activeImg) this.activeImg.classList.add("sel");
+          if (img?.dataset?.img) img.title = `{{${img.dataset.img}}}`;
         }
         _clearActiveImg() {
           if (this.activeImg) this.activeImg.classList.remove("sel");
@@ -1684,6 +1689,7 @@
 
           const sel = document.getElementById("tbRowKind");
           if (sel) sel.value = "";
+          if (tblWrap?.dataset?.items) tblWrap.title = `{{${tblWrap.dataset.items}}}`;
         }
 
         _getTargetTbl() {
@@ -1991,6 +1997,46 @@
         _applyRadiusToImage(img, radius) {
           img.style.borderRadius = radius;
           img.style.overflow = radius === "0px" ? "" : "hidden";
+        }
+
+        _tagSelected() {
+          // 1) imagem selecionada
+          if (this.activeImg) {
+            const cur = this.activeImg.dataset.img || "";
+            const v = prompt("Tag da imagem (ex: Logo)", cur);
+            if (v == null) return;
+
+            const tag = v.trim();
+
+            // vazio => limpa
+            if (!tag) {
+              delete this.activeImg.dataset.img;
+              this.activeImg.removeAttribute("title");
+            } else {
+              this.activeImg.dataset.img = tag;
+              this.activeImg.title = `{{${tag}}}`;
+            }
+            return;
+          }
+
+          // 2) tabela selecionada
+          if (this.activeTbl) {
+            const cur = this.activeTbl.dataset.items || "";
+            const v = prompt("Coleção da tabela (ex: Itens)", cur);
+            if (v == null) return;
+
+            const tag = v.trim();
+
+            // vazio => limpa
+            if (!tag) {
+              delete this.activeTbl.dataset.items;
+              this.activeTbl.removeAttribute("title");
+            } else {
+              this.activeTbl.dataset.items = tag;
+              this.activeTbl.title = `{{${tag}}}`;
+            }
+            return;
+          }
         }
       }
 
