@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Relatório estático (header/footer + tabela longa)</title>
+
+  <style>
+    :root{
+      --page-w: 210mm;
+      --page-h: 297mm;
+
+      --m-top: 18mm;
+      --m-right: 16mm;
+      --m-bottom: 18mm;
+      --m-left: 16mm;
+
+      --hdr-h: 30mm;
+      --ftr-h: 16mm;
+
+      --gap: 3mm; /* espaço entre header e conteúdo */
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      background:#eee;
+      font-family: system-ui, Segoe UI, Arial, sans-serif;
+      color:#111;
+    }
+
+    /* “folha” só pra visualização na tela */
+    .sheet{
+      width: var(--page-w);
+      margin: 10px auto;
+      background:#fff;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18);
+      padding: 0;
+    }
+
+    /* Conteúdo normal (na tela) */
+    .content{
+      padding: 14mm 14mm 10mm 14mm;
+    }
+
+    h2{ margin: 0 0 6px 0; font-size: 16px; }
+    .muted{ color:#444; font-size: 12px; margin:0 0 8px 0; }
+    .hint{ color:#666; font-size: 11px; margin:0 0 10px 0; }
+
+    .top-grid{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10mm;
+      margin-bottom: 6mm;
+    }
+    .right-block{
+      text-align:right;
+      font-size: 12px;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+
+    /* Tabela */
+    table{
+      width:100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    th, td{
+      border:1px solid #333;
+      padding: 3px 6px;
+      vertical-align: top;
+    }
+    thead th{
+      background:#f1f1f1;
+      font-weight:700;
+    }
+    td.num, th.num{ text-align:right; }
+    td.center, th.center{ text-align:center; }
+
+    /* Header e Footer “de verdade” no PRINT */
+    @media print{
+      @page{
+        size: A4;
+        margin: var(--m-top) var(--m-right) var(--m-bottom) var(--m-left);
+      }
+
+      body{ background:#fff; }
+      .sheet{ width:auto; margin:0; box-shadow:none; }
+
+      /* some com a “folha” da tela */
+      .content{ padding:0; }
+
+      /* fixa header/footer */
+      .print-header{
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--hdr-h);
+        padding: 0;
+        /* ✅ SEM LINHA */
+        border: 0;
+      }
+
+      .print-footer{
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: var(--ftr-h);
+        padding: 0;
+        border: 0;
+      }
+
+      /* empurra o conteúdo pra não entrar no header/footer */
+      .print-body{
+        padding-top: calc(var(--hdr-h) + var(--gap));
+        padding-bottom: var(--ftr-h);
+      }
+
+      /* repetição do cabeçalho da tabela */
+      thead{ display: table-header-group; }
+      tfoot{ display: table-footer-group; }
+
+      /* evita quebrar linha no meio (se possível) */
+      tr{ break-inside: avoid; page-break-inside: avoid; }
+
+      /* remove url no rodapé do navegador (depende do navegador) */
+      a[href]:after{ content:""; }
+    }
+
+    /* Header/Footer (estrutura) */
+    .hdr{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10mm;
+    }
+    .hdr-left{
+      flex: 1;
+      min-width: 0;
+    }
+    .hdr-right{
+      text-align:right;
+      font-size: 12px;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+
+    .ftr{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 10mm;
+      font-size: 10px;
+      color:#222;
+    }
+
+    /* só pra ficar bonito na tela (header/footer também aparecem) */
+    .screen-header, .screen-footer{
+      padding: 14mm 14mm 0 14mm;
+    }
+    .screen-footer{
+      padding: 0 14mm 10mm 14mm;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="sheet">
+
+    <!-- HEADER (aparece na tela e no print) -->
+    <div class="screen-header">
+      <div class="hdr">
+        <div class="hdr-left">
+          <h2>Itens (tabela longa)</h2>
+          <p class="muted">Imprima em A4. Verifique se o cabeçalho, rodapé e títulos de coluna aparecem em todas as páginas.</p>
+          <p class="hint">Dica: no diálogo de impressão, desmarque “Cabeçalhos e rodapés” do navegador se não quiser URL/título.</p>
+        </div>
+
+        <div class="hdr-right">
+          <div><b>Data:</b> 10/02/2026</div>
+          <div><b>Cliente:</b> EMPRESA CLIENTE LTDA</div>
+          <div><b>Nº:</b> FAT-2026-0001</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="content print-body">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">Seq</th>
+            <th>Produto</th>
+            <th class="num">Qtde</th>
+            <th class="num">Preço</th>
+            <th class="num">Total</th>
+            <th class="center">Grupo</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- FOOTER (aparece na tela e no print) -->
+    <div class="screen-footer">
+      <div class="ftr">
+        <div>Rua Qualquer, 123 · Cidade/UF</div>
+        <div>Telefone: (11) 99999-0000</div>
+        <div>Observação: footer repetido em todas as páginas.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Header/Footer FIXOS no PRINT (sem linha) -->
+  <div class="print-header" aria-hidden="true">
+    <div class="hdr" style="height:100%;">
+      <div class="hdr-left" style="padding-top:2mm;">
+        <h2 style="margin:0; font-size:16px;">Itens (tabela longa)</h2>
+        <div style="font-size:12px; color:#444; margin-top:2mm;">
+          Imprima em A4. Verifique se o cabeçalho, rodapé e títulos de coluna aparecem em todas as páginas.
+        </div>
+        <div style="font-size:11px; color:#666; margin-top:2mm;">
+          Dica: no diálogo de impressão, desmarque “Cabeçalhos e rodapés” do navegador se não quiser URL/título.
+        </div>
+      </div>
+
+      <div class="hdr-right" style="padding-top:2mm;">
+        <div><b>Data:</b> 10/02/2026</div>
+        <div><b>Cliente:</b> EMPRESA CLIENTE LTDA</div>
+        <div><b>Nº:</b> FAT-2026-0001</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="print-footer" aria-hidden="true">
+    <div class="ftr" style="height:100%;">
+      <div>Rua Qualquer, 123 · Cidade/UF</div>
+      <div>Telefone: (11) 99999-0000</div>
+      <div>Observação: footer repetido em todas as páginas.</div>
+    </div>
+  </div>
+
+  <script>
+    // gera linhas só pra testar paginação
+    const tb = document.getElementById("tbody");
+    const fmt = (n) => n.toFixed(2).replace(".", ",");
+    for(let i=1;i<=180;i++){
+      const q = (i%7)+1;
+      const pu = ((i%23)+1)*3.75;
+      const tot = q*pu;
+      const g = (i<=60) ? "A" : (i<=120) ? "B" : "C";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="num">${i}</td>
+        <td>Produto ${String(i).padStart(3,"0")}</td>
+        <td class="num">${q}</td>
+        <td class="num">${fmt(pu)}</td>
+        <td class="num">${fmt(tot)}</td>
+        <td class="center">${g}</td>
+      `;
+      tb.appendChild(tr);
+    }
+  </script>
+</body>
+</html>
