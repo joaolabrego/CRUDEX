@@ -706,41 +706,62 @@
         }
 
         /* -------------------- editable: teclado / input -------------------- */
+        // ✅ helper novo
+        _toggleTblRow(tblWrap, tr) {
+          // se mudou de tabela, limpa tudo
+          if (this.activeTbl && this.activeTbl !== tblWrap)
+            this._clearActiveTable();
+
+          const isSame = this.activeTbl === tblWrap && this.activeTblRow === tr;
+
+          if (isSame) {
+            // ✅ desmarca linha, mas mantém tabela selecionada
+            if (this.activeTblRow)
+              this.activeTblRow.classList.remove("sel-row");
+            this.activeTblRow = null;
+
+            if (!this.activeTbl) this._setActiveTable(tblWrap);
+            const sel = document.getElementById("tbRowKind");
+            if (sel) sel.value = "";
+            return;
+          }
+
+          this._setActiveTblRow(tblWrap, tr);
+        }
+
         _wireEditable(ed) {
           ed.addEventListener(
             "mousedown",
             (e) => {
-              // 1) TABELA (com regra do SHIFT)
+              // 1) TABELA
               const tbl = e.target.closest?.(".rx-tbl-wrap");
               if (tbl) {
                 const tr = e.target.closest("tr");
                 const td = e.target.closest("td");
 
-                // ✅ SHIFT: nunca célula. Alterna entre linha ↔ tabela
-                if (e.shiftKey) {
-                  if (!tr) {
-                    this._setActiveTable(tbl);
+                // ✅ CTRL: nunca seleciona célula
+                if (e.ctrlKey) {
+                  e.preventDefault();
+                  e.stopPropagation();
+
+                  // ctrl+clique em célula/linha => alterna linha
+                  if (tr) {
+                    this._toggleTblRow(tbl, tr);
                     return;
                   }
 
-                  // se já tem linha selecionada nesta tabela -> vai pra tabela
-                  if (this.activeTblRow && this.activeTbl === tbl) {
-                    this._setActiveTable(tbl);
-                  } else {
-                    this._setActiveTblRow(tbl, tr);
-                  }
+                  // ctrl+clique fora de tr (ex: borda do wrap) => só tabela
+                  this._setActiveTable(tbl);
                   return;
                 }
 
-                // clique normal: célula (preferência), senão linha, senão tabela
+                // ✅ clique normal: seleciona célula
                 if (td) {
                   this._setActiveTblCell(tbl, td);
                   return;
                 }
-                if (tr) {
-                  this._setActiveTblRow(tbl, tr);
-                  return;
-                }
+
+                // clique normal no wrap mas não em td => só tabela
                 this._setActiveTable(tbl);
                 return;
               }
@@ -752,7 +773,7 @@
                 return;
               }
 
-              // 3) clique em qualquer outra coisa
+              // 3) clique fora
               this._clearActiveImg();
               this._clearActiveTable();
             },
@@ -1581,9 +1602,21 @@
         }
 
         _setActiveTable(tblWrap) {
-          this._clearActiveTable();
+          // limpa tudo visualmente
+          if (this.activeTblCell)
+            this.activeTblCell.classList.remove("sel-cell");
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+          if (this.activeTbl && this.activeTbl !== tblWrap)
+            this.activeTbl.classList.remove("sel-table");
+
           this.activeTbl = tblWrap;
+          this.activeTblRow = null;
+          this.activeTblCell = null;
+
           tblWrap.classList.add("sel-table");
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = "";
         }
       }
 
