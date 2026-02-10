@@ -250,6 +250,27 @@
         outline: 2px solid rgba(57, 255, 20, 0.85);
         outline-offset: 2px;
       }
+
+      /* ===== TABELA (inline, dentro do <p>) ===== */
+      .rx-tbl-wrap {
+        display: inline-block;
+        vertical-align: baseline;
+      }
+      .rx-tbl {
+        border-collapse: collapse;
+        border-spacing: 0;
+        font-size: inherit;
+      }
+      .rx-tbl td {
+        border: 1px solid #999;
+        padding: 2px 6px;
+        min-width: 28px;
+        height: 22px;
+      }
+      .rx-tbl tr.sel {
+        outline: 2px solid rgba(57, 255, 20, 0.85);
+        outline-offset: 2px;
+      }
     </style>
   </head>
 
@@ -358,6 +379,10 @@
 
           // imagem
           this.activeImg = null;
+
+          // tabela
+          this.activeTbl = null; // span wrapper
+          this.activeTblRow = null; // <tr> selecionado
 
           // bind
           this._onGlobalKeyDown = this._onGlobalKeyDown.bind(this);
@@ -653,15 +678,14 @@
               if (img) {
                 this._setActiveImg(img);
 
-                requestAnimationFrame(() => {
-                  const r = document.createRange();
-                  r.setStartAfter(img);
-                  r.collapse(true);
-                  const s = window.getSelection();
-                  s.removeAllRanges();
-                  s.addRange(r);
-                  this._saveSelection();
-                });
+                // clique em tabela: seleciona linha
+                const tbl = e.target.closest?.(".rx-tbl-wrap");
+                if (tbl) {
+                  const tr = e.target.closest?.("tr");
+                  if (tr) this._setActiveTblRow(tbl, tr);
+                  // mantém o editor ativo (pra não “desfocar”)
+                  return;
+                }
               } else {
                 this._clearActiveImg();
               }
@@ -951,6 +975,39 @@
 
           $("tbImgSm").onclick = () => this._resizeImg(-10);
           $("tbImgLg").onclick = () => this._resizeImg(10);
+
+          // ===== tabela =====
+          const MAX_TABLE_RC = 20;
+
+          $("tbTblNew").onclick = () => {
+            if (!this.active) return;
+
+            const r1 = prompt(`Número de linhas (1..${MAX_TABLE_RC})`, "3");
+            if (r1 == null) return;
+            const rows = parseInt(r1, 10);
+
+            const r2 = prompt(`Número de colunas (1..${MAX_TABLE_RC})`, "3");
+            if (r2 == null) return;
+            const cols = parseInt(r2, 10);
+
+            if (!Number.isFinite(rows) || !Number.isFinite(cols)) return;
+            if (rows < 1 || cols < 1) return;
+            if (rows > MAX_TABLE_RC || cols > MAX_TABLE_RC) return;
+
+            if (!this.savedRange) this._saveSelection();
+            if (!this._restoreSelection() && !this._selectionInsideActive())
+              return;
+
+            this.active.focus({ preventScroll: true });
+            this._insertTableAtCaret(rows, cols);
+            requestAnimationFrame(() => this.paginate());
+          };
+
+          $("tbRowKind").onchange = (e) => {
+            const kind = e.target.value || "";
+            if (!this.activeTblRow) return;
+            this._setRowKind(this.activeTblRow, kind);
+          };
         }
 
         _selectionInsideActive() {
@@ -1248,6 +1305,104 @@
           this._setActiveImg(img);
           this._saveSelection();
           requestAnimationFrame(() => this.paginate());
+        }
+        _setActiveTblRow(tblWrap, tr) {
+          // limpa seleção anterior
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel");
+
+          this.activeTbl = tblWrap;
+          this.activeTblRow = tr;
+
+          tr.classList.add("sel");
+
+          // sincroniza combo
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = tr.dataset.kind || "";
+        }
+
+        _createTbl(rows, cols) {
+          const wrap = document.createElement("span");
+          wrap.className = "rx-tbl-wrap";
+          wrap.dataset.cols = String(cols);
+
+          const table = document.createElement("table");
+          table.className = "rx-tbl";
+
+          const tb = document.createElement("tbody");
+
+          for (let r = 0; r < rows; r++) {
+            const tr = document.createElement("tr");
+            tr.dataset.kind = "detail"; // default
+
+            for (let c = 0; c < cols; c++) {
+              const td = document.createElement("td");
+              td.appendChild(document.createElement("br"));
+              tr.appendChild(td);
+            }
+            tb.appendChild(tr);
+          }
+
+          table.appendChild(tb);
+          wrap.appendChild(table);
+          return wrap;
+        }
+
+        _setRowKind(tr, kind) {
+          if (!tr) return;
+          tr.dataset.kind = kind || "";
+
+          const wrap = tr.closest(".rx-tbl-wrap");
+          const cols = parseInt(wrap?.dataset?.cols || "1", 10);
+
+          // grupo/total => 1 célula com colspan
+          if (kind === "group" || kind === "total") {
+            const td = document.createElement("td");
+            td.colSpan = cols;
+            td.appendChild(document.createElement("br"));
+            tr.innerHTML = "";
+            tr.appendChild(td);
+            return;
+          }
+
+          // titles/detail => volta a ter colunas
+          // (se já tem cols, não mexe)
+          const tds = tr.querySelectorAll(":scope > td");
+          if (tds.length === cols) return;
+
+          tr.innerHTML = "";
+          for (let c = 0; c < cols; c++) {
+            const td = document.createElement("td");
+            td.appendChild(document.createElement("br"));
+            tr.appendChild(td);
+          }
+        }
+
+        _insertTableAtCaret(rows, cols) {
+          const r = this._getSelectionRange();
+          const p = this._getActiveParagraph();
+          if (!r || !p) return;
+
+          if (!r.collapsed) r.collapse(true);
+
+          const wrap = this._createTbl(rows, cols);
+
+          r.insertNode(wrap);
+
+          // spacer pra caret e digitação depois da tabela
+          const spacer = document.createTextNode("\u00A0");
+          wrap.after(spacer);
+
+          const nr = document.createRange();
+          nr.setStartAfter(spacer);
+          nr.collapse(true);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(nr);
+          this._saveSelection();
+
+          // seleciona 1ª linha automaticamente e seta combo
+          const firstRow = wrap.querySelector("tr");
+          if (firstRow) this._setActiveTblRow(wrap, firstRow);
         }
       }
 
