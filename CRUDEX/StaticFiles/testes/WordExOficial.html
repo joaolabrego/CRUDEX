@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>
-        WordEx – Class (limpo) – Word-like + Toolbar + Imagem dentro do &lt;p&gt;
+      WordEx – Class (limpo) – Word-like + Toolbar + Imagem dentro do &lt;p&gt;
     </title>
 
     <style>
@@ -283,6 +283,11 @@
         outline: 2px solid rgba(57, 255, 20, 0.85);
         outline-offset: 2px;
       }
+
+      .rx-tbl td.sel-cell {
+        outline: 2px solid rgba(57, 255, 20, 0.85);
+        outline-offset: -2px;
+      }
     </style>
   </head>
 
@@ -364,6 +369,10 @@
           <option value="group">Grupo</option>
           <option value="total">Total de grupo</option>
         </select>
+
+        <button id="tbBdNone" title="Tabela/Linha: sem borda">▢×</button>
+        <button id="tbBdThin" title="Tabela/Linha: borda fina">▢─</button>
+        <button id="tbBdThick" title="Tabela/Linha: borda grossa">▢━</button>
       </div>
     </div>
 
@@ -396,6 +405,7 @@
           // tabela
           this.activeTbl = null; // span wrapper
           this.activeTblRow = null; // <tr> selecionado
+          this.activeTblCell = null; // <td> selecionado
 
           // bind
           this._onGlobalKeyDown = this._onGlobalKeyDown.bind(this);
@@ -682,10 +692,14 @@
         }
 
         _clearActiveTable() {
+          if (this.activeTblCell)
+            this.activeTblCell.classList.remove("sel-cell");
           if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
           if (this.activeTbl) this.activeTbl.classList.remove("sel-table");
+
           this.activeTbl = null;
           this.activeTblRow = null;
+          this.activeTblCell = null;
 
           const sel = document.getElementById("tbRowKind");
           if (sel) sel.value = "";
@@ -693,19 +707,45 @@
 
         /* -------------------- editable: teclado / input -------------------- */
         _wireEditable(ed) {
-          // clique em img: torna alvo
           ed.addEventListener(
             "mousedown",
             (e) => {
-              // 1) tabela primeiro
+              // 1) TABELA (com regra do SHIFT)
               const tbl = e.target.closest?.(".rx-tbl-wrap");
               if (tbl) {
-                const tr = e.target.closest?.("tr");
-                if (tr) this._setActiveTblRow(tbl, tr);
+                const tr = e.target.closest("tr");
+                const td = e.target.closest("td");
+
+                // ✅ SHIFT: nunca célula. Alterna entre linha ↔ tabela
+                if (e.shiftKey) {
+                  if (!tr) {
+                    this._setActiveTable(tbl);
+                    return;
+                  }
+
+                  // se já tem linha selecionada nesta tabela -> vai pra tabela
+                  if (this.activeTblRow && this.activeTbl === tbl) {
+                    this._setActiveTable(tbl);
+                  } else {
+                    this._setActiveTblRow(tbl, tr);
+                  }
+                  return;
+                }
+
+                // clique normal: célula (preferência), senão linha, senão tabela
+                if (td) {
+                  this._setActiveTblCell(tbl, td);
+                  return;
+                }
+                if (tr) {
+                  this._setActiveTblRow(tbl, tr);
+                  return;
+                }
+                this._setActiveTable(tbl);
                 return;
               }
 
-              // 2) imagem
+              // 2) IMAGEM
               const img = e.target.closest?.("img.rx-img");
               if (img) {
                 this._setActiveImg(img);
@@ -714,7 +754,7 @@
 
               // 3) clique em qualquer outra coisa
               this._clearActiveImg();
-              this._clearActiveTable(); // (função que você vai criar)
+              this._clearActiveTable();
             },
             true,
           );
@@ -1052,6 +1092,15 @@
 
             requestAnimationFrame(() => this.paginate());
           };
+
+          const borderColor = () =>
+            document.getElementById("tbColor")?.value || "#000";
+
+          $("tbBdNone").onclick = () => this._tblApplyGridBorder("none");
+          $("tbBdThin").onclick = () =>
+            this._tblApplyGridBorder(`1px solid ${borderColor()}`);
+          $("tbBdThick").onclick = () =>
+            this._tblApplyGridBorder(`2px solid ${borderColor()}`);
         }
 
         _selectionInsideActive() {
@@ -1465,6 +1514,76 @@
           // seleciona 1ª linha automaticamente e seta combo
           const firstRow = wrap.querySelector("tr");
           if (firstRow) this._setActiveTblRow(wrap, firstRow);
+        }
+
+        _tblApplyGridBorder(cssBorder) {
+          // prioridade: célula > linha > tabela
+          if (this.activeTblCell) {
+            this._applyBorderToCell(this.activeTblCell, cssBorder);
+            return;
+          }
+          if (this.activeTblRow) {
+            this._applyBorderToRow(this.activeTblRow, cssBorder);
+            return;
+          }
+          if (this.activeTbl) {
+            const tbl = this.activeTbl.querySelector("table.rx-tbl");
+            if (tbl) this._applyBorderToTable(tbl, cssBorder);
+          }
+        }
+
+        _applyBorderToCell(td, cssBorder) {
+          td.style.border = cssBorder;
+        }
+
+        _applyBorderToRow(tr, cssBorder) {
+          tr.querySelectorAll(":scope > td").forEach(
+            (td) => (td.style.border = cssBorder),
+          );
+        }
+
+        _applyBorderToTable(table, cssBorder) {
+          table
+            .querySelectorAll("td")
+            .forEach((td) => (td.style.border = cssBorder));
+        }
+
+        _tblApplyFrame(px, color) {
+          // prioridade: tabela selecionada (wrap)
+          const wrap =
+            this.activeTbl || this.activeTblRow?.closest(".rx-tbl-wrap");
+          if (!wrap) return;
+
+          // moldura externa sem brigar com border-collapse
+          if (px <= 0) {
+            wrap.style.boxShadow = "";
+          } else {
+            wrap.style.boxShadow = `inset 0 0 0 ${px}px ${color}`;
+          }
+        }
+        _setActiveTblCell(tblWrap, td) {
+          if (this.activeTblCell)
+            this.activeTblCell.classList.remove("sel-cell");
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+          if (this.activeTbl && this.activeTbl !== tblWrap)
+            this.activeTbl.classList.remove("sel-table");
+
+          this.activeTbl = tblWrap;
+          this.activeTblCell = td;
+          this.activeTblRow = td.closest("tr") || null;
+
+          tblWrap.classList.add("sel-table");
+          td.classList.add("sel-cell");
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel && this.activeTblRow)
+            sel.value = this.activeTblRow.dataset.kind || "";
+        }
+
+        _setActiveTable(tblWrap) {
+          this._clearActiveTable();
+          this.activeTbl = tblWrap;
+          tblWrap.classList.add("sel-table");
         }
       }
 
