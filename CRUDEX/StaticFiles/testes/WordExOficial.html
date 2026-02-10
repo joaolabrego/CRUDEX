@@ -259,9 +259,9 @@
       }
 
       .rx-tbl-wrap.sel-table {
-        outline: 2px solid rgba(57, 255, 20, 0.85);
-        outline-offset: 2px;
+        box-shadow: 0 0 0 2px rgba(57, 255, 20, 0.85);
       }
+
       .rx-tbl tr.sel-row > td {
         outline: 2px solid rgba(57, 255, 20, 0.85);
         outline-offset: -2px;
@@ -333,6 +333,28 @@
         <input id="tbColor" type="color" title="Cor" />
 
         <button id="tbOrientation" title="Retrato / Paisagem">🗎⇄</button>
+
+        <select id="tbBorder" title="Borda (px)">
+          <option value="">Borda</option>
+          <option value="none">0 px</option>
+          <option value="1">1 px</option>
+          <option value="2">2 px</option>
+          <option value="3">3 px</option>
+          <option value="4">4 px</option>
+          <option value="6">6 px</option>
+          <option value="8">8 px</option>
+        </select>
+
+        <select id="tbRadius" title="Arredondamento">
+          <option value="">Arred.</option>
+          <option value="0">0</option>
+          <option value="4">4</option>
+          <option value="6">6</option>
+          <option value="8">8</option>
+          <option value="12">12</option>
+          <option value="16">16</option>
+        </select>
+
         <button
           id="tbImgLeft"
           title="Mover imagem/tabela 1 caractere para a esquerda"
@@ -376,10 +398,6 @@
           <option value="group">Grupo</option>
           <option value="total">Total de grupo</option>
         </select>
-
-        <button id="tbBdNone" title="Tabela/Linha: sem borda">▢×</button>
-        <button id="tbBdThin" title="Tabela/Linha: borda fina">▢─</button>
-        <button id="tbBdThick" title="Tabela/Linha: borda grossa">▢━</button>
       </div>
     </div>
 
@@ -1151,11 +1169,26 @@
           const borderColor = () =>
             document.getElementById("tbColor")?.value || "#000";
 
-          $("tbBdNone").onclick = () => this._tblApplyGridBorder("none");
-          $("tbBdThin").onclick = () =>
-            this._tblApplyGridBorder(`1px solid ${borderColor()}`);
-          $("tbBdThick").onclick = () =>
-            this._tblApplyGridBorder(`2px solid ${borderColor()}`);
+          $("tbBorder").onchange = (e) => {
+            const v = e.target.value;
+            if (v === "") return;
+
+            const color = borderColor();
+
+            const cssBorder = v === "none" ? "none" : `${v}px solid ${color}`;
+            this._applyBorder(cssBorder);
+
+            e.target.value = "";
+          };
+          $("tbRadius").onchange = (e) => {
+            const v = e.target.value;
+            if (v === "") return;
+
+            this._applyRadius(v + "px");
+
+            // opcional: volta pro placeholder
+            e.target.value = "";
+          };
         }
 
         _selectionInsideActive() {
@@ -1798,6 +1831,166 @@
           if (td) return td;
 
           return this.active;
+        }
+
+        _applyBorder(cssBorder) {
+          // 0) imagem
+          const img = this._getTargetImg?.();
+          if (img) {
+            // "none" => limpa
+            img.style.border = cssBorder === "none" ? "" : cssBorder;
+            return;
+          }
+
+          // 1) prioridade: tabela
+          if (this.activeTblCell) {
+            this._applyBorderToCell(this.activeTblCell, cssBorder);
+            return;
+          }
+          if (this.activeTblRow) {
+            this._applyBorderToRow(this.activeTblRow, cssBorder);
+            return;
+          }
+          if (this.activeTbl) {
+            const tbl = this.activeTbl.querySelector("table.rx-tbl");
+            if (tbl) this._applyBorderToTable(tbl, cssBorder);
+            return;
+          }
+
+          // 2) fallback: parágrafo(s)
+          this._applyBorderToParagraphs(cssBorder);
+        }
+
+        _applyBorderToParagraphs(cssBorder) {
+          if (!this.active) return;
+
+          const r = this._getSelectionRange() || this.savedRange;
+          const ps = new Set();
+
+          // caret simples
+          if (!r || r.collapsed) {
+            const p = this._getActiveParagraph();
+            if (p) ps.add(p);
+          } else {
+            // seleção múltipla
+            const root =
+              r.commonAncestorContainer.nodeType === 3
+                ? r.commonAncestorContainer.parentNode
+                : r.commonAncestorContainer;
+
+            const container = root.closest(".editable") || this.active;
+
+            container.querySelectorAll("p").forEach((p) => {
+              const pr = document.createRange();
+              pr.selectNodeContents(p);
+
+              const endsBefore =
+                r.compareBoundaryPoints(Range.END_TO_START, pr) <= 0;
+              const startsAfter =
+                r.compareBoundaryPoints(Range.START_TO_END, pr) >= 0;
+
+              if (!endsBefore && !startsAfter) ps.add(p);
+            });
+          }
+
+          // aplica
+          ps.forEach((p) => {
+            p.style.border = cssBorder === "none" ? "" : cssBorder;
+          });
+        }
+
+        _applyRadius(radius) {
+          // 0) imagem
+          const img = this._getTargetImg?.();
+          if (img) {
+            this._applyRadiusToImage(img, radius);
+            return;
+          }
+
+          // 1) célula
+          if (this.activeTblCell) {
+            this._applyRadiusToCell(this.activeTblCell, radius);
+            return;
+          }
+
+          // 2) linha
+          if (this.activeTblRow) {
+            this._applyRadiusToRow(this.activeTblRow, radius);
+            return;
+          }
+
+          // 3) tabela
+          if (this.activeTbl) {
+            this._applyRadiusToWrap(this.activeTbl, radius);
+            return;
+          }
+
+          // 4) parágrafo
+          this._applyRadiusToParagraphs(radius);
+        }
+
+        _applyRadiusToCell(td, radius) {
+          td.style.borderRadius = radius;
+        }
+
+        _applyRadiusToRow(tr, radius) {
+          tr.querySelectorAll(":scope > td").forEach((td) => {
+            td.style.borderRadius = radius;
+          });
+        }
+
+        _applyRadiusToWrap(wrap, radius) {
+          // arredonda o "frame" externo (wrap), e também a tabela por garantia
+          wrap.style.borderRadius = radius;
+          wrap.style.overflow = radius === "0px" ? "" : "hidden";
+
+          const tbl = wrap.querySelector("table.rx-tbl");
+          if (tbl) tbl.style.borderRadius = radius;
+
+          // importante pra ficar bonito quando houver borda/frame
+          wrap.style.overflow = radius === "0px" ? "" : "hidden";
+        }
+
+        _applyRadiusToParagraphs(radius) {
+          if (!this.active) return;
+
+          const r = this._getSelectionRange() || this.savedRange;
+          const ps = new Set();
+
+          if (!r || r.collapsed) {
+            const p = this._getActiveParagraph();
+            if (p) ps.add(p);
+          } else {
+            const root =
+              r.commonAncestorContainer.nodeType === 3
+                ? r.commonAncestorContainer.parentNode
+                : r.commonAncestorContainer;
+
+            const container = root.closest(".editable") || this.active;
+
+            container.querySelectorAll("p").forEach((p) => {
+              const pr = document.createRange();
+              pr.selectNodeContents(p);
+
+              const endsBefore =
+                r.compareBoundaryPoints(Range.END_TO_START, pr) <= 0;
+              const startsAfter =
+                r.compareBoundaryPoints(Range.START_TO_END, pr) >= 0;
+
+              if (!endsBefore && !startsAfter) ps.add(p);
+            });
+          }
+
+          ps.forEach((p) => {
+            p.style.borderRadius = radius;
+            // opcional: se quer que o raio apareça bem com borda
+            p.style.overflow = radius === "0px" ? "" : "hidden";
+          });
+        }
+
+        _applyRadiusToImage(img, radius) {
+          img.style.borderRadius = radius;
+          img.style.overflow = radius === "0px" ? "" : "hidden";
         }
       }
 
