@@ -206,18 +206,11 @@
       .rx-tbl-wrap {
         display: inline-block;
         vertical-align: baseline;
-        overflow: hidden; /* pra recortar os cantos arredondados */
-        user-select: none;
+        padding: 1px; /* <<< espaço pro raio aparecer */
+        border-radius: 0px; /* pode ser 0 por default, tanto faz */
         border: 0 solid transparent;
-      }
-
-      .rx-tbl-wrap.sel-table {
-        box-shadow: 0 0 0 2px rgba(57, 255, 20, 0.85);
-      }
-
-      .rx-tbl tr.sel-row > td {
-        outline: 2px solid rgba(57, 255, 20, 0.85);
-        outline-offset: -2px;
+        overflow: hidden; /* recorta as células no raio */
+        background: #fff; /* fundo do padding */
       }
 
       .rx-tbl {
@@ -234,10 +227,70 @@
         user-select: text;
       }
 
-      .rx-tbl td.sel-cell {
-        outline: 2px solid rgba(57, 255, 20, 0.85);
-        outline-offset: -2px;
+      /* Seleção da TABELA: sempre quadrada */
+      .rx-tbl-wrap {
+        position: relative;
       }
+
+      /* Seleção de CÉLULA: sempre quadrada */
+      .rx-tbl td.sel-cell {
+        position: relative;
+      }
+
+      /* Seleção de COLUNA: sempre quadrada */
+      .rx-tbl td.sel-col {
+        position: relative;
+      }
+
+      /* Seleção de LINHA: sempre quadrada (por célula) */
+      .rx-tbl tr.sel-row > td {
+        position: relative;
+      }
+
+      /* seleção NÃO muda layout */
+      .rx-tbl-wrap.sel-table {
+        box-shadow: 0 0 0 2px rgba(57, 255, 20, 0.85);
+      }
+
+      /* CÉLULA */
+      .rx-tbl td.sel-cell {
+        position: relative;
+      }
+      .rx-tbl td.sel-cell::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border: 2px solid rgba(57, 255, 20, 0.85);
+        border-radius: inherit; /* <<< pega o radius do td */
+        pointer-events: none;
+      }
+
+      /* COLUNA */
+      .rx-tbl td.sel-col {
+        position: relative;
+      }
+      .rx-tbl td.sel-col::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border: 2px solid rgba(57, 255, 20, 0.55);
+        border-radius: inherit; /* <<< pega o radius do td */
+        pointer-events: none;
+      }
+
+      /* LINHA (por célula) */
+      .rx-tbl tr.sel-row > td {
+        position: relative;
+      }
+      .rx-tbl tr.sel-row > td::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border: 2px solid rgba(57, 255, 20, 0.85);
+        border-radius: inherit; /* <<< pega o radius do td */
+        pointer-events: none;
+      }
+
       /* por padrão: sem destaque */
       .editable.header-ed,
       .editable.footer-ed {
@@ -264,6 +317,8 @@
           <span class="mode-dot"></span>
           <strong id="modeText">INS</strong>
         </span>
+
+        <button id="tbOrientation" title="Retrato / Paisagem">🗎⇄</button>
 
         <button id="tbBold" title="Negrito"><b>B</b></button>
         <button id="tbItalic" title="Itálico"><i>I</i></button>
@@ -296,10 +351,6 @@
           <option value="7">36</option>
         </select>
 
-        <input id="tbColor" type="color" title="Cor" />
-
-        <button id="tbOrientation" title="Retrato / Paisagem">🗎⇄</button>
-
         <select id="tbBorder" title="Borda (px)">
           <option value="">Borda</option>
           <option value="none">0 px</option>
@@ -320,6 +371,8 @@
           <option value="12">12</option>
           <option value="16">16</option>
         </select>
+
+        <input id="tbColor" type="color" title="Cor" />
 
         <!-- Só LEFT/RIGHT (UP/DOWN removido) -->
         <button
@@ -382,6 +435,7 @@
           this.activeTbl = null; // span wrapper
           this.activeTblRow = null; // <tr> selecionado
           this.activeTblCell = null; // <td> selecionado
+          this.activeTblCol = null; // índice da coluna selecionada
 
           this._onGlobalKeyDown = this._onGlobalKeyDown.bind(this);
           this._onStageMouseDown = this._onStageMouseDown.bind(this);
@@ -587,11 +641,17 @@
           if (this.activeTblCell)
             this.activeTblCell.classList.remove("sel-cell");
           if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
-          if (this.activeTbl) this.activeTbl.classList.remove("sel-table");
+          if (this.activeTbl) {
+            this.activeTbl.classList.remove("sel-table");
+            this.activeTbl
+              .querySelectorAll("td.sel-col")
+              .forEach((td) => td.classList.remove("sel-col"));
+          }
 
           this.activeTbl = null;
           this.activeTblRow = null;
           this.activeTblCell = null;
+          this.activeTblCol = null;
 
           const sel = document.getElementById("tbRowKind");
           if (sel) sel.value = "";
@@ -627,10 +687,50 @@
                 if (e.ctrlKey) {
                   e.preventDefault();
                   e.stopPropagation();
+
+                  // ctrl+click em TD: ciclo tabela -> linha -> coluna -> tabela
+                  if (td) {
+                    // 1) se ainda não é a tabela ativa: seleciona tabela
+                    if (this.activeTbl !== tbl) {
+                      this._setActiveTable(tbl);
+                      return;
+                    }
+
+                    // 2) se só a tabela está selecionada: seleciona linha
+                    if (
+                      this.activeTbl &&
+                      !this.activeTblRow &&
+                      this.activeTblCol == null &&
+                      !this.activeTblCell
+                    ) {
+                      if (tr) this._setActiveTblRow(tbl, tr);
+                      return;
+                    }
+
+                    // 3) se a linha está selecionada: seleciona coluna
+                    if (this.activeTblRow) {
+                      this._setActiveTblCol(tbl, td.cellIndex);
+                      return;
+                    }
+
+                    // 4) se a coluna está selecionada: volta pra tabela
+                    if (this.activeTblCol != null) {
+                      this._setActiveTable(tbl);
+                      return;
+                    }
+
+                    // fallback
+                    this._setActiveTable(tbl);
+                    return;
+                  }
+
+                  // ctrl+click fora de td: tabela
                   if (tr) {
+                    // se ctrl+click pegou TR sem TD, mantém seu comportamento antigo
                     this._toggleTblRow(tbl, tr);
                     return;
                   }
+
                   this._setActiveTable(tbl);
                   return;
                 }
@@ -1060,11 +1160,11 @@
           tr.classList.add("sel-row");
 
           const sel = document.getElementById("tbRowKind");
-          if (sel) sel.value = tr.dataset.kind || "";
+          if (sel) sel.value = ""; // fica sempre na opção 0
         }
 
         _createTbl(rows, cols) {
-          const wrap = document.createElement("span");
+          const wrap = document.createElement("div");
           wrap.className = "rx-tbl-wrap";
           wrap.dataset.cols = String(cols);
           wrap.contentEditable = "false";
@@ -1166,8 +1266,8 @@
           sel.addRange(nr);
           this._saveSelection();
 
-          const firstRow = wrap.querySelector("tr");
-          if (firstRow) this._setActiveTblRow(wrap, firstRow);
+          this._clearActiveTable();
+          this._setActiveTable(wrap); // seleciona só a tabela (sem linha/célula)
         }
 
         _setActiveTblCell(tblWrap, td) {
@@ -1185,8 +1285,7 @@
           td.classList.add("sel-cell");
 
           const sel = document.getElementById("tbRowKind");
-          if (sel && this.activeTblRow)
-            sel.value = this.activeTblRow.dataset.kind || "";
+          if (sel) sel.value = ""; // não “puxa” o tipo ao clicar em célula/linha
         }
 
         _setActiveTable(tblWrap) {
@@ -1287,35 +1386,94 @@
             return;
           }
 
+          // ===== 1) CÉLULA =====
           if (this.activeTblCell) {
-            this.activeTblCell.style.border = cssBorder;
+            // célula: moldura da própria célula
+            this.activeTblCell.style.border =
+              cssBorder === "none" ? "" : cssBorder;
             return;
           }
-          if (this.activeTblRow) {
-            this.activeTblRow
-              .querySelectorAll(":scope > td")
-              .forEach((td) => (td.style.border = cssBorder));
-            return;
-          }
-          if (this.activeTbl) {
-            // 1) borda externa (contorno da tabela)
-            this.activeTbl.style.border = cssBorder === "none" ? "" : cssBorder;
 
-            // 2) garante que raio funcione (separate + spacing 0)
-            const tbl = this.activeTbl.querySelector("table.rx-tbl");
-            if (tbl) {
-              tbl.style.borderCollapse = "separate";
-              tbl.style.borderSpacing = "0";
-            }
+          // ===== 2) LINHA =====
+          if (this.activeTbl && this.activeTblRow) {
+            const tds = [...this.activeTblRow.querySelectorAll(":scope > td")];
+            if (!tds.length) return;
 
-            // 3) grade interna (opcional: se quiser que a borda aplique também nas células)
-            this.activeTbl.querySelectorAll("td").forEach((td) => {
-              td.style.border = cssBorder === "none" ? "" : cssBorder;
+            // só moldura externa da linha (top/bottom em todas as células,
+            // left só na primeira, right só na última)
+            tds.forEach((td, i) => {
+              if (cssBorder === "none") {
+                td.style.borderTop = "";
+                td.style.borderBottom = "";
+                if (i === 0) td.style.borderLeft = "";
+                if (i === tds.length - 1) td.style.borderRight = "";
+              } else {
+                td.style.borderTop = cssBorder;
+                td.style.borderBottom = cssBorder;
+                if (i === 0) td.style.borderLeft = cssBorder;
+                if (i === tds.length - 1) td.style.borderRight = cssBorder;
+              }
             });
 
             return;
           }
 
+          // ===== 3) COLUNA =====
+          if (this.activeTbl && this.activeTblCol != null) {
+            const tbl = this.activeTbl.querySelector("table.rx-tbl");
+            if (!tbl) return;
+
+            const rows = [...tbl.querySelectorAll("tr")];
+
+            // pega as TDs da coluna em cada TR (pula linhas sem TD naquela posição)
+            const colTds = rows
+              .map(
+                (tr) => tr.querySelectorAll(":scope > td")[this.activeTblCol],
+              )
+              .filter(Boolean);
+
+            if (!colTds.length) return;
+
+            const first = colTds[0];
+            const last = colTds[colTds.length - 1];
+
+            colTds.forEach((td) => {
+              if (cssBorder === "none") {
+                td.style.borderLeft = "";
+                td.style.borderRight = "";
+              } else {
+                td.style.borderLeft = cssBorder;
+                td.style.borderRight = cssBorder;
+              }
+            });
+
+            if (cssBorder === "none") {
+              first.style.borderTop = "";
+              last.style.borderBottom = "";
+            } else {
+              first.style.borderTop = cssBorder;
+              last.style.borderBottom = cssBorder;
+            }
+
+            return;
+          }
+
+          // ===== 4) TABELA (só contorno externo) =====
+          if (this.activeTbl) {
+            // borda externa fica no WRAP
+            this.activeTbl.style.border = cssBorder === "none" ? "" : cssBorder;
+
+            // importante: não aplicar nas células (senão vira grade)
+            // e manter recorte do raio
+            if (cssBorder === "none") {
+              // se quiser, pode limpar bordas externas removidas por radius
+              // mas aqui deixo neutro
+            }
+
+            return;
+          }
+
+          // ===== 5) Parágrafos =====
           this._applyBorderToParagraphs(cssBorder);
         }
 
@@ -1362,31 +1520,135 @@
             return;
           }
 
+          const isZero = radius === "0px";
+
+          // ===== 1) CÉLULA =====
           if (this.activeTblCell) {
-            this.activeTblCell.style.borderRadius = radius;
+            this.activeTblCell.style.borderRadius = isZero ? "" : radius;
             return;
           }
-          if (this.activeTblRow) {
-            this.activeTblRow
-              .querySelectorAll(":scope > td")
-              .forEach((td) => (td.style.borderRadius = radius));
-            return;
-          }
-          if (this.activeTbl) {
-            this.activeTbl.style.borderRadius = radius;
-            this.activeTbl.style.overflow = radius === "0px" ? "" : "hidden";
 
+          // ===== 2) LINHA (retângulo da linha) =====
+          if (this.activeTbl && this.activeTblRow) {
+            const tds = [...this.activeTblRow.querySelectorAll(":scope > td")];
+            if (!tds.length) return;
+
+            const first = tds[0];
+            const last = tds[tds.length - 1];
+
+            // só 4 quinas da linha
+            first.style.borderTopLeftRadius = isZero ? "" : radius;
+            first.style.borderBottomLeftRadius = isZero ? "" : radius;
+
+            last.style.borderTopRightRadius = isZero ? "" : radius;
+            last.style.borderBottomRightRadius = isZero ? "" : radius;
+
+            return;
+          }
+
+          // ===== 3) COLUNA (retângulo da coluna) =====
+          if (this.activeTbl && this.activeTblCol != null) {
             const tbl = this.activeTbl.querySelector("table.rx-tbl");
-            if (tbl) {
-              tbl.style.borderRadius = radius;
-              tbl.style.borderCollapse =
-                radius === "0px" ? "collapse" : "separate";
-              tbl.style.borderSpacing = "0";
-            }
+            if (!tbl) return;
+
+            const rows = [...tbl.querySelectorAll("tr")];
+            const colTds = rows
+              .map(
+                (tr) => tr.querySelectorAll(":scope > td")[this.activeTblCol],
+              )
+              .filter(Boolean);
+
+            if (!colTds.length) return;
+
+            const first = colTds[0];
+            const last = colTds[colTds.length - 1];
+
+            // só 4 quinas da coluna
+            first.style.borderTopLeftRadius = isZero ? "" : radius;
+            first.style.borderTopRightRadius = isZero ? "" : radius;
+
+            last.style.borderBottomLeftRadius = isZero ? "" : radius;
+            last.style.borderBottomRightRadius = isZero ? "" : radius;
+
             return;
           }
 
+          // ===== 4) TABELA (raio no wrapper) =====
+          if (this.activeTbl) {
+            this.activeTbl.style.borderRadius = isZero ? "" : radius;
+            this.activeTbl.style.overflow = isZero ? "" : "hidden";
+            return;
+          }
+
+          // ===== 5) Parágrafo =====
           this._applyRadiusToParagraphs(radius);
+        }
+
+        /* ===== helpers (tabela/linha/coluna) ===== */
+
+        _tblApplyRadiusTable(wrap, radius) {
+          // raio do "container" da tabela
+          wrap.style.borderRadius = radius === "0px" ? "" : radius;
+          wrap.style.overflow = radius === "0px" ? "" : "hidden";
+          wrap.style.display = "inline-block";
+        }
+
+        _tblApplyRadiusRow(wrap, tr, radius) {
+          if (!tr) return;
+          const tds = [...tr.querySelectorAll(":scope > td")];
+          if (!tds.length) return;
+
+          // limpa raio anterior só nessa linha
+          tds.forEach((td) => {
+            if (td.dataset.userRadius === "1") return; // não mexe no que o usuário pôs na célula
+            td.style.borderRadius = "";
+            td.style.overflow = "";
+          });
+
+          if (radius === "0px") return;
+
+          // cantos externos da "faixa" (linha)
+          const first = tds[0];
+          const last = tds[tds.length - 1];
+
+          first.style.borderTopLeftRadius = radius;
+          first.style.borderBottomLeftRadius = radius;
+          first.style.overflow = "hidden";
+
+          last.style.borderTopRightRadius = radius;
+          last.style.borderBottomRightRadius = radius;
+          last.style.overflow = "hidden";
+        }
+
+        _tblApplyRadiusCol(wrap, colIndex, radius) {
+          const tbl = wrap?.querySelector("table.rx-tbl");
+          if (!tbl) return;
+
+          const rows = [...tbl.querySelectorAll("tr")];
+          if (!rows.length) return;
+
+          // pega a célula do topo e a do fundo dessa coluna
+          const top = rows[0].querySelectorAll(":scope > td")[colIndex];
+          const bottom =
+            rows[rows.length - 1].querySelectorAll(":scope > td")[colIndex];
+          if (!top || !bottom) return;
+
+          // limpa raio anterior só nessas duas (se não for "manual" da célula)
+          [top, bottom].forEach((td) => {
+            if (td.dataset.userRadius === "1") return;
+            td.style.borderRadius = "";
+            td.style.overflow = "";
+          });
+
+          if (radius === "0px") return;
+
+          top.style.borderTopLeftRadius = radius;
+          top.style.borderTopRightRadius = radius;
+          top.style.overflow = "hidden";
+
+          bottom.style.borderBottomLeftRadius = radius;
+          bottom.style.borderBottomRightRadius = radius;
+          bottom.style.overflow = "hidden";
         }
 
         _applyRadiusToParagraphs(radius) {
@@ -1500,6 +1762,187 @@
           wrap.style.overflow = radius && radius !== "0px" ? "hidden" : "";
           wrap.style.display = "inline-block"; // garante
           this._tblFixOuterEdgesForRounded(wrap, radius && radius !== "0px");
+        }
+
+        _setActiveTblCol(tblWrap, colIndex) {
+          // limpa seleções anteriores
+          if (this.activeTblCell)
+            this.activeTblCell.classList.remove("sel-cell");
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+          if (this.activeTbl && this.activeTbl !== tblWrap) {
+            this.activeTbl.classList.remove("sel-table");
+            this.activeTbl
+              .querySelectorAll("td.sel-col")
+              .forEach((td) => td.classList.remove("sel-col"));
+          }
+          if (tblWrap)
+            tblWrap
+              .querySelectorAll("td.sel-col")
+              .forEach((td) => td.classList.remove("sel-col"));
+
+          this.activeTbl = tblWrap;
+          this.activeTblRow = null;
+          this.activeTblCell = null;
+          this.activeTblCol = colIndex;
+
+          tblWrap.classList.add("sel-table");
+
+          const tbl = tblWrap.querySelector("table.rx-tbl");
+          if (!tbl) return;
+
+          // marca as células da coluna
+          tbl.querySelectorAll("tr").forEach((tr) => {
+            const tds = tr.querySelectorAll(":scope > td");
+            const td = tds[colIndex];
+            if (td) td.classList.add("sel-col");
+          });
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = ""; // você pediu pra não mexer no combo ao selecionar linha/coluna
+        }
+
+        _setActiveTableOnly(tblWrap) {
+          this._clearActiveTable();
+          this.activeTbl = tblWrap;
+          tblWrap.classList.add("sel-table");
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = "";
+        }
+
+        _cycleTblSelectionCtrl(tblWrap, tr, td) {
+          // ciclo: table -> row -> col -> table ...
+          // regra: usa o ponto clicado (tr/td) pra definir linha/coluna quando for o caso
+
+          const sameTbl = this.activeTbl === tblWrap;
+
+          const isTable =
+            sameTbl &&
+            this.activeTbl &&
+            !this.activeTblRow &&
+            !this.activeTblCell &&
+            this.activeTblCol == null;
+          const isRow = sameTbl && !!this.activeTblRow;
+          const isCol = sameTbl && this.activeTblCol != null;
+          // (cell é clique simples, então ctrl não entra como "cell mode")
+
+          if (!sameTbl || (!isTable && !isRow && !isCol)) {
+            // começa em "tabela"
+            this._setActiveTableOnly(tblWrap);
+            return;
+          }
+
+          if (isTable) {
+            // table -> row
+            if (tr) this._setActiveTblRow(tblWrap, tr);
+            else this._setActiveTblRow(tblWrap, tblWrap.querySelector("tr"));
+            return;
+          }
+
+          if (isRow) {
+            // row -> col
+            const colIndex = td ? td.cellIndex : 0;
+            this._setActiveTblCol(tblWrap, colIndex);
+            return;
+          }
+
+          // col -> table
+          this._setActiveTableOnly(tblWrap);
+        }
+
+        _tblGetTable(wrap) {
+          return wrap?.querySelector("table.rx-tbl") || null;
+        }
+
+        _tblGetAllRows(wrap) {
+          const tbl = this._tblGetTable(wrap);
+          if (!tbl) return [];
+          return [...tbl.querySelectorAll("tr")];
+        }
+
+        _tblClearAutoBorders(wrap) {
+          const tbl = this._tblGetTable(wrap);
+          if (!tbl) return;
+
+          tbl.querySelectorAll("td").forEach((td) => {
+            // só apaga o que foi aplicado automaticamente (linha/coluna/tabela)
+            if (td.dataset.autoBorder === "1") {
+              td.style.borderTop = "";
+              td.style.borderBottom = "";
+              td.style.borderLeft = "";
+              td.style.borderRight = "";
+              td.style.border = "";
+              delete td.dataset.autoBorder;
+            }
+          });
+        }
+
+        _tblApplyBorderTable(wrap, cssBorder) {
+          // borda externa: no wrapper
+          wrap.style.border = cssBorder === "none" ? "" : cssBorder;
+
+          // limpa qualquer auto-borda interna (pra ficar só a moldura externa)
+          this._tblClearAutoBorders(wrap);
+        }
+
+        _tblApplyBorderRow(wrap, tr, cssBorder) {
+          if (!wrap || !tr) return;
+
+          const tds = [...tr.querySelectorAll(":scope > td")];
+          if (tds.length === 0) return;
+
+          const last = tds.length - 1;
+          const border = cssBorder === "none" ? "" : cssBorder;
+
+          // NÃO mexe na borda do wrapper ao aplicar na linha
+          // (a linha é um retângulo interno)
+
+          for (let i = 0; i < tds.length; i++) {
+            const td = tds[i];
+            td.dataset.autoBorder = "1";
+
+            // topo e base em toda célula da linha
+            td.style.borderTop = border;
+            td.style.borderBottom = border;
+
+            // laterais só nas extremidades (pra não ter divisórias internas)
+            td.style.borderLeft = i === 0 ? border : "none";
+            td.style.borderRight = i === last ? border : "none";
+          }
+        }
+
+        _tblApplyBorderCol(wrap, colIndex, cssBorder) {
+          if (!wrap || colIndex == null) return;
+
+          const rows = this._tblGetAllRows(wrap);
+          if (rows.length === 0) return;
+
+          const border = cssBorder === "none" ? "" : cssBorder;
+          const lastRow = rows.length - 1;
+
+          for (let r = 0; r < rows.length; r++) {
+            const tr = rows[r];
+            const td = tr.children?.[colIndex];
+            if (!td) continue;
+
+            td.dataset.autoBorder = "1";
+
+            // laterais sempre
+            td.style.borderLeft = border;
+            td.style.borderRight = border;
+
+            // topo só na primeira linha, base só na última
+            td.style.borderTop = r === 0 ? border : "none";
+            td.style.borderBottom = r === lastRow ? border : "none";
+          }
+        }
+
+        _tblEnsureSeparate(wrap) {
+          const tbl = wrap?.querySelector("table.rx-tbl");
+          if (!tbl) return null;
+          tbl.style.borderCollapse = "separate";
+          tbl.style.borderSpacing = "0";
+          return tbl;
         }
       }
 
