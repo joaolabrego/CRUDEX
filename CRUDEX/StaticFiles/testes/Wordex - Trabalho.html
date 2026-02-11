@@ -12,10 +12,6 @@
         --margin: 20mm;
         --header-h: 28mm;
         --footer-h: 24mm;
-
-        --guide: #777;
-        --tag-bg: #e6e6e6;
-        --tag-bd: #777;
       }
 
       * {
@@ -25,10 +21,7 @@
       body {
         margin: 0;
         background: #111;
-        font-family:
-          system-ui,
-          Segoe UI,
-          Arial;
+        font-family: system-ui, Segoe UI, Arial;
         overflow: hidden;
       }
 
@@ -202,15 +195,15 @@
         outline-offset: 2px;
       }
 
-      /* ===== TABELA (inline, dentro do <p>) ===== */
+      /* ===== TABELA ===== */
       .rx-tbl-wrap {
         display: inline-block;
-        vertical-align: baseline;
-        padding: 1px; /* <<< espaço pro raio aparecer */
-        border-radius: 0px; /* pode ser 0 por default, tanto faz */
+        padding: 1px; /* espaço pro contorno do wrapper */
+        border-radius: 0px;
         border: 0 solid transparent;
-        overflow: hidden; /* recorta as células no raio */
-        background: #fff; /* fundo do padding */
+        overflow: hidden;
+        background: #fff;
+        position: relative;
       }
 
       .rx-tbl {
@@ -226,61 +219,49 @@
         user-select: text;
       }
 
-      /* Seleção da TABELA: sempre quadrada */
-      .rx-tbl-wrap {
-        position: relative;
-      }
-
-      /* Seleção de CÉLULA: sempre quadrada */
-      .rx-tbl td.sel-cell {
-        position: relative;
-      }
-
-      /* Seleção de COLUNA: sempre quadrada */
-      .rx-tbl td.sel-col {
-        position: relative;
-      }
-
-      /* Seleção de LINHA: sempre quadrada (por célula) */
-      .rx-tbl tr.sel-row > td {
-        position: relative;
-      }
-
-      /* seleção NÃO muda layout */
       .rx-tbl-wrap.sel-table {
         box-shadow: 0 0 0 2px rgba(57, 255, 20, 0.85);
       }
 
-      /* CÉLULA */
       .rx-tbl td.sel-cell {
         box-shadow: inset 0 0 0 2px rgba(57, 255, 20, 0.85);
       }
 
-      /* COLUNA */
       .rx-tbl td.sel-col {
         box-shadow: inset 0 0 0 2px rgba(57, 255, 20, 0.55);
       }
 
-      /* LINHA (por célula) */
       .rx-tbl tr.sel-row > td {
         box-shadow: inset 0 0 0 2px rgba(57, 255, 20, 0.85);
       }
 
-      /* por padrão: sem destaque */
+      /* destaque só quando estiver editando */
       .editable.header-ed,
       .editable.footer-ed {
         background: transparent;
       }
 
-      /* destaque só quando estiver editando */
       .editable.header-ed.editing,
       .editable.footer-ed.editing {
-        background: rgba(
-          230,
-          230,
-          230,
-          0.55
-        ); /* ou use var(--tag-bg) com alpha */
+        background: rgba(230, 230, 230, 0.55);
+      }
+
+      /* ===== PARÁGRAFO EXCLUSIVO DA TABELA ===== */
+      p.rx-tbl-only {
+        display: flex;
+        margin: 0 0 6px 0;
+      }
+      p.rx-tbl-only.left {
+        justify-content: flex-start;
+      }
+      p.rx-tbl-only.center {
+        justify-content: center;
+      }
+      p.rx-tbl-only.right {
+        justify-content: flex-end;
+      }
+      p.rx-tbl-only > br {
+        display: none;
       }
     </style>
   </head>
@@ -349,23 +330,11 @@
 
         <input id="tbColor" type="color" title="Cor" />
 
-        <!-- Só LEFT/RIGHT (UP/DOWN removido) -->
-        <button
-          id="tbImgLeft"
-          title="Mover imagem/tabela 1 caractere p/ esquerda"
-        >
-          ←
-        </button>
-        <button
-          id="tbImgRight"
-          title="Mover imagem/tabela 1 caractere p/ direita"
-        >
-          →
-        </button>
+        <!-- Botão ÚNICO: se tabela selecionada => alinha (E->C->D->E),
+             senão => move imagem para início/fim -->
+        <button id="tbImgLeftRight" title="Tabela: alinhar (E/C/D). Imagem: início/fim">↔</button>
 
-        <button id="tbTag" title="Atribuir tag à imagem/tabela selecionada">
-          🏷️ Tag
-        </button>
+        <button id="tbTag" title="Atribuir tag à imagem/tabela selecionada">🏷️ Tag</button>
 
         <span style="opacity: 0.7; margin-left: 6px">Imagem:</span>
         <button id="tbImgIns" title="Inserir imagem (no cursor)">🖼️+</button>
@@ -407,10 +376,10 @@
           this.activeImg = null;
 
           // tabela
-          this.activeTbl = null; // span wrapper
-          this.activeTblRow = null; // <tr> selecionado
-          this.activeTblCell = null; // <td> selecionado
-          this.activeTblCol = null; // índice da coluna selecionada
+          this.activeTbl = null; // .rx-tbl-wrap
+          this.activeTblRow = null; // <tr>
+          this.activeTblCell = null; // <td>
+          this.activeTblCol = null; // índice
 
           this._onGlobalKeyDown = this._onGlobalKeyDown.bind(this);
           this._onStageMouseDown = this._onStageMouseDown.bind(this);
@@ -435,11 +404,12 @@
           });
         }
 
+        /* ===== UI / seleção ===== */
+
         _updateModeUI() {
           this.modeText.textContent = this.insertMode ? "INS" : "OVR";
           this.modePill.classList.toggle("ovr", !this.insertMode);
-          if (this.active)
-            this.active.classList.toggle("ovr-caret", !this.insertMode);
+          if (this.active) this.active.classList.toggle("ovr-caret", !this.insertMode);
         }
 
         _getSelectionRange() {
@@ -451,10 +421,7 @@
         _getActiveParagraph() {
           const r = this._getSelectionRange();
           if (!r) return null;
-          const node =
-            r.startContainer.nodeType === 3
-              ? r.startContainer.parentNode
-              : r.startContainer;
+          const node = r.startContainer.nodeType === 3 ? r.startContainer.parentNode : r.startContainer;
           return node.closest?.("p") || null;
         }
 
@@ -529,9 +496,7 @@
               <div class="band footer"><div class="editable footer-ed"></div></div>
             </div>`;
 
-          p.querySelectorAll(".editable").forEach((ed) =>
-            this._wireEditable(ed),
-          );
+          p.querySelectorAll(".editable").forEach((ed) => this._wireEditable(ed));
           return p;
         }
 
@@ -573,11 +538,7 @@
         }
 
         _wireStageDelegation() {
-          this.stage.addEventListener(
-            "mousedown",
-            this._onStageMouseDown,
-            true,
-          );
+          this.stage.addEventListener("mousedown", this._onStageMouseDown, true);
         }
 
         _onStageMouseDown(e) {
@@ -585,14 +546,12 @@
           if (!e.target.closest(".rx-tbl-wrap")) this._clearActiveTable();
           if (e.button !== 0) return;
 
-          // 1) Se clicou DENTRO do conteúdo editável, deixa o browser posicionar o caret
           const ed = e.target.closest(".editable");
           if (ed) {
             if (ed !== this.active) this.startEdit(ed);
-            return; // <-- sem preventDefault aqui
+            return;
           }
 
-          // 2) Clique em qualquer área da banda (header/body/footer), fora do .editable
           const band = e.target.closest(".band");
           if (!band) return;
 
@@ -604,7 +563,6 @@
           this.startEdit(targetEd);
           this._ensureHasParagraph(targetEd);
 
-          // aqui sim: como não houve clique no texto, decide posição padrão
           if (targetEd.classList.contains("footer-ed")) {
             this._placeCaretStart(targetEd.querySelector("p:first-child"));
           } else {
@@ -612,42 +570,53 @@
           }
         }
 
-        _clearActiveTable() {
-          if (this.activeTblCell)
-            this.activeTblCell.classList.remove("sel-cell");
-          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
-          if (this.activeTbl) {
-            this.activeTbl.classList.remove("sel-table");
-            this.activeTbl
-              .querySelectorAll("td.sel-col")
-              .forEach((td) => td.classList.remove("sel-col"));
-          }
-
-          this.activeTbl = null;
-          this.activeTblRow = null;
-          this.activeTblCell = null;
-          this.activeTblCol = null;
-
-          const sel = document.getElementById("tbRowKind");
-          if (sel) sel.value = "";
+        _selectionInsideActive() {
+          if (!this.active) return false;
+          const sel = window.getSelection();
+          if (!sel || sel.rangeCount === 0) return false;
+          const r = sel.getRangeAt(0);
+          const a =
+            r.commonAncestorContainer.nodeType === 3
+              ? r.commonAncestorContainer.parentNode
+              : r.commonAncestorContainer;
+          return this.active.contains(a);
         }
 
-        _toggleTblRow(tblWrap, tr) {
-          if (this.activeTbl && this.activeTbl !== tblWrap)
-            this._clearActiveTable();
-
-          const isSame = this.activeTbl === tblWrap && this.activeTblRow === tr;
-          if (isSame) {
-            if (this.activeTblRow)
-              this.activeTblRow.classList.remove("sel-row");
-            this.activeTblRow = null;
-            if (!this.activeTbl) this._setActiveTable(tblWrap);
-            const sel = document.getElementById("tbRowKind");
-            if (sel) sel.value = "";
-            return;
-          }
-          this._setActiveTblRow(tblWrap, tr);
+        _onSelectionChange() {
+          if (!this.active) return;
+          if (!this._selectionInsideActive()) return;
+          this._saveSelection();
         }
+
+        _saveSelection() {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount) this.savedRange = sel.getRangeAt(0).cloneRange();
+        }
+
+        _restoreSelection() {
+          if (!this.savedRange) return false;
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(this.savedRange);
+          return true;
+        }
+
+        _getCommandHost() {
+          const r = this.savedRange || this._getSelectionRange();
+          if (!r) return this.active;
+
+          const node =
+            r.commonAncestorContainer.nodeType === 3
+              ? r.commonAncestorContainer.parentNode
+              : r.commonAncestorContainer;
+
+          const td = node.closest?.("td[contenteditable='true'], td[contenteditable=true]");
+          if (td) return td;
+
+          return this.active;
+        }
+
+        /* ===== wiring do editable ===== */
 
         _wireEditable(ed) {
           ed.addEventListener(
@@ -659,54 +628,13 @@
                 const tr = e.target.closest("tr");
                 const td = e.target.closest("td");
 
+                // garante regra: tabela sempre em parágrafo vazio exclusivo
+                this._tblEnsureOwnParagraph(tbl);
+
                 if (e.ctrlKey) {
                   e.preventDefault();
                   e.stopPropagation();
-
-                  // ctrl+click em TD: ciclo tabela -> linha -> coluna -> tabela
-                  if (td) {
-                    // 1) se ainda não é a tabela ativa: seleciona tabela
-                    if (this.activeTbl !== tbl) {
-                      this._setActiveTable(tbl);
-                      return;
-                    }
-
-                    // 2) se só a tabela está selecionada: seleciona linha
-                    if (
-                      this.activeTbl &&
-                      !this.activeTblRow &&
-                      this.activeTblCol == null &&
-                      !this.activeTblCell
-                    ) {
-                      if (tr) this._setActiveTblRow(tbl, tr);
-                      return;
-                    }
-
-                    // 3) se a linha está selecionada: seleciona coluna
-                    if (this.activeTblRow) {
-                      this._setActiveTblCol(tbl, td.cellIndex);
-                      return;
-                    }
-
-                    // 4) se a coluna está selecionada: volta pra tabela
-                    if (this.activeTblCol != null) {
-                      this._setActiveTable(tbl);
-                      return;
-                    }
-
-                    // fallback
-                    this._setActiveTable(tbl);
-                    return;
-                  }
-
-                  // ctrl+click fora de td: tabela
-                  if (tr) {
-                    // se ctrl+click pegou TR sem TD, mantém seu comportamento antigo
-                    this._toggleTblRow(tbl, tr);
-                    return;
-                  }
-
-                  this._setActiveTable(tbl);
+                  this._cycleTblSelectionCtrl(tbl, tr, td);
                   return;
                 }
 
@@ -715,7 +643,7 @@
                   return;
                 }
 
-                this._setActiveTable(tbl);
+                this._setActiveTableOnly(tbl);
                 return;
               }
 
@@ -747,8 +675,7 @@
               if (!r || !r.collapsed) return;
               const sc = r.startContainer;
               const so = r.startOffset;
-              if (sc && sc.nodeType === 3 && so < sc.data.length)
-                sc.deleteData(so, 1);
+              if (sc && sc.nodeType === 3 && so < sc.data.length) sc.deleteData(so, 1);
             }
           });
 
@@ -758,13 +685,14 @@
           });
         }
 
+        /* ===== toolbar ===== */
+
         _wireToolbar() {
           const $ = (id) => document.getElementById(id);
 
           const applyCmd = (cmd, value = null) => {
             if (!this.active) return;
-            if (!this._restoreSelection() && !this._selectionInsideActive())
-              return;
+            if (!this._restoreSelection() && !this._selectionInsideActive()) return;
 
             const host = this._getCommandHost();
             if (!host) return;
@@ -802,7 +730,7 @@
 
           $("tbTag").onclick = () => this._tagSelected();
 
-          // imagem
+          // IMAGEM
           const tbImgFile = $("tbImgFile");
 
           $("tbImgIns").onclick = () => {
@@ -815,8 +743,7 @@
           tbImgFile.addEventListener("change", async () => {
             if (!this.active) return;
             if (!this.savedRange) this._saveSelection();
-            if (!this._restoreSelection() && !this._selectionInsideActive())
-              return;
+            if (!this._restoreSelection() && !this._selectionInsideActive()) return;
 
             const file = tbImgFile.files && tbImgFile.files[0];
             if (!file) return;
@@ -845,17 +772,15 @@
           $("tbImgSm").onclick = () => this._resizeImg(-10);
           $("tbImgLg").onclick = () => this._resizeImg(10);
 
-          // mover (LEFT/RIGHT) imagem/tabela
-          $("tbImgLeft").onclick = () => {
-            if (this.activeTbl) this._moveTblChar(-1);
-            else this._moveImgChar(-1);
-          };
-          $("tbImgRight").onclick = () => {
-            if (this.activeTbl) this._moveTblChar(1);
-            else this._moveImgChar(1);
+          // BOTÃO ÚNICO:
+          // - tabela selecionada => alinha parágrafo da tabela (E->C->D->E)
+          // - senão => imagem vai pro início/fim do parágrafo
+          $("tbImgLeftRight").onclick = () => {
+            if (this.activeTbl) this._tblCycleAlign(this.activeTbl);
+            else this._toggleImgStartEnd();
           };
 
-          // tabela
+          // TABELA
           const MAX_TABLE_RC = 20;
 
           $("tbTblNew").onclick = () => {
@@ -874,8 +799,7 @@
             if (rows > MAX_TABLE_RC || cols > MAX_TABLE_RC) return;
 
             if (!this.savedRange) this._saveSelection();
-            if (!this._restoreSelection() && !this._selectionInsideActive())
-              return;
+            if (!this._restoreSelection() && !this._selectionInsideActive()) return;
 
             this.active.focus({ preventScroll: true });
             this._insertTableAtCaret(rows, cols);
@@ -900,14 +824,12 @@
             }
           };
 
-          const borderColor = () =>
-            document.getElementById("tbColor")?.value || "#000";
+          const borderColor = () => document.getElementById("tbColor")?.value || "#000";
 
           $("tbBorder").onchange = (e) => {
             const v = e.target.value;
             if (v === "") return;
-            const cssBorder =
-              v === "none" ? "none" : `${v}px solid ${borderColor()}`;
+            const cssBorder = v === "none" ? "none" : `${v}px solid ${borderColor()}`;
             this._applyBorder(cssBorder);
             e.target.value = "";
           };
@@ -920,43 +842,10 @@
           };
         }
 
-        _selectionInsideActive() {
-          if (!this.active) return false;
-          const sel = window.getSelection();
-          if (!sel || sel.rangeCount === 0) return false;
-          const r = sel.getRangeAt(0);
-          const a =
-            r.commonAncestorContainer.nodeType === 3
-              ? r.commonAncestorContainer.parentNode
-              : r.commonAncestorContainer;
-          return this.active.contains(a);
-        }
-
-        _onSelectionChange() {
-          if (!this.active) return;
-          if (!this._selectionInsideActive()) return;
-          this._saveSelection();
-        }
-
-        _saveSelection() {
-          const sel = window.getSelection();
-          if (sel && sel.rangeCount)
-            this.savedRange = sel.getRangeAt(0).cloneRange();
-        }
-
-        _restoreSelection() {
-          if (!this.savedRange) return false;
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(this.savedRange);
-          return true;
-        }
-
-        /* ===== IMAGEM ===== */
+        /* ===== imagem ===== */
 
         _setActiveImg(img) {
-          if (this.activeImg && this.activeImg !== img)
-            this.activeImg.classList.remove("sel");
+          if (this.activeImg && this.activeImg !== img) this.activeImg.classList.remove("sel");
           this.activeImg = img || null;
           if (this.activeImg) this.activeImg.classList.add("sel");
           if (img?.dataset?.img) img.title = `{{${img.dataset.img}}}`;
@@ -968,12 +857,7 @@
         }
 
         _getTargetImg() {
-          if (
-            this.activeImg &&
-            this.active &&
-            this.active.contains(this.activeImg)
-          )
-            return this.activeImg;
+          if (this.activeImg && this.active && this.active.contains(this.activeImg)) return this.activeImg;
 
           const r = this.savedRange || this._getSelectionRange();
           if (!r || !this.active) return null;
@@ -1011,44 +895,6 @@
           return r.toString().length;
         }
 
-        _getTextLength(container) {
-          const r = document.createRange();
-          r.selectNodeContents(container);
-          return r.toString().length;
-        }
-
-        _insertNodeAtTextOffset(container, node, offset) {
-          const total = this._getTextLength(container);
-          if (offset < 0) offset = 0;
-          if (offset > total) offset = total;
-
-          const tw = document.createTreeWalker(
-            container,
-            NodeFilter.SHOW_TEXT,
-            null,
-          );
-          let cur;
-          let remaining = offset;
-
-          while ((cur = tw.nextNode())) {
-            const len = cur.nodeValue.length;
-
-            if (remaining <= len) {
-              if (remaining === 0) {
-                cur.parentNode.insertBefore(node, cur);
-              } else if (remaining === len) {
-                cur.parentNode.insertBefore(node, cur.nextSibling);
-              } else {
-                const right = cur.splitText(remaining);
-                right.parentNode.insertBefore(node, right);
-              }
-              return;
-            }
-            remaining -= len;
-          }
-          container.appendChild(node);
-        }
-
         _cleanupEmptyTextNodes(p) {
           const toRemove = [];
           for (const n of p.childNodes) {
@@ -1057,47 +903,10 @@
             if (t === "") toRemove.push(n);
           }
           toRemove.forEach((n) => n.remove());
-          if (
-            !p.textContent.trim() &&
-            p.querySelectorAll("img.rx-img").length === 0
-          ) {
+          if (!p.textContent.trim() && p.querySelectorAll("img.rx-img").length === 0 && p.querySelectorAll(".rx-tbl-wrap").length === 0) {
             p.innerHTML = "";
             p.appendChild(document.createElement("br"));
           }
-        }
-
-        _moveImgChar(dir) {
-          if (!this.active) return;
-          if (!this.savedRange) this._saveSelection();
-          this.active.focus({ preventScroll: true });
-
-          const img = this._getTargetImg();
-          if (!img) return;
-
-          const p = img.closest("p");
-          if (!p) return;
-
-          const pos = this._getTextOffsetBeforeNode(p, img);
-          const total = this._getTextLength(p);
-
-          img.remove();
-          this._cleanupEmptyTextNodes(p);
-
-          let nextPos = pos + dir;
-          if (nextPos < 0) nextPos = 0;
-          if (nextPos > total) nextPos = total;
-
-          this._insertNodeAtTextOffset(p, img, nextPos);
-
-          const r = document.createRange();
-          r.setStartAfter(img);
-          r.collapse(true);
-          const s = window.getSelection();
-          s.removeAllRanges();
-          s.addRange(r);
-          this._saveSelection();
-
-          this._setActiveImg(img);
         }
 
         _resizeImg(deltaPx) {
@@ -1121,21 +930,96 @@
           this._saveSelection();
         }
 
-        /* ===== TABELA ===== */
+        _toggleImgStartEnd() {
+          if (!this.active) return;
+          if (!this.savedRange) this._saveSelection();
+          this.active.focus({ preventScroll: true });
 
-        _setActiveTblRow(tblWrap, tr) {
-          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
-          if (this.activeTbl && this.activeTbl !== tblWrap)
-            this.activeTbl.classList.remove("sel-table");
+          const img = this._getTargetImg();
+          if (!img) return;
 
-          this.activeTbl = tblWrap;
-          this.activeTblRow = tr;
+          const p = img.closest("p");
+          if (!p) return;
 
-          tblWrap.classList.add("sel-table");
-          tr.classList.add("sel-row");
+          const pos = this._getTextOffsetBeforeNode(p, img);
+          const textBefore = p.textContent
+            .slice(0, pos)
+            .replace(/\u00A0/g, " ")
+            .replace(/\s+/g, "");
 
-          const sel = document.getElementById("tbRowKind");
-          if (sel) sel.value = ""; // fica sempre na opção 0
+          const isAtStart = textBefore.length === 0;
+
+          img.remove();
+          this._cleanupEmptyTextNodes(p);
+
+          if (isAtStart) p.appendChild(img);
+          else p.insertBefore(img, p.firstChild);
+
+          if (!img.nextSibling || img.nextSibling.nodeType !== 3) img.after(document.createTextNode("\u00A0"));
+
+          const spacer = img.nextSibling;
+          const r = document.createRange();
+          r.setStartAfter(spacer);
+          r.collapse(true);
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+
+          this._saveSelection();
+          this._setActiveImg(img);
+        }
+
+        /* ===== tabela (regra: sempre em parágrafo vazio) ===== */
+
+        _tblEnsureOwnParagraph(tbl) {
+          const p = tbl.closest("p");
+          if (!p) return null;
+
+          // já está sozinho?
+          const only = [...p.childNodes].every((n) => {
+            if (n === tbl) return true;
+            if (n.nodeType === 3) return (n.nodeValue || "").replace(/\u00A0/g, "").trim() === "";
+            if (n.nodeType === 1 && n.tagName === "BR") return true;
+            return false;
+          });
+
+          if (only) {
+            p.classList.add("rx-tbl-only");
+            if (!p.classList.contains("left") && !p.classList.contains("center") && !p.classList.contains("right")) {
+              p.classList.add("left"); // padrão
+            }
+            // remove BRs
+            p.querySelectorAll(":scope > br").forEach((b) => b.remove());
+            return p;
+          }
+
+          // move para um parágrafo novo (logo abaixo)
+          const np = document.createElement("p");
+          np.className = "rx-tbl-only left";
+          p.parentNode.insertBefore(np, p.nextSibling);
+
+          tbl.remove();
+          np.appendChild(tbl);
+
+          this._cleanupEmptyTextNodes(p);
+          return np;
+        }
+
+        _tblSetAlign(tbl, align /* left|center|right */) {
+          const p = this._tblEnsureOwnParagraph(tbl);
+          if (!p) return;
+          p.classList.remove("left", "center", "right");
+          p.classList.add(align);
+        }
+
+        // ciclo exigido: estando à esquerda => centro => direita => esquerda...
+        _tblCycleAlign(tbl) {
+          const p = this._tblEnsureOwnParagraph(tbl);
+          if (!p) return;
+
+          if (p.classList.contains("left")) return this._tblSetAlign(tbl, "center");
+          if (p.classList.contains("center")) return this._tblSetAlign(tbl, "right");
+          return this._tblSetAlign(tbl, "left");
         }
 
         _createTbl(rows, cols) {
@@ -1168,13 +1052,175 @@
           return wrap;
         }
 
+        _insertTableAtCaret(rows, cols) {
+          const r = this._getSelectionRange();
+          const curP = this._getActiveParagraph();
+          if (!r || !curP) return;
+
+          const ed = curP.closest(".editable");
+          if (!ed) return;
+
+          // cria parágrafo EXCLUSIVO da tabela logo após o parágrafo corrente
+          const pTbl = document.createElement("p");
+          pTbl.className = "rx-tbl-only left";
+
+          const wrap = this._createTbl(rows, cols);
+          pTbl.appendChild(wrap);
+
+          curP.parentNode.insertBefore(pTbl, curP.nextSibling);
+
+          // cria um parágrafo vazio depois da tabela para continuar digitando
+          const pAfter = document.createElement("p");
+          pAfter.appendChild(document.createElement("br"));
+          pTbl.parentNode.insertBefore(pAfter, pTbl.nextSibling);
+
+          this._clearActiveTable();
+          this._setActiveTableOnly(wrap);
+
+          // caret no parágrafo depois da tabela
+          this._placeCaretStart(pAfter);
+          this._saveSelection();
+        }
+
+        _clearActiveTable() {
+          if (this.activeTblCell) this.activeTblCell.classList.remove("sel-cell");
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+          if (this.activeTbl) {
+            this.activeTbl.classList.remove("sel-table");
+            this.activeTbl.querySelectorAll("td.sel-col").forEach((td) => td.classList.remove("sel-col"));
+          }
+
+          this.activeTbl = null;
+          this.activeTblRow = null;
+          this.activeTblCell = null;
+          this.activeTblCol = null;
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = "";
+        }
+
+        _setActiveTableOnly(tblWrap) {
+          this._clearActiveTable();
+          this.activeTbl = tblWrap;
+          tblWrap.classList.add("sel-table");
+
+          // garante regra e alinhamento padrão
+          this._tblEnsureOwnParagraph(tblWrap);
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = "";
+          if (tblWrap?.dataset?.items) tblWrap.title = `{{${tblWrap.dataset.items}}}`;
+        }
+
+        _setActiveTblCell(tblWrap, td) {
+          // garante regra
+          this._tblEnsureOwnParagraph(tblWrap);
+
+          if (this.activeTblCell) this.activeTblCell.classList.remove("sel-cell");
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+          if (this.activeTbl && this.activeTbl !== tblWrap) this.activeTbl.classList.remove("sel-table");
+
+          // limpa colunas marcadas antes
+          if (this.activeTbl) this.activeTbl.querySelectorAll("td.sel-col").forEach((x) => x.classList.remove("sel-col"));
+
+          this.activeTbl = tblWrap;
+          this.activeTblCell = td;
+          this.activeTblRow = td.closest("tr") || null;
+          this.activeTblCol = null;
+
+          tblWrap.classList.add("sel-table");
+          td.classList.add("sel-cell");
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = "";
+        }
+
+        _setActiveTblRow(tblWrap, tr) {
+          this._tblEnsureOwnParagraph(tblWrap);
+
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+          if (this.activeTblCell) this.activeTblCell.classList.remove("sel-cell");
+
+          if (this.activeTbl && this.activeTbl !== tblWrap) this.activeTbl.classList.remove("sel-table");
+          if (this.activeTbl) this.activeTbl.querySelectorAll("td.sel-col").forEach((x) => x.classList.remove("sel-col"));
+
+          this.activeTbl = tblWrap;
+          this.activeTblRow = tr;
+          this.activeTblCell = null;
+          this.activeTblCol = null;
+
+          tblWrap.classList.add("sel-table");
+          tr.classList.add("sel-row");
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = "";
+        }
+
+        _setActiveTblCol(tblWrap, colIndex) {
+          this._tblEnsureOwnParagraph(tblWrap);
+
+          if (this.activeTblCell) this.activeTblCell.classList.remove("sel-cell");
+          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
+
+          if (this.activeTbl && this.activeTbl !== tblWrap) this.activeTbl.classList.remove("sel-table");
+          if (tblWrap) tblWrap.querySelectorAll("td.sel-col").forEach((td) => td.classList.remove("sel-col"));
+
+          this.activeTbl = tblWrap;
+          this.activeTblRow = null;
+          this.activeTblCell = null;
+          this.activeTblCol = colIndex;
+
+          tblWrap.classList.add("sel-table");
+
+          const tbl = tblWrap.querySelector("table.rx-tbl");
+          if (!tbl) return;
+
+          tbl.querySelectorAll("tr").forEach((tr) => {
+            const tds = tr.querySelectorAll(":scope > td");
+            const td = tds[colIndex];
+            if (td) td.classList.add("sel-col");
+          });
+
+          const sel = document.getElementById("tbRowKind");
+          if (sel) sel.value = "";
+        }
+
+        // ciclo ctrl: table -> row -> col -> table
+        _cycleTblSelectionCtrl(tblWrap, tr, td) {
+          const sameTbl = this.activeTbl === tblWrap;
+
+          const isTable = sameTbl && this.activeTbl && !this.activeTblRow && !this.activeTblCell && this.activeTblCol == null;
+          const isRow = sameTbl && !!this.activeTblRow;
+          const isCol = sameTbl && this.activeTblCol != null;
+
+          if (!sameTbl || (!isTable && !isRow && !isCol)) {
+            this._setActiveTableOnly(tblWrap);
+            return;
+          }
+
+          if (isTable) {
+            if (tr) this._setActiveTblRow(tblWrap, tr);
+            else this._setActiveTblRow(tblWrap, tblWrap.querySelector("tr"));
+            return;
+          }
+
+          if (isRow) {
+            const colIndex = td ? td.cellIndex : 0;
+            this._setActiveTblCol(tblWrap, colIndex);
+            return;
+          }
+
+          this._setActiveTableOnly(tblWrap);
+        }
+
         _setRowKind(tr, kind) {
+          if (!tr) return;
+
           if (kind === "titles" || kind === "detail") {
             const tbl = tr.closest(".rx-tbl");
             const other = tbl.querySelector(`tr[data-kind="${kind}"]`);
             if (other && other !== tr) other.dataset.kind = "";
           }
-          if (!tr) return;
 
           tr.dataset.kind = kind || "";
 
@@ -1183,11 +1229,7 @@
 
           if (kind === "group" || kind === "total") {
             const tds = tr.querySelectorAll(":scope > td");
-            if (tds.length === 1 && tds[0].colSpan === cols) {
-              const sel = document.getElementById("tbRowKind");
-              if (sel) sel.value = "";
-              return;
-            }
+            if (tds.length === 1 && tds[0].colSpan === cols) return;
 
             const td = document.createElement("td");
             td.colSpan = cols;
@@ -1195,18 +1237,11 @@
             td.appendChild(document.createElement("br"));
             tr.innerHTML = "";
             tr.appendChild(td);
-
-            const sel = document.getElementById("tbRowKind");
-            if (sel) sel.value = "";
             return;
           }
 
           const tds = tr.querySelectorAll(":scope > td");
-          if (tds.length === cols) {
-            const sel = document.getElementById("tbRowKind");
-            if (sel) sel.value = "";
-            return;
-          }
+          if (tds.length === cols) return;
 
           tr.innerHTML = "";
           for (let c = 0; c < cols; c++) {
@@ -1215,144 +1250,9 @@
             td.appendChild(document.createElement("br"));
             tr.appendChild(td);
           }
-
-          const sel = document.getElementById("tbRowKind");
-          if (sel) sel.value = "";
         }
 
-        _insertTableAtCaret(rows, cols) {
-          const r = this._getSelectionRange();
-          const p = this._getActiveParagraph();
-          if (!r || !p) return;
-
-          if (!r.collapsed) r.collapse(true);
-
-          const wrap = this._createTbl(rows, cols);
-          r.insertNode(wrap);
-
-          const spacer = document.createTextNode("\u00A0");
-          wrap.after(spacer);
-
-          const nr = document.createRange();
-          nr.setStartAfter(spacer);
-          nr.collapse(true);
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(nr);
-          this._saveSelection();
-
-          this._clearActiveTable();
-          this._setActiveTable(wrap); // seleciona só a tabela (sem linha/célula)
-        }
-
-        _setActiveTblCell(tblWrap, td) {
-          if (this.activeTblCell)
-            this.activeTblCell.classList.remove("sel-cell");
-          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
-          if (this.activeTbl && this.activeTbl !== tblWrap)
-            this.activeTbl.classList.remove("sel-table");
-
-          this.activeTbl = tblWrap;
-          this.activeTblCell = td;
-          this.activeTblRow = td.closest("tr") || null;
-
-          tblWrap.classList.add("sel-table");
-          td.classList.add("sel-cell");
-
-          const sel = document.getElementById("tbRowKind");
-          if (sel) sel.value = ""; // não “puxa” o tipo ao clicar em célula/linha
-        }
-
-        _setActiveTable(tblWrap) {
-          if (this.activeTblCell)
-            this.activeTblCell.classList.remove("sel-cell");
-          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
-          if (this.activeTbl && this.activeTbl !== tblWrap)
-            this.activeTbl.classList.remove("sel-table");
-
-          this.activeTbl = tblWrap;
-          this.activeTblRow = null;
-          this.activeTblCell = null;
-
-          tblWrap.classList.add("sel-table");
-
-          const sel = document.getElementById("tbRowKind");
-          if (sel) sel.value = "";
-          if (tblWrap?.dataset?.items)
-            tblWrap.title = `{{${tblWrap.dataset.items}}}`;
-        }
-
-        _getTargetTbl() {
-          if (
-            this.activeTbl &&
-            this.active &&
-            this.active.contains(this.activeTbl)
-          )
-            return this.activeTbl;
-
-          const r = this.savedRange || this._getSelectionRange();
-          if (!r || !this.active) return null;
-
-          const node =
-            r.commonAncestorContainer.nodeType === 3
-              ? r.commonAncestorContainer.parentNode
-              : r.commonAncestorContainer;
-
-          return node.closest?.(".rx-tbl-wrap") || null;
-        }
-
-        _moveTblChar(dir) {
-          if (!this.active) return;
-          if (!this.savedRange) this._saveSelection();
-          this.active.focus({ preventScroll: true });
-
-          const tbl = this._getTargetTbl();
-          if (!tbl) return;
-
-          const p = tbl.closest("p");
-          if (!p) return;
-
-          const pos = this._getTextOffsetBeforeNode(p, tbl);
-          const total = this._getTextLength(p);
-
-          tbl.remove();
-          this._cleanupEmptyTextNodes(p);
-
-          let nextPos = pos + dir;
-          if (nextPos < 0) nextPos = 0;
-          if (nextPos > total) nextPos = total;
-
-          this._insertNodeAtTextOffset(p, tbl, nextPos);
-
-          const r = document.createRange();
-          r.setStartAfter(tbl);
-          r.collapse(true);
-          const s = window.getSelection();
-          s.removeAllRanges();
-          s.addRange(r);
-          this._saveSelection();
-
-          this._setActiveTable(tbl);
-        }
-
-        _getCommandHost() {
-          const r = this.savedRange || this._getSelectionRange();
-          if (!r) return this.active;
-
-          const node =
-            r.commonAncestorContainer.nodeType === 3
-              ? r.commonAncestorContainer.parentNode
-              : r.commonAncestorContainer;
-
-          const td = node.closest?.(
-            "td[contenteditable='true'], td[contenteditable=true]",
-          );
-          if (td) return td;
-
-          return this.active;
-        }
-
-        /* ===== Borda / Raio ===== */
+        /* ===== borda / raio ===== */
 
         _applyBorder(cssBorder) {
           const img = this._getTargetImg();
@@ -1361,94 +1261,61 @@
             return;
           }
 
-          // ===== 1) CÉLULA =====
+          // célula
           if (this.activeTblCell) {
-            // célula: moldura da própria célula
-            this.activeTblCell.style.border =
-              cssBorder === "none" ? "" : cssBorder;
+            this.activeTblCell.style.border = cssBorder === "none" ? "" : cssBorder;
             return;
           }
 
-          // ===== 2) LINHA =====
+          // linha (moldura externa)
           if (this.activeTbl && this.activeTblRow) {
             const tds = [...this.activeTblRow.querySelectorAll(":scope > td")];
             if (!tds.length) return;
+            const last = tds.length - 1;
+            const b = cssBorder === "none" ? "" : cssBorder;
 
-            // só moldura externa da linha (top/bottom em todas as células,
-            // left só na primeira, right só na última)
             tds.forEach((td, i) => {
-              if (cssBorder === "none") {
-                td.style.borderTop = "";
-                td.style.borderBottom = "";
-                if (i === 0) td.style.borderLeft = "";
-                if (i === tds.length - 1) td.style.borderRight = "";
-              } else {
-                td.style.borderTop = cssBorder;
-                td.style.borderBottom = cssBorder;
-                if (i === 0) td.style.borderLeft = cssBorder;
-                if (i === tds.length - 1) td.style.borderRight = cssBorder;
-              }
+              td.style.borderTop = b;
+              td.style.borderBottom = b;
+              td.style.borderLeft = i === 0 ? b : "none";
+              td.style.borderRight = i === last ? b : "none";
             });
-
             return;
           }
 
-          // ===== 3) COLUNA =====
+          // coluna (moldura externa)
           if (this.activeTbl && this.activeTblCol != null) {
             const tbl = this.activeTbl.querySelector("table.rx-tbl");
             if (!tbl) return;
 
             const rows = [...tbl.querySelectorAll("tr")];
-
-            // pega as TDs da coluna em cada TR (pula linhas sem TD naquela posição)
             const colTds = rows
-              .map(
-                (tr) => tr.querySelectorAll(":scope > td")[this.activeTblCol],
-              )
+              .map((tr) => tr.querySelectorAll(":scope > td")[this.activeTblCol])
               .filter(Boolean);
 
             if (!colTds.length) return;
 
+            const b = cssBorder === "none" ? "" : cssBorder;
             const first = colTds[0];
             const last = colTds[colTds.length - 1];
 
             colTds.forEach((td) => {
-              if (cssBorder === "none") {
-                td.style.borderLeft = "";
-                td.style.borderRight = "";
-              } else {
-                td.style.borderLeft = cssBorder;
-                td.style.borderRight = cssBorder;
-              }
+              td.style.borderLeft = b;
+              td.style.borderRight = b;
             });
 
-            if (cssBorder === "none") {
-              first.style.borderTop = "";
-              last.style.borderBottom = "";
-            } else {
-              first.style.borderTop = cssBorder;
-              last.style.borderBottom = cssBorder;
-            }
-
+            first.style.borderTop = b;
+            last.style.borderBottom = b;
             return;
           }
 
-          // ===== 4) TABELA (só contorno externo) =====
+          // tabela (só wrapper)
           if (this.activeTbl) {
-            // borda externa fica no WRAP
             this.activeTbl.style.border = cssBorder === "none" ? "" : cssBorder;
-
-            // importante: não aplicar nas células (senão vira grade)
-            // e manter recorte do raio
-            if (cssBorder === "none") {
-              // se quiser, pode limpar bordas externas removidas por radius
-              // mas aqui deixo neutro
-            }
-
             return;
           }
 
-          // ===== 5) Parágrafos =====
+          // parágrafo(s)
           this._applyBorderToParagraphs(cssBorder);
         }
 
@@ -1473,10 +1340,8 @@
               const pr = document.createRange();
               pr.selectNodeContents(p);
 
-              const endsBefore =
-                r.compareBoundaryPoints(Range.END_TO_START, pr) <= 0;
-              const startsAfter =
-                r.compareBoundaryPoints(Range.START_TO_END, pr) >= 0;
+              const endsBefore = r.compareBoundaryPoints(Range.END_TO_START, pr) <= 0;
+              const startsAfter = r.compareBoundaryPoints(Range.START_TO_END, pr) >= 0;
 
               if (!endsBefore && !startsAfter) ps.add(p);
             });
@@ -1497,25 +1362,14 @@
 
           const isZero = radius === "0px";
 
-          // ===== 0) GARANTE QUE RAIO FUNCIONE NA TABELA =====
-          // (border-collapse: collapse "mata" o raio nas bordas)
-          if (this.activeTbl) {
-            const tbl = this.activeTbl.querySelector("table.rx-tbl");
-            if (tbl) {
-              tbl.style.borderCollapse = "separate";
-              tbl.style.borderSpacing = "0";
-            }
-          }
-
-          // ===== 1) CÉLULA =====
+          // célula
           if (this.activeTblCell) {
             this.activeTblCell.style.borderRadius = isZero ? "" : radius;
-            // importante: recortar a borda nos cantos
             this.activeTblCell.style.overflow = isZero ? "" : "hidden";
             return;
           }
 
-          // ===== 2) LINHA (retângulo da linha) =====
+          // linha: só 4 quinas (primeira e última célula)
           if (this.activeTbl && this.activeTblRow) {
             const tds = [...this.activeTblRow.querySelectorAll(":scope > td")];
             if (!tds.length) return;
@@ -1523,7 +1377,6 @@
             const first = tds[0];
             const last = tds[tds.length - 1];
 
-            // só 4 quinas da linha
             first.style.borderTopLeftRadius = isZero ? "" : radius;
             first.style.borderBottomLeftRadius = isZero ? "" : radius;
             first.style.overflow = isZero ? "" : "hidden";
@@ -1531,20 +1384,17 @@
             last.style.borderTopRightRadius = isZero ? "" : radius;
             last.style.borderBottomRightRadius = isZero ? "" : radius;
             last.style.overflow = isZero ? "" : "hidden";
-
             return;
           }
 
-          // ===== 3) COLUNA (retângulo da coluna) =====
+          // coluna: topo e base
           if (this.activeTbl && this.activeTblCol != null) {
             const tbl = this.activeTbl.querySelector("table.rx-tbl");
             if (!tbl) return;
 
             const rows = [...tbl.querySelectorAll("tr")];
             const colTds = rows
-              .map(
-                (tr) => tr.querySelectorAll(":scope > td")[this.activeTblCol],
-              )
+              .map((tr) => tr.querySelectorAll(":scope > td")[this.activeTblCol])
               .filter(Boolean);
 
             if (!colTds.length) return;
@@ -1552,7 +1402,6 @@
             const first = colTds[0];
             const last = colTds[colTds.length - 1];
 
-            // só 4 quinas da coluna
             first.style.borderTopLeftRadius = isZero ? "" : radius;
             first.style.borderTopRightRadius = isZero ? "" : radius;
             first.style.overflow = isZero ? "" : "hidden";
@@ -1560,86 +1409,18 @@
             last.style.borderBottomLeftRadius = isZero ? "" : radius;
             last.style.borderBottomRightRadius = isZero ? "" : radius;
             last.style.overflow = isZero ? "" : "hidden";
-
             return;
           }
 
-          // ===== 4) TABELA (raio no wrapper) =====
+          // tabela (wrapper)
           if (this.activeTbl) {
             this.activeTbl.style.borderRadius = isZero ? "" : radius;
             this.activeTbl.style.overflow = isZero ? "" : "hidden";
             return;
           }
 
-          // ===== 5) Parágrafo =====
+          // parágrafo(s)
           this._applyRadiusToParagraphs(radius);
-        }
-
-        /* ===== helpers (tabela/linha/coluna) ===== */
-
-        _tblApplyRadiusTable(wrap, radius) {
-          // raio do "container" da tabela
-          wrap.style.borderRadius = radius === "0px" ? "" : radius;
-          wrap.style.overflow = radius === "0px" ? "" : "hidden";
-          wrap.style.display = "inline-block";
-        }
-
-        _tblApplyRadiusRow(wrap, tr, radius) {
-          if (!tr) return;
-          const tds = [...tr.querySelectorAll(":scope > td")];
-          if (!tds.length) return;
-
-          // limpa raio anterior só nessa linha
-          tds.forEach((td) => {
-            if (td.dataset.userRadius === "1") return; // não mexe no que o usuário pôs na célula
-            td.style.borderRadius = "";
-            td.style.overflow = "";
-          });
-
-          if (radius === "0px") return;
-
-          // cantos externos da "faixa" (linha)
-          const first = tds[0];
-          const last = tds[tds.length - 1];
-
-          first.style.borderTopLeftRadius = radius;
-          first.style.borderBottomLeftRadius = radius;
-          first.style.overflow = "hidden";
-
-          last.style.borderTopRightRadius = radius;
-          last.style.borderBottomRightRadius = radius;
-          last.style.overflow = "hidden";
-        }
-
-        _tblApplyRadiusCol(wrap, colIndex, radius) {
-          const tbl = wrap?.querySelector("table.rx-tbl");
-          if (!tbl) return;
-
-          const rows = [...tbl.querySelectorAll("tr")];
-          if (!rows.length) return;
-
-          // pega a célula do topo e a do fundo dessa coluna
-          const top = rows[0].querySelectorAll(":scope > td")[colIndex];
-          const bottom =
-            rows[rows.length - 1].querySelectorAll(":scope > td")[colIndex];
-          if (!top || !bottom) return;
-
-          // limpa raio anterior só nessas duas (se não for "manual" da célula)
-          [top, bottom].forEach((td) => {
-            if (td.dataset.userRadius === "1") return;
-            td.style.borderRadius = "";
-            td.style.overflow = "";
-          });
-
-          if (radius === "0px") return;
-
-          top.style.borderTopLeftRadius = radius;
-          top.style.borderTopRightRadius = radius;
-          top.style.overflow = "hidden";
-
-          bottom.style.borderBottomLeftRadius = radius;
-          bottom.style.borderBottomRightRadius = radius;
-          bottom.style.overflow = "hidden";
         }
 
         _applyRadiusToParagraphs(radius) {
@@ -1663,10 +1444,8 @@
               const pr = document.createRange();
               pr.selectNodeContents(p);
 
-              const endsBefore =
-                r.compareBoundaryPoints(Range.END_TO_START, pr) <= 0;
-              const startsAfter =
-                r.compareBoundaryPoints(Range.START_TO_END, pr) >= 0;
+              const endsBefore = r.compareBoundaryPoints(Range.END_TO_START, pr) <= 0;
+              const startsAfter = r.compareBoundaryPoints(Range.START_TO_END, pr) >= 0;
 
               if (!endsBefore && !startsAfter) ps.add(p);
             });
@@ -1711,229 +1490,6 @@
               this.activeTbl.title = `{{${tag}}}`;
             }
           }
-        }
-
-        _tblFixOuterEdgesForRounded(wrap, on) {
-          const tbl = wrap?.querySelector("table.rx-tbl");
-          if (!tbl) return;
-
-          const rows = [...tbl.querySelectorAll("tr")];
-          if (rows.length === 0) return;
-
-          const firstRow = rows[0].querySelectorAll("td");
-          const lastRow = rows[rows.length - 1].querySelectorAll("td");
-          const lastColIndex = (firstRow.length || 1) - 1;
-
-          // volta tudo ao normal
-          tbl.querySelectorAll("td").forEach((td) => {
-            td.style.borderTop = "";
-            td.style.borderBottom = "";
-            td.style.borderLeft = "";
-            td.style.borderRight = "";
-          });
-
-          if (!on) return;
-
-          // tira as bordas EXTERNAS (quem desenha o externo será o wrap)
-          firstRow.forEach((td) => (td.style.borderTop = "none"));
-          lastRow.forEach((td) => (td.style.borderBottom = "none"));
-
-          rows.forEach((tr) => {
-            const tds = tr.querySelectorAll("td");
-            if (!tds.length) return;
-            tds[0].style.borderLeft = "none";
-            tds[lastColIndex]?.style &&
-              (tds[lastColIndex].style.borderRight = "none");
-          });
-        }
-
-        _tblApplyWrapBorder(wrap, cssBorder, radius) {
-          wrap.style.border = cssBorder === "none" ? "" : cssBorder;
-          wrap.style.borderRadius = radius || "0px";
-          wrap.style.overflow = radius && radius !== "0px" ? "hidden" : "";
-          wrap.style.display = "inline-block"; // garante
-          this._tblFixOuterEdgesForRounded(wrap, radius && radius !== "0px");
-        }
-
-        _setActiveTblCol(tblWrap, colIndex) {
-          // limpa seleções anteriores
-          if (this.activeTblCell)
-            this.activeTblCell.classList.remove("sel-cell");
-          if (this.activeTblRow) this.activeTblRow.classList.remove("sel-row");
-          if (this.activeTbl && this.activeTbl !== tblWrap) {
-            this.activeTbl.classList.remove("sel-table");
-            this.activeTbl
-              .querySelectorAll("td.sel-col")
-              .forEach((td) => td.classList.remove("sel-col"));
-          }
-          if (tblWrap)
-            tblWrap
-              .querySelectorAll("td.sel-col")
-              .forEach((td) => td.classList.remove("sel-col"));
-
-          this.activeTbl = tblWrap;
-          this.activeTblRow = null;
-          this.activeTblCell = null;
-          this.activeTblCol = colIndex;
-
-          tblWrap.classList.add("sel-table");
-
-          const tbl = tblWrap.querySelector("table.rx-tbl");
-          if (!tbl) return;
-
-          // marca as células da coluna
-          tbl.querySelectorAll("tr").forEach((tr) => {
-            const tds = tr.querySelectorAll(":scope > td");
-            const td = tds[colIndex];
-            if (td) td.classList.add("sel-col");
-          });
-
-          const sel = document.getElementById("tbRowKind");
-          if (sel) sel.value = ""; // você pediu pra não mexer no combo ao selecionar linha/coluna
-        }
-
-        _setActiveTableOnly(tblWrap) {
-          this._clearActiveTable();
-          this.activeTbl = tblWrap;
-          tblWrap.classList.add("sel-table");
-
-          const sel = document.getElementById("tbRowKind");
-          if (sel) sel.value = "";
-        }
-
-        _cycleTblSelectionCtrl(tblWrap, tr, td) {
-          // ciclo: table -> row -> col -> table ...
-          // regra: usa o ponto clicado (tr/td) pra definir linha/coluna quando for o caso
-
-          const sameTbl = this.activeTbl === tblWrap;
-
-          const isTable =
-            sameTbl &&
-            this.activeTbl &&
-            !this.activeTblRow &&
-            !this.activeTblCell &&
-            this.activeTblCol == null;
-          const isRow = sameTbl && !!this.activeTblRow;
-          const isCol = sameTbl && this.activeTblCol != null;
-          // (cell é clique simples, então ctrl não entra como "cell mode")
-
-          if (!sameTbl || (!isTable && !isRow && !isCol)) {
-            // começa em "tabela"
-            this._setActiveTableOnly(tblWrap);
-            return;
-          }
-
-          if (isTable) {
-            // table -> row
-            if (tr) this._setActiveTblRow(tblWrap, tr);
-            else this._setActiveTblRow(tblWrap, tblWrap.querySelector("tr"));
-            return;
-          }
-
-          if (isRow) {
-            // row -> col
-            const colIndex = td ? td.cellIndex : 0;
-            this._setActiveTblCol(tblWrap, colIndex);
-            return;
-          }
-
-          // col -> table
-          this._setActiveTableOnly(tblWrap);
-        }
-
-        _tblGetTable(wrap) {
-          return wrap?.querySelector("table.rx-tbl") || null;
-        }
-
-        _tblGetAllRows(wrap) {
-          const tbl = this._tblGetTable(wrap);
-          if (!tbl) return [];
-          return [...tbl.querySelectorAll("tr")];
-        }
-
-        _tblClearAutoBorders(wrap) {
-          const tbl = this._tblGetTable(wrap);
-          if (!tbl) return;
-
-          tbl.querySelectorAll("td").forEach((td) => {
-            // só apaga o que foi aplicado automaticamente (linha/coluna/tabela)
-            if (td.dataset.autoBorder === "1") {
-              td.style.borderTop = "";
-              td.style.borderBottom = "";
-              td.style.borderLeft = "";
-              td.style.borderRight = "";
-              td.style.border = "";
-              delete td.dataset.autoBorder;
-            }
-          });
-        }
-
-        _tblApplyBorderTable(wrap, cssBorder) {
-          // borda externa: no wrapper
-          wrap.style.border = cssBorder === "none" ? "" : cssBorder;
-
-          // limpa qualquer auto-borda interna (pra ficar só a moldura externa)
-          this._tblClearAutoBorders(wrap);
-        }
-
-        _tblApplyBorderRow(wrap, tr, cssBorder) {
-          if (!wrap || !tr) return;
-
-          const tds = [...tr.querySelectorAll(":scope > td")];
-          if (tds.length === 0) return;
-
-          const last = tds.length - 1;
-          const border = cssBorder === "none" ? "" : cssBorder;
-
-          // NÃO mexe na borda do wrapper ao aplicar na linha
-          // (a linha é um retângulo interno)
-
-          for (let i = 0; i < tds.length; i++) {
-            const td = tds[i];
-            td.dataset.autoBorder = "1";
-
-            // topo e base em toda célula da linha
-            td.style.borderTop = border;
-            td.style.borderBottom = border;
-
-            // laterais só nas extremidades (pra não ter divisórias internas)
-            td.style.borderLeft = i === 0 ? border : "none";
-            td.style.borderRight = i === last ? border : "none";
-          }
-        }
-
-        _tblApplyBorderCol(wrap, colIndex, cssBorder) {
-          if (!wrap || colIndex == null) return;
-
-          const rows = this._tblGetAllRows(wrap);
-          if (rows.length === 0) return;
-
-          const border = cssBorder === "none" ? "" : cssBorder;
-          const lastRow = rows.length - 1;
-
-          for (let r = 0; r < rows.length; r++) {
-            const tr = rows[r];
-            const td = tr.children?.[colIndex];
-            if (!td) continue;
-
-            td.dataset.autoBorder = "1";
-
-            // laterais sempre
-            td.style.borderLeft = border;
-            td.style.borderRight = border;
-
-            // topo só na primeira linha, base só na última
-            td.style.borderTop = r === 0 ? border : "none";
-            td.style.borderBottom = r === lastRow ? border : "none";
-          }
-        }
-
-        _tblEnsureSeparate(wrap) {
-          const tbl = wrap?.querySelector("table.rx-tbl");
-          if (!tbl) return null;
-          tbl.style.borderCollapse = "separate";
-          tbl.style.borderSpacing = "0";
-          return tbl;
         }
       }
 
