@@ -214,9 +214,8 @@
       }
 
       .rx-tbl {
-        border-collapse: collapse;
+        border-collapse: separate;
         border-spacing: 0;
-        font-size: inherit;
       }
 
       .rx-tbl td {
@@ -254,41 +253,17 @@
 
       /* CÉLULA */
       .rx-tbl td.sel-cell {
-        position: relative;
-      }
-      .rx-tbl td.sel-cell::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border: 2px solid rgba(57, 255, 20, 0.85);
-        border-radius: inherit; /* <<< pega o radius do td */
-        pointer-events: none;
+        box-shadow: inset 0 0 0 2px rgba(57, 255, 20, 0.85);
       }
 
       /* COLUNA */
       .rx-tbl td.sel-col {
-        position: relative;
-      }
-      .rx-tbl td.sel-col::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border: 2px solid rgba(57, 255, 20, 0.55);
-        border-radius: inherit; /* <<< pega o radius do td */
-        pointer-events: none;
+        box-shadow: inset 0 0 0 2px rgba(57, 255, 20, 0.55);
       }
 
       /* LINHA (por célula) */
       .rx-tbl tr.sel-row > td {
-        position: relative;
-      }
-      .rx-tbl tr.sel-row > td::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border: 2px solid rgba(57, 255, 20, 0.85);
-        border-radius: inherit; /* <<< pega o radius do td */
-        pointer-events: none;
+        box-shadow: inset 0 0 0 2px rgba(57, 255, 20, 0.85);
       }
 
       /* por padrão: sem destaque */
@@ -1522,9 +1497,21 @@
 
           const isZero = radius === "0px";
 
+          // ===== 0) GARANTE QUE RAIO FUNCIONE NA TABELA =====
+          // (border-collapse: collapse "mata" o raio nas bordas)
+          if (this.activeTbl) {
+            const tbl = this.activeTbl.querySelector("table.rx-tbl");
+            if (tbl) {
+              tbl.style.borderCollapse = "separate";
+              tbl.style.borderSpacing = "0";
+            }
+          }
+
           // ===== 1) CÉLULA =====
           if (this.activeTblCell) {
             this.activeTblCell.style.borderRadius = isZero ? "" : radius;
+            // importante: recortar a borda nos cantos
+            this.activeTblCell.style.overflow = isZero ? "" : "hidden";
             return;
           }
 
@@ -1539,9 +1526,11 @@
             // só 4 quinas da linha
             first.style.borderTopLeftRadius = isZero ? "" : radius;
             first.style.borderBottomLeftRadius = isZero ? "" : radius;
+            first.style.overflow = isZero ? "" : "hidden";
 
             last.style.borderTopRightRadius = isZero ? "" : radius;
             last.style.borderBottomRightRadius = isZero ? "" : radius;
+            last.style.overflow = isZero ? "" : "hidden";
 
             return;
           }
@@ -1566,9 +1555,11 @@
             // só 4 quinas da coluna
             first.style.borderTopLeftRadius = isZero ? "" : radius;
             first.style.borderTopRightRadius = isZero ? "" : radius;
+            first.style.overflow = isZero ? "" : "hidden";
 
             last.style.borderBottomLeftRadius = isZero ? "" : radius;
             last.style.borderBottomRightRadius = isZero ? "" : radius;
+            last.style.overflow = isZero ? "" : "hidden";
 
             return;
           }
