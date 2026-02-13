@@ -65,18 +65,19 @@
 
 /* ===== Página A4 básica ===== */
 .page {
-  width: 210mm;
-  min-height: 297mm;
+  width: 210mm !important;
+  height: 297mm !important;
   background: #fff;
   margin: 0 auto;
   padding: 0;
   border: 1px solid #ddd;
+  box-sizing: border-box;
 }
 
 /* Paisagem */
 .page.landscape {
-  width: 297mm;
-  min-height: 210mm;
+  width: 297mm !important;
+  height: 210mm !important;
 }
 
 .page-inner {
@@ -84,6 +85,7 @@
   display: flex;
   flex-direction: column;
   gap: 10mm;
+  box-sizing: border-box;
 }
 
 /* ===== Bandas (header/body/footer) ===== */
@@ -98,7 +100,6 @@
   padding: 6mm;
   flex: 1;
   min-height: 140mm;
-  /* só pra “existir” */
 }
 
 /* ===== Editável ===== */
@@ -111,7 +112,7 @@
   box-shadow: 0 0 0 2px #22ff22 inset;
 }
 
-/* Parágrafo básico (pra ficar editável sem “colar” na borda) */
+/* Parágrafo básico */
 .editable p {
   margin: 0;
   padding: 2px 4px;
@@ -146,7 +147,6 @@
   caret-color: #ff2222;
 }
 
-/* opcional: seleção de texto (highlight) combinando com o modo */
 :root.wx-ins .editable ::selection {
   background: rgba(34, 255, 34, 0.25);
 }

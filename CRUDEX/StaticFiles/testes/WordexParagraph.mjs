@@ -226,7 +226,7 @@ export class TWordexParagraph extends HTMLElement {
 
   /** @returns {ParagraphAlign} */
   get align() {
-    /** @type {any} */
+    // @ts-expect-error - textAlign pode retornar string vazia, mas garantimos fallback para "left"
     const v = (this.#p.style.textAlign || "").trim();
     return v || "left";
   }

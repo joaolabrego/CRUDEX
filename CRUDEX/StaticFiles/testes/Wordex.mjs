@@ -480,6 +480,7 @@ export class TWordex {
   #moveFocusOutOfTable(wrap) {
     const active = document.activeElement;
     if (!(active instanceof Node) || !wrap.contains(active)) return;
+    // @ts-expect-error - blur pode não existir em todos os elementos, mas é seguro usar optional chaining
     active.blur?.();
     this.#root.tabIndex = -1;
     this.#root.focus({ preventScroll: true });

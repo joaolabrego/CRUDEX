@@ -90,7 +90,8 @@ export class TWordexTable extends HTMLElement {
     TWordexTable.#ensureCss();
 
     // NÃO cria/append nada aqui
-    /** @type {any} */ (this)._built = false;
+    // @ts-expect-error - Propriedade privada dinâmica para controle de inicialização
+    this._built = false;
   }
 
   static get observedAttributes() {
@@ -99,9 +100,10 @@ export class TWordexTable extends HTMLElement {
 
   connectedCallback() {
     // monta a estrutura 1x aqui (pode ter filhos)
-    /** @type {any} */ const self = this;
-    if (!self._built) {
-      self._built = true;
+    // @ts-expect-error - Propriedade privada dinâmica para controle de inicialização
+    if (!this._built) {
+      // @ts-expect-error - Propriedade privada dinâmica para controle de inicialização
+      this._built = true;
 
       this.#wrap = document.createElement("div");
       this.#wrap.className = "rx-tbl-wrap";
@@ -144,8 +146,8 @@ export class TWordexTable extends HTMLElement {
    * @param {string | null} newV
    */
   attributeChangedCallback(name, _oldV, newV) {
-    /** @type {any} */ const self = this;
-    if (!self._built) return;
+    // @ts-expect-error - Propriedade privada dinâmica para controle de inicialização
+    if (!this._built) return;
     switch (name) {
       case "items":
         this.itemsTag = newV || "";
