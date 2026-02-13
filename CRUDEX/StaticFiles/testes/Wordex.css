@@ -1,0 +1,156 @@
+/* Estilos básicos do Wordex */
+
+.topbar {
+  background: #f5f5f5;
+  border-bottom: 1px solid #ddd;
+  padding: 8px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.toolbar button {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  background: #e0e0e0;
+}
+
+.toolbar select,
+.toolbar input[type="color"] {
+  padding: 4px;
+  border: 1px solid #ccc;
+}
+
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #e8f5e9;
+  border: 1px solid #4caf50;
+  border-radius: 12px;
+}
+
+.mode-dot {
+  width: 8px;
+  height: 8px;
+  background: #4caf50;
+  border-radius: 50%;
+}
+
+.muted {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.wrap {
+  padding: 16px;
+}
+
+.stage {
+  min-height: 400px;
+  padding: 16px;
+  border: 1px solid #ddd;
+  background: white;
+}
+
+/* ===== Página A4 básica ===== */
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  background: #fff;
+  margin: 0 auto;
+  padding: 0;
+  border: 1px solid #ddd;
+}
+
+/* Paisagem */
+.page.landscape {
+  width: 297mm;
+  min-height: 210mm;
+}
+
+.page-inner {
+  padding: 20mm;
+  display: flex;
+  flex-direction: column;
+  gap: 10mm;
+}
+
+/* ===== Bandas (header/body/footer) ===== */
+.band.header,
+.band.footer {
+  border: 1px dashed #ddd;
+  padding: 6mm;
+}
+
+.band.body {
+  border: 1px dashed #ddd;
+  padding: 6mm;
+  flex: 1;
+  min-height: 140mm;
+  /* só pra “existir” */
+}
+
+/* ===== Editável ===== */
+.editable {
+  outline: none;
+  min-height: 24px;
+}
+
+.editable:focus {
+  box-shadow: 0 0 0 2px #22ff22 inset;
+}
+
+/* Parágrafo básico (pra ficar editável sem “colar” na borda) */
+.editable p {
+  margin: 0;
+  padding: 2px 4px;
+}
+
+/* =========================
+   INS/OVR cores + caret
+   ========================= */
+
+:root.wx-ins .mode-pill {
+  color: #22ff22;
+}
+
+:root.wx-ovr .mode-pill {
+  color: #ff2222;
+}
+
+:root.wx-ins .mode-pill .mode-dot {
+  background: #22ff22;
+}
+
+:root.wx-ovr .mode-pill .mode-dot {
+  background: #ff2222;
+}
+
+/* caret do editor */
+:root.wx-ins .editable {
+  caret-color: #22ff22;
+}
+
+:root.wx-ovr .editable {
+  caret-color: #ff2222;
+}
+
+/* opcional: seleção de texto (highlight) combinando com o modo */
+:root.wx-ins .editable ::selection {
+  background: rgba(34, 255, 34, 0.25);
+}
+
+:root.wx-ovr .editable ::selection {
+  background: rgba(255, 34, 34, 0.22);
+}
