@@ -40,7 +40,7 @@
         }
         public static string ReadImageFile(string fileName, bool withURL = false)
         {
-            var image = $"data:image;base64,{Convert.ToBase64String(File.ReadAllBytes(fileName))}";
+            var image = $"data:image/png;base64,{Convert.ToBase64String(File.ReadAllBytes(fileName))}";
 
             if (withURL)
                 return $"url(\"{image}\")";
