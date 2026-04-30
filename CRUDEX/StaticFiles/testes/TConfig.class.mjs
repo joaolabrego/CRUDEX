@@ -1,6 +1,6 @@
 "use strict"
 
-import TActions from "./TActions.class.mjs"
+import TSystem.Actions from "./TSystem.Actions.class.mjs"
 import TCrypto from "./TCrypto.class.mjs"
 import TLogin from "./TLogin.class.mjs"
 import TScreen from "./TScreen.class.mjs"
@@ -23,9 +23,9 @@ export default class TConfig {
                 "Content-Type": "application/json",
             }
 
-        if (action === TActions.CONFIG)
+        if (action === TSystem.Actions.CONFIG)
             headers.PublicKey = cryptoKey = TCrypto.GenerateCryptokey()
-        else if (action === TActions.LOGIN) {
+        else if (action === TSystem.Actions.LOGIN) {
             TSpinner.Show()
             headers.PublicKey = cryptoKey = TCrypto.GenerateCryptokey()
             body.Login = {
@@ -41,7 +41,7 @@ export default class TConfig {
             cryptoKey = TLogin.PublicKey;
             headers.LoginId = TLogin.LoginId
             body.Login = {
-                Action: action == TActions.LOGOUT ? action : TActions.AUTHENTICATE,
+                Action: action == TSystem.Actions.LOGOUT ? action : TSystem.Actions.AUTHENTICATE,
                 SystemName: TSystem.Name,
                 UserName: TLogin.UserName,
                 Password: TLogin.Password,
@@ -57,7 +57,7 @@ export default class TConfig {
                 body: JSON.stringify({ Request: crypto.EncryptDecrypt(JSON.stringify(body)) }),
             }),
             result = JSON.parse(crypto.EncryptDecrypt((await response.json()).Response))
-        if (action !== TActions.CONFIG)
+        if (action !== TSystem.Actions.CONFIG)
             TSpinner.Hide()
         if (result.ClassName === "Error")
             throw result
@@ -70,7 +70,7 @@ export default class TConfig {
             clearTimeout(this.#Timer)
             this.#Timer = setTimeout(() => {
                 clearTimeout(this.#Timer)
-                TScreen.ShowAlert(`Sistema ocioso por mais de ${this.#IdleTimeInMinutesLimit} minuto(s).`, TActions.RELOAD, 10000)
+                TScreen.ShowAlert(`Sistema ocioso por mais de ${this.#IdleTimeInMinutesLimit} minuto(s).`, TSystem.Actions.RELOAD, 10000)
             }, this.#IdleTimeInMinutesLimit * 60000)
         }
         if (activate) {

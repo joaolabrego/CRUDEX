@@ -1,6 +1,5 @@
 ﻿"use strict";
 
-import TActions from "./TActions.class.mjs";
 import TLogin from "./TLogin.class.mjs";
 import TScreen from "./TScreen.class.mjs";
 import TSystem from "./TSystem.class.mjs";
@@ -30,10 +29,10 @@ export default class TConfig {
                 "Content-Type": "application/json",
             },
             url = `${location}/${action}`;
-        if (action !== TActions.CONFIG) {
+        if (action !== "config") {
             if (showSpinner)
                 TSpinner.Show();
-            if (action === TActions.LOGIN || action === TActions.CHANGE) {
+            if (action === "login" || action === "change") {
                 body.Login = {
                     Action: action,
                     SystemName: TSystem.Name,
@@ -42,13 +41,13 @@ export default class TConfig {
                     NewPassword: parameters.NewPassword ?? null,
                     RetypedPassword: parameters.RetypedPassword ?? null,
                 };
-                if (action === TActions.CHANGE)
+                if (action === TSystem.Actions.CHANGE)
                     parameters = {};
             }
             else {
                 request.LoginId = TLogin.LoginId;
                 body.Login = {
-                    Action: action == TActions.LOGOUT ? action : TActions.AUTHENTICATE,
+                    Action: action == "logout" ? action : "authenticate",
                     SystemName: TSystem.Name,
                     UserName: TLogin.UserName,
                     Password: TLogin.Password,
@@ -60,7 +59,7 @@ export default class TConfig {
         }
         body.Parameters = parameters;
         request.Request = JSON.stringify(body);
-        if (action === TActions.LOGOUT && navigator.sendBeacon) {
+        if (action === "logout" && navigator.sendBeacon) {
             result = navigator.sendBeacon(url, new Blob([JSON.stringify(request)], { type: 'application/json' })) ? {} : { ClassName: "Error", Message: "Erro ao enviar LOGOUT via sendBeacon." };
         } else {
             let response = await fetch(url, {
@@ -70,7 +69,7 @@ export default class TConfig {
             });
             result = JSON.parse((await response.json()).Response);
         }
-        if (showSpinner && action !== TActions.CONFIG)
+        if (showSpinner && action !== "config")
             TSpinner.Hide();
         if (result.ClassName === "Error")
             throw result;
@@ -83,7 +82,7 @@ export default class TConfig {
             clearTimeout(this.#Timer);
             this.#Timer = setTimeout(() => {
                 clearTimeout(this.#Timer);
-                TScreen.ShowAlert(`Sistema ocioso por mais de ${this.#IdleTimeInMinutesLimit} minuto(s).`, TActions.RELOAD, 10000);
+                TScreen.ShowAlert(`Sistema ocioso por mais de ${this.#IdleTimeInMinutesLimit} minuto(s).`, TSystem.Actions.RELOAD, 10000);
             }, this.#IdleTimeInMinutesLimit * 60000);
         };
         if (activate) {

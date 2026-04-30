@@ -28,7 +28,7 @@ export default class TRecordSet {
         let parameters = {
             DatabaseName: this.#Table.Database.Name,
             TableName: this.#Table.Name,
-            Action: TActions.READ,
+            Action: TSystem.Actions.READ,
             InParams: {
                 LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(this.#FilterValues),
@@ -43,7 +43,7 @@ export default class TRecordSet {
             },
         };
 
-        let result = await TConfig.GetAPI(TActions.EXECUTE, parameters);
+        let result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters);
 
         this.#RowCount = result.Parameters.ReturnValue;
         this.#PageNumber = result.Parameters.PageNumber;
@@ -166,7 +166,7 @@ export default class TRecordSet {
         let parameters = {
             DatabaseName: databaseName,
             TableName: tableName,
-            Action: TActions.READ,
+            Action: TSystem.Actions.READ,
             InParams: {
                 LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(this.Primarykeys),
@@ -181,7 +181,7 @@ export default class TRecordSet {
             },
         };
 
-        return (await TConfig.GetAPI(TActions.EXECUTE, parameters)).DataSet.Table[0];
+        return (await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters)).DataSet.Table[0];
     }
     get BOF() {
         return this.RowNumber < 0;

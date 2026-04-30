@@ -1,6 +1,5 @@
 "use strict";
 
-import TActions from "./TActions.class.mjs";
 import TForm from "./TForm.class.mjs";
 import TLogin from "./TLogin.class.mjs";
 import TScreen from "./TScreen.class.mjs";
@@ -275,7 +274,7 @@ export default class TGrid {
         let parameters = {
             DatabaseName: this.#Table.Database.Name,
             TableName: this.#Table.Name,
-            Action: TActions.READ,
+            Action: TSystem.Actions.READ,
             InParams: {
                 LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(this.#FilterValues),
@@ -292,7 +291,7 @@ export default class TGrid {
             },
         };
 
-        let result = await TConfig.GetAPI(TActions.EXECUTE, parameters);
+        let result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters);
 
         this.#RowCount = result.Parameters.ReturnValue;
         this.#HTML.Range.min = 1;
@@ -539,7 +538,7 @@ export default class TGrid {
         this.#HTML.CreateButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.CreateButton.onclick = () => {
-            new TForm(this, TActions.CREATE).Configure().then((form) => {
+            new TForm(this, TSystem.Actions.CREATE).Configure().then((form) => {
                 if (form) form.Renderize();
             });
         };
@@ -555,7 +554,7 @@ export default class TGrid {
         this.#HTML.UpdateButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.UpdateButton.onclick = () =>
-            new TForm(this, TActions.UPDATE).Configure().then((form) => {
+            new TForm(this, TSystem.Actions.UPDATE).Configure().then((form) => {
                 if (form) form.Renderize();
             });
         th.appendChild(this.#HTML.UpdateButton);
@@ -570,7 +569,7 @@ export default class TGrid {
         this.#HTML.DeleteButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.DeleteButton.onclick = () =>
-            new TForm(this, TActions.DELETE).Configure().then((form) => {
+            new TForm(this, TSystem.Actions.DELETE).Configure().then((form) => {
                 if (form) form.Renderize();
             });
         th.appendChild(this.#HTML.DeleteButton);
@@ -585,7 +584,7 @@ export default class TGrid {
         this.#HTML.QueryButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.QueryButton.onclick = () =>
-            new TForm(this, TActions.QUERY).Configure().then((form) => {
+            new TForm(this, TSystem.Actions.QUERY).Configure().then((form) => {
                 if (form) form.Renderize();
             });
         th.appendChild(this.#HTML.QueryButton);
@@ -601,7 +600,7 @@ export default class TGrid {
         this.#HTML.SearchButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.SearchButton.onclick = async () => {
-            (await new TForm(this, TActions.SEARCH).Configure()).Renderize();
+            (await new TForm(this, TSystem.Actions.SEARCH).Configure()).Renderize();
         };
         th.appendChild(this.#HTML.SearchButton);
 
@@ -617,7 +616,7 @@ export default class TGrid {
         this.#HTML.FilterButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.FilterButton.onclick = async () => {
-            (await new TForm(this, TActions.FILTER).Configure()).Renderize();
+            (await new TForm(this, TSystem.Actions.FILTER).Configure()).Renderize();
         };
         th.appendChild(this.#HTML.FilterButton);
 
@@ -661,7 +660,7 @@ export default class TGrid {
         this.#HTML.ExitButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.ExitButton.onclick = () =>
-            (TSystem.Action = `${TActions.EXIT}/${TActions.MENU}`);
+            (TSystem.Action = `${TSystem.Actions.EXIT}/${TSystem.Actions.MENU}`);
         th.appendChild(this.#HTML.ExitButton);
 
         label = document.createElement("label");

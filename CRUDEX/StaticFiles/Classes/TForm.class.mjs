@@ -1,10 +1,10 @@
 ﻿"use strict";
 
-import TActions from "./TActions.class.mjs";
 import TScreen from "./TScreen.class.mjs";
 import TConfig from "./TConfig.class.mjs";
 import TLogin from "./TLogin.class.mjs";
 import TGrid from "./TGrid.class.mjs";
+import TSystem from "./TSystem.class.mjs";
 export default class TForm {
     #Action = "";
     #ReturnAction = "";
@@ -49,7 +49,7 @@ export default class TForm {
         let parameters = {
             DatabaseName: this.#Grid.Table.Database.Name,
             TableName: this.#Grid.Table.Name,
-            Action: TActions.READ,
+            Action: TSystem.Actions.READ,
             InParams: {
                 LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(this.#Grid.Primarykeys),
@@ -65,7 +65,7 @@ export default class TForm {
             },
         };
 
-        return (await TConfig.GetAPI(TActions.EXECUTE, parameters)).DataSet.Table[0];
+        return (await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters)).DataSet.Table[0];
     }
     #GetCheckBox(column) {
         let control = document.createElement("input"),
@@ -83,7 +83,7 @@ export default class TForm {
             if (event.target.readOnly)
                 return false;
 
-            if (column.IsRequired || (this.#Action !== TActions.FILTER && this.#Action !== TActions.SEARCH)) {
+            if (column.IsRequired || (this.#Action !== TSystem.Actions.FILTER && this.#Action !== TSystem.Actions.SEARCH)) {
                 if (this.#Record[column.Name] === false) {
                     this.#Record[column.Name] = true;
                 } else if (this.#Record[column.Name] === true) {
@@ -193,12 +193,12 @@ export default class TForm {
             }
             else if (event.key === "Escape") {
                 event.preventDefault();
-                if (this.#Action == TActions.QUERY)
+                if (this.#Action == TSystem.Actions.QUERY)
                     this.#HTML.ConfirmButton.click();
                 else
                     this.#HTML.CancelButton.click();
             }
-            else if (this.#Action == TActions.FILTER && !event.target.Column.IsRequired && (event.key == "Backspace" || event.key == "Delete")) {
+            else if (this.#Action == TSystem.Actions.FILTER && !event.target.Column.IsRequired && (event.key == "Backspace" || event.key == "Delete")) {
                 if (event.target.value === "") {
                     event.preventDefault();
                     event.target.placeholder = event.target.placeholder ? "" : "nulo";
@@ -209,7 +209,7 @@ export default class TForm {
         control.Column = column;
         control.onfocus = (event) => event.target.select();
         control.value = this.#Record[column.Name];
-        control.readOnly = action === TActions.DELETE || action === TActions.QUERY;
+        control.readOnly = action === TSystem.Actions.DELETE || action === TSystem.Actions.QUERY;
         control.style.textAlign = column.Domain.Type.Category.HtmlInputAlign;
         if (!this.#HTML.FirstInput)
             this.#HTML.FirstInput = control;
@@ -230,19 +230,19 @@ export default class TForm {
 
         this.#Record = {};
         switch (this.#Action) {
-            case TActions.CREATE:
+            case TSystem.Actions.CREATE:
                 columns = columns.filter(column => column.IsEditable);
                 columns.forEach(column => this.#Record[column.Name] = null);
                 break;
-            case TActions.SEARCH:
+            case TSystem.Actions.SEARCH:
                 columns = columns.filter(column => column.IsFilterable);
                 columns.forEach(column => this.#Record[column.Name] = null);
                 break;
-            case TActions.FILTER:
+            case TSystem.Actions.FILTER:
                 columns = columns.filter(column => column.IsFilterable);
                 columns.forEach(column => this.#Record[column.Name] = this.#Grid.FilterValues[column.Name]);
                 break;
-            case TActions.UPDATE:
+            case TSystem.Actions.UPDATE:
                 columns = columns.filter(column => column.IsEditable);
                 await this.#ReadRecord().then(record => this.#Record = record);
                 break;
@@ -262,27 +262,27 @@ export default class TForm {
             message = "";
 
         switch (this.#Action) {
-            case TActions.CREATE:
+            case TSystem.Actions.CREATE:
                 title = "Inclusão";
                 message = "Digite as informações e clique em confirmar para salvá-las...";
                 break;
-            case TActions.UPDATE:
+            case TSystem.Actions.UPDATE:
                 title = "Alteração";
                 message = "Altere as informações e clique em confirmar para salvá-las...";
                 break;
-            case TActions.DELETE:
+            case TSystem.Actions.DELETE:
                 title = "Exclusão";
                 message = "Clique em confirmar para excluir...";
                 break;
-            case TActions.SEARCH:
+            case TSystem.Actions.SEARCH:
                 title = "Pesquisa";
                 message = "Digite as informações e clique em confirmar para pesquisá-las...";
                 break;
-            case TActions.FILTER:
+            case TSystem.Actions.FILTER:
                 title = "Filtragem";
                 message = "Digite as informações e clique em confirmar para filtrá-las...";
                 break;
-            case TActions.QUERY:
+            case TSystem.Actions.QUERY:
                 title = "Consulta";
                 message = "Visualize as informações e clique sair para retornar...";
                 break;
@@ -312,7 +312,7 @@ export default class TForm {
 
         this.#HTML.ConfirmButton = document.createElement("button");
         this.#HTML.ConfirmButton.className = "button box";
-        if (this.#Action === TActions.QUERY) {
+        if (this.#Action === TSystem.Actions.QUERY) {
             this.#HTML.ConfirmButton.innerText = "Sair";
             this.#HTML.ConfirmButton.style.backgroundImage = TForm.#Images.Exit;
         }
@@ -322,7 +322,7 @@ export default class TForm {
         }
         this.#HTML.ConfirmButton.type = "button";
         this.#HTML.ConfirmButton.onclick = async () => {
-            if (this.#Action === TActions.FILTER) {
+            if (this.#Action === TSystem.Actions.FILTER) {
                 this.#Grid.SaveFilters(this.#Record);
             }
             try {
@@ -333,7 +333,7 @@ export default class TForm {
         };
         this.#HTML.ButtonsBar.appendChild(this.#HTML.ConfirmButton);
 
-        if (this.#Action !== TActions.QUERY) {
+        if (this.#Action !== TSystem.Actions.QUERY) {
             this.#HTML.CancelButton = document.createElement("button");
             this.#HTML.CancelButton.innerText = "Cancelar";
             this.#HTML.CancelButton.className = "button box";

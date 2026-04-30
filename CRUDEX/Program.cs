@@ -13,20 +13,20 @@ namespace CRUDEX.Classes
 
             app.Use(async (context, next) =>
             {
-                var p = context.Request.Path.Value;
+                var path = context.Request.Path.Value;
 
                 if (context.Request.Method == "GET" &&
-                    (p?.EndsWith(".class.mjs") == true || p?.EndsWith(".min.js") == true))
+                    (path?.EndsWith(".class.mjs") == true || path?.EndsWith(".min.js") == true))
                 {
-                    var rel = p.TrimStart('/');
+                    var relativePath = path.TrimStart('/');
 
-                    if (rel.Contains("..") || rel.Contains(':') || rel.Contains('\\'))
+                    if (relativePath.Contains("..") || relativePath.Contains(':') || relativePath.Contains('\\'))
                     {
                         context.Response.StatusCode = 400;
                         return;
                     }
 
-                    var file = Path.Combine(Settings.Builder.Environment.ContentRootPath, "StaticFiles", rel);
+                    var file = Path.Combine(Settings.Builder.Environment.ContentRootPath, "StaticFiles", relativePath);
 
                     if (!File.Exists(file))
                     {
@@ -44,8 +44,8 @@ namespace CRUDEX.Classes
 
             app.MapGet("/", async (HttpContext context) =>
             {
-                await Scripts.Generate();
-                Report.Teste();
+                //await Scripts.Generate();
+                //Report.Teste();
                 await ExecuteRoute(context);
             });
             app.MapGet("/{systemName}", async (HttpContext context, string systemName) => await ExecuteRoute(context, systemName, Actions.CHECK));
@@ -59,58 +59,62 @@ namespace CRUDEX.Classes
         {
             try
             {
-                var systems = systemName.Split('.');
+                var systemParameters = systemName.Split('.');
 
-                if (systems.Length < 2)
+                if (systemParameters.Length < 2)
                 {
                     context.Response.ContentType = "text/html; charset=utf-8";
                     await context.Response.WriteAsync(Config.GetHTML("crudex", "Nomes do sistema e do ambiente são requeridos na URL."), Encoding.UTF8);
                     return;
                 }
-                systemName = systems.FirstOrDefault()!;
+                systemName = systemParameters.FirstOrDefault()!;
 
-                var environment = systems.LastOrDefault();
+                var environment = systemParameters.LastOrDefault();
                 var json = Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body ?? "{}")));
 
-                switch (action)
+                // declaração antecipada para evitar escopo de variável dentro de branches
+                string response = "";
+
+                if (action == null)
                 {
-                    case null:                        
-                        await context.Response.WriteAsync(Config.GetHTML("crudex", "Nome do sistema é requerido na URL."), Encoding.UTF8);
-                        break;
-                    case Actions.CHECK:
-                        context.Response.Headers.ContentType = "text/html";
-                        await Procedure.GetConfig(systemName);
-                        await context.Response.WriteAsync(Config.GetHTML(systemName), Encoding.UTF8);
-                        break;
-                    case Actions.CONFIG:
-                        var response = JsonConvert.SerializeObject(await Config.Create(systemName, "all"));
+                    context.Response.ContentType = "text/html; charset=utf-8";
+                    await context.Response.WriteAsync(Config.GetHTML("crudex", "Nome do sistema é requerido na URL."), Encoding.UTF8);
+                }
+                else if (action == Actions.CHECK)
+                {
+                    context.Response.Headers.ContentType = "text/html";
+                    await Procedure.GetConfig(systemName);
+                    await context.Response.WriteAsync(Config.GetHTML(systemName), Encoding.UTF8);
+                }
+                else if (action == Actions.CONFIG)
+                {
+                    response = JsonConvert.SerializeObject(await Config.Create(systemName, "all"));
+                    context.Response.ContentType = "application/json; charset=utf-8";
+                    await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
+                }
+                else if (action == Actions.LOGIN || action == Actions.CHANGE || action == Actions.LOGOUT || action == Actions.EXECUTE)
+                {
+                    var request = Config.ToDictionary(JsonConvert.DeserializeObject(json["Request"]));
+                    var parameters = Config.ToDictionary(new
+                    {
+                        Login = request["Login"],
+                        Parameters = request["Parameters"],
+                    });
 
-                        context.Response.ContentType = "application/json; charset=utf-8";
-                        await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
-                        break;
-                    case Actions.LOGIN:
-                    case Actions.CHANGE:
-                    case Actions.LOGOUT:
-                    case Actions.EXECUTE:
-                        var request = Config.ToDictionary(JsonConvert.DeserializeObject(json["Request"]));
-                        var parameters = Config.ToDictionary(new
-                        {
-                            Login = request["Login"],
-                            Parameters = request["Parameters"],
-                        });
+                    if (action == Actions.EXECUTE)
+                    {
+                        await Login.Execute(parameters, true);
+                        response = JsonConvert.SerializeObject(await Procedure.Execute(systemName, parameters));
+                    }
+                    else
+                        response = JsonConvert.SerializeObject(await Login.Execute(parameters));
 
-                        if (action == Actions.EXECUTE)
-                        {
-                            await Login.Execute(parameters, true);
-                            response = JsonConvert.SerializeObject(await Procedure.Execute(systemName, parameters));
-                        }
-                        else
-                            response = JsonConvert.SerializeObject(await Login.Execute(parameters));
-                        context.Response.ContentType = "application/json; charset=utf-8";
-                        await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
-                        break;
-                    default:
-                        throw new Exception($"Ação '{action}' desconhecida em rota.");
+                    context.Response.ContentType = "application/json; charset=utf-8";
+                    await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
+                }
+                else
+                {
+                    throw new Exception($"Ação '{action}' desconhecida em rota.");
                 }
             }
             catch (Exception ex)

@@ -14,7 +14,6 @@ import TTable from "./TTable.class.mjs";
 import TColumn from "./TColumn.class.mjs";
 import TIndex from "./TIndex.class.mjs";
 import TIndexkey from "./TIndexkey.class.mjs";
-import TActions from "./TActions.class.mjs";
 import TCategory from "./TCategory.class.mjs";
 import TMask from "./TMask.class.mjs";
 import TSpinner from "./TSpinner.class.mjs";
@@ -30,9 +29,10 @@ export default class TSystem {
     static #Categories = [];
     static #Masks = [];
     static #Unicities = [];
+    static #Actions = null;
 
     static Run(withBackgroundImage = true) {
-        TConfig.GetAPI(TActions.CONFIG)
+        TConfig.GetAPI("config")
             .then(config => {
                 document.addEventListener("wheel",
                     event => {
@@ -84,7 +84,8 @@ export default class TSystem {
                         });
                     this.#Databases.push(database);
                 });
-                this.Action = TActions.SCREEN;
+                this.#Actions = config.Data.Actions;
+                this.Action = this.#Actions.SCREEN;
             })
             .catch(error => {
                 console.log(error);
@@ -156,32 +157,32 @@ export default class TSystem {
 
         this.#Action = value;
         switch (newValue[0]) {
-            case TActions.SCREEN:
+            case this.#Actions.SCREEN:
                 TScreen.Renderize();
-                this.Action = TActions.LOGIN;
+                this.Action = this.#Actions.LOGIN;
                 break;
-            case TActions.LOGIN:
+            case this.#Actions.LOGIN:
                 window.onbeforeunload = null;
                 TConfig.SetIdleTime(false);
-                if (lastValue !== TActions.SCREEN)
+                if (lastValue !== this.#Actions.SCREEN)
                     TLogin.Logout();
                 TLogin.Renderize();
                 break;
-            case TActions.MENU:
+            case this.#Actions.MENU:
                 window.onbeforeunload = () => TLogin.Logout();
                 TConfig.SetIdleTime();
                 TMenu.Renderize();
                 break;
-            case TActions.GRID:
+            case this.#Actions.GRID:
                 new TGrid(newValue[1], newValue[2]).Renderize();
                 break;
-            case TActions.RELOAD:
+            case TSystem.Actions.RELOAD:
                 document.location.reload(true);
                 break;
-            case TActions.EXIT:
-                TScreen.ShowQuestion(`Confirma retornar ao ${newValue[1]}?`, newValue[1], TActions.NONE);
+            case this.#Actions.EXIT:
+                TScreen.ShowQuestion(`Confirma retornar ao ${newValue[1]}?`, newValue[1], TSystem.Actions.NONE);
                 break;
-            case TActions.NONE:
+            case this.#Actions.NONE:
                 this.#Action = lastValue;
                 break;
             default:
@@ -205,5 +206,8 @@ export default class TSystem {
     }
     static get Databases() {
         return this.#Databases;
+    }
+    static get Actions() {
+        return this.#Actions;
     }
 }

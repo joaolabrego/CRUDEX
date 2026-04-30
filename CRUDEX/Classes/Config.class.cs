@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System.Data;
 using System.Net;
 using System.Net.Mail;
+using System.Reflection;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
 namespace CRUDEX.Classes
@@ -42,6 +43,7 @@ namespace CRUDEX.Classes
                     Indexkeys = result.DataSet.Tables[9].Rows[0].Table,
                     Masks = result.DataSet.Tables[10].Rows[0].Table,
                     Unicities = result.DataSet.Tables[11].Rows[0].Table,
+                    Actions = Actions.GetObject(),
                 };
                 config.Styles = new Styles();
                 config.Images = new Images(config.Data.System.Rows[0]["ClientName"]);
@@ -117,6 +119,26 @@ namespace CRUDEX.Classes
                 result[item.Key] = ToDictionary(item.Value);
 
             return result;
+        }
+        public static Dictionary<string, object?> ToJsonObject<T>()
+        {
+            var obj = new Dictionary<string, object?>();
+
+            var fields = typeof(T).GetFields(
+                BindingFlags.Public |
+                BindingFlags.Static |
+                BindingFlags.FlattenHierarchy
+            );
+
+            foreach (var field in fields)
+            {
+                if (field.IsLiteral && !field.IsInitOnly)
+                {
+                    obj[field.Name] = field.GetRawConstantValue();
+                }
+            }
+
+            return obj;
         }
     }
 }

@@ -54,21 +54,21 @@ namespace CRUDEX.Classes
         public static async Task<TResult> Execute(string systemName, TDictionary? parameters)
         {
             var parms = parameters?["Parameters"];
-            var databaseName = parms?["DatabaseName"];
-            var tableName = parms?["TableName"];
-            var action = parms?["Action"];
-            var config = GetConfig(systemName, databaseName, tableName).Result.DataSet.Tables;
-            var connectionRow = config[1].Rows[0];
+            string? databaseName = Convert.ToString(parms?["DatabaseName"]);
+            string? tableName = Convert.ToString(parms?["TableName"]);
+            string action = Convert.ToString(parms?["Action"]) ?? string.Empty;
+
+            var configTables = (await GetConfig(systemName, databaseName, tableName)).DataSet.Tables;
+            var connectionRow = configTables[1].Rows[0];
             var connectionString = Settings.ConnectionString(connectionRow);
-            var procedureName = action switch
-            {
-                Actions.BEGIN => $"TransactionBegin",
-                Actions.COMMIT => $"TransactionCommit",
-                Actions.ROLLBACK => $"TransactionRollback",
-                Actions.READ => $"{tableName}Read",
-                Actions.GENERATE => "GenerateId",
-                _ => throw new Exception($"Ação inválida."),
-            };
+            string procedureName;
+
+            if (action == Actions.BEGIN) procedureName = "TransactionBegin";
+            else if (action == Actions.COMMIT) procedureName = "TransactionCommit";
+            else if (action == Actions.ROLLBACK) procedureName = "TransactionRollback";
+            else if (action == Actions.READ) procedureName = $"{tableName}Read";
+            else if (action == Actions.GENERATE) procedureName = "GenerateId";
+            else throw new Exception($"Ação inválida.");
 
             return await Execute(connectionString, procedureName, parameters?["Parameters"]);
         }

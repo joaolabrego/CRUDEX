@@ -1,6 +1,5 @@
 ﻿"use strict";
 
-import TActions from "./TActions.class.mjs";
 import TConfig from "./TConfig.class.mjs";
 import TScreen from "./TScreen.class.mjs";
 import TSystem from "./TSystem.class.mjs";
@@ -195,7 +194,7 @@ export default class TLogin {
                     this.#HTML.RetypedPassword.focus();
                 }
                 else {
-                    TConfig.GetAPI(TActions.CHANGE, {
+                    TConfig.GetAPI(TSystem.Actions.CHANGE, {
                         NewPassword: this.#HTML.NewPassword.value,
                         RetypedPassword: this.#HTML.RetypedPassword.value,
                     })
@@ -204,7 +203,7 @@ export default class TLogin {
                             this.#HTML.ChangePassword.checked = false;
                             this.#HTML.Password.value = this.#HTML.NewPassword.value;
                             this.#HTML.ChangePassword.dispatchEvent(new Event('change', { bubbles: true }));
-                            TSystem.Action = TActions.MENU;
+                            TSystem.Action = TSystem.Actions.MENU;
                         })
                         .catch(error => {
                             TScreen.ErrorMessage = error.Message;
@@ -216,10 +215,10 @@ export default class TLogin {
                 }
             }
             else {
-                TConfig.GetAPI(TActions.LOGIN)
+                TConfig.GetAPI(TSystem.Actions.LOGIN)
                     .then((result) => {
                         this.#LoginId = result.Parameters.ReturnValue;
-                        TSystem.Action = TActions.MENU;
+                        TSystem.Action = TSystem.Actions.MENU;
                     })
                     .catch(error => {
                         TScreen.ErrorMessage = error.Message;
@@ -240,7 +239,7 @@ export default class TLogin {
     }
     static Logout() {
         if (this.#LoginId)
-            TConfig.GetAPI(TActions.LOGOUT)
+            TConfig.GetAPI(TSystem.Actions.LOGOUT)
                 .catch(error => TScreen.ShowError(error.message || error.Message, error.Action));
     }
     static set LoginId(value) {
