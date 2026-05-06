@@ -24,6 +24,9 @@
         public const string LIST = "list";
         public const string GENERATE = "generate";
         public const string CHECK = "check";
+        public const string RELOAD = "reload";
+        public const string EXIT = "exit";
+        public const string NONE = "none";
         static public object GetObject()
         {
             return Config.ToJsonObject<Actions>();
