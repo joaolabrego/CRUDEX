@@ -66,7 +66,6 @@
     <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="10.3.4" />
     <PackageReference Include="Informix.Net.Core" Version="4.1501.2.2026" />
     <PackageReference Include="InterBaseSql.Data.InterBaseClient" Version="10.0.3" />
-    <PackageReference Include="MC.Sap.Data.SQLAnywhere" Version="2.1.0.1" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.1" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.7" />
     <PackageReference Include="MySql.Data" Version="9.7.0" />
@@ -74,7 +73,6 @@
     <PackageReference Include="Net.IBM.Data.Db2" Version="10.0.0.100" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Npgsql" Version="10.0.2" />
-    <PackageReference Include="Oracle.ManagedDataAccess" Version="23.26.200" />
     <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.26.200" />
     <PackageReference Include="System.Drawing.Common" Version="10.0.7" />
   </ItemGroup>
