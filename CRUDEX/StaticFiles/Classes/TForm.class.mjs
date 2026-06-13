@@ -345,6 +345,24 @@ export default class TForm {
         }
         await this.#returnToCaller();
     }
+    #excludeParentLinkColumn(columns, setParentValue = false) {
+        if (!this.#masterForm)
+            return columns;
+        const linkColumn = TSystem.GetParentLinkColumn(
+            this.#Grid.Table,
+            this.#masterForm.parentTable,
+            this.#masterForm.Table,
+        );
+        if (!linkColumn)
+            return columns;
+        if (setParentValue) {
+            const parentId = this.#masterForm.actualRecord?.Id
+                ?? this.#masterForm.lastRecord?.Id;
+            if (parentId != null)
+                this.#actualRecord[linkColumn.Name] = parentId;
+        }
+        return columns.filter(column => column !== linkColumn);
+    }
     async Configure() {
         let columns = this.#Grid.Table.Columns;
 
@@ -353,20 +371,10 @@ export default class TForm {
         this.#isStaged = false;
         switch (this.#Action) {
             case TSystem.Actions.CREATE:
-                columns = columns.filter(column => column.IsEditable);
-                if (this.#masterForm) {
-                    const linkColumn = TSystem.GetParentLinkColumn(
-                        this.#Grid.Table,
-                        this.#masterForm.parentTable,
-                        this.#masterForm.Table,
-                    );
-                    const parentId = this.#masterForm.actualRecord?.Id
-                        ?? this.#masterForm.lastRecord?.Id;
-                    if (linkColumn && parentId != null) {
-                        this.#actualRecord[linkColumn.Name] = parentId;
-                        columns = columns.filter(column => column !== linkColumn);
-                    }
-                }
+                columns = this.#excludeParentLinkColumn(
+                    columns.filter(column => column.IsEditable),
+                    true,
+                );
                 break;
             case TSystem.Actions.SEARCH:
                 columns = columns.filter(column => column.IsFilterable);
@@ -379,6 +387,11 @@ export default class TForm {
             case TSystem.Actions.UPDATE:
                 columns = columns.filter(column => column.IsEditable);
                 await this.#LoadRecord(columns);
+                columns = this.#excludeParentLinkColumn(columns);
+                break;
+            case TSystem.Actions.DELETE:
+                await this.#LoadRecord(columns);
+                columns = this.#excludeParentLinkColumn(columns);
                 break;
             default:
                 await this.#LoadRecord(columns);

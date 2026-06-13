@@ -105,6 +105,19 @@ export default class TGrid {
         this.#enabled = enabled;
         this.#HTML.Container?.classList.toggle("grid-disabled", !enabled);
     }
+    #gridColumns() {
+        let columns = this.#Table.Columns.filter(column => column.IsGridable);
+        if (!this.#masterForm)
+            return columns;
+        const linkColumn = TSystem.GetParentLinkColumn(
+            this.#Table,
+            this.#masterForm.parentTable,
+            this.#masterForm.Table,
+        );
+        if (linkColumn)
+            columns = columns.filter(column => column !== linkColumn);
+        return columns;
+    }
     static Initialize(styles, images) {
         if (styles.ClassName !== "Styles")
             throw new Error("Argumento styles não são do tipo Styles.");
@@ -403,7 +416,7 @@ export default class TGrid {
     #BuildHtmlHead() {
         let tr = document.createElement("tr");
 
-        this.#Table.Columns.filter((column) => column.IsGridable).forEach(
+        this.#gridColumns().forEach(
             (column) => {
                 let th = document.createElement("th"),
                     columnNameAsc = "[" + column.Name + "] ASC,",
@@ -486,7 +499,7 @@ export default class TGrid {
                     "background-color: var(--background-color-control);";
             };
             tr.ondblclick = () => this.#HTML.UpdateButton.click();
-            this.#Table.Columns.filter((column) => column.IsGridable).forEach(
+            this.#gridColumns().forEach(
                 (column) => {
                     const td = document.createElement("td");
 
@@ -506,7 +519,7 @@ export default class TGrid {
             filtered = this.IsFiltered(),
             label;
 
-        th.colSpan = this.#Table.Columns.length.toString();
+        th.colSpan = this.#gridColumns().length.toString();
         label = document.createElement("label");
         label.style.float = "left";
         label.innerHTML = "Página:&nbsp;&nbsp;";
