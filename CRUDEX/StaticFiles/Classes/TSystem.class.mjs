@@ -152,30 +152,13 @@ export default class TSystem {
 
         return result;
     }
-    static GetChildTables(table, { includeSchemaChildren = false } = {}) {
+    static GetChildTables(table) {
         if (!table?.Id)
             return [];
-        const seen = new Set();
-        const children = [];
-        const add = (child) => {
-            if (!child || seen.has(child.Id))
-                return;
-            seen.add(child.Id);
-            children.push(child);
-        };
-        for (const child of this.#Tables) {
-            if (child.ParentTableId == table.Id)
-                add(child);
-        }
-        if (includeSchemaChildren
-            && this.#Columns.some(column => column.TableId == table.Id)) {
-            add(this.GetTable("Columns"));
-            add(this.GetTable("Indexes"));
-        }
-        return children;
+        return this.#Tables.filter(child => child.ParentTableId == table.Id);
     }
-    static IsSimpleTable(table, options = {}) {
-        return this.GetChildTables(table, options).length === 0;
+    static IsSimpleTable(table) {
+        return this.GetChildTables(table).length === 0;
     }
     static GetParentLinkColumn(childTable, parentTable, contextTable = null) {
         if (!childTable || !parentTable)

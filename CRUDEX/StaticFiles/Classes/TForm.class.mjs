@@ -48,18 +48,7 @@ export default class TForm {
         this.#HTML.Container.className = "form-screen";
     }
     #resolveParentTable() {
-        if (this.#Grid.Table.Name === "Tables") {
-            const recordId = this.#actualRecord?.Id ?? this.#lastRecord?.Id;
-            if (recordId != null) {
-                const recordTable = TSystem.GetTable(recordId);
-                if (recordTable)
-                    return recordTable;
-            }
-        }
         return this.#Grid.Table;
-    }
-    #includesSchemaChildren() {
-        return this.#Grid.Table.Name === "Tables";
     }
     static Initialize(styles, images) {
         if (styles.ClassName !== "Styles")
@@ -140,10 +129,8 @@ export default class TForm {
             }
             return;
         }
-        this.#detailParentTable = this.#resolveParentTable();
-        const childTables = TSystem.GetChildTables(this.#detailParentTable, {
-            includeSchemaChildren: this.#includesSchemaChildren(),
-        });
+        this.#detailParentTable = this.#Grid.Table;
+        const childTables = TSystem.GetChildTables(this.#detailParentTable);
         this.#isMasterDetail = childTables.length > 0;
 
         if (!this.#isMasterDetail) {
