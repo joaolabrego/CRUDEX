@@ -1,8 +1,8 @@
-CRUDEX: O SGSI mais poderoso do mundo
+CRUDEX 1.0 (concluído): O SGSI mais poderoso do mundo
 
 CONTATO: João da Rocha Labrego — joaolabrego@gmail.com
 
-O projeto CRUDEX, que já está quase em fase final de desenvolvimento, foi criado para automatizar ao máximo o desenvolvimento de sistemas.
+O projeto CRUDEX foi criado para automatizar ao máximo o desenvolvimento de sistemas.
 
 Tive até que inventar um conceito novo para defini-lo: SGSI — Sistema Gerenciador de Sistemas de Informação.
 
@@ -27,8 +27,6 @@ Se o cliente desejar um frontend mais bonito ou personalizado, o desenvolvedor e
 Com isso, o backend passa a ser responsabilidade do analista de negócios ou do DBA — e não mais do desenvolvedor.
 
 Ao desenvolvedor cabe apenas a criação de frontends específicos, como aplicativos móveis ou interfaces avançadas, sem interferir na lógica do sistema.
-
-O CRUDEX já conta com várias funcionalidades adicionais, mas o essencial é esse.
 
 IMAGENS DO FRONTEND PADRÃO
 
