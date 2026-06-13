@@ -1,4 +1,4 @@
-﻿"use strict"
+"use strict"
 
 import TSystem from "./TSystem.class.mjs"
 
@@ -51,13 +51,14 @@ export default class TDialog {
         }
     }
 
-    static Show(type, message, confirmAction = null, cancelAction = null, timeout = null) {
+    static Show(type, message, confirmAction = null, cancelAction = null, timeout = null, onConfirm = null) {
         this.#HTML.Message.textContent = message
         this.#HTML.Confirm.onclick = () => {
             clearInterval(this.#Timer)
+            this.#HTML.Container.close()
             if (confirmAction)
                 TSystem.Action = confirmAction
-            this.#HTML.Container.close()
+            onConfirm?.()
         }
         if (type === "question") {
             this.#HTML.Image.src = this.#Images.Question

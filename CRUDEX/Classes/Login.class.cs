@@ -1,4 +1,4 @@
-﻿using crudex.Classes.Models;
+using crudex.Classes.Models;
 using Newtonsoft.Json;
 using System;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
@@ -8,6 +8,19 @@ namespace CRUDEX.Classes
     public static class Login
     {
         public readonly static string ClassName = "Login";
+        public static string SerializeParameters(TDictionary login, bool forceAuthenticate = false)
+        {
+            return JsonConvert.SerializeObject(new
+            {
+                SystemName = login["SystemName"],
+                UserName = login["UserName"],
+                Password = login["Password"],
+                LoginId = login["Action"] == Actions.LOGIN || login["Action"] == Actions.CHANGE ? null : login["LoginId"],
+                Action = forceAuthenticate ? Actions.AUTHENTICATE : login["Action"],
+                NewPassword = login["NewPassword"],
+                RetypedPassword = login["RetypedPassword"],
+            });
+        }
         public static async Task<TResult> Execute(TDictionary? parameters, bool forceAuthenticate = false)
         {
             if (parameters != null && parameters.TryGetValue("Login", out dynamic? login))
@@ -18,21 +31,12 @@ namespace CRUDEX.Classes
                 {
                     return await Procedure.Execute(
                         Settings.ConnectionString(),
-                        Settings.Get("LOGIN_PROCEDURE"),
+                        "[dbo].[Login]",
                         Config.ToDictionary(new
                         {
                             InParams = new
                             {
-                                Parameters = JsonConvert.SerializeObject(new
-                                {
-                                    SystemName = login["SystemName"],
-                                    UserName = login["UserName"],
-                                    Password = login["Password"],
-                                    LoginId = login["Action"] == Actions.LOGIN || login["Action"] == Actions.CHANGE ? null : login["LoginId"],
-                                    Action = forceAuthenticate ? Actions.AUTHENTICATE : login["Action"],
-                                    NewPassword = login["NewPassword"],
-                                    RetypedPassword = login["RetypedPassword"],
-                                }),
+                                Parameters = SerializeParameters(login, forceAuthenticate),
                             },
                         }));
                 }
@@ -45,7 +49,7 @@ namespace CRUDEX.Classes
         {
             return (await Procedure.Execute(
                 Settings.ConnectionString(),
-                Settings.Get("PUBLICKEY_PROCEDURE"),
+                "[dbo].[GetPublicKey]",
                 Config.ToDictionary(new
                 {
                     InParams = new

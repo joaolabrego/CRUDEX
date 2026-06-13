@@ -1,0 +1,62 @@
+.tscrollbar {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    flex-shrink: 0;
+    height: auto;
+    align-self: stretch;
+}
+
+.tscrollbar.invisible {
+    display: none;
+}
+
+.tscrollbar-range {
+    transform: rotate(180deg);
+    appearance: none;
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 3dvmin;
+    height: 100%;
+}
+
+.tscrollbar[data-orientation="horizontal"] .tscrollbar-range {
+    transform: none;
+    writing-mode: horizontal-tb;
+    direction: ltr;
+    width: 100%;
+    height: 3dvmin;
+}
+
+/* Chrome, Edge, Safari */
+.tscrollbar-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 3dvmin;
+    min-height: 3dvmin;
+    height: 10dvmin;
+    background: var(--background-color-extra);
+    cursor: pointer;
+    border-radius: var(--border-radius);
+    box-shadow: none;
+}
+
+.tscrollbar-range::-webkit-slider-runnable-track {
+    width: 3dvmin;
+    background: var(--background-color);
+}
+
+/* Firefox */
+.tscrollbar-range::-moz-range-thumb {
+    width: 3dvmin;
+    min-height: 3dvmin;
+    height: 10dvmin;
+    background: var(--background-color-extra);
+    cursor: pointer;
+    border-radius: 25%;
+}
+
+.tscrollbar-range::-moz-range-track {
+    width: 3dvmin;
+    background: var(--background-color);
+}

@@ -1,0 +1,161 @@
+.tcheckbox {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    cursor: pointer;
+
+    user-select: none;
+
+    vertical-align: middle;
+
+}
+
+
+
+.tcheckbox[data-readonly="true"] {
+
+    cursor: default;
+
+    pointer-events: none;
+
+}
+
+
+
+.tcheckbox-button {
+
+    width: var(--font-size-grid, 2dvmin);
+
+    height: var(--font-size-grid, 2dvmin);
+
+    border: 0.2dvmin solid #666;
+
+    border-radius: 0.3dvmin;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: calc(var(--font-size-grid, 2dvmin) * 0.75);
+
+    font-weight: bold;
+
+    line-height: 1;
+
+    box-sizing: border-box;
+
+    background-color: transparent;
+
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+
+}
+
+
+
+.tcheckbox:not([data-transparent="true"]) .tcheckbox-button {
+
+    background-color: #fff;
+
+    box-shadow: 0 0 0 0.05dvmin rgba(0, 0, 0, 0.25);
+
+}
+
+
+
+.tcheckbox[data-transparent="true"] .tcheckbox-button {
+
+    background-color: transparent;
+
+    box-shadow: none;
+
+    border-color: transparent;
+
+}
+
+
+
+.tcheckbox:not([data-readonly="true"]):hover .tcheckbox-button,
+
+.tcheckbox:not([data-readonly="true"]):focus-within .tcheckbox-button {
+
+    transform: scale(1.05);
+
+}
+
+
+
+.tcheckbox:not([data-transparent="true"])[data-state="true"] .tcheckbox-button {
+
+    border-color: #009900;
+
+    color: #009900;
+
+}
+
+
+
+.tcheckbox:not([data-transparent="true"])[data-state="false"] .tcheckbox-button {
+
+    border-color: #cc0000;
+
+    color: #cc0000;
+
+}
+
+
+
+.tcheckbox:not([data-transparent="true"])[data-state="null"] .tcheckbox-button {
+
+    border-color: #000;
+
+    color: #000;
+
+}
+
+
+
+.tcheckbox:not([data-transparent="true"])[data-state="empty"] .tcheckbox-button {
+
+    border-color: #777;
+
+    color: transparent;
+
+}
+
+
+
+.tcheckbox[data-transparent="true"][data-state="true"] .tcheckbox-button {
+
+    color: #009900;
+
+}
+
+
+
+.tcheckbox[data-transparent="true"][data-state="false"] .tcheckbox-button {
+
+    color: #cc0000;
+
+}
+
+
+
+.tcheckbox[data-transparent="true"][data-state="null"] .tcheckbox-button {
+
+    color: #000;
+
+}
+
+
+
+.tcheckbox[data-transparent="true"][data-state="empty"] .tcheckbox-button {
+
+    color: transparent;
+
+}
+
+

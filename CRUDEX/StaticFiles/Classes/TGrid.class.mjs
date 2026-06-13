@@ -1,10 +1,12 @@
 "use strict";
 
 import TForm from "./TForm.class.mjs";
-import TLogin from "./TLogin.class.mjs";
 import TScreen from "./TScreen.class.mjs";
 import TSystem from "./TSystem.class.mjs";
+import TCheckbox from "./TCheckbox.class.mjs";
 import TConfig from "./TConfig.class.mjs";
+import TRecordSet from "./TRecordset.class.mjs";
+import TScrollBar from "./TScrollBar.class.mjs";
 
 export default class TGrid {
     #FilterValues = {};
@@ -19,18 +21,19 @@ export default class TGrid {
     #Rows = [];
     #ColumnTitle = null;
     #Data = null;
-    #References = [];
     #Table = null;
+    #RecordSet = null;
+    #ScrollBar = null;
 
     #OrderBy = "";
 
     #HTML = {
         Container: null,
-        Range: null,
         Table: null,
         Head: null,
         Body: null,
         Foot: null,
+        GridViewport: null,
         NumberInput: null,
         CreateButton: null,
         UpdateButton: null,
@@ -63,13 +66,23 @@ export default class TGrid {
         this.#Table = database.GetTable(tableName);
         if (!this.#Table)
             throw new Error("Tabela de banco-de-dados não encontrada.");
+        this.#RecordSet = new TRecordSet(this.#Table);
         this.#HTML.Container = document.createElement("div");
         this.#HTML.Container.className = "container";
         this.#CreateGrid();
-        this.#CreateRange();
-        this.#HTML.Container.appendChild(this.#HTML.Range);
-        this.#Table.Columns.filter((column) => column.IsFilterable).forEach(
-            column => this.#FilterValues[column.Name] = this.#SearchValues = null);
+        this.#ScrollBar = TScrollBar.Attach(this.#HTML.Container, {
+            min: 1,
+            max: 1,
+            value: 1,
+            onChange: (pageNumber) => {
+                if (pageNumber !== this.#PageNumber)
+                    this.Renderize(pageNumber);
+            },
+        });
+        this.#Table.Columns.filter((column) => column.IsFilterable).forEach(column => {
+            this.#FilterValues[column.Name] = null;
+            this.#SearchValues[column.Name] = null;
+        });
     }
     static Initialize(styles, images) {
         if (styles.ClassName !== "Styles")
@@ -224,98 +237,70 @@ export default class TGrid {
         this.#HTML.Foot = document.createElement("tfoot");
         this.#HTML.Table.appendChild(this.#HTML.Foot);
 
-        this.#HTML.Container.appendChild(this.#HTML.Table);
+        this.#HTML.GridViewport = document.createElement("div");
+        this.#HTML.GridViewport.className = "grid-viewport";
+        this.#HTML.GridViewport.appendChild(this.#HTML.Table);
+        this.#HTML.Container.appendChild(this.#HTML.GridViewport);
     };
 
-    #CreateRange() {
-        this.#HTML.Range = document.createElement("input");
-        this.#HTML.Range.type = "range";
-        this.#HTML.Range.className = "vertical-range";
-        this.#HTML.Range.min = 1;
-        this.#HTML.Range.max = this.#PageCount;
-        this.#HTML.Range.oninput = () => {
-            if (this.#HTML.Range.value != this.#PageNumber)
-                this.Renderize(Math.trunc(this.#HTML.Range.value));
-        }
-    }
     SaveFilters(record) {
-        for (let key in this.#FilterValues)
-            if (record.hasOwnProperty(key))
-                this.#FilterValues[key] = TConfig.IsEmpty(record[key])
-                    ? null
-                    : record[key];
+        for (let key in this.#FilterValues) {
+            if (!record.hasOwnProperty(key))
+                continue;
+            const value = record[key];
+            this.#FilterValues[key] = TCheckbox.hasCondition(value)
+                ? value
+                : TConfig.IsEmpty(value) ? null : value;
+        }
     }
     ClearFilters() {
         for (let key in this.#FilterValues) this.#FilterValues[key] = null;
     }
     IsFiltered() {
-        for (let key in this.#FilterValues)
-            if (this.#FilterValues[key] != null) return true;
+        for (let key in this.#FilterValues) {
+            const value = this.#FilterValues[key];
+            if (TCheckbox.hasCondition(value) || !TConfig.IsEmpty(value))
+                return true;
+        }
 
         return false;
     }
     SaveSearchs(record) {
-        for (let key in this.#SearchValues)
-            if (record.hasOwnProperty(key))
-                this.#SearchValues[key] = TConfig.IsEmpty(record[key])
-                    ? null
-                    : record[key];
+        for (let key in this.#SearchValues) {
+            if (!record.hasOwnProperty(key))
+                continue;
+            const value = record[key];
+            this.#SearchValues[key] = TCheckbox.hasCondition(value)
+                ? value
+                : TConfig.IsEmpty(value) ? null : value;
+        }
     }
     ClearSearches() {
         for (let key in this.#SearchValues) this.#SearchValues[key] = null;
     }
     IsSearched() {
-        for (let key in this.#SearchValues)
-            if (this.#SearchValues[key] != null) return true;
+        for (let key in this.#SearchValues) {
+            const value = this.#SearchValues[key];
+            if (TCheckbox.hasCondition(value) || !TConfig.IsEmpty(value))
+                return true;
+        }
 
         return false;
     }
     async #ReadDataPage(pageNumber) {
-        let parameters = {
-            DatabaseName: this.#Table.Database.Name,
-            TableName: this.#Table.Name,
-            Action: TSystem.Actions.READ,
-            InParams: {
-                LoginId: TLogin.LoginId,
-                RecordFilter: JSON.stringify(this.#FilterValues),
-                //RecordSearch: this.IsSearched() ? JSON.stringify(this.#SearchValues) : null,
-                OrderBy: this.OrderBy,
-                PaddingGridLastPage: TSystem.PaddingGridLastPage,
-                IsActionList: false,
-            },
-            OutParams: {},
-            IOParams: {
-                PageNumber: pageNumber,
-                LimitRows: TSystem.RowsPerPage,
-                MaxPage: 0,
-            },
-        };
+        this.#RecordSet.setFilter(this.#FilterValues);
+        this.#RecordSet.setSearch(this.#SearchValues);
+        this.#RecordSet.setOrderByRaw(this.#OrderBy);
+        await this.#RecordSet.goPage(pageNumber);
 
-        let result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters);
+        this.#RowCount = this.#RecordSet.rowCount;
+        this.#PageNumber = this.#RecordSet.pageNumber;
+        this.#PageCount = this.#RecordSet.pageCount;
+        this.#ScrollBar.setRange(1, this.#PageCount, this.#PageNumber);
+        if (this.#RowCount && this.#RowNumber >= this.#RowCount)
+            this.#RowNumber = this.#RowCount - 1;
 
-        this.#RowCount = result.Parameters.ReturnValue;
-        this.#HTML.Range.min = 1;
-        this.#HTML.Range.value = this.#PageNumber = result.Parameters.PageNumber;
-        this.#HTML.Range.max = this.#PageCount = result.Parameters.MaxPage;
-        if (result.Parameters.ReturnValue && this.#RowNumber >= result.Parameters.ReturnValue)
-            this.#RowNumber = result.Parameters.ReturnValue - 1;
-        this.#References.length = 0;
-        Object.entries(result.DataSet).forEach(([, table], index) => {
-            if (index) {
-                table.forEach((rowTable) => {
-                    if (
-                        !this.#References.find(
-                            (row) =>
-                                row.ClassName === rowTable.ClassName && row.Id === rowTable.Id
-                        )
-                    ) {
-                        this.#References.push(rowTable);
-                    }
-                });
-            }
-        });
-
-        return result.DataSet.Table;
+        return this.#RecordSet.records;
     }
     async Renderize(pageNumber = this.#PageNumber) {
         if (this.#IsRendering) return;
@@ -335,15 +320,12 @@ export default class TGrid {
             TScreen.WithBackgroundImage = true;
             TScreen.Main = this.#HTML.Container;
             this.#HTML.Table.focus();
-            if (this.#RowCount <= TSystem.RowsPerPage)
-                this.#HTML.Range.classList.add("invisible");
-            else
-                this.#HTML.Range.classList.remove("invisible");
-            this.#HTML.Range.title = `Página atual: ${pageNumber}`;
+            this.#ScrollBar.setVisible(this.#RowCount > TSystem.RowsPerPage);
+            this.#ScrollBar.setTitle(`Página atual: ${pageNumber}`);
         } catch (error) {
             TScreen.ShowError(
                 error.message || error.Message,
-                error.Action || `grid/${this.#Table.Database.Name}/${this.#Table.Name}`
+                `grid/${this.#Table.Database.Name}/${this.#Table.Name}`
             );
         } finally {
             this.#IsRendering = false;
@@ -376,15 +358,14 @@ export default class TGrid {
             htmlInputType = column.Domain.Type.Category.HtmlInputType;
 
         if (htmlInputType === "checkbox") {
-            control = document.createElement("input");
-            if (TConfig.IsEmpty(value))
-                control.hidden = "hidden";
-            else {
-                control.type = htmlInputType;
-                control.checked = value;
-                control.title = value ? "sim" : "não";
-                control.readOnly = true;
-                control.onclick = () => false;
+            control = document.createElement("span");
+            control.className = "grid-bool";
+            if (value === true) {
+                control.classList.add("grid-bool-true");
+                control.textContent = "\u2713";
+            } else if (value === false) {
+                control.classList.add("grid-bool-false");
+                control.textContent = "\u2717";
             }
         } else {
             control = document.createTextNode(value ?? "");
@@ -675,6 +656,12 @@ export default class TGrid {
     }
     get Table() {
         return this.#Table;
+    }
+    get RecordSet() {
+        return this.#RecordSet;
+    }
+    get SelectedRecord() {
+        return this.#Data?.[this.#RowNumber] ?? null;
     }
     get FilterValues() {
         return this.#FilterValues;

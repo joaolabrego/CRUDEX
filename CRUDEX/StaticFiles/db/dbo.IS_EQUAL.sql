@@ -1,8 +1,8 @@
-﻿IF (SELECT object_id('[crudex].[IS_EQUAL]', 'FN')) IS NULL
-    EXEC('CREATE FUNCTION [crudex].[IS_EQUAL]() RETURNS BIT AS BEGIN RETURN 1 END')
+﻿IF (SELECT object_id('[dbo].[IS_EQUAL]', 'FN')) IS NULL
+    EXEC('CREATE FUNCTION [dbo].[IS_EQUAL]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
 
-ALTER FUNCTION [crudex].[IS_EQUAL](
+ALTER FUNCTION [dbo].[IS_EQUAL](
     @LeftValue NVARCHAR(MAX),
     @RightValue NVARCHAR(MAX),
     @TypeValue NVARCHAR(25)

@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 import TConfig from "./TConfig.class.mjs";
 import TDialog from "./TDialog.class.mjs";
@@ -31,6 +31,11 @@ export default class TScreen {
 
         style.textContent = styles.Screen;
         this.#HTML.Container.appendChild(style);
+        this.#HTML.Container.appendChild(TDialog.Container);
+        this.#HTML.Container.appendChild(TSpinner.Container);
+
+        let screen = document.createElement("div");
+        screen.className = "screen";
 
         let header = document.createElement("header");
         header.className = "box header";
@@ -56,20 +61,20 @@ export default class TScreen {
         this.#HTML.Time = document.createElement("span");
         header.appendChild(this.#HTML.Time);
 
-        this.#HTML.Container.appendChild(header);
-        this.#HTML.Container.appendChild(TDialog.Container);
-        this.#HTML.Container.appendChild(TSpinner.Container);
+        screen.appendChild(header);
 
         this.#HTML.Main = document.createElement("main");
         this.#HTML.Main.className = "box main";
-        this.#HTML.Container.appendChild(this.#HTML.Main);
+        screen.appendChild(this.#HTML.Main);
         this.#BackgroundImage = withBackgroundImage ? images.Background : null;
         this.WithBackgroundImage = withBackgroundImage;
 
         this.#HTML.Message = document.createElement("footer");
         this.#HTML.Message.textContent = this.#Message;
         this.#HTML.Message.className = "box footer";
-        this.#HTML.Container.appendChild(this.#HTML.Message);
+        screen.appendChild(this.#HTML.Message);
+
+        this.#HTML.Container.appendChild(screen);
     }
 
     static Renderize() {
@@ -103,8 +108,8 @@ export default class TScreen {
     static ShowAlert(message, okAction, timeout = null) {
         TDialog.Show("alert", message, okAction, null, timeout);
     }
-    static ShowError(message, okAction, timeout = null) {
-        TDialog.Show("error", message, okAction, null, timeout);
+    static ShowError(message, okAction, timeout = null, onOk = null) {
+        TDialog.Show("error", message, okAction, null, timeout, onOk);
     }
     static set Main(container) {
         this.#HTML.Main.replaceChildren(container);

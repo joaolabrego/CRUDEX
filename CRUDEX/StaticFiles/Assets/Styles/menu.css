@@ -1,10 +1,9 @@
-﻿.menu {
+.menu {
     border-radius: var(--border-radius);
     background-color: var(--background-color);
     height: var(--control-height);
     padding: 1dvmin 0;
     border: 0.2dvmin solid black;
-    box-shadow: 0 0 1dvmin 0 rgba(0, 0, 0, 0.2), 0 1dvmin 1dvmin 0 rgba(0, 0, 0, 0.24);
 }
 
 .menu ul li {

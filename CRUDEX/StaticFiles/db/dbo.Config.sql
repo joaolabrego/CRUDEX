@@ -1,4 +1,4 @@
-﻿IF(SELECT object_id('[dbo].[Config]', 'P')) IS NULL
+IF(SELECT object_id('[dbo].[Config]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[Config] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[Config](@SystemName VARCHAR(25)
@@ -10,8 +10,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 	DECLARE @ErrorMessage VARCHAR(MAX)
 
-	BEGIN TRY
-		SET @ReturnValue = 1
+	SET @ReturnValue = 1
 		IF @SystemName IS NULL
 			THROW 51000, 'Nome de sistema é requerido.', 1
 		-- 0 [Systems]
@@ -265,11 +264,5 @@ BEGIN
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]
 			SELECT * FROM [#Tables] ORDER BY [DatabaseId], [Name] -- 3 [#Tables]
 		END
-	END TRY
-	BEGIN CATCH
-		SET @ErrorMessage = ERROR_MESSAGE();
-
-        THROW 51000, @ErrorMessage, 1
-	END CATCH
 END
 GO

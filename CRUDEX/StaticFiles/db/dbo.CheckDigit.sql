@@ -1,9 +1,9 @@
-USE [crudex]
+﻿USE [dbo]
 GO
-IF(SELECT object_id('[crudex].[CheckDigit]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [crudex].[CheckDigit]() RETURNS CHAR(1) AS BEGIN RETURN '' '' END')
+IF(SELECT object_id('[dbo].[CheckDigit]', 'FN')) IS NULL
+	EXEC('CREATE FUNCTION [dbo].[CheckDigit]() RETURNS CHAR(1) AS BEGIN RETURN '' '' END')
 GO
-ALTER FUNCTION [crudex].[CheckDigit](@Value VARCHAR(50),
+ALTER FUNCTION [dbo].[CheckDigit](@Value VARCHAR(50),
 									 @Module INT = 11,
 									 @Factors VARCHAR(100),
 									 @DigitGreaterThanNine CHAR(1) = '0')
@@ -57,4 +57,4 @@ BEGIN
     RETURN CASE WHEN @Digit > 9 THEN @DigitGreaterThanNine ELSE CAST(@Digit AS CHAR(1)) END
 END
 
--- SELECT crudex.CheckDigit('047207048', 11, '1;2;3;4;5;6;7;8;9', '0');
+-- SELECT [dbo].[CheckDigit]('047207048', 11, '1;2;3;4;5;6;7;8;9', '0');

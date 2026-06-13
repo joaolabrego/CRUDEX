@@ -1,4 +1,4 @@
-﻿IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
+IF(SELECT object_id('[dbo].[Login]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[Login] AS PRINT 1')
 GO
 
@@ -6,9 +6,8 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 							 ,@ReturnValue BIGINT OUT) AS BEGIN
 	DECLARE @ErrorMessage NVARCHAR(MAX)
 
-	BEGIN TRY
-		SET NOCOUNT ON
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+	SET NOCOUNT ON
+	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 		IF ISJSON(@Parameters) = 0
 			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
@@ -138,11 +137,6 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 					WHERE [Id] = @LoginId
 		END
 
-		RETURN 1
-	END TRY
-	BEGIN CATCH
-        SET @ErrorMessage = ERROR_MESSAGE();
-        THROW 51000, @ErrorMessage, 1
-	END CATCH
+	RETURN 1
 END
 GO

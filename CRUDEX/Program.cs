@@ -2,11 +2,39 @@ using System.Text;
 using crudex.Classes;
 using crudex.Classes.Models;
 using Newtonsoft.Json;
+using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 
 namespace CRUDEX.Classes
 {
     public class Program
     {
+        static readonly HashSet<string> LoginOnlyActions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            Actions.LOGIN,
+            Actions.LOGOUT,
+            Actions.CHANGE,
+        };
+        static readonly HashSet<string> LoginEmbeddedProcedureActions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            Actions.READ,
+            Actions.PERSIST,
+            Actions.COMMIT,
+        };
+        static TDictionary? GetChildDictionary(TDictionary? parent, string key)
+        {
+            if (parent == null || !parent.TryGetValue(key, out dynamic? child) || child is not TDictionary childDictionary)
+                return null;
+            return childDictionary;
+        }
+        static string RequireDictionaryValue(TDictionary? dictionary, string key, string context)
+        {
+            if (dictionary == null || !dictionary.TryGetValue(key, out dynamic? value))
+                throw new Exception($"{context}.{key} é obrigatório no JSON.");
+            var text = Convert.ToString(value) ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(text))
+                throw new Exception($"{context}.{key} não pode ser vazio.");
+            return text;
+        }
         private static async Task Main()
         {
             var app = Settings.Initialize();
@@ -44,19 +72,17 @@ namespace CRUDEX.Classes
 
             app.MapGet("/", async (HttpContext context) =>
             {
-                //await Scripts.Generate();
-                //Report.Teste();
+                await Scripts.Generate();
                 await ExecuteRoute(context);
             });
             app.MapGet("/{systemName}", async (HttpContext context, string systemName) => await ExecuteRoute(context, systemName, Actions.CHECK));
-            app.MapPost("/{systemName}/{action}", async (HttpContext context, string systemName, string action, dynamic body) =>
-            {
-                await ExecuteRoute(context, systemName, action, body);
-            });
+            app.MapPost("/{systemName}", async (HttpContext context, string systemName) => await ExecuteRoute(context, systemName));
             await app.RunAsync();
         }
-        private static async Task ExecuteRoute(HttpContext context, string systemName = "", string? action = null, dynamic? body = null)
+        private static async Task ExecuteRoute(HttpContext context, string systemName = "", string? routeAction = null)
         {
+            var isApiRequest = context.Request.Method == "POST";
+
             try
             {
                 var systemParameters = systemName.Split('.');
@@ -69,64 +95,66 @@ namespace CRUDEX.Classes
                 }
                 systemName = systemParameters.FirstOrDefault()!;
 
-                var environment = systemParameters.LastOrDefault();
-                var json = Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(body ?? "{}")));
-
-                // declaração antecipada para evitar escopo de variável dentro de branches
                 string response = "";
 
-                if (action == null)
-                {
-                    context.Response.ContentType = "text/html; charset=utf-8";
-                    await context.Response.WriteAsync(Config.GetHTML("crudex", "Nome do sistema é requerido na URL."), Encoding.UTF8);
-                }
-                else if (action == Actions.CHECK)
+                if (routeAction == Actions.CHECK)
                 {
                     context.Response.Headers.ContentType = "text/html";
                     await Procedure.GetConfig(systemName);
                     await context.Response.WriteAsync(Config.GetHTML(systemName), Encoding.UTF8);
+                    return;
                 }
-                else if (action == Actions.CONFIG)
+
+                if (!isApiRequest)
                 {
+                    context.Response.ContentType = "text/html; charset=utf-8";
+                    await context.Response.WriteAsync(Config.GetHTML("crudex", "Nome do sistema é requerido na URL."), Encoding.UTF8);
+                    return;
+                }
+
+                using var reader = new StreamReader(context.Request.Body);
+                var bodyText = await reader.ReadToEndAsync();
+                var json = Config.ToDictionary(JsonConvert.DeserializeObject(string.IsNullOrWhiteSpace(bodyText) ? "{}" : bodyText));
+                var request = Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(json["Request"] ?? "{}")));
+                var parameters = Config.ToDictionary(new
+                {
+                    Login = request.TryGetValue("Login", out dynamic? login) ? login : null,
+                    Parameters = request.TryGetValue("Parameters", out dynamic? parms) ? parms : null,
+                });
+
+                var loginDict = GetChildDictionary(parameters, "Login");
+                var parmsDict = GetChildDictionary(parameters, "Parameters");
+                var hasLoginAction = loginDict?.ContainsKey("Action") == true;
+                var hasParametersAction = parmsDict?.ContainsKey("Action") == true;
+                var loginAction = hasLoginAction ? RequireDictionaryValue(loginDict, "Action", "Login") : string.Empty;
+                var parametersAction = hasParametersAction ? RequireDictionaryValue(parmsDict, "Action", "Parameters") : string.Empty;
+
+                if (parametersAction == Actions.CONFIG)
                     response = JsonConvert.SerializeObject(await Config.Create(systemName, "all"));
-                    context.Response.ContentType = "application/json; charset=utf-8";
-                    await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
-                }
-                else if (action == Actions.LOGIN || action == Actions.CHANGE || action == Actions.LOGOUT || action == Actions.EXECUTE)
+                else if (hasLoginAction && LoginOnlyActions.Contains(loginAction))
+                    response = JsonConvert.SerializeObject(await Login.Execute(parameters));
+                else if (hasParametersAction)
                 {
-                    var request = Config.ToDictionary(JsonConvert.DeserializeObject(json["Request"]));
-                    var parameters = Config.ToDictionary(new
-                    {
-                        Login = request["Login"],
-                        Parameters = request["Parameters"],
-                    });
-
-                    if (action == Actions.EXECUTE)
-                    {
+                    if (!LoginEmbeddedProcedureActions.Contains(parametersAction))
                         await Login.Execute(parameters, true);
-                        response = JsonConvert.SerializeObject(await Procedure.Execute(systemName, parameters));
-                    }
-                    else
-                        response = JsonConvert.SerializeObject(await Login.Execute(parameters));
-
-                    context.Response.ContentType = "application/json; charset=utf-8";
-                    await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
+                    response = JsonConvert.SerializeObject(await Procedure.Execute(systemName, parameters));
                 }
                 else
-                {
-                    throw new Exception($"Ação '{action}' desconhecida em rota.");
-                }
+                    throw new Exception("Ação não especificada no JSON (Login.Action ou Parameters.Action).");
+
+                context.Response.ContentType = "application/json; charset=utf-8";
+                await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
             }
             catch (Exception ex)
             {
-                if (action == null || action == Actions.CHECK || action == Actions.CONFIG)
+                if (!isApiRequest || routeAction == Actions.CHECK)
                 {
                     context.Response.Headers.ContentType = "text/html";
                     await context.Response.WriteAsync(Config.GetHTML(systemName, ex.Message), Encoding.UTF8);
                 }
                 else
                 {
-                    var response = JsonConvert.SerializeObject(new Error(ex.Message, Actions.LOGIN));
+                    var response = JsonConvert.SerializeObject(new Error(ex.Message));
 
                     context.Response.ContentType = "application/json; charset=utf-8";
                     await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);

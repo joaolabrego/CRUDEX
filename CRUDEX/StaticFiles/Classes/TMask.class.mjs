@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 import TConfig from "./TConfig.class.mjs";
 export default class TMask {
@@ -53,6 +53,26 @@ export default class TMask {
         input.value = this.#FormatValue(input.value, masks, options);
         input.style.backgroundColor = validatorFunction && !validatorFunction() ? "red" : "";
         input.selectionStart = input.selectionEnd = endOfText ? input.value.length : cursorPosition;
+    }
+
+    static CountNumericMaskDigits(mask) {
+        return String(mask).split("").filter(ch => ch === this.#NumericMask).length;
+    }
+
+    static IsNumericMask(mask) {
+        if (Array.isArray(mask))
+            return false;
+        const text = String(mask);
+        for (const ch of text) {
+            if (ch === this.#NumericMask)
+                continue;
+            if (ch === this.#ThousandSeparator)
+                continue;
+            if (ch === this.#DecimalSeparator)
+                continue;
+            return false;
+        }
+        return text.includes(this.#NumericMask);
     }
 
     static #FormatValue(value, masks, options = "") {

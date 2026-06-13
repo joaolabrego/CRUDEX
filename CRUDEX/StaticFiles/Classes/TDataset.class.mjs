@@ -1,4 +1,4 @@
-﻿"use strict"
+"use strict"
 
 import TRecord from "./TRecord.class.mjs"
 import TSystem from "./TSystem.class.mjs"
@@ -26,7 +26,6 @@ export default class TDataset {
             TableName: this.#Table.Name,
             Action: TSystem.Actions.READ,
             InParams: {
-                LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(this.#FilterValues),
                 OrderBy: this.OrderBy,
                 PaddingGridLastPage: TSystem.PaddingGridLastPage,
@@ -162,7 +161,6 @@ export default class TDataset {
             TableName: tableName,
             Action: TSystem.Actions.READ,
             InParams: {
-                LoginId: TLogin.LoginId,
                 RecordFilter: JSON.stringify(this.Primarykeys),
                 OrderBy: null,
                 PaddingGridLastPage: false,

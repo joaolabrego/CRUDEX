@@ -28,11 +28,16 @@ export default class TConfig {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             },
-            url = `${location}/${action}`;
-        if (action !== "config") {
-            if (showSpinner)
+            url = location.pathname.replace(/\/$/, ""),
+            useSpinner = showSpinner && action !== "config";
+
+        try {
+            if (useSpinner)
                 TSpinner.Show();
-            if (action === "login" || action === "change") {
+            if (action === "config") {
+                body.Parameters = { Action: "config" };
+            }
+            else if (action === "login" || action === "change") {
                 body.Login = {
                     Action: action,
                     SystemName: TSystem.Name,
@@ -41,13 +46,14 @@ export default class TConfig {
                     NewPassword: parameters.NewPassword ?? null,
                     RetypedPassword: parameters.RetypedPassword ?? null,
                 };
-                if (action === TSystem.Actions.CHANGE)
+                if (action === "change")
                     parameters = {};
+                body.Parameters = parameters;
             }
-            else {
+            else if (action === "logout") {
                 request.LoginId = TLogin.LoginId;
                 body.Login = {
-                    Action: action == "logout" ? action : "authenticate",
+                    Action: "logout",
                     SystemName: TSystem.Name,
                     UserName: TLogin.UserName,
                     Password: TLogin.Password,
@@ -55,26 +61,40 @@ export default class TConfig {
                     NewPassword: null,
                     RetypedPassword: null,
                 };
+                body.Parameters = parameters;
             }
-        }
-        body.Parameters = parameters;
-        request.Request = JSON.stringify(body);
-        if (action === "logout" && navigator.sendBeacon) {
-            result = navigator.sendBeacon(url, new Blob([JSON.stringify(request)], { type: 'application/json' })) ? {} : { ClassName: "Error", Message: "Erro ao enviar LOGOUT via sendBeacon." };
-        } else {
-            let response = await fetch(url, {
-                method: "POST",
-                headers,
-                body: JSON.stringify(request),
-            });
-            result = JSON.parse((await response.json()).Response);
-        }
-        if (showSpinner && action !== "config")
-            TSpinner.Hide();
-        if (result.ClassName === "Error")
-            throw result;
+            else {
+                request.LoginId = TLogin.LoginId;
+                body.Login = {
+                    Action: "authenticate",
+                    SystemName: TSystem.Name,
+                    UserName: TLogin.UserName,
+                    Password: TLogin.Password,
+                    LoginId: TLogin.LoginId,
+                    NewPassword: null,
+                    RetypedPassword: null,
+                };
+                body.Parameters = parameters;
+            }
+            request.Request = JSON.stringify(body);
+            if (action === "logout" && navigator.sendBeacon) {
+                result = navigator.sendBeacon(url, new Blob([JSON.stringify(request)], { type: 'application/json' })) ? {} : { ClassName: "Error", Message: "Erro ao enviar LOGOUT via sendBeacon." };
+            } else {
+                let response = await fetch(url, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify(request),
+                });
+                result = JSON.parse((await response.json()).Response);
+            }
+            if (result.ClassName === "Error")
+                throw result;
 
-        return result;
+            return result;
+        } finally {
+            if (useSpinner)
+                TSpinner.Hide();
+        }
     }
     static SetIdleTime(activate = true) {
         const setEvents = (value) => window.onload = window.onmousemove = window.onmousedown = window.ontouchstart = window.onclick = window.onbeforeinput = value;
@@ -250,5 +270,37 @@ export default class TConfig {
      */
     static set IdleTimeInMinutesLimit(value) {
         this.#IdleTimeInMinutesLimit = value;
+    }
+
+    static ParseReadDataSet(dataSet) {
+        const table = dataSet?.Table;
+        if (!Array.isArray(table))
+            return { main: [], refs: {} };
+
+        if (table.length === 1 && table[0]?.result !== undefined) {
+            const row = table[0];
+            const parseJson = (value, fallback) => {
+                if (value === null || value === undefined)
+                    return fallback;
+                if (typeof value === "string")
+                    return JSON.parse(value || JSON.stringify(fallback));
+                return value;
+            };
+            const refs = {};
+            for (const [key, value] of Object.entries(row)) {
+                if (key === "result")
+                    continue;
+                refs[key] = parseJson(value, []);
+            }
+            return { main: parseJson(row.result, []), refs };
+        }
+
+        const refs = {};
+        for (const [name, rows] of Object.entries(dataSet)) {
+            if (name === "Table" || !Array.isArray(rows))
+                continue;
+            refs[name] = rows;
+        }
+        return { main: table, refs };
     }
 }

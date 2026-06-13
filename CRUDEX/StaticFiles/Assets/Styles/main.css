@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --text-height: 3dvmin;
     --background-color: bisque;
     --background-color-control: thistle;
@@ -6,17 +6,25 @@
     --background-color-active: beige;
     --background-color-extra: brown;
     --menu-width: 0ch;
-    --main-height: 90dvmin;
+    --screen-gap: 2px;
     --control-height: 5dvmin;
     --opacity-screen: 0.5;
     --font-size-grid: 1.5dvmin;
     --font-size-body: 2.0dvmin;
     --border-radius: 2dvmin;
+    --rows-per-page: 35;
+    --grid-thead-height: 1.5dvmin;
+    --grid-tfoot-height: 1.5dvmin;
 }
 
 * {
     margin: 0;
     padding: 0;
+}
+
+html {
+    height: 100%;
+    overflow: hidden;
 }
 
 body {
@@ -27,6 +35,12 @@ body {
     background-color: grey;
     overflow: hidden;
     user-select: none;
+    height: 100vh;
+}
+
+body > dialog {
+    position: fixed;
+    margin: 0;
 }
 
 .box {
@@ -34,5 +48,4 @@ body {
     border: 0.2dvmin solid black;
     background-color: var(--background-color);
     border-radius: var(--border-radius);
-    box-shadow: 0 0 1dvmin 0 rgba(0, 0, 0, 0.2), 0 1dvmin 1dvmin 0 rgba(0, 0, 0, 0.24);
 }

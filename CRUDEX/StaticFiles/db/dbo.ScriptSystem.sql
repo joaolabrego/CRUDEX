@@ -1,12 +1,11 @@
-﻿IF (SELECT object_id('[dbo].[ScriptSystem]', 'P')) IS NULL
+IF (SELECT object_id('[dbo].[ScriptSystem]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[ScriptSystem] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[ScriptSystem](@ReturnValue BIGINT OUT) AS
 BEGIN
 	SET NOCOUNT ON
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-	BEGIN TRY
-		-- 1 [Systems]
+	-- 1 [Systems]
 		SELECT 	'System' AS [Kind]
 				,[Id]
 				,[Name]
@@ -349,12 +348,6 @@ BEGIN
 		SELECT * FROM [#Associations]
 		SELECT * FROM [#Unicities]
 
-		RETURN 0
-	END TRY
-	BEGIN CATCH
-		DECLARE @ErrorMessage VARCHAR(MAX) = ERROR_MESSAGE();
-
-        THROW 51000, @ErrorMessage, 1
-	END CATCH
+	RETURN 0
 END
 GO

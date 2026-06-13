@@ -79,7 +79,7 @@ namespace CRUDEX.Classes
         {
             var environment = Environment.GetEnvironmentVariable("CRUDEX_ENVIRONMENT")?.Trim().ToLowerInvariant();
 
-            if (environment != null && (environment == "hml" || environment == "prd"))
+            if (environment == "hml" || environment == "prd")
                 return environment;
 
             return "dev";

@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 import TActions from "./TActions.class.mjs";
 import TConfig from "./TConfig.class.mjs";
 import TLogin from "./TLogin.class.mjs";
@@ -96,8 +96,11 @@ export default class TTable {
     }
     async ReadTableRows(filterKeys) {
         let parameters = {
-            InputParams: filterKeys,
-            OutputParams: {},
+            DatabaseName: this.#Database.Name,
+            TableName: this.#Name,
+            Action: TActions.READ,
+            InParams: filterKeys,
+            OutParams: {},
             IOParams: {
                 PageNumber: 0,
                 LimitRows: 0,
@@ -105,9 +108,9 @@ export default class TTable {
                 PaddingBrowseLastPage: false,
             },
         };
-        let response = await TConfig.GetAPI(`${this.#Database.Name}/${this.#Name}/read`, parameters);
+        let response = await TConfig.GetAPI(TActions.EXECUTE, parameters);
 
-        return response.Tables[0];
+        return response.DataSet?.Table ?? response.Tables?.[0];
     }
     GetColumn(columnname) {
         return this.#Columns.find(column => column.Name === columnname);

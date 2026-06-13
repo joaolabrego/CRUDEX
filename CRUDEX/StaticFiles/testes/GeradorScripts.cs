@@ -271,8 +271,6 @@ namespace CRUDEX.StaticFiles.testes
             result.Append($"GO\r\n");
             result.Append($"SET QUOTED_IDENTIFIER ON\r\n");
             result.Append($"GO\r\n");
-            result.Append($"CREATE SCHEMA crudex AUTHORIZATION [dbo]\r\n");
-            result.Append($"GO\r\n");
 
             return result;
         }
@@ -305,13 +303,13 @@ namespace CRUDEX.StaticFiles.testes
             result.Append($"**********************************************************************************/\r\n");
             result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.ScriptSystem.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar function [crudex].[HUNDREDS_IN_WORDS]\r\n");
+            result.Append($"Criar function [dbo].[HUNDREDS_IN_WORDS]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudex.HUNDREDS_IN_WORDS.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.HUNDREDS_IN_WORDS.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar function [crudex].[NUMBER_IN_WORDS]\r\n");
+            result.Append($"Criar function [dbo].[NUMBER_IN_WORDS]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudex.NUMBER_IN_WORDS.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.NUMBER_IN_WORDS.sql")));
 
             return result;
         }
@@ -320,21 +318,21 @@ namespace CRUDEX.StaticFiles.testes
             var result = new StringBuilder();
 
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar stored procedure [crudex].[IS_EQUAL]\r\n");
+            result.Append($"Criar function [dbo].[IS_EQUAL]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudex.IS_EQUAL.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.IS_EQUAL.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar stored procedure [crudex].TransactionBegin]\r\n");
+            result.Append($"Criar stored procedure [dbo].[TransactionBegin]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudex.TransactionBegin.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.TransactionBegin.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar stored procedure [crudex].[TransactionCommit]\r\n");
+            result.Append($"Criar stored procedure [dbo].[TransactionCommit]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudex.TransactionCommit.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.TransactionCommit.sql")));
             result.Append($"/**********************************************************************************\r\n");
-            result.Append($"Criar stored procedure [crudex].[TransactionRollback]\r\n");
+            result.Append($"Criar stored procedure [dbo].[TransactionRollback]\r\n");
             result.Append($"**********************************************************************************/\r\n");
-            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "crudex.TransactionRollback.sql")));
+            result.Append(File.ReadAllText(Path.Combine(DirectoryScripts, "dbo.TransactionRollback.sql")));
 
             return result;
         }
@@ -910,7 +908,7 @@ namespace CRUDEX.StaticFiles.testes
                         result.Append($"            IF @Action = 'update'\r\n");
                         firstTime = false;
                     }
-                    result.Append($"                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.{column["Name"]}'), JSON_VALUE(@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1\r\n");
+                    result.Append($"                AND [dbo].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.{column["Name"]}'), JSON_VALUE(@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1\r\n");
                 }
                 result.Append($"                THROW 51000, 'Nenhuma alteração feita no registro', 1\r\n");
                 firstTime = true;
@@ -931,7 +929,7 @@ namespace CRUDEX.StaticFiles.testes
                     if (Settings.ToBoolean(column["IsRequired"]))
                         result.Append($"[{column["Name"]}] = JSON_VALUE(@LastRecord, '$.{column["Name"]}')");
                     else
-                        result.Append($"[crudex].[IS_EQUAL]([{column["Name"]}], JSON_VALUE(@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1");
+                        result.Append($"[dbo].[IS_EQUAL]([{column["Name"]}], JSON_VALUE(@LastRecord, '$.{column["Name"]}'), '{column["#TypeName"]}') = 1");
                 }
                 result.Append($")\r\n");
                 result.Append($"                THROW 51000, 'Registro de {table["Name"]} alterado por outro usuário', 1\r\n");

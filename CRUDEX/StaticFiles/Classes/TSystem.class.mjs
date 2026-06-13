@@ -2,6 +2,9 @@
 
 import TConfig from "./TConfig.class.mjs";
 import TGrid from "./TGrid.class.mjs";
+import TCheckbox from "./TCheckbox.class.mjs";
+import TDropdown from "./TDropdown.class.mjs";
+import TScrollBar from "./TScrollBar.class.mjs";
 import TForm from "./TForm.class.mjs";
 import TLogin from "./TLogin.class.mjs";
 import TMenu from "./TMenu.class.mjs";
@@ -44,6 +47,7 @@ export default class TSystem {
                 document.body.style = config.Styles.Body;
                 TConfig.CreateProperties(config.Data.System[0], this);
                 this.#RowsPerPage = config.RowsPerPage;
+                document.documentElement.style.setProperty("--rows-per-page", String(this.#RowsPerPage));
                 this.#PaddingGridLastPage = config.PaddingGridLastPage;
                 TConfig.IdleTimeInMinutesLimit = config.IdleTimeInMinutesLimit;
                 TLogin.Initialize(config.Styles);
@@ -53,6 +57,9 @@ export default class TSystem {
                 TMenu.Initialize(config.Styles, config.Data.Menus);
                 TGrid.Initialize(config.Styles, config.Images);
                 TForm.Initialize(config.Styles, config.Images);
+                TDropdown.Initialize(config.Styles);
+                TCheckbox.Initialize(config.Styles);
+                TScrollBar.Initialize(config.Styles);
                 config.Data.Categories.forEach(row => this.#Categories.push(new TCategory(row)));
                 config.Data.Types.forEach(row => this.#Types.push(new TType(row)));
                 config.Data.Domains.forEach(row => this.#Domains.push(new TDomain(row)));
@@ -141,6 +148,14 @@ export default class TSystem {
             result = this.#Tables.find(table => table.Name === tableNameOrAliasOrId || table.Alias === tableNameOrAliasOrId);
 
         return result;
+    }
+    static GetChildTables(table) {
+        if (!table?.Id)
+            return [];
+        return this.#Tables.filter(child => child.ParentTableId === table.Id);
+    }
+    static IsSimpleTable(table) {
+        return this.GetChildTables(table).length === 0;
     }
     /**
      * @param {number} value

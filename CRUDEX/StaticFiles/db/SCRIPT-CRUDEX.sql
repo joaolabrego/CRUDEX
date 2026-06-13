@@ -7,17 +7,11 @@ IF EXISTS(SELECT 1 FROM sys.databases where name = 'crudex')
     DROP DATABASE crudex
 GO
 CREATE DATABASE [crudex]
-    CONTAINMENT = NONE
-    ON PRIMARY
-    (NAME = N'$crudex', FILENAME = N'D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\StaticFiles\db\crudex.mdf', SIZE = 8192KB, MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB)
-    LOG ON
-    (NAME = N'$crudex_log', FILENAME = N'D:\CRUDEX-C#\SGSI_CRUDEX\CRUDEX\StaticFiles\db\crudex.ldf', SIZE = 8192KB, MAXSIZE = 2048GB, FILEGROWTH = 65536KB)
-    WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF
 GO
 ALTER DATABASE[crudex] SET COMPATIBILITY_LEVEL = 160
 GO
 IF(1 = FULLTEXTSERVICEPROPERTY('IsFullTextInstalled'))
-    EXEC[crudex].[dbo].[sp_fulltext_database] @action = 'enable'
+    EXEC [dbo].[sp_fulltext_database] @action = 'enable'
 GO
 ALTER DATABASE[crudex] SET ANSI_NULL_DEFAULT OFF
 GO
@@ -91,8 +85,6 @@ GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
-GO
-CREATE SCHEMA crudex AUTHORIZATION [dbo]
 GO
 
 /**********************************************************************************
@@ -504,7 +496,7 @@ IF (SELECT object_id('[dbo].[Transactions]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Transactions]
 CREATE TABLE [dbo].[Transactions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[SessionId] bigint NOT NULL CHECK ([SessionId] >= CAST('1' AS bigint))
-                                    ,[IsConfirmed] bit NOT NULL CHECK ([IsConfirmed] >= CAST('1' AS bit))
+                                    ,[IsConfirmed] bit NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
@@ -526,7 +518,7 @@ CREATE TABLE [dbo].[Operations]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS 
                                     ,[TableName] nvarchar(25) NOT NULL
                                     ,[Action] nvarchar(15) NOT NULL
                                     ,[LastRecord] nvarchar(max) NULL
-                                    ,[ActualRecord] nvarchar(max) NOT NULL
+                                    ,[ActualRecord] nvarchar(max) NULL
                                     ,[IsConfirmed] bit NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
@@ -592,8 +584,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 	DECLARE @ErrorMessage VARCHAR(MAX)
 
-	BEGIN TRY
-		SET @ReturnValue = 1
+	SET @ReturnValue = 1
 		IF @SystemName IS NULL
 			THROW 51000, 'Nome de sistema é requerido.', 1
 		-- 0 [Systems]
@@ -847,12 +838,6 @@ BEGIN
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]
 			SELECT * FROM [#Tables] ORDER BY [DatabaseId], [Name] -- 3 [#Tables]
 		END
-	END TRY
-	BEGIN CATCH
-		SET @ErrorMessage = ERROR_MESSAGE();
-
-        THROW 51000, @ErrorMessage, 1
-	END CATCH
 END
 GO
 /**********************************************************************************
@@ -865,59 +850,46 @@ ALTER PROCEDURE [dbo].[NewId](@SystemName VARCHAR(25)
 							 ,@DatabaseName VARCHAR(25)
 							 ,@TableName VARCHAR(25)
 							 ,@ReturnValue BIGINT OUT) AS BEGIN
-	BEGIN TRY
-		SET NOCOUNT ON
-		SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
+	SET NOCOUNT ON
+	SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
 
-		DECLARE @SystemId BIGINT
-				,@DatabaseId BIGINT
-				,@TableId BIGINT
-				,@NextId BIGINT
+	DECLARE @SystemId BIGINT
+			,@DatabaseId BIGINT
+			,@TableId BIGINT
+			,@NextId BIGINT
 
-		SELECT @SystemId = [Id]
-			FROM [dbo].[Systems]
-			WHERE [Name] = @SystemName
-		IF @SystemId IS NULL
-			THROW 51000, 'Sistema não encontrado', 1
-		SELECT @DatabaseId = [Id]
-			FROM [dbo].[Databases]
-			WHERE [Name] = @DatabaseName
-		IF @DatabaseId IS NULL
-			THROW 51000, 'Banco-de-dados não encontrado', 1
-		IF NOT EXISTS(SELECT 1
-						FROM [dbo].[SystemsDatabases]
-						WHERE [SystemId] = @SystemId
-							  AND [DatabaseId] = @DatabaseId)
-			THROW 51000, 'Banco-de-dados não pertence ao sistema especificado', 1
+	SELECT @SystemId = [Id]
+		FROM [dbo].[Systems]
+		WHERE [Name] = @SystemName
+	IF @SystemId IS NULL
+		THROW 51000, 'Sistema não encontrado', 1
+	SELECT @DatabaseId = [Id]
+		FROM [dbo].[Databases]
+		WHERE [Name] = @DatabaseName
+	IF @DatabaseId IS NULL
+		THROW 51000, 'Banco-de-dados não encontrado', 1
+	IF NOT EXISTS(SELECT 1
+					FROM [dbo].[SystemsDatabases]
+					WHERE [SystemId] = @SystemId
+						  AND [DatabaseId] = @DatabaseId)
+		THROW 51000, 'Banco-de-dados não pertence ao sistema especificado', 1
 
-		BEGIN TRANSACTION
-
-		SELECT @TableId = [Id]
-			   ,@NextId = ISNULL([CurrentId], 0) + 1
-			FROM [dbo].[Tables] WITH (UPDLOCK, HOLDLOCK)
-			WHERE [Name] = @TableName
-		IF @TableId IS NULL
-			THROW 51000, 'Tabela não encontrada', 1
-		IF NOT EXISTS(SELECT 1
-						FROM [dbo].[DatabasesTables]
-						WHERE [DatabaseId] = @DatabaseId
-							  AND [TableId] = @TableId)
-			THROW 51000, 'Tabela não pertence ao banco-de-dados especificado', 1
-		UPDATE [dbo].[Tables]
-			SET [CurrentId] = @NextId
-			WHERE [Id] = @TableId
-		SET @ReturnValue = @NextId
-		COMMIT
-		RETURN 0
-	END TRY
-	BEGIN CATCH
-		DECLARE @ErrorMessage VARCHAR(MAX) = ERROR_MESSAGE();
-
-		IF @@TRANCOUNT > 0
-			ROLLBACK;
-
-        THROW 51000, @ErrorMessage, 1
-	END CATCH
+	SELECT @TableId = [Id]
+		   ,@NextId = ISNULL([CurrentId], 0) + 1
+		FROM [dbo].[Tables] WITH (UPDLOCK, HOLDLOCK)
+		WHERE [Name] = @TableName
+	IF @TableId IS NULL
+		THROW 51000, 'Tabela não encontrada', 1
+	IF NOT EXISTS(SELECT 1
+					FROM [dbo].[DatabasesTables]
+					WHERE [DatabaseId] = @DatabaseId
+						  AND [TableId] = @TableId)
+		THROW 51000, 'Tabela não pertence ao banco-de-dados especificado', 1
+	UPDATE [dbo].[Tables]
+		SET [CurrentId] = @NextId
+		WHERE [Id] = @TableId
+	SET @ReturnValue = @NextId
+	RETURN 0
 END
 GO
 /**********************************************************************************
@@ -929,42 +901,35 @@ GO
 ALTER PROCEDURE [dbo].[NewOperationId](@SystemName VARCHAR(25)
 									  ,@DatabaseName VARCHAR(25)
 									  ,@ReturnValue BIGINT OUT) AS BEGIN
-	BEGIN TRY
-		SET NOCOUNT ON
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+	SET NOCOUNT ON
+	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @SystemId BIGINT
-				,@DatabaseId BIGINT
-				,@NexOperationtId BIGINT
+	DECLARE @SystemId BIGINT
+			,@DatabaseId BIGINT
+			,@NexOperationtId BIGINT
 
-		SELECT @SystemId = [Id]
-			FROM [dbo].[Systems]
-			WHERE [Name] = @SystemName
-		IF @SystemId IS NULL
-			THROW 51000, 'Sistema não encontrado', 1
-		SELECT @DatabaseId = [Id]
-				,@NexOperationtId = ISNULL([CurrentOperationId], 0) + 1
-			FROM [dbo].[Databases]
-			WHERE [Name] = @DatabaseName
-		IF @DatabaseId IS NULL
-			THROW 51000, 'Banco-de-dados não encontrado', 1
-		IF NOT EXISTS(SELECT 1
-						FROM [dbo].[SystemsDatabases]
-						WHERE [SystemId] = @SystemId
-							  AND [DatabaseId] = @DatabaseId)
-			THROW 51000, 'Banco-de-dados não pertence ao sistema especificado', 1
-		UPDATE [dbo].[Databases] 
-			SET [CurrentOperationId] = @NexOperationtId
-			WHERE [Id] = @DatabaseId
-		SET @ReturnValue = @NexOperationtId
+	SELECT @SystemId = [Id]
+		FROM [dbo].[Systems]
+		WHERE [Name] = @SystemName
+	IF @SystemId IS NULL
+		THROW 51000, 'Sistema não encontrado', 1
+	SELECT @DatabaseId = [Id]
+			,@NexOperationtId = ISNULL([CurrentOperationId], 0) + 1
+		FROM [dbo].[Databases]
+		WHERE [Name] = @DatabaseName
+	IF @DatabaseId IS NULL
+		THROW 51000, 'Banco-de-dados não encontrado', 1
+	IF NOT EXISTS(SELECT 1
+					FROM [dbo].[SystemsDatabases]
+					WHERE [SystemId] = @SystemId
+						  AND [DatabaseId] = @DatabaseId)
+		THROW 51000, 'Banco-de-dados não pertence ao sistema especificado', 1
+	UPDATE [dbo].[Databases] 
+		SET [CurrentOperationId] = @NexOperationtId
+		WHERE [Id] = @DatabaseId
+	SET @ReturnValue = @NexOperationtId
 
-		RETURN 0
-	END TRY
-	BEGIN CATCH
-		DECLARE @ErrorMessage VARCHAR(MAX) = ERROR_MESSAGE();
-
-        THROW 51000, @ErrorMessage, 1
-	END CATCH
+	RETURN 0
 END
 GO
 /**********************************************************************************
@@ -978,9 +943,8 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 							 ,@ReturnValue BIGINT OUT) AS BEGIN
 	DECLARE @ErrorMessage NVARCHAR(MAX)
 
-	BEGIN TRY
-		SET NOCOUNT ON
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+	SET NOCOUNT ON
+	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 		IF ISJSON(@Parameters) = 0
 			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
@@ -1110,12 +1074,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 					WHERE [Id] = @LoginId
 		END
 
-		RETURN 1
-	END TRY
-	BEGIN CATCH
-        SET @ErrorMessage = ERROR_MESSAGE();
-        THROW 51000, @ErrorMessage, 1
-	END CATCH
+	RETURN 1
 END
 GO
 /**********************************************************************************
@@ -1126,26 +1085,19 @@ IF(SELECT object_id('[dbo].[GetPublicKey]', 'P')) IS NULL
 GO
 ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT
 								   ,@ReturnValue BIGINT OUT) AS BEGIN
-	BEGIN TRY
-		SET NOCOUNT ON
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+	SET NOCOUNT ON
+	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		IF @LoginId IS NULL
-			THROW 51000, 'Parâmetro @LoginId é requerido', 1
-		SELECT [PublicKey]
-			FROM [dbo].[Sessions]
-			WHERE [Id] = @LoginId
-		IF @@ROWCOUNT = 0
-			THROW 51000, 'Valor @LoginId é inexistente', 1
-		SET @ReturnValue = @LoginId
+	IF @LoginId IS NULL
+		THROW 51000, 'Parâmetro @LoginId é requerido', 1
+	SELECT [PublicKey]
+		FROM [dbo].[Sessions]
+		WHERE [Id] = @LoginId
+	IF @@ROWCOUNT = 0
+		THROW 51000, 'Valor @LoginId é inexistente', 1
+	SET @ReturnValue = @LoginId
 
-		RETURN @ReturnValue
-	END TRY
-	BEGIN CATCH
-		DECLARE @ErrorMessage VARCHAR(MAX) = ERROR_MESSAGE();
-
-        THROW 51000, @ErrorMessage, 1
-	END CATCH
+	RETURN @ReturnValue
 END
 GO
 /**********************************************************************************
@@ -1158,8 +1110,7 @@ ALTER PROCEDURE [dbo].[ScriptSystem](@ReturnValue BIGINT OUT) AS
 BEGIN
 	SET NOCOUNT ON
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-	BEGIN TRY
-		-- 1 [Systems]
+	-- 1 [Systems]
 		SELECT 	'System' AS [Kind]
 				,[Id]
 				,[Name]
@@ -1502,22 +1453,16 @@ BEGIN
 		SELECT * FROM [#Associations]
 		SELECT * FROM [#Unicities]
 
-		RETURN 0
-	END TRY
-	BEGIN CATCH
-		DECLARE @ErrorMessage VARCHAR(MAX) = ERROR_MESSAGE();
-
-        THROW 51000, @ErrorMessage, 1
-	END CATCH
+	RETURN 0
 END
 GO
 /**********************************************************************************
-Criar function [crudex].[HUNDREDS_IN_WORDS]
+Criar function [dbo].[HUNDREDS_IN_WORDS]
 **********************************************************************************/
-IF(SELECT object_id('[crudex].[HUNDREDS_IN_WORDS]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [crudex].[HUNDREDS_IN_WORDS]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
+IF(SELECT object_id('[dbo].[HUNDREDS_IN_WORDS]', 'FN')) IS NULL
+	EXEC('CREATE FUNCTION [dbo].[HUNDREDS_IN_WORDS]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
 GO
-ALTER FUNCTION [crudex].[HUNDREDS_IN_WORDS](@Value AS SMALLINT
+ALTER FUNCTION [dbo].[HUNDREDS_IN_WORDS](@Value AS SMALLINT
 										  ,@EnglishOrPortuguese BIT)
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
@@ -1651,12 +1596,12 @@ BEGIN
 END
 GO
 /**********************************************************************************
-Criar function [crudex].[NUMBER_IN_WORDS]
+Criar function [dbo].[NUMBER_IN_WORDS]
 **********************************************************************************/
-IF(SELECT object_id('[crudex].[NUMBER_IN_WORDS]', 'FN')) IS NULL
-	EXEC('CREATE FUNCTION [crudex].[NUMBER_IN_WORDS]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
+IF(SELECT object_id('[dbo].[NUMBER_IN_WORDS]', 'FN')) IS NULL
+	EXEC('CREATE FUNCTION [dbo].[NUMBER_IN_WORDS]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
 GO
-ALTER FUNCTION [crudex].[NUMBER_IN_WORDS](@Value AS DECIMAL(18,2)
+ALTER FUNCTION [dbo].[NUMBER_IN_WORDS](@Value AS DECIMAL(18,2)
 										,@EnglishOrPortuguese BIT = 1
 										,@CurrencyInSingular VARCHAR(50) = NULL
 										,@CurrencyInPlural VARCHAR(50) = NULL
@@ -1750,11 +1695,11 @@ BEGIN
 			SET @ValueOfThousands = @Digito
 		END
 		IF @Digito = 1 BEGIN
-			 SET @Result = [crudex].[HUNDREDS_IN_WORDS](@Digito, @EnglishOrPortuguese) + ' ' + 
+			 SET @Result = [dbo].[HUNDREDS_IN_WORDS](@Digito, @EnglishOrPortuguese) + ' ' + 
 							  (SELECT NomeSingular FROM @Powers WHERE Id = @Power) + 
 							  @Separator + @Result
 		END ELSE IF @Digito > 0 BEGIN
-			 SET @Result = [crudex].[HUNDREDS_IN_WORDS](@Digito, @EnglishOrPortuguese) + ' ' + 
+			 SET @Result = [dbo].[HUNDREDS_IN_WORDS](@Digito, @EnglishOrPortuguese) + ' ' + 
 							  (SELECT NomePlural FROM @Powers WHERE Id = @Power) + 
 							  @Separator + @Result
 		END
@@ -1790,15 +1735,15 @@ BEGIN
 	IF @PartialValue > 0 BEGIN
 		IF @PartialValue = 1 BEGIN
 			IF @Result = '' BEGIN
-				SET @Result = [crudex].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular + @Of + @CurrencyInSingular
+				SET @Result = [dbo].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular + @Of + @CurrencyInSingular
 			END ELSE BEGIN
-				SET @Result = @Result + @And + [crudex].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular 
+				SET @Result = @Result + @And + [dbo].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInSingular 
 			END
 		END ELSE BEGIN
 			IF @Result = '' BEGIN
-				SET @Result = [crudex].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural + @Of + @CurrencyInPlural
+				SET @Result = [dbo].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural + @Of + @CurrencyInPlural
 			END ELSE BEGIN
-				SET @Result = @Result + @And + [crudex].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural
+				SET @Result = @Result + @And + [dbo].[HUNDREDS_IN_WORDS](@PartialValue, @EnglishOrPortuguese) + ' ' + @CentsInPlural
 			END
 		END
 	END		
@@ -1808,13 +1753,13 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [crudex].[IS_EQUAL]
+Criar function [dbo].[IS_EQUAL]
 **********************************************************************************/
-IF (SELECT object_id('[crudex].[IS_EQUAL]', 'FN')) IS NULL
-    EXEC('CREATE FUNCTION [crudex].[IS_EQUAL]() RETURNS BIT AS BEGIN RETURN 1 END')
+IF (SELECT object_id('[dbo].[IS_EQUAL]', 'FN')) IS NULL
+    EXEC('CREATE FUNCTION [dbo].[IS_EQUAL]() RETURNS BIT AS BEGIN RETURN 1 END')
 GO
 
-ALTER FUNCTION [crudex].[IS_EQUAL](
+ALTER FUNCTION [dbo].[IS_EQUAL](
     @LeftValue NVARCHAR(MAX),
     @RightValue NVARCHAR(MAX),
     @TypeValue NVARCHAR(25)
@@ -1881,195 +1826,215 @@ BEGIN
 END
 GO
 /**********************************************************************************
-Criar stored procedure [crudex].TransactionBegin]
+Criar stored procedure [dbo].[TransactionCreate]
 **********************************************************************************/
-IF(SELECT object_id('[crudex].[TransactionBegin]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [crudex].[TransactionBegin] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TransactionCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TransactionCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE[crudex].[TransactionBegin](@SessionId BIGINT
-										 ,@UserName VARCHAR(25)
-										 ,@ReturnValue BIGINT OUT) AS BEGIN
-	DECLARE @TRANCOUNT INT = @@TRANCOUNT
-			,@ErrorMessage NVARCHAR(MAX)
+ALTER PROCEDURE[dbo].[TransactionCreate](@SessionId BIGINT
+                                         ,@UserName VARCHAR(25)
+                                         ,@ReturnValue BIGINT OUT) AS BEGIN
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
+        THROW 51000, 'Valor de @SessionId é requerido', 1
+    IF @UserName IS NULL
+        THROW 51000, 'Valor de @UserName é requerido', 1
+    IF EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId AND [IsConfirmed] IS NULL)
+        THROW 51000, 'Há transação pendente neste @SessionId', 1
 
-	BEGIN TRY
-		SET NOCOUNT ON
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-		BEGIN TRANSACTION
-		SAVE TRANSACTION [SavePoint]
-		IF @SessionId IS NULL
-			THROW 51000, 'Valor de @SessionId é requerido', 1
-		IF @UserName IS NULL
-			THROW 51000, 'Valor de @UserName é requerido', 1
-		IF EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId AND [IsConfirmed] IS NULL)
-			THROW 51000, 'Há transação pendente neste @SessionId', 1
-		
-		DECLARE @TransactionId BIGINT
+    DECLARE @TransactionId BIGINT
 
-		EXEC @TransactionId = [dbo].[NewId] 'crudex', 'crudex', 'Transactions'
-		INSERT [dbo].[Transactions] ([Id]
-									,[SessionId]
-									,[IsConfirmed]
-									,[CreatedAt]
-									,[CreatedBy])
-								VALUES (@TransactionId
-									   ,@SessionId
-									   ,NULL
-									   ,GETDATE()
-									   ,@UserName)
-		SET @ReturnValue = @TransactionId
-		COMMIT TRANSACTION
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Transactions', @TransactionId OUT
+    INSERT [dbo].[Transactions] ([Id]
+                                ,[SessionId]
+                                ,[IsConfirmed]
+                                ,[CreatedAt]
+                                ,[CreatedBy])
+                            VALUES (@TransactionId
+                                   ,@SessionId
+                                   ,NULL
+                                   ,GETDATE()
+                                   ,@UserName)
+    SET @ReturnValue = @TransactionId
 
-		RETURN 0
-	END TRY
-	BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint]
-            COMMIT TRANSACTION
-        END
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-	END CATCH
+    RETURN 0
 END
 GO
 /**********************************************************************************
-Criar stored procedure [crudex].[TransactionCommit]
+Criar stored procedure [dbo].[TransactionCommit]
 **********************************************************************************/
-IF(SELECT object_id('[crudex].[TransactionCommit]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [crudex].[TransactionCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TransactionCommit]', 'P')) IS NULL
+
+	EXEC('CREATE PROCEDURE [dbo].[TransactionCommit] AS PRINT 1')
+
 GO
-ALTER PROCEDURE[crudex].[TransactionCommit](@TransactionId BIGINT
-										   ,@UserName VARCHAR(25)
+
+ALTER PROCEDURE[dbo].[TransactionCommit](@Login NVARCHAR(MAX)
+
+										   ,@TransactionId BIGINT
+
 										   ,@ReturnValue BIGINT OUT) AS BEGIN
-	DECLARE @TRANCOUNT INT = @@TRANCOUNT
-			,@ErrorMessage NVARCHAR(MAX)
 
-	BEGIN TRY
-		SET NOCOUNT ON
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+	DECLARE @ErrorMessage NVARCHAR(MAX)
 
-		DECLARE @SessionId BIGINT
-				,@OperationId BIGINT
-				,@TableName VARCHAR(25)
-				,@IsConfirmed BIT
-				,@CreatedBy VARCHAR(25)
-				,@sql VARCHAR(MAX)
 
-		BEGIN TRANSACTION
-		SAVE TRANSACTION [SavePoint]
-		IF @TransactionId IS NULL
-			THROW 51000, 'Valor de @TransactionId é requerido', 1
-		IF @UserName IS NULL
-			THROW 51000, 'Valor de @UserName é requerido', 1
-		SELECT @SessionId = [SessionId]
-			  ,@IsConfirmed = [IsConfirmed]
-			  ,@CreatedBy = [CreatedBy]
-			FROM [dbo].[Transactions]
-			WHERE [Id] = @TransactionId
-		IF @@ROWCOUNT = 0
-			THROW 51000, 'Transação inexistente', 1
-		IF @IsConfirmed IS NOT NULL BEGIN
-			SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-			THROW 51000, @ErrorMessage, 1
-		END
-		IF @UserName <> @CreatedBy
-			THROW 51000, 'Erro grave de segurança', 1
-		SET @sql = (SELECT STRING_AGG('[dbo].[' + [O].[TableName] + 'Commit] @SessionId = ' +
-									  CAST(@SessionId AS VARCHAR) + ', @OperationId = ' +
-									  CAST([O].[Id] AS VARCHAR), '; ')
-						FROM [dbo].[Operations] [O]
-						WHERE [O].[TransactionId] = @TransactionId
-							  AND [O].[IsConfirmed] IS NULL)
-		EXEC sp_executesql @sql
-		UPDATE [dbo].[Transactions]
-			SET [IsConfirmed] = 1
-				,[UpdatedBy] = @UserName
-				,[UpdatedAt] = GETDATE()
-			WHERE [Id] = @TransactionId
-		COMMIT TRANSACTION
 
-		RETURN 0
-	END TRY
-	BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint]
-            COMMIT TRANSACTION
-        END
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-	END CATCH
+	SET NOCOUNT ON
+
+	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+
+
+	DECLARE @LoginReturn BIGINT
+
+			,@SessionId BIGINT
+
+			,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS VARCHAR(25))
+
+			,@IsConfirmed BIT
+
+			,@CreatedBy VARCHAR(25)
+
+			,@sql NVARCHAR(MAX)
+
+
+
+	EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+
+	SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+
+	IF @SessionId IS NULL
+
+		THROW 51000, 'LoginId Ã© requerido', 1
+
+	IF @TransactionId IS NULL
+
+		THROW 51000, 'Valor de @TransactionId Ã© requerido', 1
+
+	IF @UserName IS NULL
+
+		THROW 51000, 'Valor de @UserName Ã© requerido', 1
+
+	SELECT @IsConfirmed = [IsConfirmed]
+
+		  ,@CreatedBy = [CreatedBy]
+
+		FROM [dbo].[Transactions]
+
+		WHERE [Id] = @TransactionId
+
+			  AND [SessionId] = @SessionId
+
+	IF @@ROWCOUNT = 0
+
+		THROW 51000, 'TransaÃ§Ã£o inexistente', 1
+
+	IF @IsConfirmed IS NOT NULL BEGIN
+
+		SET @ErrorMessage = 'TransaÃ§Ã£o jÃ¡ ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluÃ­da' END;
+
+		THROW 51000, @ErrorMessage, 1
+
+	END
+
+	IF @UserName <> @CreatedBy
+
+		THROW 51000, 'Erro grave de seguranÃ§a', 1
+
+	SET @sql = (SELECT STRING_AGG(
+								  CASE [O].[Action]
+									  WHEN 'create' THEN '[dbo].[' + [T].[Alias] + 'Create] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
+									  WHEN 'update' THEN '[dbo].[' + [T].[Alias] + 'Update] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
+									  WHEN 'delete' THEN '[dbo].[' + [T].[Alias] + 'Delete] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
+								  END, '; ')
+
+					FROM [dbo].[Operations] [O]
+
+						INNER JOIN [dbo].[Tables] [T] ON [T].[Name] = [O].[TableName]
+
+					WHERE [O].[TransactionId] = @TransactionId
+
+						  AND [O].[IsConfirmed] IS NULL)
+
+	IF @sql IS NOT NULL
+
+		EXEC sp_executesql @sql, N'@Login NVARCHAR(MAX)', @Login = @Login
+
+	UPDATE [dbo].[Transactions]
+
+		SET [IsConfirmed] = 1
+
+			,[UpdatedBy] = @UserName
+
+			,[UpdatedAt] = GETDATE()
+
+		WHERE [Id] = @TransactionId
+
+
+
+	RETURN 0
+
 END
+
 GO
+
 /**********************************************************************************
-Criar stored procedure [crudex].[TransactionRollback]
+Criar stored procedure [dbo].[TransactionRollback]
 **********************************************************************************/
-IF(SELECT object_id('[crudex].[TransactionRollback]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [crudex].[TransactionRollback] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TransactionRollback]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[TransactionRollback] AS PRINT 1')
 GO
-ALTER PROCEDURE[crudex].[TransactionRollback](@TransactionId INT
+ALTER PROCEDURE[dbo].[TransactionRollback](@TransactionId INT
 											,@UserName VARCHAR(25)) AS BEGIN
-	DECLARE @TRANCOUNT INT = @@TRANCOUNT
-			,@ErrorMessage NVARCHAR(MAX)
+	DECLARE @ErrorMessage NVARCHAR(MAX)
 
-	BEGIN TRY
-		SET NOCOUNT ON
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+	SET NOCOUNT ON
+	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-		DECLARE @OperationId INT
-				,@CreatedBy VARCHAR(25)
-				,@IsConfirmed BIT
+	DECLARE @OperationId INT
+			,@CreatedBy VARCHAR(25)
+			,@IsConfirmed BIT
 
-		BEGIN TRANSACTION
-		SAVE TRANSACTION [SavePoint]
-		IF @TransactionId IS NULL
-			THROW 51000, 'Valor de @TransactionId é requerido', 1
-		SELECT @IsConfirmed = [IsConfirmed]
-			  ,@CreatedBy = [CreatedBy]
-			FROM [dbo].[Transactions]
-			WHERE [Id] = @TransactionId
+	IF @TransactionId IS NULL
+		THROW 51000, 'Valor de @TransactionId Ã© requerido', 1
+	SELECT @IsConfirmed = [IsConfirmed]
+		  ,@CreatedBy = [CreatedBy]
+		FROM [dbo].[Transactions]
+		WHERE [Id] = @TransactionId
+	IF @@ROWCOUNT = 0
+		THROW 51000, 'TransaÃ§Ã£o inexistente', 1
+	IF @IsConfirmed IS NOT NULL BEGIN
+		SET @ErrorMessage = 'TransaÃ§Ã£o jÃ¡ ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluÃ­da' END;
+		THROW 51000, @ErrorMessage, 1
+	END
+
+	IF @UserName <> @CreatedBy
+		THROW 51000, 'Erro grave de seguranÃ§a', 1
+	WHILE 1 = 1 BEGIN
+		SELECT TOP 1 @OperationId = [Id]
+					,@CreatedBy = [CreatedBy]
+			FROM [dbo].[Operations]
+			WHERE [TransactionId] = @TransactionId
+					AND [IsConfirmed] IS NULL
+			ORDER BY [Id]
 		IF @@ROWCOUNT = 0
-			THROW 51000, 'Transação inexistente', 1
-		IF @IsConfirmed IS NOT NULL BEGIN
-			SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-			THROW 51000, @ErrorMessage, 1
-		END
-
+			BREAK
 		IF @UserName <> @CreatedBy
-			THROW 51000, 'Erro grave de segurança', 1
-		WHILE 1 = 1 BEGIN
-			SELECT TOP 1 @OperationId = [Id]
-						,@CreatedBy = [CreatedBy]
-				FROM [dbo].[Operations]
-				WHERE [TransactionId] = @TransactionId
-						AND [IsConfirmed] IS NULL
-				ORDER BY [Id]
-			IF @@ROWCOUNT = 0
-				BREAK
-			IF @UserName <> @CreatedBy
-				THROW 51000, 'Erro grave de segurança', 1
-			UPDATE [dbo].[Operations]
-				SET [IsConfirmed] = 0
-					,[UpdatedBy] = @UserName
-					,[UpdatedAt] = GETDATE()
-				WHERE [Id] = @OperationId
-		END
-		UPDATE [dbo].[Transactions]
+			THROW 51000, 'Erro grave de seguranÃ§a', 1
+		UPDATE [dbo].[Operations]
 			SET [IsConfirmed] = 0
 				,[UpdatedBy] = @UserName
 				,[UpdatedAt] = GETDATE()
-			WHERE [Id] = @TransactionId
-		COMMIT TRANSACTION
+			WHERE [Id] = @OperationId
+	END
+	UPDATE [dbo].[Transactions]
+		SET [IsConfirmed] = 0
+			,[UpdatedBy] = @UserName
+			,[UpdatedAt] = GETDATE()
+		WHERE [Id] = @TransactionId
 
-		RETURN 1
-	END TRY
-	BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-	END CATCH
+	RETURN 1
 END
 GO
 
@@ -5596,7 +5561,7 @@ INSERT INTO [dbo].[Connections] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS bigint)
                                 ,CAST('dev' AS nvarchar(3))
-                                ,CAST('Data Source=localhost,1433;Initial Catalog=crudex;Integrated Security=SSPI;Encrypt=yes;TrustServerCertificate=yes;Persist Security Info=False;Connect Timeout=30;' AS nvarchar(256))
+                                ,CAST('Data Source=localhost,1433;Initial Catalog=crudex;User Id=sa;Password=dilvani@001;Encrypt=yes;TrustServerCertificate=yes;Persist Security Info=False;Connect Timeout=30;' AS nvarchar(256))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13272,11 +13237,11 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('Confirmado?' AS nvarchar(25))
                                 ,CAST('Confirmado?' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('1' AS nvarchar(max))
+                                ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -15592,16 +15557,16 @@ IF(SELECT object_id('[dbo].[CategoryValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[CategoryValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -15609,21 +15574,35 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS tinyint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -15636,7 +15615,7 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS tinyint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Categories', 1
         END ELSE IF @Action <> 'create'
@@ -15646,25 +15625,12 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.HtmlInputType'), JSON_VALUE(@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.HtmlInputAlign'), JSON_VALUE(@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskEncrypted'), JSON_VALUE(@LastRecord, '$.AskEncrypted'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskMask'), JSON_VALUE(@LastRecord, '$.AskMask'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskListable'), JSON_VALUE(@LastRecord, '$.AskListable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskDefault'), JSON_VALUE(@LastRecord, '$.AskDefault'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskMinimum'), JSON_VALUE(@LastRecord, '$.AskMinimum'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskMaximum'), JSON_VALUE(@LastRecord, '$.AskMaximum'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskInWords'), JSON_VALUE(@LastRecord, '$.AskInWords'), 'bit') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Categories]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([HtmlInputType], JSON_VALUE(@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([HtmlInputAlign], JSON_VALUE(@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL]([HtmlInputType], JSON_VALUE(@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL]([HtmlInputAlign], JSON_VALUE(@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
                                   AND [AskEncrypted] = JSON_VALUE(@LastRecord, '$.AskEncrypted')
                                   AND [AskMask] = JSON_VALUE(@LastRecord, '$.AskMask')
                                   AND [AskListable] = JSON_VALUE(@LastRecord, '$.AskListable')
@@ -15672,13 +15638,30 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
                                   AND [AskMinimum] = JSON_VALUE(@LastRecord, '$.AskMinimum')
                                   AND [AskMaximum] = JSON_VALUE(@LastRecord, '$.AskMaximum')
                                   AND [AskInWords] = JSON_VALUE(@LastRecord, '$.AskInWords'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Categories'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.HtmlInputType'), JSON_VALUE(@LastRecord, '$.HtmlInputType'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.HtmlInputAlign'), JSON_VALUE(@LastRecord, '$.HtmlInputAlign'), 'nvarchar') = 1
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskEncrypted') = JSON_VALUE(@LastRecord, '$.AskEncrypted')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskMask') = JSON_VALUE(@LastRecord, '$.AskMask')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskListable') = JSON_VALUE(@LastRecord, '$.AskListable')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskDefault') = JSON_VALUE(@LastRecord, '$.AskDefault')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskMinimum') = JSON_VALUE(@LastRecord, '$.AskMinimum')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskMaximum') = JSON_VALUE(@LastRecord, '$.AskMaximum')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskInWords') = JSON_VALUE(@LastRecord, '$.AskInWords'))
                 THROW 51000, 'Registro de Categories alterado por outro usuário', 1
         END
 
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [CategoryId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Types', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                    ,@W_HtmlInputType nvarchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
@@ -15715,12 +15698,7 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -15730,39 +15708,65 @@ Criar stored procedure [dbo].[CategoryPersist]
 IF(SELECT object_id('[dbo].[CategoryPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[CategoryPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[CategoryPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[CategoryPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+           ,@W_Id tinyint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[CategoryValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Categories'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Categories', @NewId OUT
+            SET @W_Id = CAST(@NewId AS tinyint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[CategoryValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Categories'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -15770,7 +15774,8 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Categories'
                                              ,@Action
                                              ,@LastRecord
@@ -15778,7 +15783,6 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -15786,11 +15790,16 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[CategoryValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[CategoryValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -15806,43 +15815,39 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[CategoryCommit]
+Criar stored procedure [dbo].[CategoryCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[CategoryCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[CategoryCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CategoryCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CategoryCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[CategoryCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[CategoryCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -15851,13 +15856,7 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -15873,91 +15872,227 @@ ALTER PROCEDURE [dbo].[CategoryCommit](@SessionId BIGINT
         IF @TableName <> 'Categories'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[CategoryValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[CategoryValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Categories] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_HtmlInputType nvarchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
+               ,@W_HtmlInputAlign nvarchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
+               ,@W_AskEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit)
+               ,@W_AskMask bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit)
+               ,@W_AskListable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskListable') AS bit)
+               ,@W_AskDefault bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDefault') AS bit)
+               ,@W_AskMinimum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMinimum') AS bit)
+               ,@W_AskMaximum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMaximum') AS bit)
+               ,@W_AskInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.AskInWords') AS bit)
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_HtmlInputType nvarchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
-                   ,@W_HtmlInputAlign nvarchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
-                   ,@W_AskEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit)
-                   ,@W_AskMask bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit)
-                   ,@W_AskListable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskListable') AS bit)
-                   ,@W_AskDefault bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDefault') AS bit)
-                   ,@W_AskMinimum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMinimum') AS bit)
-                   ,@W_AskMaximum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMaximum') AS bit)
-                   ,@W_AskInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.AskInWords') AS bit)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Categories] ([Id]
-                                                ,[Name]
-                                                ,[HtmlInputType]
-                                                ,[HtmlInputAlign]
-                                                ,[AskEncrypted]
-                                                ,[AskMask]
-                                                ,[AskListable]
-                                                ,[AskDefault]
-                                                ,[AskMinimum]
-                                                ,[AskMaximum]
-                                                ,[AskInWords]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_Name
-                                                 ,@W_HtmlInputType
-                                                 ,@W_HtmlInputAlign
-                                                 ,@W_AskEncrypted
-                                                 ,@W_AskMask
-                                                 ,@W_AskListable
-                                                 ,@W_AskDefault
-                                                 ,@W_AskMinimum
-                                                 ,@W_AskMaximum
-                                                 ,@W_AskInWords
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Categories] SET [Id] = @W_Id
-                                              ,[Name] = @W_Name
-                                              ,[HtmlInputType] = @W_HtmlInputType
-                                              ,[HtmlInputAlign] = @W_HtmlInputAlign
-                                              ,[AskEncrypted] = @W_AskEncrypted
-                                              ,[AskMask] = @W_AskMask
-                                              ,[AskListable] = @W_AskListable
-                                              ,[AskDefault] = @W_AskDefault
-                                              ,[AskMinimum] = @W_AskMinimum
-                                              ,[AskMaximum] = @W_AskMaximum
-                                              ,[AskInWords] = @W_AskInWords
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Categories] ([Id]
+                                            ,[Name]
+                                            ,[HtmlInputType]
+                                            ,[HtmlInputAlign]
+                                            ,[AskEncrypted]
+                                            ,[AskMask]
+                                            ,[AskListable]
+                                            ,[AskDefault]
+                                            ,[AskMinimum]
+                                            ,[AskMaximum]
+                                            ,[AskInWords]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_Name
+                                             ,@W_HtmlInputType
+                                             ,@W_HtmlInputAlign
+                                             ,@W_AskEncrypted
+                                             ,@W_AskMask
+                                             ,@W_AskListable
+                                             ,@W_AskDefault
+                                             ,@W_AskMinimum
+                                             ,@W_AskMaximum
+                                             ,@W_AskInWords
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[CategoryUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[CategoryUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CategoryUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[CategoryUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Categories'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[CategoryValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
+        DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_HtmlInputType nvarchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
+               ,@W_HtmlInputAlign nvarchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
+               ,@W_AskEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit)
+               ,@W_AskMask bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit)
+               ,@W_AskListable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskListable') AS bit)
+               ,@W_AskDefault bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDefault') AS bit)
+               ,@W_AskMinimum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMinimum') AS bit)
+               ,@W_AskMaximum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMaximum') AS bit)
+               ,@W_AskInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.AskInWords') AS bit)
+
+        UPDATE [dbo].[Categories] SET [Id] = @W_Id
+                                          ,[Name] = @W_Name
+                                          ,[HtmlInputType] = @W_HtmlInputType
+                                          ,[HtmlInputAlign] = @W_HtmlInputAlign
+                                          ,[AskEncrypted] = @W_AskEncrypted
+                                          ,[AskMask] = @W_AskMask
+                                          ,[AskListable] = @W_AskListable
+                                          ,[AskDefault] = @W_AskDefault
+                                          ,[AskMinimum] = @W_AskMinimum
+                                          ,[AskMaximum] = @W_AskMaximum
+                                          ,[AskInWords] = @W_AskInWords
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[CategoryDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[CategoryDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CategoryDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[CategoryDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Categories'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[CategoryValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+
+        DELETE FROM [dbo].[Categories] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -15967,7 +16102,7 @@ Criar stored procedure [dbo].[CategoriesRead]
 IF(SELECT object_id('[dbo].[CategoriesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[CategoriesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -15976,14 +16111,19 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -16020,17 +16160,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_VALUE([ActualRecord], '$.HtmlInputType') AS nvarchar(10)) AS [HtmlInputType]
-              ,CAST(JSON_VALUE([ActualRecord], '$.HtmlInputAlign') AS nvarchar(6)) AS [HtmlInputAlign]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskEncrypted') AS bit) AS [AskEncrypted]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskMask') AS bit) AS [AskMask]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskListable') AS bit) AS [AskListable]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskDefault') AS bit) AS [AskDefault]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskMinimum') AS bit) AS [AskMinimum]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskMaximum') AS bit) AS [AskMaximum]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskInWords') AS bit) AS [AskInWords]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.HtmlInputType') AS nvarchar(10)) AS [HtmlInputType]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.HtmlInputAlign') AS nvarchar(6)) AS [HtmlInputAlign]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskEncrypted') AS bit) AS [AskEncrypted]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskMask') AS bit) AS [AskMask]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskListable') AS bit) AS [AskListable]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskDefault') AS bit) AS [AskDefault]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskMinimum') AS bit) AS [AskMinimum]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskMaximum') AS bit) AS [AskMaximum]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskInWords') AS bit) AS [AskInWords]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -16187,28 +16327,23 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[Name]
-              ,[Name] AS [ListItemValue]
-              ,[HtmlInputType]
-              ,[HtmlInputAlign]
-              ,[AskEncrypted]
-              ,[AskMask]
-              ,[AskListable]
-              ,[AskDefault]
-              ,[AskMinimum]
-              ,[AskMaximum]
-              ,[AskInWords]
-            FROM [#result]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[Name]
+                      ,[Name] AS [ListItemValue]
+                      ,[HtmlInputType]
+                      ,[HtmlInputAlign]
+                      ,[AskEncrypted]
+                      ,[AskMask]
+                      ,[AskListable]
+                      ,[AskDefault]
+                      ,[AskMinimum]
+                      ,[AskMaximum]
+                      ,[AskInWords]
+                    FROM [#result] FOR JSON PATH) AS [result]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -16224,12 +16359,10 @@ ALTER PROCEDURE [dbo].[CategoriesList](@Value nvarchar(25)
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @Value IS NULL
             SET @Value = ''
         SELECT [Id]
             INTO [#query]
@@ -16267,12 +16400,7 @@ ALTER PROCEDURE [dbo].[CategoriesList](@Value nvarchar(25)
         EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -16283,16 +16411,16 @@ IF(SELECT object_id('[dbo].[TypeValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TypeValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -16300,21 +16428,35 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS tinyint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -16327,7 +16469,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS tinyint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Types', 1
         END ELSE IF @Action <> 'create'
@@ -16337,31 +16479,14 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.CategoryId'), JSON_VALUE(@LastRecord, '$.CategoryId'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.MaxLength'), JSON_VALUE(@LastRecord, '$.MaxLength'), 'int') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Minimum'), JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Maximum'), JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskLength'), JSON_VALUE(@LastRecord, '$.AskLength'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskDecimals'), JSON_VALUE(@LastRecord, '$.AskDecimals'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskPrimarykey'), JSON_VALUE(@LastRecord, '$.AskPrimarykey'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskAutoincrement'), JSON_VALUE(@LastRecord, '$.AskAutoincrement'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskFilterable'), JSON_VALUE(@LastRecord, '$.AskFilterable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskGridable'), JSON_VALUE(@LastRecord, '$.AskGridable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.AskCodification'), JSON_VALUE(@LastRecord, '$.AskCodification'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsLikeable'), JSON_VALUE(@LastRecord, '$.IsLikeable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsActive'), JSON_VALUE(@LastRecord, '$.IsActive'), 'bit') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Types]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [CategoryId] = JSON_VALUE(@LastRecord, '$.CategoryId')
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([MaxLength], JSON_VALUE(@LastRecord, '$.MaxLength'), 'int') = 1
-                                  AND [crudex].[IS_EQUAL]([Minimum], JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Maximum], JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL]([MaxLength], JSON_VALUE(@LastRecord, '$.MaxLength'), 'int') = 1
+                                  AND [dbo].[IS_EQUAL]([Minimum], JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL]([Maximum], JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
                                   AND [AskLength] = JSON_VALUE(@LastRecord, '$.AskLength')
                                   AND [AskDecimals] = JSON_VALUE(@LastRecord, '$.AskDecimals')
                                   AND [AskPrimarykey] = JSON_VALUE(@LastRecord, '$.AskPrimarykey')
@@ -16371,13 +16496,34 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
                                   AND [AskCodification] = JSON_VALUE(@LastRecord, '$.AskCodification')
                                   AND [IsLikeable] = JSON_VALUE(@LastRecord, '$.IsLikeable')
                                   AND [IsActive] = JSON_VALUE(@LastRecord, '$.IsActive'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Types'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CategoryId') = JSON_VALUE(@LastRecord, '$.CategoryId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.MaxLength'), JSON_VALUE(@LastRecord, '$.MaxLength'), 'int') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Minimum'), JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Maximum'), JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskLength') = JSON_VALUE(@LastRecord, '$.AskLength')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskDecimals') = JSON_VALUE(@LastRecord, '$.AskDecimals')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskPrimarykey') = JSON_VALUE(@LastRecord, '$.AskPrimarykey')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskAutoincrement') = JSON_VALUE(@LastRecord, '$.AskAutoincrement')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskFilterable') = JSON_VALUE(@LastRecord, '$.AskFilterable')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskGridable') = JSON_VALUE(@LastRecord, '$.AskGridable')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskCodification') = JSON_VALUE(@LastRecord, '$.AskCodification')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsLikeable') = JSON_VALUE(@LastRecord, '$.IsLikeable')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsActive') = JSON_VALUE(@LastRecord, '$.IsActive'))
                 THROW 51000, 'Registro de Types alterado por outro usuário', 1
         END
 
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [TypeId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Domains', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_CategoryId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS tinyint)
                    ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
@@ -16396,7 +16542,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
 
             IF @W_CategoryId IS NULL
                 THROW 51000, 'Valor de CategoryId em @ActualRecord é requerido.', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_CategoryId)
                 THROW 51000, 'Valor de CategoryId em @ActualRecord inexiste em Categories', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -16428,12 +16574,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -16443,39 +16584,65 @@ Criar stored procedure [dbo].[TypePersist]
 IF(SELECT object_id('[dbo].[TypePersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TypePersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TypePersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[TypePersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+           ,@W_Id tinyint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[TypeValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Types'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Types', @NewId OUT
+            SET @W_Id = CAST(@NewId AS tinyint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[TypeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Types'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -16483,7 +16650,8 @@ ALTER PROCEDURE [dbo].[TypePersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Types'
                                              ,@Action
                                              ,@LastRecord
@@ -16491,7 +16659,6 @@ ALTER PROCEDURE [dbo].[TypePersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -16499,11 +16666,16 @@ ALTER PROCEDURE [dbo].[TypePersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[TypeValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[TypeValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -16519,43 +16691,39 @@ ALTER PROCEDURE [dbo].[TypePersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TypeCommit]
+Criar stored procedure [dbo].[TypeCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TypeCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TypeCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TypeCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TypeCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TypeCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[TypeCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -16564,13 +16732,7 @@ ALTER PROCEDURE [dbo].[TypeCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -16586,107 +16748,247 @@ ALTER PROCEDURE [dbo].[TypeCommit](@SessionId BIGINT
         IF @TableName <> 'Types'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[TypeValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[TypeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Types] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_CategoryId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS tinyint)
+               ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_MaxLength int = CAST(JSON_VALUE(@ActualRecord, '$.MaxLength') AS int)
+               ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
+               ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
+               ,@W_AskLength bit = CAST(JSON_VALUE(@ActualRecord, '$.AskLength') AS bit)
+               ,@W_AskDecimals bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDecimals') AS bit)
+               ,@W_AskPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.AskPrimarykey') AS bit)
+               ,@W_AskAutoincrement bit = CAST(JSON_VALUE(@ActualRecord, '$.AskAutoincrement') AS bit)
+               ,@W_AskFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFilterable') AS bit)
+               ,@W_AskGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskGridable') AS bit)
+               ,@W_AskCodification bit = CAST(JSON_VALUE(@ActualRecord, '$.AskCodification') AS bit)
+               ,@W_IsLikeable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLikeable') AS bit)
+               ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 
-            DECLARE @W_CategoryId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS tinyint)
-                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_MaxLength int = CAST(JSON_VALUE(@ActualRecord, '$.MaxLength') AS int)
-                   ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
-                   ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
-                   ,@W_AskLength bit = CAST(JSON_VALUE(@ActualRecord, '$.AskLength') AS bit)
-                   ,@W_AskDecimals bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDecimals') AS bit)
-                   ,@W_AskPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.AskPrimarykey') AS bit)
-                   ,@W_AskAutoincrement bit = CAST(JSON_VALUE(@ActualRecord, '$.AskAutoincrement') AS bit)
-                   ,@W_AskFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFilterable') AS bit)
-                   ,@W_AskGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskGridable') AS bit)
-                   ,@W_AskCodification bit = CAST(JSON_VALUE(@ActualRecord, '$.AskCodification') AS bit)
-                   ,@W_IsLikeable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLikeable') AS bit)
-                   ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Types] ([Id]
-                                                ,[CategoryId]
-                                                ,[Name]
-                                                ,[MaxLength]
-                                                ,[Minimum]
-                                                ,[Maximum]
-                                                ,[AskLength]
-                                                ,[AskDecimals]
-                                                ,[AskPrimarykey]
-                                                ,[AskAutoincrement]
-                                                ,[AskFilterable]
-                                                ,[AskGridable]
-                                                ,[AskCodification]
-                                                ,[IsLikeable]
-                                                ,[IsActive]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_CategoryId
-                                                 ,@W_Name
-                                                 ,@W_MaxLength
-                                                 ,@W_Minimum
-                                                 ,@W_Maximum
-                                                 ,@W_AskLength
-                                                 ,@W_AskDecimals
-                                                 ,@W_AskPrimarykey
-                                                 ,@W_AskAutoincrement
-                                                 ,@W_AskFilterable
-                                                 ,@W_AskGridable
-                                                 ,@W_AskCodification
-                                                 ,@W_IsLikeable
-                                                 ,@W_IsActive
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Types] SET [Id] = @W_Id
-                                              ,[CategoryId] = @W_CategoryId
-                                              ,[Name] = @W_Name
-                                              ,[MaxLength] = @W_MaxLength
-                                              ,[Minimum] = @W_Minimum
-                                              ,[Maximum] = @W_Maximum
-                                              ,[AskLength] = @W_AskLength
-                                              ,[AskDecimals] = @W_AskDecimals
-                                              ,[AskPrimarykey] = @W_AskPrimarykey
-                                              ,[AskAutoincrement] = @W_AskAutoincrement
-                                              ,[AskFilterable] = @W_AskFilterable
-                                              ,[AskGridable] = @W_AskGridable
-                                              ,[AskCodification] = @W_AskCodification
-                                              ,[IsLikeable] = @W_IsLikeable
-                                              ,[IsActive] = @W_IsActive
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Types] ([Id]
+                                            ,[CategoryId]
+                                            ,[Name]
+                                            ,[MaxLength]
+                                            ,[Minimum]
+                                            ,[Maximum]
+                                            ,[AskLength]
+                                            ,[AskDecimals]
+                                            ,[AskPrimarykey]
+                                            ,[AskAutoincrement]
+                                            ,[AskFilterable]
+                                            ,[AskGridable]
+                                            ,[AskCodification]
+                                            ,[IsLikeable]
+                                            ,[IsActive]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_CategoryId
+                                             ,@W_Name
+                                             ,@W_MaxLength
+                                             ,@W_Minimum
+                                             ,@W_Maximum
+                                             ,@W_AskLength
+                                             ,@W_AskDecimals
+                                             ,@W_AskPrimarykey
+                                             ,@W_AskAutoincrement
+                                             ,@W_AskFilterable
+                                             ,@W_AskGridable
+                                             ,@W_AskCodification
+                                             ,@W_IsLikeable
+                                             ,@W_IsActive
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[TypeUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[TypeUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TypeUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[TypeUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Types'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[TypeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
+        DECLARE @W_CategoryId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS tinyint)
+               ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_MaxLength int = CAST(JSON_VALUE(@ActualRecord, '$.MaxLength') AS int)
+               ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
+               ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
+               ,@W_AskLength bit = CAST(JSON_VALUE(@ActualRecord, '$.AskLength') AS bit)
+               ,@W_AskDecimals bit = CAST(JSON_VALUE(@ActualRecord, '$.AskDecimals') AS bit)
+               ,@W_AskPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.AskPrimarykey') AS bit)
+               ,@W_AskAutoincrement bit = CAST(JSON_VALUE(@ActualRecord, '$.AskAutoincrement') AS bit)
+               ,@W_AskFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskFilterable') AS bit)
+               ,@W_AskGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.AskGridable') AS bit)
+               ,@W_AskCodification bit = CAST(JSON_VALUE(@ActualRecord, '$.AskCodification') AS bit)
+               ,@W_IsLikeable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLikeable') AS bit)
+               ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
+
+        UPDATE [dbo].[Types] SET [Id] = @W_Id
+                                          ,[CategoryId] = @W_CategoryId
+                                          ,[Name] = @W_Name
+                                          ,[MaxLength] = @W_MaxLength
+                                          ,[Minimum] = @W_Minimum
+                                          ,[Maximum] = @W_Maximum
+                                          ,[AskLength] = @W_AskLength
+                                          ,[AskDecimals] = @W_AskDecimals
+                                          ,[AskPrimarykey] = @W_AskPrimarykey
+                                          ,[AskAutoincrement] = @W_AskAutoincrement
+                                          ,[AskFilterable] = @W_AskFilterable
+                                          ,[AskGridable] = @W_AskGridable
+                                          ,[AskCodification] = @W_AskCodification
+                                          ,[IsLikeable] = @W_IsLikeable
+                                          ,[IsActive] = @W_IsActive
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[TypeDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[TypeDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TypeDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[TypeDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Types'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[TypeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+
+        DELETE FROM [dbo].[Types] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -16696,7 +16998,7 @@ Criar stored procedure [dbo].[TypesRead]
 IF(SELECT object_id('[dbo].[TypesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TypesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -16705,14 +17007,19 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -16749,21 +17056,21 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.CategoryId') AS tinyint) AS [CategoryId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_VALUE([ActualRecord], '$.MaxLength') AS int) AS [MaxLength]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS nvarchar(max)) AS [Minimum]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS nvarchar(max)) AS [Maximum]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskLength') AS bit) AS [AskLength]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskDecimals') AS bit) AS [AskDecimals]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskPrimarykey') AS bit) AS [AskPrimarykey]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskAutoincrement') AS bit) AS [AskAutoincrement]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskFilterable') AS bit) AS [AskFilterable]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskGridable') AS bit) AS [AskGridable]
-              ,CAST(JSON_VALUE([ActualRecord], '$.AskCodification') AS bit) AS [AskCodification]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsLikeable') AS bit) AS [IsLikeable]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CategoryId') AS tinyint) AS [CategoryId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.MaxLength') AS int) AS [MaxLength]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Minimum') AS nvarchar(max)) AS [Minimum]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Maximum') AS nvarchar(max)) AS [Maximum]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskLength') AS bit) AS [AskLength]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskDecimals') AS bit) AS [AskDecimals]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskPrimarykey') AS bit) AS [AskPrimarykey]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskAutoincrement') AS bit) AS [AskAutoincrement]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskFilterable') AS bit) AS [AskFilterable]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskGridable') AS bit) AS [AskGridable]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskCodification') AS bit) AS [AskCodification]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsLikeable') AS bit) AS [IsLikeable]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsActive') AS bit) AS [IsActive]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -16944,24 +17251,6 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[CategoryId]
-              ,[Name]
-              ,[Name] AS [ListItemValue]
-              ,[MaxLength]
-              ,[Minimum]
-              ,[Maximum]
-              ,[AskLength]
-              ,[AskDecimals]
-              ,[AskPrimarykey]
-              ,[AskAutoincrement]
-              ,[AskFilterable]
-              ,[AskGridable]
-              ,[AskCodification]
-              ,[IsLikeable]
-              ,[IsActive]
-            FROM [#result]
         SELECT DISTINCT 'Category' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -16979,15 +17268,28 @@ ALTER PROCEDURE [dbo].[TypesRead](@LoginId BIGINT
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Categories] ON [#Categories](Id)
-        SELECT [Categories].* FROM [#Categories] AS [Categories]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[CategoryId]
+                      ,[Name]
+                      ,[Name] AS [ListItemValue]
+                      ,[MaxLength]
+                      ,[Minimum]
+                      ,[Maximum]
+                      ,[AskLength]
+                      ,[AskDecimals]
+                      ,[AskPrimarykey]
+                      ,[AskAutoincrement]
+                      ,[AskFilterable]
+                      ,[AskGridable]
+                      ,[AskCodification]
+                      ,[IsLikeable]
+                      ,[IsActive]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Categories].* FROM [#Categories] AS [Categories] FOR JSON PATH), '[]') AS [Categories]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -17003,12 +17305,10 @@ ALTER PROCEDURE [dbo].[TypesList](@Value nvarchar(25)
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @Value IS NULL
             SET @Value = ''
         SELECT [Id]
             INTO [#query]
@@ -17046,12 +17346,7 @@ ALTER PROCEDURE [dbo].[TypesList](@Value nvarchar(25)
         EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -17062,16 +17357,16 @@ IF(SELECT object_id('[dbo].[MaskValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MaskValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -17079,21 +17374,35 @@ ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -17104,7 +17413,7 @@ ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
             SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Masks', 1
         END ELSE IF @Action <> 'create'
@@ -17114,23 +17423,27 @@ ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Mask'), JSON_VALUE(@LastRecord, '$.Mask'), 'nvarchar(max)') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Masks]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
                                   AND [Mask] = JSON_VALUE(@LastRecord, '$.Mask'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Masks'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Mask') = JSON_VALUE(@LastRecord, '$.Mask'))
                 THROW 51000, 'Registro de Masks alterado por outro usuário', 1
         END
 
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [MaskId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Domains', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                    ,@W_Mask nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS nvarchar(max))
@@ -17147,12 +17460,7 @@ ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -17162,39 +17470,65 @@ Criar stored procedure [dbo].[MaskPersist]
 IF(SELECT object_id('[dbo].[MaskPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MaskPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MaskPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[MaskPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[MaskValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Masks'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Masks', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[MaskValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Masks'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -17202,7 +17536,8 @@ ALTER PROCEDURE [dbo].[MaskPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Masks'
                                              ,@Action
                                              ,@LastRecord
@@ -17210,7 +17545,6 @@ ALTER PROCEDURE [dbo].[MaskPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -17218,11 +17552,16 @@ ALTER PROCEDURE [dbo].[MaskPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[MaskValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[MaskValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -17238,43 +17577,39 @@ ALTER PROCEDURE [dbo].[MaskPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[MaskCommit]
+Criar stored procedure [dbo].[MaskCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MaskCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MaskCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MaskCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MaskCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MaskCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[MaskCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -17283,13 +17618,7 @@ ALTER PROCEDURE [dbo].[MaskCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -17305,59 +17634,187 @@ ALTER PROCEDURE [dbo].[MaskCommit](@SessionId BIGINT
         IF @TableName <> 'Masks'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[MaskValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[MaskValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Masks] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Mask nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS nvarchar(max))
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Mask nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS nvarchar(max))
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Masks] ([Id]
-                                                ,[Name]
-                                                ,[Mask]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_Name
-                                                 ,@W_Mask
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Masks] SET [Id] = @W_Id
-                                              ,[Name] = @W_Name
-                                              ,[Mask] = @W_Mask
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Masks] ([Id]
+                                            ,[Name]
+                                            ,[Mask]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_Name
+                                             ,@W_Mask
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[MaskUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[MaskUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MaskUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[MaskUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Masks'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[MaskValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Mask nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS nvarchar(max))
+
+        UPDATE [dbo].[Masks] SET [Id] = @W_Id
+                                          ,[Name] = @W_Name
+                                          ,[Mask] = @W_Mask
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[MaskDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[MaskDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MaskDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[MaskDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Masks'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[MaskValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Masks] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -17367,7 +17824,7 @@ Criar stored procedure [dbo].[MasksRead]
 IF(SELECT object_id('[dbo].[MasksRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MasksRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -17376,14 +17833,19 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -17420,9 +17882,9 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Mask') AS nvarchar(max)) AS [Mask]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Mask') AS nvarchar(max)) AS [Mask]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -17511,19 +17973,14 @@ ALTER PROCEDURE [dbo].[MasksRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[Name]
-              ,[Mask]
-            FROM [#result]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[Name]
+                      ,[Mask]
+                    FROM [#result] FOR JSON PATH) AS [result]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -17535,16 +17992,16 @@ IF(SELECT object_id('[dbo].[DomainValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DomainValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -17552,21 +18009,35 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -17579,7 +18050,7 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Domains', 1
         END ELSE IF @Action <> 'create'
@@ -17589,39 +18060,43 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.TypeId'), JSON_VALUE(@LastRecord, '$.TypeId'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.MaskId'), JSON_VALUE(@LastRecord, '$.MaskId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Length'), JSON_VALUE(@LastRecord, '$.Length'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Decimals'), JSON_VALUE(@LastRecord, '$.Decimals'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ValidValues'), JSON_VALUE(@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Default'), JSON_VALUE(@LastRecord, '$.Default'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Minimum'), JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Maximum'), JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Codification'), JSON_VALUE(@LastRecord, '$.Codification'), 'nvarchar') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Domains]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [TypeId] = JSON_VALUE(@LastRecord, '$.TypeId')
-                                  AND [crudex].[IS_EQUAL]([MaskId], JSON_VALUE(@LastRecord, '$.MaskId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL]([MaskId], JSON_VALUE(@LastRecord, '$.MaskId'), 'bigint') = 1
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([Length], JSON_VALUE(@LastRecord, '$.Length'), 'smallint') = 1
-                                  AND [crudex].[IS_EQUAL]([Decimals], JSON_VALUE(@LastRecord, '$.Decimals'), 'tinyint') = 1
-                                  AND [crudex].[IS_EQUAL]([ValidValues], JSON_VALUE(@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Default], JSON_VALUE(@LastRecord, '$.Default'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Minimum], JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Maximum], JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Codification], JSON_VALUE(@LastRecord, '$.Codification'), 'nvarchar') = 1)
+                                  AND [dbo].[IS_EQUAL]([Length], JSON_VALUE(@LastRecord, '$.Length'), 'smallint') = 1
+                                  AND [dbo].[IS_EQUAL]([Decimals], JSON_VALUE(@LastRecord, '$.Decimals'), 'tinyint') = 1
+                                  AND [dbo].[IS_EQUAL]([ValidValues], JSON_VALUE(@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL]([Default], JSON_VALUE(@LastRecord, '$.Default'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL]([Minimum], JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL]([Maximum], JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL]([Codification], JSON_VALUE(@LastRecord, '$.Codification'), 'nvarchar') = 1)
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Domains'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TypeId') = JSON_VALUE(@LastRecord, '$.TypeId')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.MaskId'), JSON_VALUE(@LastRecord, '$.MaskId'), 'bigint') = 1
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Length'), JSON_VALUE(@LastRecord, '$.Length'), 'smallint') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Decimals'), JSON_VALUE(@LastRecord, '$.Decimals'), 'tinyint') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ValidValues'), JSON_VALUE(@LastRecord, '$.ValidValues'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Default'), JSON_VALUE(@LastRecord, '$.Default'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Minimum'), JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Maximum'), JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Codification'), JSON_VALUE(@LastRecord, '$.Codification'), 'nvarchar') = 1)
                 THROW 51000, 'Registro de Domains alterado por outro usuário', 1
         END
 
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [DomainId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Columns', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_TypeId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.TypeId') AS tinyint)
                    ,@W_MaskId bigint = CAST(JSON_VALUE(@ActualRecord, '$.MaskId') AS bigint)
@@ -17638,9 +18113,9 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de TypeId em @ActualRecord é requerido.', 1
             IF @W_TypeId < CAST('1' AS tinyint)
                 THROW 51000, 'Valor de TypeId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_TypeId)
                 THROW 51000, 'Valor de TypeId em @ActualRecord inexiste em Types', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_Id)
+            IF @W_MaskId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_MaskId)
                 THROW 51000, 'Valor de MaskId em @ActualRecord inexiste em Masks', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -17656,12 +18131,7 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -17671,39 +18141,65 @@ Criar stored procedure [dbo].[DomainPersist]
 IF(SELECT object_id('[dbo].[DomainPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DomainPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DomainPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[DomainPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[DomainValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Domains'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Domains', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[DomainValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Domains'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -17711,7 +18207,8 @@ ALTER PROCEDURE [dbo].[DomainPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Domains'
                                              ,@Action
                                              ,@LastRecord
@@ -17719,7 +18216,6 @@ ALTER PROCEDURE [dbo].[DomainPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -17727,11 +18223,16 @@ ALTER PROCEDURE [dbo].[DomainPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[DomainValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[DomainValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -17747,43 +18248,39 @@ ALTER PROCEDURE [dbo].[DomainPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DomainCommit]
+Criar stored procedure [dbo].[DomainCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DomainCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DomainCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DomainCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DomainCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DomainCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[DomainCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -17792,13 +18289,7 @@ ALTER PROCEDURE [dbo].[DomainCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -17814,91 +18305,227 @@ ALTER PROCEDURE [dbo].[DomainCommit](@SessionId BIGINT
         IF @TableName <> 'Domains'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[DomainValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[DomainValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Domains] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_TypeId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.TypeId') AS tinyint)
+               ,@W_MaskId bigint = CAST(JSON_VALUE(@ActualRecord, '$.MaskId') AS bigint)
+               ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Length smallint = CAST(JSON_VALUE(@ActualRecord, '$.Length') AS smallint)
+               ,@W_Decimals tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Decimals') AS tinyint)
+               ,@W_ValidValues nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS nvarchar(max))
+               ,@W_Default nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS nvarchar(max))
+               ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
+               ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
+               ,@W_Codification nvarchar(5) = CAST(JSON_VALUE(@ActualRecord, '$.Codification') AS nvarchar(5))
 
-            DECLARE @W_TypeId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.TypeId') AS tinyint)
-                   ,@W_MaskId bigint = CAST(JSON_VALUE(@ActualRecord, '$.MaskId') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Length smallint = CAST(JSON_VALUE(@ActualRecord, '$.Length') AS smallint)
-                   ,@W_Decimals tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Decimals') AS tinyint)
-                   ,@W_ValidValues nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS nvarchar(max))
-                   ,@W_Default nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS nvarchar(max))
-                   ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
-                   ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
-                   ,@W_Codification nvarchar(5) = CAST(JSON_VALUE(@ActualRecord, '$.Codification') AS nvarchar(5))
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Domains] ([Id]
-                                                ,[TypeId]
-                                                ,[MaskId]
-                                                ,[Name]
-                                                ,[Length]
-                                                ,[Decimals]
-                                                ,[ValidValues]
-                                                ,[Default]
-                                                ,[Minimum]
-                                                ,[Maximum]
-                                                ,[Codification]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_TypeId
-                                                 ,@W_MaskId
-                                                 ,@W_Name
-                                                 ,@W_Length
-                                                 ,@W_Decimals
-                                                 ,@W_ValidValues
-                                                 ,@W_Default
-                                                 ,@W_Minimum
-                                                 ,@W_Maximum
-                                                 ,@W_Codification
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Domains] SET [Id] = @W_Id
-                                              ,[TypeId] = @W_TypeId
-                                              ,[MaskId] = @W_MaskId
-                                              ,[Name] = @W_Name
-                                              ,[Length] = @W_Length
-                                              ,[Decimals] = @W_Decimals
-                                              ,[ValidValues] = @W_ValidValues
-                                              ,[Default] = @W_Default
-                                              ,[Minimum] = @W_Minimum
-                                              ,[Maximum] = @W_Maximum
-                                              ,[Codification] = @W_Codification
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Domains] ([Id]
+                                            ,[TypeId]
+                                            ,[MaskId]
+                                            ,[Name]
+                                            ,[Length]
+                                            ,[Decimals]
+                                            ,[ValidValues]
+                                            ,[Default]
+                                            ,[Minimum]
+                                            ,[Maximum]
+                                            ,[Codification]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_TypeId
+                                             ,@W_MaskId
+                                             ,@W_Name
+                                             ,@W_Length
+                                             ,@W_Decimals
+                                             ,@W_ValidValues
+                                             ,@W_Default
+                                             ,@W_Minimum
+                                             ,@W_Maximum
+                                             ,@W_Codification
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[DomainUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[DomainUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DomainUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[DomainUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Domains'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[DomainValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_TypeId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.TypeId') AS tinyint)
+               ,@W_MaskId bigint = CAST(JSON_VALUE(@ActualRecord, '$.MaskId') AS bigint)
+               ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Length smallint = CAST(JSON_VALUE(@ActualRecord, '$.Length') AS smallint)
+               ,@W_Decimals tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Decimals') AS tinyint)
+               ,@W_ValidValues nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ValidValues') AS nvarchar(max))
+               ,@W_Default nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS nvarchar(max))
+               ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
+               ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
+               ,@W_Codification nvarchar(5) = CAST(JSON_VALUE(@ActualRecord, '$.Codification') AS nvarchar(5))
+
+        UPDATE [dbo].[Domains] SET [Id] = @W_Id
+                                          ,[TypeId] = @W_TypeId
+                                          ,[MaskId] = @W_MaskId
+                                          ,[Name] = @W_Name
+                                          ,[Length] = @W_Length
+                                          ,[Decimals] = @W_Decimals
+                                          ,[ValidValues] = @W_ValidValues
+                                          ,[Default] = @W_Default
+                                          ,[Minimum] = @W_Minimum
+                                          ,[Maximum] = @W_Maximum
+                                          ,[Codification] = @W_Codification
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[DomainDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[DomainDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DomainDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[DomainDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Domains'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[DomainValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Domains] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -17908,7 +18535,7 @@ Criar stored procedure [dbo].[DomainsRead]
 IF(SELECT object_id('[dbo].[DomainsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DomainsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -17917,14 +18544,19 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -17961,17 +18593,17 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.TypeId') AS tinyint) AS [TypeId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.MaskId') AS bigint) AS [MaskId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Length') AS smallint) AS [Length]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Decimals') AS tinyint) AS [Decimals]
-              ,CAST(JSON_VALUE([ActualRecord], '$.ValidValues') AS nvarchar(max)) AS [ValidValues]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Default') AS nvarchar(max)) AS [Default]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS nvarchar(max)) AS [Minimum]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS nvarchar(max)) AS [Maximum]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Codification') AS nvarchar(5)) AS [Codification]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TypeId') AS tinyint) AS [TypeId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.MaskId') AS bigint) AS [MaskId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Length') AS smallint) AS [Length]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Decimals') AS tinyint) AS [Decimals]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ValidValues') AS nvarchar(max)) AS [ValidValues]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Default') AS nvarchar(max)) AS [Default]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Minimum') AS nvarchar(max)) AS [Minimum]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Maximum') AS nvarchar(max)) AS [Maximum]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Codification') AS nvarchar(5)) AS [Codification]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -18112,20 +18744,6 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[TypeId]
-              ,[MaskId]
-              ,[Name]
-              ,[Name] AS [ListItemValue]
-              ,[Length]
-              ,[Decimals]
-              ,[ValidValues]
-              ,[Default]
-              ,[Minimum]
-              ,[Maximum]
-              ,[Codification]
-            FROM [#result]
         SELECT DISTINCT 'Type' AS [Kind]
               ,[R].[Id]
               ,[R].[CategoryId]
@@ -18173,17 +18791,26 @@ ALTER PROCEDURE [dbo].[DomainsRead](@LoginId BIGINT
                 INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Masks] ON [#Masks](Id)
-        SELECT [Types].* FROM [#Types] AS [Types]
-        SELECT [Categories].* FROM [#Categories] AS [Categories]
-        SELECT [Masks].* FROM [#Masks] AS [Masks]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[TypeId]
+                      ,[MaskId]
+                      ,[Name]
+                      ,[Name] AS [ListItemValue]
+                      ,[Length]
+                      ,[Decimals]
+                      ,[ValidValues]
+                      ,[Default]
+                      ,[Minimum]
+                      ,[Maximum]
+                      ,[Codification]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Types].* FROM [#Types] AS [Types] FOR JSON PATH), '[]') AS [Types]
+              ,ISNULL((SELECT [Categories].* FROM [#Categories] AS [Categories] FOR JSON PATH), '[]') AS [Categories]
+              ,ISNULL((SELECT [Masks].* FROM [#Masks] AS [Masks] FOR JSON PATH), '[]') AS [Masks]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -18199,12 +18826,10 @@ ALTER PROCEDURE [dbo].[DomainsList](@Value nvarchar(25)
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @Value IS NULL
             SET @Value = ''
         SELECT [Id]
             INTO [#query]
@@ -18242,12 +18867,7 @@ ALTER PROCEDURE [dbo].[DomainsList](@Value nvarchar(25)
         EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -18258,16 +18878,16 @@ IF(SELECT object_id('[dbo].[SystemValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -18275,21 +18895,35 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -18302,7 +18936,7 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Systems', 1
         END ELSE IF @Action <> 'create'
@@ -18312,14 +18946,6 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Description'), JSON_VALUE(@LastRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ClientName'), JSON_VALUE(@LastRecord, '$.ClientName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.MaxRetryLogins'), JSON_VALUE(@LastRecord, '$.MaxRetryLogins'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsOffAir'), JSON_VALUE(@LastRecord, '$.IsOffAir'), 'bit') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Systems]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
@@ -18328,6 +18954,17 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
                                   AND [ClientName] = JSON_VALUE(@LastRecord, '$.ClientName')
                                   AND [MaxRetryLogins] = JSON_VALUE(@LastRecord, '$.MaxRetryLogins')
                                   AND [IsOffAir] = JSON_VALUE(@LastRecord, '$.IsOffAir'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Systems'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') = JSON_VALUE(@LastRecord, '$.Description')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ClientName') = JSON_VALUE(@LastRecord, '$.ClientName')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.MaxRetryLogins') = JSON_VALUE(@LastRecord, '$.MaxRetryLogins')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsOffAir') = JSON_VALUE(@LastRecord, '$.IsOffAir'))
                 THROW 51000, 'Registro de Systems alterado por outro usuário', 1
         END
 
@@ -18340,7 +18977,8 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em SystemsDatabases', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Sessions] WHERE [SystemId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Sessions', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                    ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
@@ -18368,12 +19006,7 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -18383,39 +19016,65 @@ Criar stored procedure [dbo].[SystemPersist]
 IF(SELECT object_id('[dbo].[SystemPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[SystemPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[SystemValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Systems'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Systems', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[SystemValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Systems'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -18423,7 +19082,8 @@ ALTER PROCEDURE [dbo].[SystemPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Systems'
                                              ,@Action
                                              ,@LastRecord
@@ -18431,7 +19091,6 @@ ALTER PROCEDURE [dbo].[SystemPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -18439,11 +19098,16 @@ ALTER PROCEDURE [dbo].[SystemPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[SystemValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[SystemValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -18459,43 +19123,39 @@ ALTER PROCEDURE [dbo].[SystemPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemCommit]
+Criar stored procedure [dbo].[SystemCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SystemCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[SystemCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -18504,13 +19164,7 @@ ALTER PROCEDURE [dbo].[SystemCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -18526,71 +19180,202 @@ ALTER PROCEDURE [dbo].[SystemCommit](@SessionId BIGINT
         IF @TableName <> 'Systems'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[SystemValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[SystemValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Systems] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+               ,@W_ClientName nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.ClientName') AS nvarchar(15))
+               ,@W_MaxRetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.MaxRetryLogins') AS tinyint)
+               ,@W_IsOffAir bit = CAST(JSON_VALUE(@ActualRecord, '$.IsOffAir') AS bit)
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_ClientName nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.ClientName') AS nvarchar(15))
-                   ,@W_MaxRetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.MaxRetryLogins') AS tinyint)
-                   ,@W_IsOffAir bit = CAST(JSON_VALUE(@ActualRecord, '$.IsOffAir') AS bit)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Systems] ([Id]
-                                                ,[Name]
-                                                ,[Description]
-                                                ,[ClientName]
-                                                ,[MaxRetryLogins]
-                                                ,[IsOffAir]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_Name
-                                                 ,@W_Description
-                                                 ,@W_ClientName
-                                                 ,@W_MaxRetryLogins
-                                                 ,@W_IsOffAir
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Systems] SET [Id] = @W_Id
-                                              ,[Name] = @W_Name
-                                              ,[Description] = @W_Description
-                                              ,[ClientName] = @W_ClientName
-                                              ,[MaxRetryLogins] = @W_MaxRetryLogins
-                                              ,[IsOffAir] = @W_IsOffAir
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Systems] ([Id]
+                                            ,[Name]
+                                            ,[Description]
+                                            ,[ClientName]
+                                            ,[MaxRetryLogins]
+                                            ,[IsOffAir]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_Name
+                                             ,@W_Description
+                                             ,@W_ClientName
+                                             ,@W_MaxRetryLogins
+                                             ,@W_IsOffAir
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[SystemUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[SystemUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[SystemUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Systems'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[SystemValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+               ,@W_ClientName nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.ClientName') AS nvarchar(15))
+               ,@W_MaxRetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.MaxRetryLogins') AS tinyint)
+               ,@W_IsOffAir bit = CAST(JSON_VALUE(@ActualRecord, '$.IsOffAir') AS bit)
+
+        UPDATE [dbo].[Systems] SET [Id] = @W_Id
+                                          ,[Name] = @W_Name
+                                          ,[Description] = @W_Description
+                                          ,[ClientName] = @W_ClientName
+                                          ,[MaxRetryLogins] = @W_MaxRetryLogins
+                                          ,[IsOffAir] = @W_IsOffAir
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[SystemDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[SystemDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[SystemDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Systems'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[SystemValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Systems] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -18600,7 +19385,7 @@ Criar stored procedure [dbo].[SystemsRead]
 IF(SELECT object_id('[dbo].[SystemsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -18609,14 +19394,19 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -18653,12 +19443,12 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST(JSON_VALUE([ActualRecord], '$.ClientName') AS nvarchar(15)) AS [ClientName]
-              ,CAST(JSON_VALUE([ActualRecord], '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsOffAir') AS bit) AS [IsOffAir]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ClientName') AS nvarchar(15)) AS [ClientName]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.MaxRetryLogins') AS tinyint) AS [MaxRetryLogins]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsOffAir') AS bit) AS [IsOffAir]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -18764,23 +19554,18 @@ ALTER PROCEDURE [dbo].[SystemsRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[Name]
-              ,[Name] AS [ListItemValue]
-              ,[Description]
-              ,[ClientName]
-              ,[MaxRetryLogins]
-              ,[IsOffAir]
-            FROM [#result]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[Name]
+                      ,[Name] AS [ListItemValue]
+                      ,[Description]
+                      ,[ClientName]
+                      ,[MaxRetryLogins]
+                      ,[IsOffAir]
+                    FROM [#result] FOR JSON PATH) AS [result]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -18796,12 +19581,10 @@ ALTER PROCEDURE [dbo].[SystemsList](@Value nvarchar(25)
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @Value IS NULL
             SET @Value = ''
         SELECT [Id]
             INTO [#query]
@@ -18839,12 +19622,7 @@ ALTER PROCEDURE [dbo].[SystemsList](@Value nvarchar(25)
         EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -18855,16 +19633,16 @@ IF(SELECT object_id('[dbo].[MenuValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MenuValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -18872,21 +19650,35 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -18899,7 +19691,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Menus', 1
         END ELSE IF @Action <> 'create'
@@ -18909,15 +19701,6 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.SystemId'), JSON_VALUE(@LastRecord, '$.SystemId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Sequence'), JSON_VALUE(@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Caption'), JSON_VALUE(@LastRecord, '$.Caption'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Message'), JSON_VALUE(@LastRecord, '$.Message'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Action'), JSON_VALUE(@LastRecord, '$.Action'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ParentMenuId'), JSON_VALUE(@LastRecord, '$.ParentMenuId'), 'bigint') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Menus]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
@@ -18925,15 +19708,28 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
                                   AND [Sequence] = JSON_VALUE(@LastRecord, '$.Sequence')
                                   AND [Caption] = JSON_VALUE(@LastRecord, '$.Caption')
                                   AND [Message] = JSON_VALUE(@LastRecord, '$.Message')
-                                  AND [crudex].[IS_EQUAL]([Action], JSON_VALUE(@LastRecord, '$.Action'), 'nvarchar') = 1
-                                  AND [crudex].[IS_EQUAL]([ParentMenuId], JSON_VALUE(@LastRecord, '$.ParentMenuId'), 'bigint') = 1)
+                                  AND [dbo].[IS_EQUAL]([Action], JSON_VALUE(@LastRecord, '$.Action'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL]([ParentMenuId], JSON_VALUE(@LastRecord, '$.ParentMenuId'), 'bigint') = 1)
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Menus'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SystemId') = JSON_VALUE(@LastRecord, '$.SystemId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Sequence') = JSON_VALUE(@LastRecord, '$.Sequence')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Caption') = JSON_VALUE(@LastRecord, '$.Caption')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Message') = JSON_VALUE(@LastRecord, '$.Message')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Action'), JSON_VALUE(@LastRecord, '$.Action'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ParentMenuId'), JSON_VALUE(@LastRecord, '$.ParentMenuId'), 'bigint') = 1)
                 THROW 51000, 'Registro de Menus alterado por outro usuário', 1
         END
 
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [ParentMenuId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Menus', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
                    ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
@@ -18946,7 +19742,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
                 THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
@@ -18958,7 +19754,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de Message em @ActualRecord é requerido.', 1
             IF @W_ParentMenuId IS NOT NULL AND @W_ParentMenuId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de ParentMenuId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_Id)
+            IF @W_ParentMenuId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_ParentMenuId)
                 THROW 51000, 'Valor de ParentMenuId em @ActualRecord inexiste em Menus', 1
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence)
@@ -18972,12 +19768,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -18987,39 +19778,65 @@ Criar stored procedure [dbo].[MenuPersist]
 IF(SELECT object_id('[dbo].[MenuPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MenuPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MenuPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[MenuPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[MenuValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Menus'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Menus', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[MenuValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Menus'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -19027,7 +19844,8 @@ ALTER PROCEDURE [dbo].[MenuPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Menus'
                                              ,@Action
                                              ,@LastRecord
@@ -19035,7 +19853,6 @@ ALTER PROCEDURE [dbo].[MenuPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -19043,11 +19860,16 @@ ALTER PROCEDURE [dbo].[MenuPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[MenuValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[MenuValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -19063,43 +19885,39 @@ ALTER PROCEDURE [dbo].[MenuPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[MenuCommit]
+Criar stored procedure [dbo].[MenuCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MenuCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MenuCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MenuCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MenuCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MenuCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[MenuCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -19108,13 +19926,7 @@ ALTER PROCEDURE [dbo].[MenuCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -19130,75 +19942,207 @@ ALTER PROCEDURE [dbo].[MenuCommit](@SessionId BIGINT
         IF @TableName <> 'Menus'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[MenuValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[MenuValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Menus] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+               ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+               ,@W_Caption nvarchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS nvarchar(20))
+               ,@W_Message nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Message') AS nvarchar(50))
+               ,@W_Action nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(50))
+               ,@W_ParentMenuId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentMenuId') AS bigint)
 
-            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
-                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_Caption nvarchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS nvarchar(20))
-                   ,@W_Message nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Message') AS nvarchar(50))
-                   ,@W_Action nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(50))
-                   ,@W_ParentMenuId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentMenuId') AS bigint)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Menus] ([Id]
-                                                ,[SystemId]
-                                                ,[Sequence]
-                                                ,[Caption]
-                                                ,[Message]
-                                                ,[Action]
-                                                ,[ParentMenuId]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_SystemId
-                                                 ,@W_Sequence
-                                                 ,@W_Caption
-                                                 ,@W_Message
-                                                 ,@W_Action
-                                                 ,@W_ParentMenuId
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Menus] SET [Id] = @W_Id
-                                              ,[SystemId] = @W_SystemId
-                                              ,[Sequence] = @W_Sequence
-                                              ,[Caption] = @W_Caption
-                                              ,[Message] = @W_Message
-                                              ,[Action] = @W_Action
-                                              ,[ParentMenuId] = @W_ParentMenuId
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Menus] ([Id]
+                                            ,[SystemId]
+                                            ,[Sequence]
+                                            ,[Caption]
+                                            ,[Message]
+                                            ,[Action]
+                                            ,[ParentMenuId]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_SystemId
+                                             ,@W_Sequence
+                                             ,@W_Caption
+                                             ,@W_Message
+                                             ,@W_Action
+                                             ,@W_ParentMenuId
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[MenuUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[MenuUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MenuUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[MenuUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Menus'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[MenuValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+               ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+               ,@W_Caption nvarchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS nvarchar(20))
+               ,@W_Message nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Message') AS nvarchar(50))
+               ,@W_Action nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(50))
+               ,@W_ParentMenuId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentMenuId') AS bigint)
+
+        UPDATE [dbo].[Menus] SET [Id] = @W_Id
+                                          ,[SystemId] = @W_SystemId
+                                          ,[Sequence] = @W_Sequence
+                                          ,[Caption] = @W_Caption
+                                          ,[Message] = @W_Message
+                                          ,[Action] = @W_Action
+                                          ,[ParentMenuId] = @W_ParentMenuId
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[MenuDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[MenuDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MenuDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[MenuDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Menus'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[MenuValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Menus] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -19208,7 +20152,7 @@ Criar stored procedure [dbo].[MenusRead]
 IF(SELECT object_id('[dbo].[MenusRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MenusRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -19217,14 +20161,19 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -19261,13 +20210,13 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Caption') AS nvarchar(20)) AS [Caption]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Message') AS nvarchar(50)) AS [Message]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Action') AS nvarchar(50)) AS [Action]
-              ,CAST(JSON_VALUE([ActualRecord], '$.ParentMenuId') AS bigint) AS [ParentMenuId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SystemId') AS bigint) AS [SystemId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Caption') AS nvarchar(20)) AS [Caption]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Message') AS nvarchar(50)) AS [Message]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Action') AS nvarchar(50)) AS [Action]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ParentMenuId') AS bigint) AS [ParentMenuId]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -19378,15 +20327,6 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[SystemId]
-              ,[Sequence]
-              ,[Caption]
-              ,[Message]
-              ,[Action]
-              ,[ParentMenuId]
-            FROM [#result]
         SELECT DISTINCT 'System' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -19412,16 +20352,20 @@ ALTER PROCEDURE [dbo].[MenusRead](@LoginId BIGINT
                 INNER JOIN [dbo].[Menus] [R] ON [R].[Id] = [T].[ParentMenuId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Menus] ON [#Menus](Id)
-        SELECT [Systems].* FROM [#Systems] AS [Systems]
-        SELECT [Menus].* FROM [#Menus] AS [Menus]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[SystemId]
+                      ,[Sequence]
+                      ,[Caption]
+                      ,[Message]
+                      ,[Action]
+                      ,[ParentMenuId]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
+              ,ISNULL((SELECT [Menus].* FROM [#Menus] AS [Menus] FOR JSON PATH), '[]') AS [Menus]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -19433,16 +20377,16 @@ IF(SELECT object_id('[dbo].[UserValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UserValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -19450,21 +20394,35 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -19477,7 +20435,7 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Users', 1
         END ELSE IF @Action <> 'create'
@@ -19487,14 +20445,6 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Password'), JSON_VALUE(@LastRecord, '$.Password'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.FullName'), JSON_VALUE(@LastRecord, '$.FullName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.RetryLogins'), JSON_VALUE(@LastRecord, '$.RetryLogins'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsActive'), JSON_VALUE(@LastRecord, '$.IsActive'), 'bit') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Users]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
@@ -19503,6 +20453,17 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
                                   AND [FullName] = JSON_VALUE(@LastRecord, '$.FullName')
                                   AND [RetryLogins] = JSON_VALUE(@LastRecord, '$.RetryLogins')
                                   AND [IsActive] = JSON_VALUE(@LastRecord, '$.IsActive'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Users'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Password') = JSON_VALUE(@LastRecord, '$.Password')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.FullName') = JSON_VALUE(@LastRecord, '$.FullName')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.RetryLogins') = JSON_VALUE(@LastRecord, '$.RetryLogins')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsActive') = JSON_VALUE(@LastRecord, '$.IsActive'))
                 THROW 51000, 'Registro de Users alterado por outro usuário', 1
         END
 
@@ -19511,7 +20472,8 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em SystemsUsers', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Sessions] WHERE [UserId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Sessions', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                    ,@W_Password nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS nvarchar(256))
@@ -19539,12 +20501,7 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -19554,39 +20511,65 @@ Criar stored procedure [dbo].[UserPersist]
 IF(SELECT object_id('[dbo].[UserPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UserPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UserPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[UserPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[UserValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Users'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Users', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[UserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Users'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -19594,7 +20577,8 @@ ALTER PROCEDURE [dbo].[UserPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Users'
                                              ,@Action
                                              ,@LastRecord
@@ -19602,7 +20586,6 @@ ALTER PROCEDURE [dbo].[UserPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -19610,11 +20593,16 @@ ALTER PROCEDURE [dbo].[UserPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[UserValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[UserValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -19630,43 +20618,39 @@ ALTER PROCEDURE [dbo].[UserPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UserCommit]
+Criar stored procedure [dbo].[UserCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UserCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UserCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UserCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UserCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UserCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[UserCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -19675,13 +20659,7 @@ ALTER PROCEDURE [dbo].[UserCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -19697,71 +20675,202 @@ ALTER PROCEDURE [dbo].[UserCommit](@SessionId BIGINT
         IF @TableName <> 'Users'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[UserValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[UserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Users] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Password nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS nvarchar(256))
+               ,@W_FullName nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.FullName') AS nvarchar(50))
+               ,@W_RetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint)
+               ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Password nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS nvarchar(256))
-                   ,@W_FullName nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.FullName') AS nvarchar(50))
-                   ,@W_RetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint)
-                   ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Users] ([Id]
-                                                ,[Name]
-                                                ,[Password]
-                                                ,[FullName]
-                                                ,[RetryLogins]
-                                                ,[IsActive]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_Name
-                                                 ,@W_Password
-                                                 ,@W_FullName
-                                                 ,@W_RetryLogins
-                                                 ,@W_IsActive
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Users] SET [Id] = @W_Id
-                                              ,[Name] = @W_Name
-                                              ,[Password] = @W_Password
-                                              ,[FullName] = @W_FullName
-                                              ,[RetryLogins] = @W_RetryLogins
-                                              ,[IsActive] = @W_IsActive
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Users] ([Id]
+                                            ,[Name]
+                                            ,[Password]
+                                            ,[FullName]
+                                            ,[RetryLogins]
+                                            ,[IsActive]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_Name
+                                             ,@W_Password
+                                             ,@W_FullName
+                                             ,@W_RetryLogins
+                                             ,@W_IsActive
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[UserUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[UserUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UserUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[UserUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Users'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[UserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Password nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Password') AS nvarchar(256))
+               ,@W_FullName nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.FullName') AS nvarchar(50))
+               ,@W_RetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint)
+               ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
+
+        UPDATE [dbo].[Users] SET [Id] = @W_Id
+                                          ,[Name] = @W_Name
+                                          ,[Password] = @W_Password
+                                          ,[FullName] = @W_FullName
+                                          ,[RetryLogins] = @W_RetryLogins
+                                          ,[IsActive] = @W_IsActive
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[UserDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[UserDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UserDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[UserDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Users'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[UserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Users] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -19771,7 +20880,7 @@ Criar stored procedure [dbo].[UsersRead]
 IF(SELECT object_id('[dbo].[UsersRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UsersRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -19780,14 +20889,19 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -19824,12 +20938,12 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Password') AS nvarchar(256)) AS [Password]
-              ,CAST(JSON_VALUE([ActualRecord], '$.FullName') AS nvarchar(50)) AS [FullName]
-              ,CAST(JSON_VALUE([ActualRecord], '$.RetryLogins') AS tinyint) AS [RetryLogins]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsActive') AS bit) AS [IsActive]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Password') AS nvarchar(256)) AS [Password]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.FullName') AS nvarchar(50)) AS [FullName]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.RetryLogins') AS tinyint) AS [RetryLogins]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsActive') AS bit) AS [IsActive]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -19941,23 +21055,18 @@ ALTER PROCEDURE [dbo].[UsersRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[Name]
-              ,[Name] AS [ListItemValue]
-              ,[Password]
-              ,[FullName]
-              ,[RetryLogins]
-              ,[IsActive]
-            FROM [#result]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[Name]
+                      ,[Name] AS [ListItemValue]
+                      ,[Password]
+                      ,[FullName]
+                      ,[RetryLogins]
+                      ,[IsActive]
+                    FROM [#result] FOR JSON PATH) AS [result]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -19973,12 +21082,10 @@ ALTER PROCEDURE [dbo].[UsersList](@Value nvarchar(25)
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @Value IS NULL
             SET @Value = ''
         SELECT [Id]
             INTO [#query]
@@ -20016,12 +21123,7 @@ ALTER PROCEDURE [dbo].[UsersList](@Value nvarchar(25)
         EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -20032,16 +21134,16 @@ IF(SELECT object_id('[dbo].[SystemUserValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemUserValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -20049,21 +21151,35 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -20076,7 +21192,7 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em SystemsUsers', 1
         END ELSE IF @Action <> 'create'
@@ -20086,22 +21202,25 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.SystemId'), JSON_VALUE(@LastRecord, '$.SystemId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.UserId'), JSON_VALUE(@LastRecord, '$.UserId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[SystemsUsers]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [SystemId] = JSON_VALUE(@LastRecord, '$.SystemId')
                                   AND [UserId] = JSON_VALUE(@LastRecord, '$.UserId')
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'SystemsUsers'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SystemId') = JSON_VALUE(@LastRecord, '$.SystemId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.UserId') = JSON_VALUE(@LastRecord, '$.UserId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name'))
                 THROW 51000, 'Registro de SystemsUsers alterado por outro usuário', 1
         END
 
-        IF @Action <> 'delete' BEGIN
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
                    ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
@@ -20111,13 +21230,13 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
                 THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_UserId IS NULL
                 THROW 51000, 'Valor de UserId em @ActualRecord é requerido.', 1
             IF @W_UserId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de UserId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId)
                 THROW 51000, 'Valor de UserId em @ActualRecord inexiste em Users', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -20133,12 +21252,7 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -20148,39 +21262,65 @@ Criar stored procedure [dbo].[SystemUserPersist]
 IF(SELECT object_id('[dbo].[SystemUserPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemUserPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemUserPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[SystemUserPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[SystemUserValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'SystemsUsers'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'SystemsUsers', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[SystemUserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'SystemsUsers'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -20188,7 +21328,8 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'SystemsUsers'
                                              ,@Action
                                              ,@LastRecord
@@ -20196,7 +21337,6 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -20204,11 +21344,16 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[SystemUserValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[SystemUserValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -20224,43 +21369,39 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemUserCommit]
+Criar stored procedure [dbo].[SystemUserCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemUserCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemUserCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SystemUserCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemUserCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemUserCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[SystemUserCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -20269,13 +21410,7 @@ ALTER PROCEDURE [dbo].[SystemUserCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -20291,63 +21426,192 @@ ALTER PROCEDURE [dbo].[SystemUserCommit](@SessionId BIGINT
         IF @TableName <> 'SystemsUsers'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[SystemUserValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[SystemUserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[SystemsUsers] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+               ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+               ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
-            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
-                   ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[SystemsUsers] ([Id]
-                                                ,[SystemId]
-                                                ,[UserId]
-                                                ,[Name]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_SystemId
-                                                 ,@W_UserId
-                                                 ,@W_Name
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[SystemsUsers] SET [Id] = @W_Id
-                                              ,[SystemId] = @W_SystemId
-                                              ,[UserId] = @W_UserId
-                                              ,[Name] = @W_Name
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[SystemsUsers] ([Id]
+                                            ,[SystemId]
+                                            ,[UserId]
+                                            ,[Name]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_SystemId
+                                             ,@W_UserId
+                                             ,@W_Name
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[SystemUserUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[SystemUserUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemUserUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[SystemUserUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'SystemsUsers'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[SystemUserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+               ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+               ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
+
+        UPDATE [dbo].[SystemsUsers] SET [Id] = @W_Id
+                                          ,[SystemId] = @W_SystemId
+                                          ,[UserId] = @W_UserId
+                                          ,[Name] = @W_Name
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[SystemUserDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[SystemUserDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemUserDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[SystemUserDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'SystemsUsers'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[SystemUserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[SystemsUsers] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -20357,7 +21621,7 @@ Criar stored procedure [dbo].[SystemsUsersRead]
 IF(SELECT object_id('[dbo].[SystemsUsersRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsUsersRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -20366,14 +21630,19 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -20410,10 +21679,10 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint) AS [UserId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SystemId') AS bigint) AS [SystemId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.UserId') AS bigint) AS [UserId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(50)) AS [Name]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -20523,13 +21792,6 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[SystemId]
-              ,[UserId]
-              ,[Name]
-              ,[Name] AS [ListItemValue]
-            FROM [#result]
         SELECT DISTINCT 'System' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -20554,16 +21816,18 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@LoginId BIGINT
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Users] ON [#Users](Id)
-        SELECT [Systems].* FROM [#Systems] AS [Systems]
-        SELECT [Users].* FROM [#Users] AS [Users]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[SystemId]
+                      ,[UserId]
+                      ,[Name]
+                      ,[Name] AS [ListItemValue]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
+              ,ISNULL((SELECT [Users].* FROM [#Users] AS [Users] FOR JSON PATH), '[]') AS [Users]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -20579,12 +21843,10 @@ ALTER PROCEDURE [dbo].[SystemsUsersList](@Value nvarchar(50)
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @Value IS NULL
             SET @Value = ''
         SELECT [Id]
             INTO [#query]
@@ -20622,12 +21884,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersList](@Value nvarchar(50)
         EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -20638,16 +21895,16 @@ IF(SELECT object_id('[dbo].[ConnectionValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ConnectionValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -20655,21 +21912,35 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -20680,7 +21951,7 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
             SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
             THROW 51000, @ErrorMessage, 1
         END
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Connections] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Connections', 1
         END ELSE IF @Action <> 'create'
@@ -20690,23 +21961,27 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Environment'), JSON_VALUE(@LastRecord, '$.Environment'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ConnectionString'), JSON_VALUE(@LastRecord, '$.ConnectionString'), 'nvarchar') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Connections]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [Environment] = JSON_VALUE(@LastRecord, '$.Environment')
                                   AND [ConnectionString] = JSON_VALUE(@LastRecord, '$.ConnectionString'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Connections'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Environment') = JSON_VALUE(@LastRecord, '$.Environment')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ConnectionString') = JSON_VALUE(@LastRecord, '$.ConnectionString'))
                 THROW 51000, 'Registro de Connections alterado por outro usuário', 1
         END
 
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [ConnectionId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Databases', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_Environment nvarchar(3) = CAST(JSON_VALUE(@ActualRecord, '$.Environment') AS nvarchar(3))
                    ,@W_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionString') AS nvarchar(256))
@@ -20717,12 +21992,7 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de ConnectionString em @ActualRecord é requerido.', 1
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -20732,39 +22002,65 @@ Criar stored procedure [dbo].[ConnectionPersist]
 IF(SELECT object_id('[dbo].[ConnectionPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ConnectionPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConnectionPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[ConnectionPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[ConnectionValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Connections'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Connections', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[ConnectionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Connections'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -20772,7 +22068,8 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Connections'
                                              ,@Action
                                              ,@LastRecord
@@ -20780,7 +22077,6 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -20788,11 +22084,16 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[ConnectionValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[ConnectionValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -20808,43 +22109,39 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ConnectionCommit]
+Criar stored procedure [dbo].[ConnectionCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ConnectionCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ConnectionCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ConnectionCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConnectionCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConnectionCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[ConnectionCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -20853,13 +22150,7 @@ ALTER PROCEDURE [dbo].[ConnectionCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -20875,59 +22166,187 @@ ALTER PROCEDURE [dbo].[ConnectionCommit](@SessionId BIGINT
         IF @TableName <> 'Connections'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[ConnectionValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[ConnectionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Connections] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_Environment nvarchar(3) = CAST(JSON_VALUE(@ActualRecord, '$.Environment') AS nvarchar(3))
+               ,@W_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionString') AS nvarchar(256))
 
-            DECLARE @W_Environment nvarchar(3) = CAST(JSON_VALUE(@ActualRecord, '$.Environment') AS nvarchar(3))
-                   ,@W_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionString') AS nvarchar(256))
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Connections] ([Id]
-                                                ,[Environment]
-                                                ,[ConnectionString]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_Environment
-                                                 ,@W_ConnectionString
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Connections] SET [Id] = @W_Id
-                                              ,[Environment] = @W_Environment
-                                              ,[ConnectionString] = @W_ConnectionString
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Connections] ([Id]
+                                            ,[Environment]
+                                            ,[ConnectionString]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_Environment
+                                             ,@W_ConnectionString
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ConnectionUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ConnectionUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConnectionUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ConnectionUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Connections'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[ConnectionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_Environment nvarchar(3) = CAST(JSON_VALUE(@ActualRecord, '$.Environment') AS nvarchar(3))
+               ,@W_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionString') AS nvarchar(256))
+
+        UPDATE [dbo].[Connections] SET [Id] = @W_Id
+                                          ,[Environment] = @W_Environment
+                                          ,[ConnectionString] = @W_ConnectionString
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ConnectionDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ConnectionDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConnectionDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ConnectionDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Connections'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[ConnectionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Connections] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -20937,7 +22356,7 @@ Criar stored procedure [dbo].[ConnectionsRead]
 IF(SELECT object_id('[dbo].[ConnectionsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ConnectionsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -20946,14 +22365,19 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -20990,9 +22414,9 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Environment') AS nvarchar(3)) AS [Environment]
-              ,CAST(JSON_VALUE([ActualRecord], '$.ConnectionString') AS nvarchar(256)) AS [ConnectionString]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Environment') AS nvarchar(3)) AS [Environment]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ConnectionString') AS nvarchar(256)) AS [ConnectionString]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -21087,19 +22511,14 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[Environment]
-              ,[ConnectionString]
-            FROM [#result]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[Environment]
+                      ,[ConnectionString]
+                    FROM [#result] FOR JSON PATH) AS [result]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -21111,16 +22530,16 @@ IF(SELECT object_id('[dbo].[DatabaseValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabaseValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -21128,21 +22547,35 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -21155,7 +22588,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Databases', 1
         END ELSE IF @Action <> 'create'
@@ -21165,16 +22598,6 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ConnectionId'), JSON_VALUE(@LastRecord, '$.ConnectionId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Alias'), JSON_VALUE(@LastRecord, '$.Alias'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Description'), JSON_VALUE(@LastRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Folder'), JSON_VALUE(@LastRecord, '$.Folder'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsLegacy'), JSON_VALUE(@LastRecord, '$.IsLegacy'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.CurrentOperationId'), JSON_VALUE(@LastRecord, '$.CurrentOperationId'), 'bigint') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Databases]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
@@ -21182,9 +22605,22 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
                                   AND [Alias] = JSON_VALUE(@LastRecord, '$.Alias')
                                   AND [Description] = JSON_VALUE(@LastRecord, '$.Description')
-                                  AND [crudex].[IS_EQUAL]([Folder], JSON_VALUE(@LastRecord, '$.Folder'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL]([Folder], JSON_VALUE(@LastRecord, '$.Folder'), 'nvarchar') = 1
                                   AND [IsLegacy] = JSON_VALUE(@LastRecord, '$.IsLegacy')
                                   AND [CurrentOperationId] = JSON_VALUE(@LastRecord, '$.CurrentOperationId'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Databases'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ConnectionId') = JSON_VALUE(@LastRecord, '$.ConnectionId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Alias') = JSON_VALUE(@LastRecord, '$.Alias')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') = JSON_VALUE(@LastRecord, '$.Description')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Folder'), JSON_VALUE(@LastRecord, '$.Folder'), 'nvarchar') = 1
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsLegacy') = JSON_VALUE(@LastRecord, '$.IsLegacy')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CurrentOperationId') = JSON_VALUE(@LastRecord, '$.CurrentOperationId'))
                 THROW 51000, 'Registro de Databases alterado por outro usuário', 1
         END
 
@@ -21193,7 +22629,8 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em SystemsDatabases', 1
             IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em DatabasesTables', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_ConnectionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionId') AS bigint)
                    ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
@@ -21207,7 +22644,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de ConnectionId em @ActualRecord é requerido.', 1
             IF @W_ConnectionId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de ConnectionId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Connections] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Connections] WHERE [Id] = @W_ConnectionId)
                 THROW 51000, 'Valor de ConnectionId em @ActualRecord inexiste em Connections', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -21233,12 +22670,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -21248,39 +22680,65 @@ Criar stored procedure [dbo].[DatabasePersist]
 IF(SELECT object_id('[dbo].[DatabasePersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabasePersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabasePersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[DatabasePersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[DatabaseValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Databases'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Databases', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[DatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Databases'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -21288,7 +22746,8 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Databases'
                                              ,@Action
                                              ,@LastRecord
@@ -21296,7 +22755,6 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -21304,11 +22762,16 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[DatabaseValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[DatabaseValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -21324,43 +22787,39 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabaseCommit]
+Criar stored procedure [dbo].[DatabaseCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabaseCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabaseCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DatabaseCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabaseCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[DatabaseCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -21369,13 +22828,7 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -21391,79 +22844,212 @@ ALTER PROCEDURE [dbo].[DatabaseCommit](@SessionId BIGINT
         IF @TableName <> 'Databases'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[DatabaseValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[DatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Databases] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_ConnectionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionId') AS bigint)
+               ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
+               ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+               ,@W_Folder nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Folder') AS nvarchar(256))
+               ,@W_IsLegacy bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLegacy') AS bit)
+               ,@W_CurrentOperationId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentOperationId') AS bigint)
 
-            DECLARE @W_ConnectionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionId') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_Folder nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Folder') AS nvarchar(256))
-                   ,@W_IsLegacy bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLegacy') AS bit)
-                   ,@W_CurrentOperationId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentOperationId') AS bigint)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Databases] ([Id]
-                                                ,[ConnectionId]
-                                                ,[Name]
-                                                ,[Alias]
-                                                ,[Description]
-                                                ,[Folder]
-                                                ,[IsLegacy]
-                                                ,[CurrentOperationId]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_ConnectionId
-                                                 ,@W_Name
-                                                 ,@W_Alias
-                                                 ,@W_Description
-                                                 ,@W_Folder
-                                                 ,@W_IsLegacy
-                                                 ,@W_CurrentOperationId
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Databases] SET [Id] = @W_Id
-                                              ,[ConnectionId] = @W_ConnectionId
-                                              ,[Name] = @W_Name
-                                              ,[Alias] = @W_Alias
-                                              ,[Description] = @W_Description
-                                              ,[Folder] = @W_Folder
-                                              ,[IsLegacy] = @W_IsLegacy
-                                              ,[CurrentOperationId] = @W_CurrentOperationId
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Databases] ([Id]
+                                            ,[ConnectionId]
+                                            ,[Name]
+                                            ,[Alias]
+                                            ,[Description]
+                                            ,[Folder]
+                                            ,[IsLegacy]
+                                            ,[CurrentOperationId]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_ConnectionId
+                                             ,@W_Name
+                                             ,@W_Alias
+                                             ,@W_Description
+                                             ,@W_Folder
+                                             ,@W_IsLegacy
+                                             ,@W_CurrentOperationId
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[DatabaseUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[DatabaseUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabaseUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[DatabaseUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Databases'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[DatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_ConnectionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionId') AS bigint)
+               ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
+               ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+               ,@W_Folder nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.Folder') AS nvarchar(256))
+               ,@W_IsLegacy bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLegacy') AS bit)
+               ,@W_CurrentOperationId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentOperationId') AS bigint)
+
+        UPDATE [dbo].[Databases] SET [Id] = @W_Id
+                                          ,[ConnectionId] = @W_ConnectionId
+                                          ,[Name] = @W_Name
+                                          ,[Alias] = @W_Alias
+                                          ,[Description] = @W_Description
+                                          ,[Folder] = @W_Folder
+                                          ,[IsLegacy] = @W_IsLegacy
+                                          ,[CurrentOperationId] = @W_CurrentOperationId
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[DatabaseDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[DatabaseDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabaseDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[DatabaseDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Databases'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[DatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Databases] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -21473,7 +23059,7 @@ Criar stored procedure [dbo].[DatabasesRead]
 IF(SELECT object_id('[dbo].[DatabasesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabasesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -21482,14 +23068,19 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -21526,14 +23117,14 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.ConnectionId') AS bigint) AS [ConnectionId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Folder') AS nvarchar(256)) AS [Folder]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsLegacy') AS bit) AS [IsLegacy]
-              ,CAST(JSON_VALUE([ActualRecord], '$.CurrentOperationId') AS bigint) AS [CurrentOperationId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ConnectionId') AS bigint) AS [ConnectionId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Alias') AS nvarchar(25)) AS [Alias]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Folder') AS nvarchar(256)) AS [Folder]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsLegacy') AS bit) AS [IsLegacy]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CurrentOperationId') AS bigint) AS [CurrentOperationId]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -21653,17 +23244,6 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[ConnectionId]
-              ,[Name]
-              ,[Name] AS [ListItemValue]
-              ,[Alias]
-              ,[Description]
-              ,[Folder]
-              ,[IsLegacy]
-              ,[CurrentOperationId]
-            FROM [#result]
         SELECT DISTINCT 'Connection' AS [Kind]
               ,[R].[Id]
               ,[R].[Environment]
@@ -21673,15 +23253,21 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@LoginId BIGINT
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Connections] ON [#Connections](Id)
-        SELECT [Connections].* FROM [#Connections] AS [Connections]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[ConnectionId]
+                      ,[Name]
+                      ,[Name] AS [ListItemValue]
+                      ,[Alias]
+                      ,[Description]
+                      ,[Folder]
+                      ,[IsLegacy]
+                      ,[CurrentOperationId]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Connections].* FROM [#Connections] AS [Connections] FOR JSON PATH), '[]') AS [Connections]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -21697,12 +23283,10 @@ ALTER PROCEDURE [dbo].[DatabasesList](@Value nvarchar(25)
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @Value IS NULL
             SET @Value = ''
         SELECT [Id]
             INTO [#query]
@@ -21740,12 +23324,7 @@ ALTER PROCEDURE [dbo].[DatabasesList](@Value nvarchar(25)
         EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -21756,16 +23335,16 @@ IF(SELECT object_id('[dbo].[SystemDatabaseValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -21773,21 +23352,35 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -21800,7 +23393,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em SystemsDatabases', 1
         END ELSE IF @Action <> 'create'
@@ -21810,22 +23403,25 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.SystemId'), JSON_VALUE(@LastRecord, '$.SystemId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.DatabaseId'), JSON_VALUE(@LastRecord, '$.DatabaseId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[SystemsDatabases]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [SystemId] = JSON_VALUE(@LastRecord, '$.SystemId')
                                   AND [DatabaseId] = JSON_VALUE(@LastRecord, '$.DatabaseId')
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'SystemsDatabases'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SystemId') = JSON_VALUE(@LastRecord, '$.SystemId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.DatabaseId') = JSON_VALUE(@LastRecord, '$.DatabaseId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name'))
                 THROW 51000, 'Registro de SystemsDatabases alterado por outro usuário', 1
         END
 
-        IF @Action <> 'delete' BEGIN
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
                    ,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
@@ -21835,13 +23431,13 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
                 THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_DatabaseId IS NULL
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord é requerido.', 1
             IF @W_DatabaseId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord inexiste em Databases', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -21857,12 +23453,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -21872,39 +23463,65 @@ Criar stored procedure [dbo].[SystemDatabasePersist]
 IF(SELECT object_id('[dbo].[SystemDatabasePersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemDatabasePersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemDatabasePersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[SystemDatabasePersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'SystemsDatabases'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'SystemsDatabases', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'SystemsDatabases'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -21912,7 +23529,8 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'SystemsDatabases'
                                              ,@Action
                                              ,@LastRecord
@@ -21920,7 +23538,6 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -21928,11 +23545,16 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[SystemDatabaseValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[SystemDatabaseValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -21948,43 +23570,39 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemDatabaseCommit]
+Criar stored procedure [dbo].[SystemDatabaseCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemDatabaseCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SystemDatabaseCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemDatabaseCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[SystemDatabaseCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -21993,13 +23611,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -22015,63 +23627,192 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCommit](@SessionId BIGINT
         IF @TableName <> 'SystemsDatabases'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[SystemDatabaseValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[SystemDatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+               ,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+               ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
-            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
-                   ,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[SystemsDatabases] ([Id]
-                                                ,[SystemId]
-                                                ,[DatabaseId]
-                                                ,[Name]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_SystemId
-                                                 ,@W_DatabaseId
-                                                 ,@W_Name
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[SystemsDatabases] SET [Id] = @W_Id
-                                              ,[SystemId] = @W_SystemId
-                                              ,[DatabaseId] = @W_DatabaseId
-                                              ,[Name] = @W_Name
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[SystemsDatabases] ([Id]
+                                            ,[SystemId]
+                                            ,[DatabaseId]
+                                            ,[Name]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_SystemId
+                                             ,@W_DatabaseId
+                                             ,@W_Name
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[SystemDatabaseUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[SystemDatabaseUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[SystemDatabaseUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'SystemsDatabases'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[SystemDatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+               ,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+               ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
+
+        UPDATE [dbo].[SystemsDatabases] SET [Id] = @W_Id
+                                          ,[SystemId] = @W_SystemId
+                                          ,[DatabaseId] = @W_DatabaseId
+                                          ,[Name] = @W_Name
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[SystemDatabaseDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[SystemDatabaseDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[SystemDatabaseDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'SystemsDatabases'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[SystemDatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -22081,7 +23822,7 @@ Criar stored procedure [dbo].[SystemsDatabasesRead]
 IF(SELECT object_id('[dbo].[SystemsDatabasesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -22090,14 +23831,19 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -22134,10 +23880,10 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SystemId') AS bigint) AS [SystemId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.DatabaseId') AS bigint) AS [DatabaseId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(50)) AS [Name]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -22247,13 +23993,6 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[SystemId]
-              ,[DatabaseId]
-              ,[Name]
-              ,[Name] AS [ListItemValue]
-            FROM [#result]
         SELECT DISTINCT 'System' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -22289,17 +24028,19 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@LoginId BIGINT
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Connections] ON [#Connections](Id)
-        SELECT [Systems].* FROM [#Systems] AS [Systems]
-        SELECT [Databases].* FROM [#Databases] AS [Databases]
-        SELECT [Connections].* FROM [#Connections] AS [Connections]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[SystemId]
+                      ,[DatabaseId]
+                      ,[Name]
+                      ,[Name] AS [ListItemValue]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
+              ,ISNULL((SELECT [Databases].* FROM [#Databases] AS [Databases] FOR JSON PATH), '[]') AS [Databases]
+              ,ISNULL((SELECT [Connections].* FROM [#Connections] AS [Connections] FOR JSON PATH), '[]') AS [Connections]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -22315,12 +24056,10 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesList](@Value nvarchar(50)
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @Value IS NULL
             SET @Value = ''
         SELECT [Id]
             INTO [#query]
@@ -22358,12 +24097,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesList](@Value nvarchar(50)
         EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -22374,16 +24108,16 @@ IF(SELECT object_id('[dbo].[TableValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TableValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -22391,21 +24125,35 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -22418,7 +24166,7 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Tables', 1
         END ELSE IF @Action <> 'create'
@@ -22428,24 +24176,27 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Alias'), JSON_VALUE(@LastRecord, '$.Alias'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Description'), JSON_VALUE(@LastRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ParentTableId'), JSON_VALUE(@LastRecord, '$.ParentTableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsLegacy'), JSON_VALUE(@LastRecord, '$.IsLegacy'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.CurrentId'), JSON_VALUE(@LastRecord, '$.CurrentId'), 'bigint') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Tables]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
                                   AND [Alias] = JSON_VALUE(@LastRecord, '$.Alias')
                                   AND [Description] = JSON_VALUE(@LastRecord, '$.Description')
-                                  AND [crudex].[IS_EQUAL]([ParentTableId], JSON_VALUE(@LastRecord, '$.ParentTableId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL]([ParentTableId], JSON_VALUE(@LastRecord, '$.ParentTableId'), 'bigint') = 1
                                   AND [IsLegacy] = JSON_VALUE(@LastRecord, '$.IsLegacy')
                                   AND [CurrentId] = JSON_VALUE(@LastRecord, '$.CurrentId'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Tables'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Alias') = JSON_VALUE(@LastRecord, '$.Alias')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') = JSON_VALUE(@LastRecord, '$.Description')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ParentTableId'), JSON_VALUE(@LastRecord, '$.ParentTableId'), 'bigint') = 1
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsLegacy') = JSON_VALUE(@LastRecord, '$.IsLegacy')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CurrentId') = JSON_VALUE(@LastRecord, '$.CurrentId'))
                 THROW 51000, 'Registro de Tables alterado por outro usuário', 1
         END
 
@@ -22460,7 +24211,8 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Columns', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [TableId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Indexes', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                    ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
@@ -22477,7 +24229,7 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de Description em @ActualRecord é requerido.', 1
             IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('0' AS bigint)
                 THROW 51000, 'Valor de ParentTableId em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
+            IF @W_ParentTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ParentTableId)
                 THROW 51000, 'Valor de ParentTableId em @ActualRecord inexiste em Tables', 1
             IF @W_IsLegacy IS NULL
                 THROW 51000, 'Valor de IsLegacy em @ActualRecord é requerido.', 1
@@ -22497,12 +24249,7 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -22512,39 +24259,65 @@ Criar stored procedure [dbo].[TablePersist]
 IF(SELECT object_id('[dbo].[TablePersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TablePersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TablePersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[TablePersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[TableValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Tables'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Tables', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[TableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Tables'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -22552,7 +24325,8 @@ ALTER PROCEDURE [dbo].[TablePersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Tables'
                                              ,@Action
                                              ,@LastRecord
@@ -22560,7 +24334,6 @@ ALTER PROCEDURE [dbo].[TablePersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -22568,11 +24341,16 @@ ALTER PROCEDURE [dbo].[TablePersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[TableValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[TableValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -22588,43 +24366,39 @@ ALTER PROCEDURE [dbo].[TablePersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TableCommit]
+Criar stored procedure [dbo].[TableCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TableCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TableCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TableCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TableCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TableCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[TableCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -22633,13 +24407,7 @@ ALTER PROCEDURE [dbo].[TableCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -22655,75 +24423,207 @@ ALTER PROCEDURE [dbo].[TableCommit](@SessionId BIGINT
         IF @TableName <> 'Tables'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[TableValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[TableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Tables] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
+               ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+               ,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
+               ,@W_IsLegacy bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLegacy') AS bit)
+               ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
 
-            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
-                   ,@W_IsLegacy bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLegacy') AS bit)
-                   ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Tables] ([Id]
-                                                ,[Name]
-                                                ,[Alias]
-                                                ,[Description]
-                                                ,[ParentTableId]
-                                                ,[IsLegacy]
-                                                ,[CurrentId]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_Name
-                                                 ,@W_Alias
-                                                 ,@W_Description
-                                                 ,@W_ParentTableId
-                                                 ,@W_IsLegacy
-                                                 ,@W_CurrentId
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Tables] SET [Id] = @W_Id
-                                              ,[Name] = @W_Name
-                                              ,[Alias] = @W_Alias
-                                              ,[Description] = @W_Description
-                                              ,[ParentTableId] = @W_ParentTableId
-                                              ,[IsLegacy] = @W_IsLegacy
-                                              ,[CurrentId] = @W_CurrentId
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Tables] ([Id]
+                                            ,[Name]
+                                            ,[Alias]
+                                            ,[Description]
+                                            ,[ParentTableId]
+                                            ,[IsLegacy]
+                                            ,[CurrentId]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_Name
+                                             ,@W_Alias
+                                             ,@W_Description
+                                             ,@W_ParentTableId
+                                             ,@W_IsLegacy
+                                             ,@W_CurrentId
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[TableUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[TableUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TableUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[TableUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Tables'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[TableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
+               ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+               ,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
+               ,@W_IsLegacy bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLegacy') AS bit)
+               ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
+
+        UPDATE [dbo].[Tables] SET [Id] = @W_Id
+                                          ,[Name] = @W_Name
+                                          ,[Alias] = @W_Alias
+                                          ,[Description] = @W_Description
+                                          ,[ParentTableId] = @W_ParentTableId
+                                          ,[IsLegacy] = @W_IsLegacy
+                                          ,[CurrentId] = @W_CurrentId
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[TableDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[TableDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TableDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[TableDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Tables'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[TableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Tables] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -22733,7 +24633,7 @@ Criar stored procedure [dbo].[TablesRead]
 IF(SELECT object_id('[dbo].[TablesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TablesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -22742,14 +24642,19 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -22786,13 +24691,13 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST(JSON_VALUE([ActualRecord], '$.ParentTableId') AS bigint) AS [ParentTableId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsLegacy') AS bit) AS [IsLegacy]
-              ,CAST(JSON_VALUE([ActualRecord], '$.CurrentId') AS bigint) AS [CurrentId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Alias') AS nvarchar(25)) AS [Alias]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ParentTableId') AS bigint) AS [ParentTableId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsLegacy') AS bit) AS [IsLegacy]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CurrentId') AS bigint) AS [CurrentId]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -22907,16 +24812,6 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[Name]
-              ,[Name] AS [ListItemValue]
-              ,[Alias]
-              ,[Description]
-              ,[ParentTableId]
-              ,[IsLegacy]
-              ,[CurrentId]
-            FROM [#result]
         SELECT DISTINCT 'Table' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -22930,15 +24825,20 @@ ALTER PROCEDURE [dbo].[TablesRead](@LoginId BIGINT
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
-        SELECT [Tables].* FROM [#Tables] AS [Tables]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[Name]
+                      ,[Name] AS [ListItemValue]
+                      ,[Alias]
+                      ,[Description]
+                      ,[ParentTableId]
+                      ,[IsLegacy]
+                      ,[CurrentId]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -22954,12 +24854,10 @@ ALTER PROCEDURE [dbo].[TablesList](@Value nvarchar(25)
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @Value IS NULL
             SET @Value = ''
         SELECT [Id]
             INTO [#query]
@@ -22997,12 +24895,7 @@ ALTER PROCEDURE [dbo].[TablesList](@Value nvarchar(25)
         EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -23013,16 +24906,16 @@ IF(SELECT object_id('[dbo].[DatabaseTableValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabaseTableValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -23030,21 +24923,35 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -23057,7 +24964,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em DatabasesTables', 1
         END ELSE IF @Action <> 'create'
@@ -23067,22 +24974,25 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.DatabaseId'), JSON_VALUE(@LastRecord, '$.DatabaseId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.TableId'), JSON_VALUE(@LastRecord, '$.TableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[DatabasesTables]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [DatabaseId] = JSON_VALUE(@LastRecord, '$.DatabaseId')
                                   AND [TableId] = JSON_VALUE(@LastRecord, '$.TableId')
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'DatabasesTables'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.DatabaseId') = JSON_VALUE(@LastRecord, '$.DatabaseId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableId') = JSON_VALUE(@LastRecord, '$.TableId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name'))
                 THROW 51000, 'Registro de DatabasesTables alterado por outro usuário', 1
         END
 
-        IF @Action <> 'delete' BEGIN
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
                    ,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
@@ -23092,13 +25002,13 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord é requerido.', 1
             IF @W_DatabaseId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord inexiste em Databases', 1
             IF @W_TableId IS NULL
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
                 THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -23122,12 +25032,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -23137,39 +25042,65 @@ Criar stored procedure [dbo].[DatabaseTablePersist]
 IF(SELECT object_id('[dbo].[DatabaseTablePersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabaseTablePersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseTablePersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[DatabaseTablePersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[DatabaseTableValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'DatabasesTables'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'DatabasesTables', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[DatabaseTableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'DatabasesTables'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -23177,7 +25108,8 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'DatabasesTables'
                                              ,@Action
                                              ,@LastRecord
@@ -23185,7 +25117,6 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -23193,11 +25124,16 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[DatabaseTableValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[DatabaseTableValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -23213,43 +25149,39 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabaseTableCommit]
+Criar stored procedure [dbo].[DatabaseTableCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabaseTableCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabaseTableCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DatabaseTableCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabaseTableCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseTableCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[DatabaseTableCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -23258,13 +25190,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -23280,63 +25206,192 @@ ALTER PROCEDURE [dbo].[DatabaseTableCommit](@SessionId BIGINT
         IF @TableName <> 'DatabasesTables'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[DatabaseTableValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[DatabaseTableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+               ,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+               ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
-            DECLARE @W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
-                   ,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[DatabasesTables] ([Id]
-                                                ,[DatabaseId]
-                                                ,[TableId]
-                                                ,[Name]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_DatabaseId
-                                                 ,@W_TableId
-                                                 ,@W_Name
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[DatabasesTables] SET [Id] = @W_Id
-                                              ,[DatabaseId] = @W_DatabaseId
-                                              ,[TableId] = @W_TableId
-                                              ,[Name] = @W_Name
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                            ,[DatabaseId]
+                                            ,[TableId]
+                                            ,[Name]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_DatabaseId
+                                             ,@W_TableId
+                                             ,@W_Name
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[DatabaseTableUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[DatabaseTableUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabaseTableUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[DatabaseTableUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'DatabasesTables'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[DatabaseTableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
+               ,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+               ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
+
+        UPDATE [dbo].[DatabasesTables] SET [Id] = @W_Id
+                                          ,[DatabaseId] = @W_DatabaseId
+                                          ,[TableId] = @W_TableId
+                                          ,[Name] = @W_Name
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[DatabaseTableDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[DatabaseTableDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DatabaseTableDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[DatabaseTableDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'DatabasesTables'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[DatabaseTableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -23346,7 +25401,7 @@ Criar stored procedure [dbo].[DatabasesTablesRead]
 IF(SELECT object_id('[dbo].[DatabasesTablesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -23355,14 +25410,19 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -23399,10 +25459,10 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.DatabaseId') AS bigint) AS [DatabaseId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.DatabaseId') AS bigint) AS [DatabaseId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableId') AS bigint) AS [TableId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(50)) AS [Name]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -23512,13 +25572,6 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[DatabaseId]
-              ,[TableId]
-              ,[Name]
-              ,[Name] AS [ListItemValue]
-            FROM [#result]
         SELECT DISTINCT 'Database' AS [Kind]
               ,[R].[Id]
               ,[R].[ConnectionId]
@@ -23568,17 +25621,19 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@LoginId BIGINT
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        SELECT [Databases].* FROM [#Databases] AS [Databases]
-        SELECT [Connections].* FROM [#Connections] AS [Connections]
-        SELECT [Tables].* FROM [#Tables] AS [Tables]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[DatabaseId]
+                      ,[TableId]
+                      ,[Name]
+                      ,[Name] AS [ListItemValue]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Databases].* FROM [#Databases] AS [Databases] FOR JSON PATH), '[]') AS [Databases]
+              ,ISNULL((SELECT [Connections].* FROM [#Connections] AS [Connections] FOR JSON PATH), '[]') AS [Connections]
+              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -23594,12 +25649,10 @@ ALTER PROCEDURE [dbo].[DatabasesTablesList](@Value nvarchar(50)
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @Value IS NULL
             SET @Value = ''
         SELECT [Id]
             INTO [#query]
@@ -23637,12 +25690,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesList](@Value nvarchar(50)
         EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -23653,16 +25701,16 @@ IF(SELECT object_id('[dbo].[ColumnValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ColumnValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -23670,21 +25718,35 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -23707,54 +25769,57 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.TableId'), JSON_VALUE(@LastRecord, '$.TableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Sequence'), JSON_VALUE(@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.DomainId'), JSON_VALUE(@LastRecord, '$.DomainId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ReferenceTableId'), JSON_VALUE(@LastRecord, '$.ReferenceTableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Alias'), JSON_VALUE(@LastRecord, '$.Alias'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Description'), JSON_VALUE(@LastRecord, '$.Description'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Title'), JSON_VALUE(@LastRecord, '$.Title'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Caption'), JSON_VALUE(@LastRecord, '$.Caption'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Default'), JSON_VALUE(@LastRecord, '$.Default'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Minimum'), JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Maximum'), JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsPrimarykey'), JSON_VALUE(@LastRecord, '$.IsPrimarykey'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsAutoIncrement'), JSON_VALUE(@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsRequired'), JSON_VALUE(@LastRecord, '$.IsRequired'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsListable'), JSON_VALUE(@LastRecord, '$.IsListable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsFilterable'), JSON_VALUE(@LastRecord, '$.IsFilterable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsEditable'), JSON_VALUE(@LastRecord, '$.IsEditable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsGridable'), JSON_VALUE(@LastRecord, '$.IsGridable'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsEncrypted'), JSON_VALUE(@LastRecord, '$.IsEncrypted'), 'bit') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsInWords'), JSON_VALUE(@LastRecord, '$.IsInWords'), 'bit') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Columns]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [TableId] = JSON_VALUE(@LastRecord, '$.TableId')
                                   AND [Sequence] = JSON_VALUE(@LastRecord, '$.Sequence')
                                   AND [DomainId] = JSON_VALUE(@LastRecord, '$.DomainId')
-                                  AND [crudex].[IS_EQUAL]([ReferenceTableId], JSON_VALUE(@LastRecord, '$.ReferenceTableId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL]([ReferenceTableId], JSON_VALUE(@LastRecord, '$.ReferenceTableId'), 'bigint') = 1
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
-                                  AND [crudex].[IS_EQUAL]([Alias], JSON_VALUE(@LastRecord, '$.Alias'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL]([Alias], JSON_VALUE(@LastRecord, '$.Alias'), 'nvarchar') = 1
                                   AND [Description] = JSON_VALUE(@LastRecord, '$.Description')
                                   AND [Title] = JSON_VALUE(@LastRecord, '$.Title')
                                   AND [Caption] = JSON_VALUE(@LastRecord, '$.Caption')
-                                  AND [crudex].[IS_EQUAL]([Default], JSON_VALUE(@LastRecord, '$.Default'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Minimum], JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([Maximum], JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
-                                  AND [crudex].[IS_EQUAL]([IsPrimarykey], JSON_VALUE(@LastRecord, '$.IsPrimarykey'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsAutoIncrement], JSON_VALUE(@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL]([Default], JSON_VALUE(@LastRecord, '$.Default'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL]([Minimum], JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL]([Maximum], JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL]([IsPrimarykey], JSON_VALUE(@LastRecord, '$.IsPrimarykey'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL]([IsAutoIncrement], JSON_VALUE(@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
                                   AND [IsRequired] = JSON_VALUE(@LastRecord, '$.IsRequired')
-                                  AND [crudex].[IS_EQUAL]([IsListable], JSON_VALUE(@LastRecord, '$.IsListable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsFilterable], JSON_VALUE(@LastRecord, '$.IsFilterable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsEditable], JSON_VALUE(@LastRecord, '$.IsEditable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsGridable], JSON_VALUE(@LastRecord, '$.IsGridable'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsEncrypted], JSON_VALUE(@LastRecord, '$.IsEncrypted'), 'bit') = 1
-                                  AND [crudex].[IS_EQUAL]([IsInWords], JSON_VALUE(@LastRecord, '$.IsInWords'), 'bit') = 1)
+                                  AND [dbo].[IS_EQUAL]([IsListable], JSON_VALUE(@LastRecord, '$.IsListable'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL]([IsFilterable], JSON_VALUE(@LastRecord, '$.IsFilterable'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL]([IsEditable], JSON_VALUE(@LastRecord, '$.IsEditable'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL]([IsGridable], JSON_VALUE(@LastRecord, '$.IsGridable'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL]([IsEncrypted], JSON_VALUE(@LastRecord, '$.IsEncrypted'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL]([IsInWords], JSON_VALUE(@LastRecord, '$.IsInWords'), 'bit') = 1)
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Columns'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableId') = JSON_VALUE(@LastRecord, '$.TableId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Sequence') = JSON_VALUE(@LastRecord, '$.Sequence')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.DomainId') = JSON_VALUE(@LastRecord, '$.DomainId')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ReferenceTableId'), JSON_VALUE(@LastRecord, '$.ReferenceTableId'), 'bigint') = 1
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Alias'), JSON_VALUE(@LastRecord, '$.Alias'), 'nvarchar') = 1
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') = JSON_VALUE(@LastRecord, '$.Description')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Title') = JSON_VALUE(@LastRecord, '$.Title')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Caption') = JSON_VALUE(@LastRecord, '$.Caption')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Default'), JSON_VALUE(@LastRecord, '$.Default'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Minimum'), JSON_VALUE(@LastRecord, '$.Minimum'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Maximum'), JSON_VALUE(@LastRecord, '$.Maximum'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsPrimarykey'), JSON_VALUE(@LastRecord, '$.IsPrimarykey'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsAutoIncrement'), JSON_VALUE(@LastRecord, '$.IsAutoIncrement'), 'bit') = 1
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsRequired') = JSON_VALUE(@LastRecord, '$.IsRequired')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsListable'), JSON_VALUE(@LastRecord, '$.IsListable'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsFilterable'), JSON_VALUE(@LastRecord, '$.IsFilterable'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsEditable'), JSON_VALUE(@LastRecord, '$.IsEditable'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsGridable'), JSON_VALUE(@LastRecord, '$.IsGridable'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsEncrypted'), JSON_VALUE(@LastRecord, '$.IsEncrypted'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsInWords'), JSON_VALUE(@LastRecord, '$.IsInWords'), 'bit') = 1)
                 THROW 51000, 'Registro de Columns alterado por outro usuário', 1
         END
 
@@ -23765,7 +25830,8 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Unicities', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId2] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Unicities', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
                    ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
@@ -23793,7 +25859,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
                 THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
@@ -23803,11 +25869,11 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de DomainId em @ActualRecord é requerido.', 1
             IF @W_DomainId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de DomainId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId)
                 THROW 51000, 'Valor de DomainId em @ActualRecord inexiste em Domains', 1
             IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de ReferenceTableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
+            IF @W_ReferenceTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ReferenceTableId)
                 THROW 51000, 'Valor de ReferenceTableId em @ActualRecord inexiste em Tables', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -23831,12 +25897,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -23846,28 +25907,52 @@ Criar stored procedure [dbo].[ColumnPersist]
 IF(SELECT object_id('[dbo].[ColumnPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ColumnPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ColumnPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[ColumnPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[ColumnValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Columns'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Columns', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[ColumnValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -23876,9 +25961,11 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@SessionId BIGINT
             WHERE [TransactionId] = @TransactionId
                   AND [TableName] = 'Columns'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -23886,7 +25973,8 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Columns'
                                              ,@Action
                                              ,@LastRecord
@@ -23894,7 +25982,6 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -23902,11 +25989,16 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[ColumnValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[ColumnValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -23922,43 +26014,39 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ColumnCommit]
+Criar stored procedure [dbo].[ColumnCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ColumnCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ColumnCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ColumnCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ColumnCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ColumnCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[ColumnCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -23967,13 +26055,7 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -23989,135 +26071,282 @@ ALTER PROCEDURE [dbo].[ColumnCommit](@SessionId BIGINT
         IF @TableName <> 'Columns'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[ColumnValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[ColumnValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Columns] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+               ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+               ,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
+               ,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
+               ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
+               ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+               ,@W_Title nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS nvarchar(25))
+               ,@W_Caption nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS nvarchar(25))
+               ,@W_Default nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS nvarchar(max))
+               ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
+               ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
+               ,@W_IsPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPrimarykey') AS bit)
+               ,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@ActualRecord, '$.IsAutoIncrement') AS bit)
+               ,@W_IsRequired bit = CAST(JSON_VALUE(@ActualRecord, '$.IsRequired') AS bit)
+               ,@W_IsListable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit)
+               ,@W_IsFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit)
+               ,@W_IsEditable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit)
+               ,@W_IsGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsGridable') AS bit)
+               ,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
+               ,@W_IsInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.IsInWords') AS bit)
 
-            DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
-                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
-                   ,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
-                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
-                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_Title nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS nvarchar(25))
-                   ,@W_Caption nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS nvarchar(25))
-                   ,@W_Default nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS nvarchar(max))
-                   ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
-                   ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
-                   ,@W_IsPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPrimarykey') AS bit)
-                   ,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@ActualRecord, '$.IsAutoIncrement') AS bit)
-                   ,@W_IsRequired bit = CAST(JSON_VALUE(@ActualRecord, '$.IsRequired') AS bit)
-                   ,@W_IsListable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit)
-                   ,@W_IsFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit)
-                   ,@W_IsEditable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit)
-                   ,@W_IsGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsGridable') AS bit)
-                   ,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
-                   ,@W_IsInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.IsInWords') AS bit)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Columns] ([Id]
-                                                ,[TableId]
-                                                ,[Sequence]
-                                                ,[DomainId]
-                                                ,[ReferenceTableId]
-                                                ,[Name]
-                                                ,[Alias]
-                                                ,[Description]
-                                                ,[Title]
-                                                ,[Caption]
-                                                ,[Default]
-                                                ,[Minimum]
-                                                ,[Maximum]
-                                                ,[IsPrimarykey]
-                                                ,[IsAutoIncrement]
-                                                ,[IsRequired]
-                                                ,[IsListable]
-                                                ,[IsFilterable]
-                                                ,[IsEditable]
-                                                ,[IsGridable]
-                                                ,[IsEncrypted]
-                                                ,[IsInWords]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_TableId
-                                                 ,@W_Sequence
-                                                 ,@W_DomainId
-                                                 ,@W_ReferenceTableId
-                                                 ,@W_Name
-                                                 ,@W_Alias
-                                                 ,@W_Description
-                                                 ,@W_Title
-                                                 ,@W_Caption
-                                                 ,@W_Default
-                                                 ,@W_Minimum
-                                                 ,@W_Maximum
-                                                 ,@W_IsPrimarykey
-                                                 ,@W_IsAutoIncrement
-                                                 ,@W_IsRequired
-                                                 ,@W_IsListable
-                                                 ,@W_IsFilterable
-                                                 ,@W_IsEditable
-                                                 ,@W_IsGridable
-                                                 ,@W_IsEncrypted
-                                                 ,@W_IsInWords
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Columns] SET [Id] = @W_Id
-                                              ,[TableId] = @W_TableId
-                                              ,[Sequence] = @W_Sequence
-                                              ,[DomainId] = @W_DomainId
-                                              ,[ReferenceTableId] = @W_ReferenceTableId
-                                              ,[Name] = @W_Name
-                                              ,[Alias] = @W_Alias
-                                              ,[Description] = @W_Description
-                                              ,[Title] = @W_Title
-                                              ,[Caption] = @W_Caption
-                                              ,[Default] = @W_Default
-                                              ,[Minimum] = @W_Minimum
-                                              ,[Maximum] = @W_Maximum
-                                              ,[IsPrimarykey] = @W_IsPrimarykey
-                                              ,[IsAutoIncrement] = @W_IsAutoIncrement
-                                              ,[IsRequired] = @W_IsRequired
-                                              ,[IsListable] = @W_IsListable
-                                              ,[IsFilterable] = @W_IsFilterable
-                                              ,[IsEditable] = @W_IsEditable
-                                              ,[IsGridable] = @W_IsGridable
-                                              ,[IsEncrypted] = @W_IsEncrypted
-                                              ,[IsInWords] = @W_IsInWords
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Columns] ([Id]
+                                            ,[TableId]
+                                            ,[Sequence]
+                                            ,[DomainId]
+                                            ,[ReferenceTableId]
+                                            ,[Name]
+                                            ,[Alias]
+                                            ,[Description]
+                                            ,[Title]
+                                            ,[Caption]
+                                            ,[Default]
+                                            ,[Minimum]
+                                            ,[Maximum]
+                                            ,[IsPrimarykey]
+                                            ,[IsAutoIncrement]
+                                            ,[IsRequired]
+                                            ,[IsListable]
+                                            ,[IsFilterable]
+                                            ,[IsEditable]
+                                            ,[IsGridable]
+                                            ,[IsEncrypted]
+                                            ,[IsInWords]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_TableId
+                                             ,@W_Sequence
+                                             ,@W_DomainId
+                                             ,@W_ReferenceTableId
+                                             ,@W_Name
+                                             ,@W_Alias
+                                             ,@W_Description
+                                             ,@W_Title
+                                             ,@W_Caption
+                                             ,@W_Default
+                                             ,@W_Minimum
+                                             ,@W_Maximum
+                                             ,@W_IsPrimarykey
+                                             ,@W_IsAutoIncrement
+                                             ,@W_IsRequired
+                                             ,@W_IsListable
+                                             ,@W_IsFilterable
+                                             ,@W_IsEditable
+                                             ,@W_IsGridable
+                                             ,@W_IsEncrypted
+                                             ,@W_IsInWords
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ColumnUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ColumnUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ColumnUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ColumnUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Columns'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[ColumnValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+               ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+               ,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
+               ,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
+               ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
+               ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+               ,@W_Title nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Title') AS nvarchar(25))
+               ,@W_Caption nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Caption') AS nvarchar(25))
+               ,@W_Default nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Default') AS nvarchar(max))
+               ,@W_Minimum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Minimum') AS nvarchar(max))
+               ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
+               ,@W_IsPrimarykey bit = CAST(JSON_VALUE(@ActualRecord, '$.IsPrimarykey') AS bit)
+               ,@W_IsAutoIncrement bit = CAST(JSON_VALUE(@ActualRecord, '$.IsAutoIncrement') AS bit)
+               ,@W_IsRequired bit = CAST(JSON_VALUE(@ActualRecord, '$.IsRequired') AS bit)
+               ,@W_IsListable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsListable') AS bit)
+               ,@W_IsFilterable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsFilterable') AS bit)
+               ,@W_IsEditable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEditable') AS bit)
+               ,@W_IsGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsGridable') AS bit)
+               ,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
+               ,@W_IsInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.IsInWords') AS bit)
+
+        UPDATE [dbo].[Columns] SET [Id] = @W_Id
+                                          ,[TableId] = @W_TableId
+                                          ,[Sequence] = @W_Sequence
+                                          ,[DomainId] = @W_DomainId
+                                          ,[ReferenceTableId] = @W_ReferenceTableId
+                                          ,[Name] = @W_Name
+                                          ,[Alias] = @W_Alias
+                                          ,[Description] = @W_Description
+                                          ,[Title] = @W_Title
+                                          ,[Caption] = @W_Caption
+                                          ,[Default] = @W_Default
+                                          ,[Minimum] = @W_Minimum
+                                          ,[Maximum] = @W_Maximum
+                                          ,[IsPrimarykey] = @W_IsPrimarykey
+                                          ,[IsAutoIncrement] = @W_IsAutoIncrement
+                                          ,[IsRequired] = @W_IsRequired
+                                          ,[IsListable] = @W_IsListable
+                                          ,[IsFilterable] = @W_IsFilterable
+                                          ,[IsEditable] = @W_IsEditable
+                                          ,[IsGridable] = @W_IsGridable
+                                          ,[IsEncrypted] = @W_IsEncrypted
+                                          ,[IsInWords] = @W_IsInWords
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ColumnDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ColumnDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ColumnDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ColumnDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Columns'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[ColumnValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Columns] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -24127,7 +26356,7 @@ Criar stored procedure [dbo].[ColumnsRead]
 IF(SELECT object_id('[dbo].[ColumnsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ColumnsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -24136,14 +26365,19 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -24180,28 +26414,28 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST(JSON_VALUE([ActualRecord], '$.DomainId') AS bigint) AS [DomainId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.ReferenceTableId') AS bigint) AS [ReferenceTableId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Alias') AS nvarchar(25)) AS [Alias]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Title') AS nvarchar(25)) AS [Title]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Caption') AS nvarchar(25)) AS [Caption]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Default') AS nvarchar(max)) AS [Default]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Minimum') AS nvarchar(max)) AS [Minimum]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Maximum') AS nvarchar(max)) AS [Maximum]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsPrimarykey') AS bit) AS [IsPrimarykey]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsAutoIncrement') AS bit) AS [IsAutoIncrement]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsRequired') AS bit) AS [IsRequired]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsListable') AS bit) AS [IsListable]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsFilterable') AS bit) AS [IsFilterable]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsEditable') AS bit) AS [IsEditable]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsGridable') AS bit) AS [IsGridable]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsEncrypted') AS bit) AS [IsEncrypted]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsInWords') AS bit) AS [IsInWords]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableId') AS bigint) AS [TableId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.DomainId') AS bigint) AS [DomainId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ReferenceTableId') AS bigint) AS [ReferenceTableId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Alias') AS nvarchar(25)) AS [Alias]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Title') AS nvarchar(25)) AS [Title]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Caption') AS nvarchar(25)) AS [Caption]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Default') AS nvarchar(max)) AS [Default]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Minimum') AS nvarchar(max)) AS [Minimum]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Maximum') AS nvarchar(max)) AS [Maximum]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsPrimarykey') AS bit) AS [IsPrimarykey]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsAutoIncrement') AS bit) AS [IsAutoIncrement]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsRequired') AS bit) AS [IsRequired]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsListable') AS bit) AS [IsListable]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsFilterable') AS bit) AS [IsFilterable]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsEditable') AS bit) AS [IsEditable]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsGridable') AS bit) AS [IsGridable]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsEncrypted') AS bit) AS [IsEncrypted]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsInWords') AS bit) AS [IsInWords]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -24427,30 +26661,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[TableId]
-              ,[Sequence]
-              ,[DomainId]
-              ,[ReferenceTableId]
-              ,[Name]
-              ,[Alias]
-              ,[Description]
-              ,[Title]
-              ,[Caption]
-              ,[Default]
-              ,[Minimum]
-              ,[Maximum]
-              ,[IsPrimarykey]
-              ,[IsAutoIncrement]
-              ,[IsRequired]
-              ,[IsListable]
-              ,[IsFilterable]
-              ,[IsEditable]
-              ,[IsGridable]
-              ,[IsEncrypted]
-              ,[IsInWords]
-            FROM [#result]
         SELECT DISTINCT 'Table' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -24558,18 +26768,37 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@LoginId BIGINT
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        SELECT [Tables].* FROM [#Tables] AS [Tables]
-        SELECT [Domains].* FROM [#Domains] AS [Domains]
-        SELECT [Types].* FROM [#Types] AS [Types]
-        SELECT [Categories].* FROM [#Categories] AS [Categories]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[TableId]
+                      ,[Sequence]
+                      ,[DomainId]
+                      ,[ReferenceTableId]
+                      ,[Name]
+                      ,[Alias]
+                      ,[Description]
+                      ,[Title]
+                      ,[Caption]
+                      ,[Default]
+                      ,[Minimum]
+                      ,[Maximum]
+                      ,[IsPrimarykey]
+                      ,[IsAutoIncrement]
+                      ,[IsRequired]
+                      ,[IsListable]
+                      ,[IsFilterable]
+                      ,[IsEditable]
+                      ,[IsGridable]
+                      ,[IsEncrypted]
+                      ,[IsInWords]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
+              ,ISNULL((SELECT [Domains].* FROM [#Domains] AS [Domains] FOR JSON PATH), '[]') AS [Domains]
+              ,ISNULL((SELECT [Types].* FROM [#Types] AS [Types] FOR JSON PATH), '[]') AS [Types]
+              ,ISNULL((SELECT [Categories].* FROM [#Categories] AS [Categories] FOR JSON PATH), '[]') AS [Categories]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -24581,16 +26810,16 @@ IF(SELECT object_id('[dbo].[IndexValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -24598,21 +26827,35 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -24625,7 +26868,7 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Indexes', 1
         END ELSE IF @Action <> 'create'
@@ -24635,25 +26878,29 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.TableId'), JSON_VALUE(@LastRecord, '$.TableId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsUnique'), JSON_VALUE(@LastRecord, '$.IsUnique'), 'bit') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Indexes]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [TableId] = JSON_VALUE(@LastRecord, '$.TableId')
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
                                   AND [IsUnique] = JSON_VALUE(@LastRecord, '$.IsUnique'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Indexes'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableId') = JSON_VALUE(@LastRecord, '$.TableId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsUnique') = JSON_VALUE(@LastRecord, '$.IsUnique'))
                 THROW 51000, 'Registro de Indexes alterado por outro usuário', 1
         END
 
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Indexkeys', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
                    ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
@@ -24663,7 +26910,7 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
                 THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
@@ -24677,12 +26924,7 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -24692,39 +26934,65 @@ Criar stored procedure [dbo].[IndexPersist]
 IF(SELECT object_id('[dbo].[IndexPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[IndexPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[IndexValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Indexes'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Indexes', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[IndexValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Indexes'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -24732,7 +27000,8 @@ ALTER PROCEDURE [dbo].[IndexPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Indexes'
                                              ,@Action
                                              ,@LastRecord
@@ -24740,7 +27009,6 @@ ALTER PROCEDURE [dbo].[IndexPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -24748,11 +27016,16 @@ ALTER PROCEDURE [dbo].[IndexPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[IndexValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[IndexValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -24768,43 +27041,39 @@ ALTER PROCEDURE [dbo].[IndexPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[IndexCommit]
+Criar stored procedure [dbo].[IndexCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IndexCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IndexCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[IndexCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -24813,13 +27082,7 @@ ALTER PROCEDURE [dbo].[IndexCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -24835,63 +27098,192 @@ ALTER PROCEDURE [dbo].[IndexCommit](@SessionId BIGINT
         IF @TableName <> 'Indexes'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[IndexValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[IndexValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Indexes] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+               ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
+               ,@W_IsUnique bit = CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit)
 
-            DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
-                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
-                   ,@W_IsUnique bit = CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Indexes] ([Id]
-                                                ,[TableId]
-                                                ,[Name]
-                                                ,[IsUnique]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_TableId
-                                                 ,@W_Name
-                                                 ,@W_IsUnique
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Indexes] SET [Id] = @W_Id
-                                              ,[TableId] = @W_TableId
-                                              ,[Name] = @W_Name
-                                              ,[IsUnique] = @W_IsUnique
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Indexes] ([Id]
+                                            ,[TableId]
+                                            ,[Name]
+                                            ,[IsUnique]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_TableId
+                                             ,@W_Name
+                                             ,@W_IsUnique
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[IndexUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[IndexUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IndexUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[IndexUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Indexes'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[IndexValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+               ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
+               ,@W_IsUnique bit = CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit)
+
+        UPDATE [dbo].[Indexes] SET [Id] = @W_Id
+                                          ,[TableId] = @W_TableId
+                                          ,[Name] = @W_Name
+                                          ,[IsUnique] = @W_IsUnique
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[IndexDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[IndexDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IndexDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[IndexDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Indexes'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[IndexValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Indexes] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -24901,7 +27293,7 @@ Criar stored procedure [dbo].[IndexesRead]
 IF(SELECT object_id('[dbo].[IndexesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -24910,14 +27302,19 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -24954,10 +27351,10 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.TableId') AS bigint) AS [TableId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(50)) AS [Name]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsUnique') AS bit) AS [IsUnique]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableId') AS bigint) AS [TableId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(50)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsUnique') AS bit) AS [IsUnique]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -25065,13 +27462,6 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[TableId]
-              ,[Name]
-              ,[Name] AS [ListItemValue]
-              ,[IsUnique]
-            FROM [#result]
         SELECT DISTINCT 'Table' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -25098,15 +27488,17 @@ ALTER PROCEDURE [dbo].[IndexesRead](@LoginId BIGINT
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        SELECT [Tables].* FROM [#Tables] AS [Tables]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[TableId]
+                      ,[Name]
+                      ,[Name] AS [ListItemValue]
+                      ,[IsUnique]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -25122,12 +27514,10 @@ ALTER PROCEDURE [dbo].[IndexesList](@Value nvarchar(50)
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @Value IS NULL
             SET @Value = ''
         SELECT [Id]
             INTO [#query]
@@ -25165,12 +27555,7 @@ ALTER PROCEDURE [dbo].[IndexesList](@Value nvarchar(50)
         EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -25181,16 +27566,16 @@ IF(SELECT object_id('[dbo].[IndexkeyValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexkeyValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -25198,21 +27583,35 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -25225,7 +27624,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Indexkeys', 1
         END ELSE IF @Action <> 'create'
@@ -25235,13 +27634,6 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IndexId'), JSON_VALUE(@LastRecord, '$.IndexId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Sequence'), JSON_VALUE(@LastRecord, '$.Sequence'), 'smallint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ColumnId'), JSON_VALUE(@LastRecord, '$.ColumnId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsDescending'), JSON_VALUE(@LastRecord, '$.IsDescending'), 'bit') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Indexkeys]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
@@ -25249,10 +27641,20 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
                                   AND [Sequence] = JSON_VALUE(@LastRecord, '$.Sequence')
                                   AND [ColumnId] = JSON_VALUE(@LastRecord, '$.ColumnId')
                                   AND [IsDescending] = JSON_VALUE(@LastRecord, '$.IsDescending'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Indexkeys'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IndexId') = JSON_VALUE(@LastRecord, '$.IndexId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Sequence') = JSON_VALUE(@LastRecord, '$.Sequence')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ColumnId') = JSON_VALUE(@LastRecord, '$.ColumnId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsDescending') = JSON_VALUE(@LastRecord, '$.IsDescending'))
                 THROW 51000, 'Registro de Indexkeys alterado por outro usuário', 1
         END
 
-        IF @Action <> 'delete' BEGIN
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_IndexId bigint = CAST(JSON_VALUE(@ActualRecord, '$.IndexId') AS bigint)
                    ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
@@ -25263,7 +27665,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de IndexId em @ActualRecord é requerido.', 1
             IF @W_IndexId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de IndexId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId)
                 THROW 51000, 'Valor de IndexId em @ActualRecord inexiste em Indexes', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
@@ -25273,7 +27675,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de ColumnId em @ActualRecord é requerido.', 1
             IF @W_ColumnId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de ColumnId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId)
                 THROW 51000, 'Valor de ColumnId em @ActualRecord inexiste em Columns', 1
             IF @W_IsDescending IS NULL
                 THROW 51000, 'Valor de IsDescending em @ActualRecord é requerido.', 1
@@ -25289,12 +27691,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -25304,39 +27701,65 @@ Criar stored procedure [dbo].[IndexkeyPersist]
 IF(SELECT object_id('[dbo].[IndexkeyPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexkeyPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexkeyPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[IndexkeyPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[IndexkeyValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Indexkeys'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Indexkeys', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[IndexkeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Indexkeys'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -25344,7 +27767,8 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Indexkeys'
                                              ,@Action
                                              ,@LastRecord
@@ -25352,7 +27776,6 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -25360,11 +27783,16 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[IndexkeyValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[IndexkeyValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -25380,43 +27808,39 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[IndexkeyCommit]
+Criar stored procedure [dbo].[IndexkeyCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexkeyCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexkeyCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IndexkeyCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IndexkeyCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexkeyCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[IndexkeyCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -25425,13 +27849,7 @@ ALTER PROCEDURE [dbo].[IndexkeyCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -25447,67 +27865,197 @@ ALTER PROCEDURE [dbo].[IndexkeyCommit](@SessionId BIGINT
         IF @TableName <> 'Indexkeys'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[IndexkeyValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[IndexkeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Indexkeys] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_IndexId bigint = CAST(JSON_VALUE(@ActualRecord, '$.IndexId') AS bigint)
+               ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+               ,@W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
+               ,@W_IsDescending bit = CAST(JSON_VALUE(@ActualRecord, '$.IsDescending') AS bit)
 
-            DECLARE @W_IndexId bigint = CAST(JSON_VALUE(@ActualRecord, '$.IndexId') AS bigint)
-                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
-                   ,@W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
-                   ,@W_IsDescending bit = CAST(JSON_VALUE(@ActualRecord, '$.IsDescending') AS bit)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Indexkeys] ([Id]
-                                                ,[IndexId]
-                                                ,[Sequence]
-                                                ,[ColumnId]
-                                                ,[IsDescending]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_IndexId
-                                                 ,@W_Sequence
-                                                 ,@W_ColumnId
-                                                 ,@W_IsDescending
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Indexkeys] SET [Id] = @W_Id
-                                              ,[IndexId] = @W_IndexId
-                                              ,[Sequence] = @W_Sequence
-                                              ,[ColumnId] = @W_ColumnId
-                                              ,[IsDescending] = @W_IsDescending
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Indexkeys] ([Id]
+                                            ,[IndexId]
+                                            ,[Sequence]
+                                            ,[ColumnId]
+                                            ,[IsDescending]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_IndexId
+                                             ,@W_Sequence
+                                             ,@W_ColumnId
+                                             ,@W_IsDescending
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[IndexkeyUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[IndexkeyUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IndexkeyUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[IndexkeyUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Indexkeys'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[IndexkeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_IndexId bigint = CAST(JSON_VALUE(@ActualRecord, '$.IndexId') AS bigint)
+               ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+               ,@W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
+               ,@W_IsDescending bit = CAST(JSON_VALUE(@ActualRecord, '$.IsDescending') AS bit)
+
+        UPDATE [dbo].[Indexkeys] SET [Id] = @W_Id
+                                          ,[IndexId] = @W_IndexId
+                                          ,[Sequence] = @W_Sequence
+                                          ,[ColumnId] = @W_ColumnId
+                                          ,[IsDescending] = @W_IsDescending
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[IndexkeyDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[IndexkeyDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IndexkeyDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[IndexkeyDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Indexkeys'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[IndexkeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Indexkeys] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -25517,7 +28065,7 @@ Criar stored procedure [dbo].[IndexkeysRead]
 IF(SELECT object_id('[dbo].[IndexkeysRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexkeysRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -25526,14 +28074,19 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -25570,11 +28123,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IndexId') AS bigint) AS [IndexId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Sequence') AS smallint) AS [Sequence]
-              ,CAST(JSON_VALUE([ActualRecord], '$.ColumnId') AS bigint) AS [ColumnId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsDescending') AS bit) AS [IsDescending]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IndexId') AS bigint) AS [IndexId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ColumnId') AS bigint) AS [ColumnId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsDescending') AS bit) AS [IsDescending]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -25687,13 +28240,6 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[IndexId]
-              ,[Sequence]
-              ,[ColumnId]
-              ,[IsDescending]
-            FROM [#result]
         SELECT DISTINCT 'Index' AS [Kind]
               ,[R].[Id]
               ,[R].[TableId]
@@ -25784,17 +28330,19 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@LoginId BIGINT
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        SELECT [Indexes].* FROM [#Indexes] AS [Indexes]
-        SELECT [Tables].* FROM [#Tables] AS [Tables]
-        SELECT [Columns].* FROM [#Columns] AS [Columns]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[IndexId]
+                      ,[Sequence]
+                      ,[ColumnId]
+                      ,[IsDescending]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Indexes].* FROM [#Indexes] AS [Indexes] FOR JSON PATH), '[]') AS [Indexes]
+              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
+              ,ISNULL((SELECT [Columns].* FROM [#Columns] AS [Columns] FOR JSON PATH), '[]') AS [Columns]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -25806,16 +28354,16 @@ IF(SELECT object_id('[dbo].[SessionValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SessionValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -25823,21 +28371,35 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -25850,7 +28412,7 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Sessions] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Sessions', 1
         END ELSE IF @Action <> 'create'
@@ -25860,27 +28422,31 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.SystemId'), JSON_VALUE(@LastRecord, '$.SystemId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.UserId'), JSON_VALUE(@LastRecord, '$.UserId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.PublicKey'), JSON_VALUE(@LastRecord, '$.PublicKey'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsLogged'), JSON_VALUE(@LastRecord, '$.IsLogged'), 'bit') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Sessions]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [SystemId] = JSON_VALUE(@LastRecord, '$.SystemId')
                                   AND [UserId] = JSON_VALUE(@LastRecord, '$.UserId')
-                                  AND [crudex].[IS_EQUAL]([PublicKey], JSON_VALUE(@LastRecord, '$.PublicKey'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL]([PublicKey], JSON_VALUE(@LastRecord, '$.PublicKey'), 'nvarchar') = 1
                                   AND [IsLogged] = JSON_VALUE(@LastRecord, '$.IsLogged'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Sessions'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SystemId') = JSON_VALUE(@LastRecord, '$.SystemId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.UserId') = JSON_VALUE(@LastRecord, '$.UserId')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.PublicKey'), JSON_VALUE(@LastRecord, '$.PublicKey'), 'nvarchar') = 1
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsLogged') = JSON_VALUE(@LastRecord, '$.IsLogged'))
                 THROW 51000, 'Registro de Sessions alterado por outro usuário', 1
         END
 
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [SessionId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Transactions', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
                    ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
@@ -25891,24 +28457,19 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
                 THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_UserId IS NULL
                 THROW 51000, 'Valor de UserId em @ActualRecord é requerido.', 1
             IF @W_UserId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de UserId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId)
                 THROW 51000, 'Valor de UserId em @ActualRecord inexiste em Users', 1
             IF @W_IsLogged IS NULL
                 THROW 51000, 'Valor de IsLogged em @ActualRecord é requerido.', 1
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -25918,39 +28479,65 @@ Criar stored procedure [dbo].[SessionPersist]
 IF(SELECT object_id('[dbo].[SessionPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SessionPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SessionPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[SessionPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[SessionValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Sessions'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Sessions', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[SessionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Sessions'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -25958,7 +28545,8 @@ ALTER PROCEDURE [dbo].[SessionPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Sessions'
                                              ,@Action
                                              ,@LastRecord
@@ -25966,7 +28554,6 @@ ALTER PROCEDURE [dbo].[SessionPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -25974,11 +28561,16 @@ ALTER PROCEDURE [dbo].[SessionPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[SessionValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[SessionValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -25994,43 +28586,39 @@ ALTER PROCEDURE [dbo].[SessionPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SessionCommit]
+Criar stored procedure [dbo].[SessionCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SessionCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SessionCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SessionCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SessionCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SessionCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[SessionCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -26039,13 +28627,7 @@ ALTER PROCEDURE [dbo].[SessionCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -26061,67 +28643,197 @@ ALTER PROCEDURE [dbo].[SessionCommit](@SessionId BIGINT
         IF @TableName <> 'Sessions'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[SessionValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[SessionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Sessions] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+               ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+               ,@W_PublicKey nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS nvarchar(256))
+               ,@W_IsLogged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit)
 
-            DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
-                   ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
-                   ,@W_PublicKey nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS nvarchar(256))
-                   ,@W_IsLogged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Sessions] ([Id]
-                                                ,[SystemId]
-                                                ,[UserId]
-                                                ,[PublicKey]
-                                                ,[IsLogged]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_SystemId
-                                                 ,@W_UserId
-                                                 ,@W_PublicKey
-                                                 ,@W_IsLogged
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Sessions] SET [Id] = @W_Id
-                                              ,[SystemId] = @W_SystemId
-                                              ,[UserId] = @W_UserId
-                                              ,[PublicKey] = @W_PublicKey
-                                              ,[IsLogged] = @W_IsLogged
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Sessions] ([Id]
+                                            ,[SystemId]
+                                            ,[UserId]
+                                            ,[PublicKey]
+                                            ,[IsLogged]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_SystemId
+                                             ,@W_UserId
+                                             ,@W_PublicKey
+                                             ,@W_IsLogged
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[SessionUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[SessionUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SessionUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[SessionUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Sessions'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[SessionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
+               ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+               ,@W_PublicKey nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS nvarchar(256))
+               ,@W_IsLogged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit)
+
+        UPDATE [dbo].[Sessions] SET [Id] = @W_Id
+                                          ,[SystemId] = @W_SystemId
+                                          ,[UserId] = @W_UserId
+                                          ,[PublicKey] = @W_PublicKey
+                                          ,[IsLogged] = @W_IsLogged
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[SessionDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[SessionDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SessionDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[SessionDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Sessions'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[SessionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Sessions] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -26131,7 +28843,7 @@ Criar stored procedure [dbo].[SessionsRead]
 IF(SELECT object_id('[dbo].[SessionsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SessionsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SessionsRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -26140,14 +28852,19 @@ ALTER PROCEDURE [dbo].[SessionsRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -26184,11 +28901,11 @@ ALTER PROCEDURE [dbo].[SessionsRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.SystemId') AS bigint) AS [SystemId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.UserId') AS bigint) AS [UserId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.PublicKey') AS nvarchar(256)) AS [PublicKey]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsLogged') AS bit) AS [IsLogged]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SystemId') AS bigint) AS [SystemId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.UserId') AS bigint) AS [UserId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.PublicKey') AS nvarchar(256)) AS [PublicKey]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsLogged') AS bit) AS [IsLogged]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -26301,13 +29018,6 @@ ALTER PROCEDURE [dbo].[SessionsRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[SystemId]
-              ,[UserId]
-              ,[PublicKey]
-              ,[IsLogged]
-            FROM [#result]
         SELECT DISTINCT 'System' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -26332,16 +29042,18 @@ ALTER PROCEDURE [dbo].[SessionsRead](@LoginId BIGINT
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Users] ON [#Users](Id)
-        SELECT [Systems].* FROM [#Systems] AS [Systems]
-        SELECT [Users].* FROM [#Users] AS [Users]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[SystemId]
+                      ,[UserId]
+                      ,[PublicKey]
+                      ,[IsLogged]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
+              ,ISNULL((SELECT [Users].* FROM [#Users] AS [Users] FOR JSON PATH), '[]') AS [Users]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -26353,16 +29065,16 @@ IF(SELECT object_id('[dbo].[TransactionValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TransactionValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -26370,21 +29082,35 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -26397,7 +29123,7 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Transactions', 1
         END ELSE IF @Action <> 'create'
@@ -26407,23 +29133,27 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.SessionId'), JSON_VALUE(@LastRecord, '$.SessionId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsConfirmed'), JSON_VALUE(@LastRecord, '$.IsConfirmed'), 'bit') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Transactions]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [SessionId] = JSON_VALUE(@LastRecord, '$.SessionId')
-                                  AND [IsConfirmed] = JSON_VALUE(@LastRecord, '$.IsConfirmed'))
+                                  AND [dbo].[IS_EQUAL]([IsConfirmed], JSON_VALUE(@LastRecord, '$.IsConfirmed'), 'bit') = 1)
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Transactions'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SessionId') = JSON_VALUE(@LastRecord, '$.SessionId')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsConfirmed'), JSON_VALUE(@LastRecord, '$.IsConfirmed'), 'bit') = 1)
                 THROW 51000, 'Registro de Transactions alterado por outro usuário', 1
         END
 
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Operations] WHERE [TransactionId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Operations', 1
-        END ELSE BEGIN
+        END
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_SessionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SessionId') AS bigint)
                    ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
@@ -26432,20 +29162,11 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de SessionId em @ActualRecord é requerido.', 1
             IF @W_SessionId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SessionId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Sessions] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Sessions] WHERE [Id] = @W_SessionId)
                 THROW 51000, 'Valor de SessionId em @ActualRecord inexiste em Sessions', 1
-            IF @W_IsConfirmed IS NULL
-                THROW 51000, 'Valor de IsConfirmed em @ActualRecord é requerido.', 1
-            IF @W_IsConfirmed < CAST('1' AS bit)
-                THROW 51000, 'Valor de IsConfirmed em @ActualRecord deve ser maior que ou igual a 1', 1
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -26455,39 +29176,65 @@ Criar stored procedure [dbo].[TransactionPersist]
 IF(SELECT object_id('[dbo].[TransactionPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TransactionPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TransactionPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[TransactionPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[TransactionValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Transactions'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Transactions', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[TransactionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Transactions'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -26495,7 +29242,8 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Transactions'
                                              ,@Action
                                              ,@LastRecord
@@ -26503,7 +29251,6 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -26511,11 +29258,16 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[TransactionValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[TransactionValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -26531,126 +29283,13 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[TransactionCommit]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[TransactionCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TransactionCommit] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[TransactionCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
-                                             ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
-
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-        DECLARE @TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@TableName NVARCHAR(25)
-               ,@Action NVARCHAR(15)
-               ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
-               ,@ActualRecord NVARCHAR(max)
-               ,@IsConfirmed BIT
-
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
-            THROW 51000, 'Valor de @OperationId requerido', 1
-        SELECT @TransactionId = [TransactionId]
-               ,@TableName = [TableName]
-               ,@Action = [Action]
-               ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
-               ,@ActualRecord = [ActualRecord]
-               ,@IsConfirmed = [IsConfirmed]
-            FROM [dbo].[Operations]
-            WHERE [Id] = @OperationId
-        IF @@ROWCOUNT = 0
-            THROW 51000, 'Operação inexistente', 1
-        IF @TableName <> 'Transactions'
-            THROW 51000, 'Tabela da operação é inválida', 1
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @UserName <> @CreatedBy
-            THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[TransactionValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId <> @TransactionIdAux
-            THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Transactions] WHERE [Id] = @W_Id
-        ELSE BEGIN
-
-            DECLARE @W_SessionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SessionId') AS bigint)
-                   ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Transactions] ([Id]
-                                                ,[SessionId]
-                                                ,[IsConfirmed]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_SessionId
-                                                 ,@W_IsConfirmed
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Transactions] SET [Id] = @W_Id
-                                              ,[SessionId] = @W_SessionId
-                                              ,[IsConfirmed] = @W_IsConfirmed
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
-        UPDATE [dbo].[Operations]
-            SET [IsConfirmed] = 1
-                ,[UpdatedAt] = GETDATE()
-                ,[UpdatedBy] = @UserName
-            WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
-
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
@@ -26660,7 +29299,7 @@ Criar stored procedure [dbo].[TransactionsRead]
 IF(SELECT object_id('[dbo].[TransactionsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TransactionsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -26669,14 +29308,19 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -26713,9 +29357,9 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.SessionId') AS bigint) AS [SessionId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsConfirmed') AS bit) AS [IsConfirmed]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SessionId') AS bigint) AS [SessionId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsConfirmed') AS bit) AS [IsConfirmed]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -26800,11 +29444,6 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[SessionId]
-              ,[IsConfirmed]
-            FROM [#result]
         SELECT DISTINCT 'Session' AS [Kind]
               ,[R].[Id]
               ,[R].[SystemId]
@@ -26828,16 +29467,16 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@LoginId BIGINT
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
-        SELECT [Sessions].* FROM [#Sessions] AS [Sessions]
-        SELECT [Systems].* FROM [#Systems] AS [Systems]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[SessionId]
+                      ,[IsConfirmed]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Sessions].* FROM [#Sessions] AS [Sessions] FOR JSON PATH), '[]') AS [Sessions]
+              ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -26849,16 +29488,16 @@ IF(SELECT object_id('[dbo].[OperationValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[OperationValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -26866,21 +29505,35 @@ ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -26893,7 +29546,7 @@ ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Operations] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Operations', 1
         END ELSE IF @Action <> 'create'
@@ -26903,28 +29556,31 @@ ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.TransactionId'), JSON_VALUE(@LastRecord, '$.TransactionId'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.TableName'), JSON_VALUE(@LastRecord, '$.TableName'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Action'), JSON_VALUE(@LastRecord, '$.Action'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.LastRecord'), JSON_VALUE(@LastRecord, '$.LastRecord'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ActualRecord'), JSON_VALUE(@LastRecord, '$.ActualRecord'), 'nvarchar(max)') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsConfirmed'), JSON_VALUE(@LastRecord, '$.IsConfirmed'), 'bit') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Operations]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [TransactionId] = JSON_VALUE(@LastRecord, '$.TransactionId')
                                   AND [TableName] = JSON_VALUE(@LastRecord, '$.TableName')
                                   AND [Action] = JSON_VALUE(@LastRecord, '$.Action')
-                                  AND [crudex].[IS_EQUAL]([LastRecord], JSON_VALUE(@LastRecord, '$.LastRecord'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL]([LastRecord], JSON_VALUE(@LastRecord, '$.LastRecord'), 'nvarchar(max)') = 1
                                   AND [ActualRecord] = JSON_VALUE(@LastRecord, '$.ActualRecord')
-                                  AND [crudex].[IS_EQUAL]([IsConfirmed], JSON_VALUE(@LastRecord, '$.IsConfirmed'), 'bit') = 1)
+                                  AND [dbo].[IS_EQUAL]([IsConfirmed], JSON_VALUE(@LastRecord, '$.IsConfirmed'), 'bit') = 1)
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Operations'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TransactionId') = JSON_VALUE(@LastRecord, '$.TransactionId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableName') = JSON_VALUE(@LastRecord, '$.TableName')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Action') = JSON_VALUE(@LastRecord, '$.Action')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.LastRecord'), JSON_VALUE(@LastRecord, '$.LastRecord'), 'nvarchar(max)') = 1
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ActualRecord') = JSON_VALUE(@LastRecord, '$.ActualRecord')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsConfirmed'), JSON_VALUE(@LastRecord, '$.IsConfirmed'), 'bit') = 1)
                 THROW 51000, 'Registro de Operations alterado por outro usuário', 1
         END
 
-        IF @Action <> 'delete' BEGIN
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_TransactionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TransactionId') AS bigint)
                    ,@W_TableName nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.TableName') AS nvarchar(25))
@@ -26937,7 +29593,7 @@ ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de TransactionId em @ActualRecord é requerido.', 1
             IF @W_TransactionId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TransactionId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @W_TransactionId)
                 THROW 51000, 'Valor de TransactionId em @ActualRecord inexiste em Transactions', 1
             IF @W_TableName IS NULL
                 THROW 51000, 'Valor de TableName em @ActualRecord é requerido.', 1
@@ -26947,12 +29603,7 @@ ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de ActualRecord em @ActualRecord é requerido.', 1
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -26962,39 +29613,65 @@ Criar stored procedure [dbo].[OperationPersist]
 IF(SELECT object_id('[dbo].[OperationPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[OperationPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperationPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[OperationPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[OperationValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Operations'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Operations', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[OperationValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Operations'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -27002,7 +29679,8 @@ ALTER PROCEDURE [dbo].[OperationPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Operations'
                                              ,@Action
                                              ,@LastRecord
@@ -27010,7 +29688,6 @@ ALTER PROCEDURE [dbo].[OperationPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -27018,11 +29695,16 @@ ALTER PROCEDURE [dbo].[OperationPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[OperationValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[OperationValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -27038,43 +29720,39 @@ ALTER PROCEDURE [dbo].[OperationPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[OperationCommit]
+Criar stored procedure [dbo].[OperationCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[OperationCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[OperationCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[OperationCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperationCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperationCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[OperationCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -27083,13 +29761,7 @@ ALTER PROCEDURE [dbo].[OperationCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -27105,75 +29777,207 @@ ALTER PROCEDURE [dbo].[OperationCommit](@SessionId BIGINT
         IF @TableName <> 'Operations'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[OperationValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[OperationValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Operations] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_TransactionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TransactionId') AS bigint)
+               ,@W_TableName nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.TableName') AS nvarchar(25))
+               ,@W_Action nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(15))
+               ,@W_LastRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.LastRecord') AS nvarchar(max))
+               ,@W_ActualRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ActualRecord') AS nvarchar(max))
+               ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
 
-            DECLARE @W_TransactionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TransactionId') AS bigint)
-                   ,@W_TableName nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.TableName') AS nvarchar(25))
-                   ,@W_Action nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(15))
-                   ,@W_LastRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.LastRecord') AS nvarchar(max))
-                   ,@W_ActualRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ActualRecord') AS nvarchar(max))
-                   ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Operations] ([Id]
-                                                ,[TransactionId]
-                                                ,[TableName]
-                                                ,[Action]
-                                                ,[LastRecord]
-                                                ,[ActualRecord]
-                                                ,[IsConfirmed]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_TransactionId
-                                                 ,@W_TableName
-                                                 ,@W_Action
-                                                 ,@W_LastRecord
-                                                 ,@W_ActualRecord
-                                                 ,@W_IsConfirmed
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Operations] SET [Id] = @W_Id
-                                              ,[TransactionId] = @W_TransactionId
-                                              ,[TableName] = @W_TableName
-                                              ,[Action] = @W_Action
-                                              ,[LastRecord] = @W_LastRecord
-                                              ,[ActualRecord] = @W_ActualRecord
-                                              ,[IsConfirmed] = @W_IsConfirmed
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Operations] ([Id]
+                                            ,[TransactionId]
+                                            ,[TableName]
+                                            ,[Action]
+                                            ,[LastRecord]
+                                            ,[ActualRecord]
+                                            ,[IsConfirmed]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_TransactionId
+                                             ,@W_TableName
+                                             ,@W_Action
+                                             ,@W_LastRecord
+                                             ,@W_ActualRecord
+                                             ,@W_IsConfirmed
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[OperationUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperationUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperationUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperationUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Operations'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[OperationValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_TransactionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TransactionId') AS bigint)
+               ,@W_TableName nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.TableName') AS nvarchar(25))
+               ,@W_Action nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(15))
+               ,@W_LastRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.LastRecord') AS nvarchar(max))
+               ,@W_ActualRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ActualRecord') AS nvarchar(max))
+               ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
+
+        UPDATE [dbo].[Operations] SET [Id] = @W_Id
+                                          ,[TransactionId] = @W_TransactionId
+                                          ,[TableName] = @W_TableName
+                                          ,[Action] = @W_Action
+                                          ,[LastRecord] = @W_LastRecord
+                                          ,[ActualRecord] = @W_ActualRecord
+                                          ,[IsConfirmed] = @W_IsConfirmed
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[OperationDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperationDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperationDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperationDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Operations'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[OperationValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Operations] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -27183,7 +29987,7 @@ Criar stored procedure [dbo].[OperationsRead]
 IF(SELECT object_id('[dbo].[OperationsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[OperationsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -27192,14 +29996,19 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -27236,13 +30045,13 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.TransactionId') AS bigint) AS [TransactionId]
-              ,CAST(JSON_VALUE([ActualRecord], '$.TableName') AS nvarchar(25)) AS [TableName]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Action') AS nvarchar(15)) AS [Action]
-              ,CAST(JSON_VALUE([ActualRecord], '$.LastRecord') AS nvarchar(max)) AS [LastRecord]
-              ,CAST(JSON_VALUE([ActualRecord], '$.ActualRecord') AS nvarchar(max)) AS [ActualRecord]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsConfirmed') AS bit) AS [IsConfirmed]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TransactionId') AS bigint) AS [TransactionId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableName') AS nvarchar(25)) AS [TableName]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Action') AS nvarchar(15)) AS [Action]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.LastRecord') AS nvarchar(max)) AS [LastRecord]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ActualRecord') AS nvarchar(max)) AS [ActualRecord]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsConfirmed') AS bit) AS [IsConfirmed]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -27339,15 +30148,6 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[TransactionId]
-              ,[TableName]
-              ,[Action]
-              ,[LastRecord]
-              ,[ActualRecord]
-              ,[IsConfirmed]
-            FROM [#result]
         SELECT DISTINCT 'Transaction' AS [Kind]
               ,[R].[Id]
               ,[R].[SessionId]
@@ -27380,17 +30180,21 @@ ALTER PROCEDURE [dbo].[OperationsRead](@LoginId BIGINT
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
-        SELECT [Transactions].* FROM [#Transactions] AS [Transactions]
-        SELECT [Sessions].* FROM [#Sessions] AS [Sessions]
-        SELECT [Systems].* FROM [#Systems] AS [Systems]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[TransactionId]
+                      ,[TableName]
+                      ,[Action]
+                      ,[LastRecord]
+                      ,[ActualRecord]
+                      ,[IsConfirmed]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Transactions].* FROM [#Transactions] AS [Transactions] FOR JSON PATH), '[]') AS [Transactions]
+              ,ISNULL((SELECT [Sessions].* FROM [#Sessions] AS [Sessions] FOR JSON PATH), '[]') AS [Sessions]
+              ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -27402,16 +30206,16 @@ IF(SELECT object_id('[dbo].[UnicityValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UnicityValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -27419,21 +30223,35 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS bigint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -27446,7 +30264,7 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Unicities', 1
         END ELSE IF @Action <> 'create'
@@ -27456,22 +30274,25 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ColumnId1'), JSON_VALUE(@LastRecord, '$.ColumnId1'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.ColumnId2'), JSON_VALUE(@LastRecord, '$.ColumnId2'), 'bigint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.IsBidirectional'), JSON_VALUE(@LastRecord, '$.IsBidirectional'), 'bit') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Unicities]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [ColumnId1] = JSON_VALUE(@LastRecord, '$.ColumnId1')
                                   AND [ColumnId2] = JSON_VALUE(@LastRecord, '$.ColumnId2')
                                   AND [IsBidirectional] = JSON_VALUE(@LastRecord, '$.IsBidirectional'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Unicities'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ColumnId1') = JSON_VALUE(@LastRecord, '$.ColumnId1')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ColumnId2') = JSON_VALUE(@LastRecord, '$.ColumnId2')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsBidirectional') = JSON_VALUE(@LastRecord, '$.IsBidirectional'))
                 THROW 51000, 'Registro de Unicities alterado por outro usuário', 1
         END
 
-        IF @Action <> 'delete' BEGIN
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_ColumnId1 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId1') AS bigint)
                    ,@W_ColumnId2 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId2') AS bigint)
@@ -27479,11 +30300,11 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
 
             IF @W_ColumnId1 IS NULL
                 THROW 51000, 'Valor de ColumnId1 em @ActualRecord é requerido.', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId1)
                 THROW 51000, 'Valor de ColumnId1 em @ActualRecord inexiste em Columns', 1
             IF @W_ColumnId2 IS NULL
                 THROW 51000, 'Valor de ColumnId2 em @ActualRecord é requerido.', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id)
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId2)
                 THROW 51000, 'Valor de ColumnId2 em @ActualRecord inexiste em Columns', 1
             IF @W_IsBidirectional IS NULL
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
@@ -27499,12 +30320,7 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
             END
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -27514,39 +30330,65 @@ Criar stored procedure [dbo].[UnicityPersist]
 IF(SELECT object_id('[dbo].[UnicityPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UnicityPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UnicityPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[UnicityPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+           ,@W_Id bigint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[UnicityValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Unicities'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Unicities', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[UnicityValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Unicities'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -27554,7 +30396,8 @@ ALTER PROCEDURE [dbo].[UnicityPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Unicities'
                                              ,@Action
                                              ,@LastRecord
@@ -27562,7 +30405,6 @@ ALTER PROCEDURE [dbo].[UnicityPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -27570,11 +30412,16 @@ ALTER PROCEDURE [dbo].[UnicityPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[UnicityValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[UnicityValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -27590,43 +30437,39 @@ ALTER PROCEDURE [dbo].[UnicityPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UnicityCommit]
+Criar stored procedure [dbo].[UnicityCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UnicityCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UnicityCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UnicityCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UnicityCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UnicityCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[UnicityCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -27635,13 +30478,7 @@ ALTER PROCEDURE [dbo].[UnicityCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -27657,63 +30494,192 @@ ALTER PROCEDURE [dbo].[UnicityCommit](@SessionId BIGINT
         IF @TableName <> 'Unicities'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[UnicityValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[UnicityValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Unicities] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_ColumnId1 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId1') AS bigint)
+               ,@W_ColumnId2 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId2') AS bigint)
+               ,@W_IsBidirectional bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBidirectional') AS bit)
 
-            DECLARE @W_ColumnId1 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId1') AS bigint)
-                   ,@W_ColumnId2 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId2') AS bigint)
-                   ,@W_IsBidirectional bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBidirectional') AS bit)
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Unicities] ([Id]
-                                                ,[ColumnId1]
-                                                ,[ColumnId2]
-                                                ,[IsBidirectional]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_ColumnId1
-                                                 ,@W_ColumnId2
-                                                 ,@W_IsBidirectional
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Unicities] SET [Id] = @W_Id
-                                              ,[ColumnId1] = @W_ColumnId1
-                                              ,[ColumnId2] = @W_ColumnId2
-                                              ,[IsBidirectional] = @W_IsBidirectional
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Unicities] ([Id]
+                                            ,[ColumnId1]
+                                            ,[ColumnId2]
+                                            ,[IsBidirectional]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_ColumnId1
+                                             ,@W_ColumnId2
+                                             ,@W_IsBidirectional
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[UnicityUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[UnicityUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UnicityUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[UnicityUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Unicities'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[UnicityValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_ColumnId1 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId1') AS bigint)
+               ,@W_ColumnId2 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId2') AS bigint)
+               ,@W_IsBidirectional bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBidirectional') AS bit)
+
+        UPDATE [dbo].[Unicities] SET [Id] = @W_Id
+                                          ,[ColumnId1] = @W_ColumnId1
+                                          ,[ColumnId2] = @W_ColumnId2
+                                          ,[IsBidirectional] = @W_IsBidirectional
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[UnicityDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[UnicityDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UnicityDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[UnicityDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Unicities'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[UnicityValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Unicities] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -27723,7 +30689,7 @@ Criar stored procedure [dbo].[UnicitiesRead]
 IF(SELECT object_id('[dbo].[UnicitiesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UnicitiesRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UnicitiesRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -27732,14 +30698,19 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -27776,10 +30747,10 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.ColumnId1') AS bigint) AS [ColumnId1]
-              ,CAST(JSON_VALUE([ActualRecord], '$.ColumnId2') AS bigint) AS [ColumnId2]
-              ,CAST(JSON_VALUE([ActualRecord], '$.IsBidirectional') AS bit) AS [IsBidirectional]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ColumnId1') AS bigint) AS [ColumnId1]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ColumnId2') AS bigint) AS [ColumnId2]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsBidirectional') AS bit) AS [IsBidirectional]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -27885,12 +30856,6 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[ColumnId1]
-              ,[ColumnId2]
-              ,[IsBidirectional]
-            FROM [#result]
         SELECT DISTINCT 'Column' AS [Kind]
               ,[R].[Id]
               ,[R].[TableId]
@@ -27999,16 +30964,17 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@LoginId BIGINT
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        SELECT [Columns].* FROM [#Columns] AS [Columns]
-        SELECT [Tables].* FROM [#Tables] AS [Tables]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[ColumnId1]
+                      ,[ColumnId2]
+                      ,[IsBidirectional]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Columns].* FROM [#Columns] AS [Columns] FOR JSON PATH), '[]') AS [Columns]
+              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -28020,16 +30986,16 @@ IF(SELECT object_id('[dbo].[OperatorValidate]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[OperatorValidate] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[OperatorValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
                                                ,@LastRecord NVARCHAR(max)
                                                ,@ActualRecord NVARCHAR(max)) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @SessionId IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
             THROW 51000, 'Valor de @SessionId é requerido', 1
         IF @UserName IS NULL
             THROW 51000, 'Valor de @UserName é requerido', 1
@@ -28037,21 +31003,35 @@ ALTER PROCEDURE [dbo].[OperatorValidate](@SessionId BIGINT
             THROW 51000, 'Valor de @Action é requerido', 1
         IF @Action NOT IN ('create', 'update', 'delete')
             THROW 51000, 'Valor de @Action é inválido', 1
-        IF @ActualRecord IS NULL
-            THROW 51000, 'Valor de @ActualRecord é requerido', 1
-        IF ISJSON(@ActualRecord) = 0
-            THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-               ,@IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@W_Id AS tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
-
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
         IF @TransactionId IS NULL
-            THROW 51000, 'Não existe transação para este @SessionId', 1
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@W_Id AS tinyint
+
+        IF @Action = 'delete'
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+        ELSE
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
         SELECT @IsConfirmed = [IsConfirmed]
               ,@CreatedBy = [CreatedBy]
             FROM [dbo].[Transactions]
             WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1;
@@ -28064,7 +31044,7 @@ ALTER PROCEDURE [dbo].[OperatorValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS tinyint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id) BEGIN
+        IF EXISTS(SELECT 1 FROM [dbo].[Operators] WHERE [Id] = @W_Id) BEGIN
             IF @Action = 'create'
                 THROW 51000, 'Chave-primária já existe em Operators', 1
         END ELSE IF @Action <> 'create'
@@ -28074,22 +31054,25 @@ ALTER PROCEDURE [dbo].[OperatorValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF @Action = 'update'
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Id'), JSON_VALUE(@LastRecord, '$.Id'), 'tinyint') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.CodeSQL'), JSON_VALUE(@LastRecord, '$.CodeSQL'), 'nvarchar') = 1
-                AND [crudex].[IS_EQUAL](JSON_VALUE(@ActualRecord, '$.CodeJS'), JSON_VALUE(@LastRecord, '$.CodeJS'), 'nvarchar') = 1
-                THROW 51000, 'Nenhuma alteração feita no registro', 1
             IF NOT EXISTS(SELECT 1
                             FROM [dbo].[Operators]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
                                   AND [CodeSQL] = JSON_VALUE(@LastRecord, '$.CodeSQL')
-                                  AND [crudex].[IS_EQUAL]([CodeJS], JSON_VALUE(@LastRecord, '$.CodeJS'), 'nvarchar') = 1)
+                                  AND [dbo].[IS_EQUAL]([CodeJS], JSON_VALUE(@LastRecord, '$.CodeJS'), 'nvarchar') = 1)
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Operators'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CodeSQL') = JSON_VALUE(@LastRecord, '$.CodeSQL')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CodeJS'), JSON_VALUE(@LastRecord, '$.CodeJS'), 'nvarchar') = 1)
                 THROW 51000, 'Registro de Operators alterado por outro usuário', 1
         END
 
-        IF @Action <> 'delete' BEGIN
+        IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_Name nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(15))
                    ,@W_CodeSQL nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.CodeSQL') AS nvarchar(15))
@@ -28101,12 +31084,7 @@ ALTER PROCEDURE [dbo].[OperatorValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de CodeSQL em @ActualRecord é requerido.', 1
         END
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
 END
 GO
 
@@ -28116,39 +31094,65 @@ Criar stored procedure [dbo].[OperatorPersist]
 IF(SELECT object_id('[dbo].[OperatorPersist]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[OperatorPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperatorPersist](@SessionId BIGINT
-                                              ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[OperatorPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-           ,@ErrorMessage NVARCHAR(255)
+    DECLARE @ErrorMessage NVARCHAR(255)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
-               ,@OperationId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-               ,@W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+           ,@W_Id tinyint
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        EXEC @TransactionId = [dbo].[OperatorValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+    IF @Action = 'delete'
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+    ELSE
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Operators'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Operators', @NewId OUT
+            SET @W_Id = CAST(@NewId AS tinyint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[OperatorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'Columns'
+                  AND [TableName] = 'Operators'
                   AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) = @W_Id
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
-            INSERT INTO [dbo].[Operations] ([TransactionId]
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
                                              ,[TableName]
                                              ,[Action]
                                              ,[LastRecord]
@@ -28156,7 +31160,8 @@ ALTER PROCEDURE [dbo].[OperatorPersist](@SessionId BIGINT
                                              ,[IsConfirmed]
                                              ,[CreatedAt]
                                              ,[CreatedBy])
-                                       VALUES(@TransactionId
+                                       VALUES(@OperationId
+                                             ,@TransactionId
                                              ,'Operators'
                                              ,@Action
                                              ,@LastRecord
@@ -28164,7 +31169,6 @@ ALTER PROCEDURE [dbo].[OperatorPersist](@SessionId BIGINT
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
-            SET @OperationId = @@IDENTITY
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -28172,11 +31176,16 @@ ALTER PROCEDURE [dbo].[OperatorPersist](@SessionId BIGINT
             THROW 51000, 'Erro grave de segurança', 1
         ELSE IF @ActionAux = 'delete'
             THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            THROW 51000, 'Registro já existe nesta transação', 1
+        ELSE IF @Action = 'create' BEGIN
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[OperatorValidate] @SessionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[OperatorValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -28192,43 +31201,39 @@ ALTER PROCEDURE [dbo].[OperatorPersist](@SessionId BIGINT
             UPDATE [dbo].[Operations]
                 SET [Action] = 'delete'
                    ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = @ActualRecord
+                   ,[ActualRecord] = NULL
                    ,[UpdatedAt] = GETDATE()
                    ,[UpdatedBy] = @UserName
                 WHERE [Id] = @OperationId
         END
-        COMMIT TRANSACTION
 
-        RETURN CAST(@OperationId AS BIGINT)
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN CAST(@OperationId AS BIGINT)
 END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[OperatorCommit]
+Criar stored procedure [dbo].[OperatorCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[OperatorCommit]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[OperatorCommit] AS PRINT 1')
+IF(SELECT object_id('[dbo].[OperatorCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperatorCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperatorCommit](@SessionId BIGINT
-                                             ,@UserName NVARCHAR(25)
+ALTER PROCEDURE [dbo].[OperatorCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
-    DECLARE @TRANCOUNT INT = @@TRANCOUNT
-            ,@ErrorMessage NVARCHAR(MAX)
+    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-        DECLARE @TransactionId BIGINT
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
                ,@TableName NVARCHAR(25)
                ,@Action NVARCHAR(15)
@@ -28237,13 +31242,7 @@ ALTER PROCEDURE [dbo].[OperatorCommit](@SessionId BIGINT
                ,@ActualRecord NVARCHAR(max)
                ,@IsConfirmed BIT
 
-        BEGIN TRANSACTION
-        SAVE TRANSACTION [SavePoint]
-        IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName requerido', 1
-        IF @OperationId IS NULL
+    IF @OperationId IS NULL
             THROW 51000, 'Valor de @OperationId requerido', 1
         SELECT @TransactionId = [TransactionId]
                ,@TableName = [TableName]
@@ -28259,63 +31258,192 @@ ALTER PROCEDURE [dbo].[OperatorCommit](@SessionId BIGINT
         IF @TableName <> 'Operators'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = @ErrorMessage + 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
         END
         IF @UserName <> @CreatedBy
             THROW 51000, 'Erro grave de segurança', 1
-        EXEC @TransactionIdAux = [dbo].[OperatorValidate] @SessionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[OperatorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
-        IF @Action = 'delete'
-            DELETE FROM [dbo].[Operators] WHERE [Id] = @W_Id
-        ELSE BEGIN
+        DECLARE @W_Name nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(15))
+               ,@W_CodeSQL nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.CodeSQL') AS nvarchar(15))
+               ,@W_CodeJS nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.CodeJS') AS nvarchar(15))
 
-            DECLARE @W_Name nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(15))
-                   ,@W_CodeSQL nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.CodeSQL') AS nvarchar(15))
-                   ,@W_CodeJS nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.CodeJS') AS nvarchar(15))
-
-            IF @Action = 'create'
-                INSERT INTO [dbo].[Operators] ([Id]
-                                                ,[Name]
-                                                ,[CodeSQL]
-                                                ,[CodeJS]
-                                                ,[CreatedAt]
-                                                ,[CreatedBy])
-                                          VALUES (@W_Id
-                                                 ,@W_Name
-                                                 ,@W_CodeSQL
-                                                 ,@W_CodeJS
-                                                 ,GETDATE()
-                                                 ,@UserName)
-            ELSE
-                UPDATE [dbo].[Operators] SET [Id] = @W_Id
-                                              ,[Name] = @W_Name
-                                              ,[CodeSQL] = @W_CodeSQL
-                                              ,[CodeJS] = @W_CodeJS
-                                              ,[UpdatedAt] = GETDATE()
-                                              ,[UpdatedBy] = @UserName
-                    WHERE [Id] = @W_Id
-        END
+        INSERT INTO [dbo].[Operators] ([Id]
+                                            ,[Name]
+                                            ,[CodeSQL]
+                                            ,[CodeJS]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_Name
+                                             ,@W_CodeSQL
+                                             ,@W_CodeJS
+                                             ,GETDATE()
+                                             ,@UserName)
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
                 ,[UpdatedBy] = @UserName
             WHERE [Id] = @OperationId
-        COMMIT TRANSACTION
 
-        RETURN @TransactionId
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > @TRANCOUNT BEGIN
-            ROLLBACK TRANSACTION [SavePoint];
-            COMMIT TRANSACTION
-        END;
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[OperatorUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperatorUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperatorUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperatorUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Operators'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[OperatorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
+
+        DECLARE @W_Name nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(15))
+               ,@W_CodeSQL nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.CodeSQL') AS nvarchar(15))
+               ,@W_CodeJS nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.CodeJS') AS nvarchar(15))
+
+        UPDATE [dbo].[Operators] SET [Id] = @W_Id
+                                          ,[Name] = @W_Name
+                                          ,[CodeSQL] = @W_CodeSQL
+                                          ,[CodeJS] = @W_CodeJS
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[OperatorDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[OperatorDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OperatorDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[OperatorDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Operators'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[OperatorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id tinyint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+
+        DELETE FROM [dbo].[Operators] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
 END
 GO
 
@@ -28325,7 +31453,7 @@ Criar stored procedure [dbo].[OperatorsRead]
 IF(SELECT object_id('[dbo].[OperatorsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[OperatorsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperatorsRead](@LoginId BIGINT
+ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -28334,14 +31462,19 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@LoginId BIGINT
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @LoginId IS NULL
-            THROW 51000, 'Valor de @LoginId é requerido', 1
-        IF @RecordFilter IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @LoginId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @LoginId IS NULL
+        THROW 51000, 'LoginId é requerido', 1
+
+    IF @RecordFilter IS NULL
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
@@ -28378,10 +31511,10 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@LoginId BIGINT
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Id') AS tinyint) AS [Id]
-              ,CAST(JSON_VALUE([ActualRecord], '$.Name') AS nvarchar(15)) AS [Name]
-              ,CAST(JSON_VALUE([ActualRecord], '$.CodeSQL') AS nvarchar(15)) AS [CodeSQL]
-              ,CAST(JSON_VALUE([ActualRecord], '$.CodeJS') AS nvarchar(15)) AS [CodeJS]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(15)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CodeSQL') AS nvarchar(15)) AS [CodeSQL]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CodeJS') AS nvarchar(15)) AS [CodeJS]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -28487,21 +31620,16 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@LoginId BIGINT
                         OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT [Kind]
-              ,[Id]
-              ,[Name]
-              ,[Name] AS [ListItemValue]
-              ,[CodeSQL]
-              ,[CodeJS]
-            FROM [#result]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[Name]
+                      ,[Name] AS [ListItemValue]
+                      ,[CodeSQL]
+                      ,[CodeJS]
+                    FROM [#result] FOR JSON PATH) AS [result]
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1;
-    END CATCH
+    RETURN 0
 END
 GO
 
@@ -28517,12 +31645,10 @@ ALTER PROCEDURE [dbo].[OperatorsList](@Value nvarchar(15)
                                           ,@LimitRows INT OUT
                                           ,@MaxPage INT OUT
                                           ,@ReturnValue BIGINT OUT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
 
-    BEGIN TRY
-        SET NOCOUNT ON
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        IF @Value IS NULL
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @Value IS NULL
             SET @Value = ''
         SELECT [Id]
             INTO [#query]
@@ -28560,12 +31686,7 @@ ALTER PROCEDURE [dbo].[OperatorsList](@Value nvarchar(15)
         EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
-        RETURN 0
-    END TRY
-    BEGIN CATCH
-        SET @ErrorMessage = '[' + ERROR_PROCEDURE() + ']: ' + ERROR_MESSAGE() + ', Line: ' + CAST(ERROR_LINE() AS NVARCHAR(10));
-        THROW 51000, @ErrorMessage, 1
-    END CATCH
+    RETURN 0
 END
 GO
 
