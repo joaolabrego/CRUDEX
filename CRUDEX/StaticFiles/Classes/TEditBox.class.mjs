@@ -17,6 +17,9 @@ export default class TEditBox {
     #checkbox = null;
     #dropdown = null;
     #isReference = false;
+    #isRequired = false;
+    #editMask = null;
+    #readOnly = false;
 
     static Create(column, container = null) {
         const edit = new TEditBox(column);
@@ -97,6 +100,65 @@ export default class TEditBox {
 
     #fieldInputName() {
         return `cx_${this.#column.Name}`;
+    }
+
+    #isRequiredForAction(action) {
+        return this.#column.IsRequired
+            && action !== TSystem.Actions.FILTER
+            && action !== TSystem.Actions.SEARCH;
+    }
+
+    #syncNativeValidity(control) {
+        if (!control || this.#readOnly || !this.#isRequired) {
+            control?.setCustomValidity("");
+            return;
+        }
+        if (!this.#editMask) {
+            control.setCustomValidity("");
+            return;
+        }
+        const value = control.value ?? "";
+        const placeholder = this.#editMask.placeholder ?? "";
+        const empty = TConfig.IsEmpty(value);
+        const incomplete = placeholder && value.length < placeholder.length;
+        if (empty || incomplete)
+            control.setCustomValidity("Informe um valor completo.");
+        else
+            control.setCustomValidity("");
+    }
+
+    #applyNativeConstraints(control, action, readOnly) {
+        this.#readOnly = readOnly;
+        this.#isRequired = this.#isRequiredForAction(action) && !readOnly;
+        if (this.#isRequired)
+            control.setAttribute("required", "required");
+        else
+            control.removeAttribute("required");
+        this.#syncNativeValidity(control);
+    }
+
+    reportValidity() {
+        if (this.#readOnly)
+            return true;
+        if (this.#dropdown) {
+            this.#dropdown.syncFormValidity();
+            return this.#dropdown.input?.reportValidity() ?? true;
+        }
+        if (this.#checkbox) {
+            this.#checkbox.syncFormValidity();
+            const input = this.#checkbox.validityInput;
+            if (!input)
+                return true;
+            const valid = input.reportValidity();
+            if (!valid)
+                this.#checkbox.input?.focus();
+            return valid;
+        }
+        if (this.#control) {
+            this.#syncNativeValidity(this.#control);
+            return this.#control.reportValidity();
+        }
+        return true;
     }
 
     #createNativeInput(htmlInputType) {
@@ -289,6 +351,7 @@ export default class TEditBox {
         const notify = () => {
             const parsed = this.#parseMaskedValue(editMask, control.value);
             onChange(this.#column.Name, TConfig.IsEmpty(control.value) ? null : parsed);
+            this.#syncNativeValidity(control);
         };
 
         control.oninput = () => {
@@ -402,10 +465,11 @@ export default class TEditBox {
         const value = listLabel != null && !TConfig.IsEmpty(fkValue)
             ? { ListItemId: fkValue, ListItemName: listLabel }
             : fkValue;
-        const isRequired = this.#column.IsRequired
-            && action !== TSystem.Actions.FILTER
-            && action !== TSystem.Actions.SEARCH;
+        const isRequired = this.#isRequiredForAction(action);
         const pageSize = 5;
+
+        this.#readOnly = readOnly;
+        this.#isRequired = isRequired && !readOnly;
 
         this.#body.replaceChildren();
         this.#dropdown = TDropdown.Single(this.#body, {
@@ -428,12 +492,14 @@ export default class TEditBox {
 
         this.#dropdown.element.addEventListener("change", (event) => {
             onChange(this.#column.Name, event.detail.value);
+            this.#dropdown.syncFormValidity();
         });
 
         this.#control = this.#dropdown.input;
         this.#control.name = this.#fieldInputName();
         this.#disableBrowserAutofill(this.#control, readOnly);
         this.#control.Column = this.#column;
+        this.#dropdown.syncFormValidity();
         this.#bindControlKeys(this.#control, action, onConfirm, onCancel);
         this.#control.onfocus = (event) => event.target.select();
         onFirstInput?.(this.#control);
@@ -454,6 +520,9 @@ export default class TEditBox {
             ? TCheckbox.Condition(this.#checkboxHost, checkboxOptions)
             : TCheckbox.Edition(this.#checkboxHost, { ...checkboxOptions, required: this.#column.IsRequired });
 
+        this.#readOnly = readOnly;
+        this.#isRequired = this.#column.IsRequired && !isCondition && !readOnly;
+        this.#checkbox.syncFormValidity();
         this.#control = this.#checkbox.input;
         this.#disableBrowserAutofill(this.#control, readOnly);
         this.#control.Column = this.#column;
@@ -466,6 +535,7 @@ export default class TEditBox {
         const { action, record, sourceRecord, onChange, onConfirm, onCancel, onFirstInput } = options;
         const readOnly = action === TSystem.Actions.DELETE || action === TSystem.Actions.QUERY;
         const editMask = this.#getEditMask();
+        this.#editMask = editMask && !readOnly ? editMask : null;
         const useDisplayValue = action === TSystem.Actions.QUERY;
         const rawValue = useDisplayValue
             ? this.#getDisplayValue(record, sourceRecord)
@@ -481,6 +551,7 @@ export default class TEditBox {
         this.#control.name = this.#fieldInputName();
         this.#control.Column = this.#column;
         this.#control.readOnly = readOnly;
+        this.#applyNativeConstraints(this.#control, action, readOnly);
         this.#disableBrowserAutofill(this.#control, readOnly);
         this.#control.style.textAlign = this.#column.Domain.Type.Category.HtmlInputAlign;
 
@@ -496,6 +567,7 @@ export default class TEditBox {
                 this.#control.onchange = (event) => {
                     const value = event.target.value;
                     onChange(this.#column.Name, TConfig.IsEmpty(value) ? null : value);
+                    this.#syncNativeValidity(this.#control);
                 };
             } else
                 this.#control.onchange = null;

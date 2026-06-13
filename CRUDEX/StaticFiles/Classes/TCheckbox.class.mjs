@@ -192,6 +192,7 @@ export default class TCheckbox {
             this.#hidden.value = value === TCheckbox.NULL_MARKER ? "null" : String(value ?? "");
         if (this.#onChange)
             this.#onChange(value);
+        this.#syncFormValidity();
         this.#root.dispatchEvent(new CustomEvent("change", {
             bubbles: true,
             detail: { value },
@@ -233,6 +234,26 @@ export default class TCheckbox {
             value, this.#mode, this.#isRequired, this.#readOnly, this.#nullAsEmpty));
         if (this.#hidden)
             this.#hidden.value = this.#toValue() === TCheckbox.NULL_MARKER ? "null" : String(this.#toValue() ?? "");
+        this.#syncFormValidity();
+    }
+
+    #syncFormValidity() {
+        if (!this.#hidden || this.#readOnly || this.#mode === TCheckbox.Modes.CONDITION) {
+            this.#hidden?.setCustomValidity("");
+            return;
+        }
+        if (this.#isRequired && this.#state === TCheckbox.States.NULL)
+            this.#hidden.setCustomValidity("Informe um valor.");
+        else
+            this.#hidden.setCustomValidity("");
+    }
+
+    syncFormValidity() {
+        this.#syncFormValidity();
+    }
+
+    get validityInput() {
+        return this.#hidden;
     }
 
     get IsRequired() {
@@ -244,6 +265,7 @@ export default class TCheckbox {
         this.#root.dataset.required = this.#isRequired ? "true" : "false";
         if (this.#mode === TCheckbox.Modes.EDITION)
             this.#applyState(this.#state);
+        this.#syncFormValidity();
     }
 
     get IsTransparent() {

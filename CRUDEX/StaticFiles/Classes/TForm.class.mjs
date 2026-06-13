@@ -36,6 +36,7 @@ export default class TForm {
     #lastRecord = null;
     #SourceRecord = null;
     #isStaged = false;
+    #editBoxes = [];
 
     constructor(grid, action, options = {}) {
         if (!(grid instanceof TGrid))
@@ -299,7 +300,7 @@ export default class TForm {
         );
     }
     async #confirm() {
-        if (this.#isPersistAction() && !this.#HTML.Form.reportValidity())
+        if (this.#isPersistAction() && !this.#validateForm())
             return;
         if (this.#Action === TSystem.Actions.FILTER) {
             this.#Grid.SaveFilters(this.#actualRecord);
@@ -345,6 +346,13 @@ export default class TForm {
         }
         await this.#returnToCaller();
     }
+    #validateForm() {
+        for (const edit of this.#editBoxes) {
+            if (!edit.reportValidity())
+                return false;
+        }
+        return true;
+    }
     #excludeParentLinkColumn(columns, setParentValue = false) {
         if (!this.#masterForm)
             return columns;
@@ -369,6 +377,7 @@ export default class TForm {
         this.#actualRecord = this.#blankRecord();
         this.#lastRecord = this.#blankRecord();
         this.#isStaged = false;
+        this.#editBoxes = [];
         switch (this.#Action) {
             case TSystem.Actions.CREATE:
                 columns = this.#excludeParentLinkColumn(
@@ -398,7 +407,7 @@ export default class TForm {
         }
         this.#ensureLayout();
         for (const column of columns) {
-            TEditBox.Create(column, this.#HTML.Form)
+            const edit = TEditBox.Create(column, this.#HTML.Form)
                 .configure({
                     action: this.#Action,
                     record: this.#actualRecord,
@@ -411,6 +420,7 @@ export default class TForm {
                             this.#HTML.FirstInput = input;
                     },
                 });
+            this.#editBoxes.push(edit);
         }
         this.#updateConfirmButton();
         this.#updateDetailAccess();

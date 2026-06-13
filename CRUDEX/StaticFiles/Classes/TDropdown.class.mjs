@@ -622,6 +622,7 @@ export default class TDropdown {
 
     #updateValidity() {
         const valid = this.isValid();
+        this.syncFormValidity();
         if (this.#input)
             this.#input.classList.toggle("invalid", !valid);
         if (this.#hint) {
@@ -712,6 +713,17 @@ export default class TDropdown {
         if (this.#requireExact && this.#minItems === this.#maxItems)
             return count === this.#minItems;
         return count >= this.#minItems && count <= this.#maxItems;
+    }
+
+    syncFormValidity() {
+        if (!this.#input || this.#readOnly) {
+            this.#input?.setCustomValidity("");
+            return;
+        }
+        if (this.#required && !this.isValid())
+            this.#input.setCustomValidity("Informe um valor.");
+        else
+            this.#input.setCustomValidity("");
     }
 
     get element() {
