@@ -46,4 +46,47 @@ export default class TRecord {
     get Table() {
         return this.#Table;
     }
+
+    getGridValue(column) {
+        const value = this[column.Name];
+        if (TConfig.IsEmpty(column.ReferenceTableId))
+            return value;
+
+        const refTable = TSystem.GetTable(column.ReferenceTableId);
+        if (!refTable)
+            return value ?? "";
+
+        const alias = refTable.Alias || refTable.Name;
+        const ref = this.references[alias];
+        if (!ref)
+            return value ?? "";
+
+        const listable = refTable.GetListableColumn();
+        if (listable) {
+            const listValue = ref[listable.Name];
+            if (!TConfig.IsEmpty(listValue))
+                return listValue;
+        }
+        return ref.Id ?? value ?? "";
+    }
+
+    getGridAlign(column) {
+        if (TConfig.IsEmpty(column.ReferenceTableId))
+            return column.Domain.Type.Category.HtmlInputAlign;
+
+        const refTable = TSystem.GetTable(column.ReferenceTableId);
+        if (!refTable)
+            return column.Domain.Type.Category.HtmlInputAlign;
+
+        const alias = refTable.Alias || refTable.Name;
+        const ref = this.references[alias];
+        const listable = refTable.GetListableColumn();
+
+        if (ref && listable) {
+            const listValue = ref[listable.Name];
+            if (!TConfig.IsEmpty(listValue))
+                return listable.Domain.Type.Category.HtmlInputAlign;
+        }
+        return column.Domain.Type.Category.HtmlInputAlign;
+    }
 }

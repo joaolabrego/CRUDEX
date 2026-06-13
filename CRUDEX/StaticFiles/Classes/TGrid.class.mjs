@@ -490,8 +490,8 @@ export default class TGrid {
                 (column) => {
                     const td = document.createElement("td");
 
-                    td.appendChild(this.#GetControl(column, row[column.Name]));
-                    td.style = `text-align: ${column.Domain.Type.Category.HtmlInputAlign}`;
+                    td.appendChild(this.#GetControl(column, row.getGridValue(column)));
+                    td.style = `text-align: ${row.getGridAlign(column)}`;
                     tr.appendChild(td);
                 }
             );
