@@ -13,6 +13,7 @@
     --font-size-body: 2.0dvmin;
     --border-radius: 2dvmin;
     --rows-per-page: 35;
+    --rows-per-child-page: 15;
     --grid-thead-height: 1.5dvmin;
     --grid-tfoot-height: 1.5dvmin;
 }

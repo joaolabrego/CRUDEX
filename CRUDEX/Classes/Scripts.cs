@@ -172,6 +172,28 @@ namespace crudex.Classes
 
             return result;
         }
+        private static void AppendReadFilterScope(StringBuilder result, DataRow column, TDataRows domains, TDataRows types, string scopePrefix, string whereVariable, string indent)
+        {
+            var name = column["Name"];
+            var dataType = column["#DataType"];
+            var validations = GetConstraints(column, domains, types);
+            var valueVariable = $"@W_{scopePrefix}_{name}";
+            var parameterName = $"@{scopePrefix}_{name}";
+
+            result.Append($"{indent}IF {valueVariable} IS NOT NULL BEGIN\r\n");
+            if (validations.TryGetValue("Minimum", out dynamic? value))
+            {
+                result.Append($"{indent}    IF {valueVariable} < CAST('{value}' AS {dataType})\r\n");
+                result.Append($"{indent}        THROW 51000, 'Valor de {name} deve ser maior que ou igual a ''{value}''', 1\r\n");
+            }
+            if (validations.TryGetValue("Maximum", out value))
+            {
+                result.Append($"{indent}    IF {valueVariable} > CAST('{value}' AS {dataType})\r\n");
+                result.Append($"{indent}        THROW 51000, 'Valor de {name} deve ser menor que ou igual a ''{value}''', 1\r\n");
+            }
+            result.Append($"{indent}    SET {whereVariable} = {whereVariable} + ' AND [T].[{name}] = {parameterName}'\r\n");
+            result.Append($"{indent}END\r\n");
+        }
         private static StringBuilder GetScriptCreateDatabase(DataRow database, bool isDocker)
         {
             var result = new StringBuilder();
@@ -1024,6 +1046,7 @@ namespace crudex.Classes
                 result.Append($"            THROW 51000, 'Valor de @TransactionId é requerido', 1\r\n");
                 result.Append($"        DECLARE @IsConfirmed BIT\r\n");
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
+                result.Append($"               ,@IsPendingCreate BIT = 0\r\n");
                 result.Append($"               ,@W_Id AS {columnRows[0]["#DataType"]}\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF @Action = 'delete'\r\n");
@@ -1065,9 +1088,17 @@ namespace crudex.Classes
                 result.Append(") BEGIN\r\n");
                 result.Append($"            IF @Action = 'create'\r\n");
                 result.Append($"                THROW 51000, 'Chave-primária já existe em {table["Name"]}', 1\r\n");
-                result.Append($"        END ELSE IF @Action <> 'create'\r\n");
+                result.Append($"        END ELSE IF @Action = 'delete' AND EXISTS(SELECT 1\r\n");
+                result.Append($"                                    FROM [dbo].[Operations]\r\n");
+                result.Append($"                                    WHERE [TransactionId] = @TransactionId\r\n");
+                result.Append($"                                          AND [TableName] = '{table["Name"]}'\r\n");
+                result.Append($"                                          AND [IsConfirmed] IS NULL\r\n");
+                result.Append($"                                          AND [Action] = 'create'\r\n");
+                result.Append($"                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS {columnRows[0]["#DataType"]}) = @W_Id)\r\n");
+                result.Append($"            SET @IsPendingCreate = 1\r\n");
+                result.Append($"        ELSE IF @Action <> 'create'\r\n");
                 result.Append($"            THROW 51000, 'Chave-primária não existe em {table["Name"]}', 1\r\n");
-                result.Append($"        IF @Action <> 'create' BEGIN\r\n");
+                result.Append($"        IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN\r\n");
                 result.Append($"            IF @LastRecord IS NULL\r\n");
                 result.Append($"                THROW 51000, 'Valor de @LastRecord é requerido', 1\r\n");
                 result.Append($"            IF ISJSON(@LastRecord) = 0\r\n");
@@ -1399,78 +1430,93 @@ namespace crudex.Classes
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
                 result.Append($"        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))\r\n");
+                result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))\r\n");
+                result.Append($"               ,@WhereFixed NVARCHAR(MAX) = ''\r\n");
+                result.Append($"               ,@WhereFilter NVARCHAR(MAX) = ''\r\n");
+                result.Append($"               ,@WhereSearch NVARCHAR(MAX) = ''\r\n");
+                result.Append($"               ,@WhereUser NVARCHAR(MAX) = ''\r\n");
                 result.Append($"               ,@Where NVARCHAR(MAX) = ''\r\n");
                 result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
                 result.Append($"\r\n");
-                result.Append($"        IF @_ IS NULL BEGIN\r\n");
 
                 var filterableColumns = columnRows.FindAll(column => Settings.ToBoolean(column["IsFilterable"]));
 
                 firstTime = true;
                 foreach (var column in filterableColumns)
                 {
+                    var columnName = column["Name"];
+                    var dataType = column["#DataType"];
                     if (firstTime)
                     {
-                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"        DECLARE @W_F_{columnName} {dataType} = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.{columnName}') AS {dataType})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"               ,@W_F_{columnName} {dataType} = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.{columnName}') AS {dataType})\r\n");
+                    result.Append($"               ,@W_U_{columnName} {dataType} = CAST(JSON_VALUE(@RecordFilter, '$.Filter.{columnName}') AS {dataType})\r\n");
+                    result.Append($"               ,@W_S_{columnName} {dataType} = CAST(JSON_VALUE(@RecordFilter, '$.Search.{columnName}') AS {dataType})\r\n");
                 }
                 result.Append($"\r\n");
                 foreach (var column in filterableColumns)
-                {
-                    var validations = GetConstraints(column, domains, types);
-
-                    result.Append($"            IF @W_{column["Name"]} IS NOT NULL BEGIN\r\n");
-                    if (validations.TryGetValue("Minimum", out dynamic? value))
-                    {
-                        result.Append($"                IF @W_{column["Name"]} < CAST('{value}' AS {column["#DataType"]})\r\n");
-                        result.Append($"                    THROW 51000, 'Valor de {column["Name"]} deve ser maior que ou igual a ''{value}''', 1\r\n");
-                    }
-                    if (validations.TryGetValue("Maximum", out value))
-                    {
-                        result.Append($"                IF @W_{column["Name"]} > CAST('{value}' AS {column["#DataType"]})\r\n");
-                        result.Append($"                    THROW 51000, 'Valor de {column["Name"]} deve ser menor que ou igual a ''{value}''', 1\r\n");
-                    }
-                    result.Append($"                SET @Where = @Where + ' AND [T].[{column["Name"]}] = @{column["Name"]}'\r\n");
-                    result.Append($"            END\r\n");
-                }
+                    AppendReadFilterScope(result, column, domains, types, "F", "@WhereFixed", "        ");
+                result.Append($"        IF @_ IS NULL BEGIN\r\n");
+                foreach (var column in filterableColumns)
+                    AppendReadFilterScope(result, column, domains, types, "U", "@WhereFilter", "            ");
+                foreach (var column in filterableColumns)
+                    AppendReadFilterScope(result, column, domains, types, "S", "@WhereSearch", "            ");
+                result.Append($"            IF @WhereFilter <> '' AND @WhereSearch <> ''\r\n");
+                result.Append($"                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'\r\n");
+                result.Append($"            ELSE IF @WhereFilter <> ''\r\n");
+                result.Append($"                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')\r\n");
+                result.Append($"            ELSE IF @WhereSearch <> ''\r\n");
+                result.Append($"                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')\r\n");
                 result.Append($"        END ELSE\r\n");
-                result.Append($"            SET @Where = ' AND [T].[Id] IN (' + @_ + ')'\r\n");
+                result.Append($"            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'\r\n");
+                result.Append($"        SET @Where = @WhereFixed\r\n");
+                result.Append($"        IF @WhereUser <> ''\r\n");
+                result.Append($"            SET @Where = @Where + ' AND (' + @WhereUser + ')'\r\n");
                 result.Append($"        SET @sql = 'INSERT [#tmpTable]\r\n");
                 result.Append($"                        SELECT ''T'' AS [_]\r\n");
                 result.Append($"                              ,[T].[Id]\r\n");
                 result.Append($"                            FROM [dbo].[{table["Name"]}] [T]\r\n");
                 result.Append($"                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]");
                 result.Append($"\r\n");
-                result.Append($"                            WHERE [#].[Id] IS NULL' + @Where + '\r\n");
+                result.Append($"                            WHERE [#].[Id] IS NULL'\r\n");
+                result.Append($"        SET @sql = @sql + @Where + '\r\n");
                 result.Append($"                        UNION ALL\r\n");
                 result.Append($"                            SELECT ''O'' AS [_]\r\n");
                 result.Append($"                                  ,[T].[Id]\r\n");
                 result.Append($"                                FROM [#tmpOperations] [T]\r\n");
-                result.Append($"                                WHERE [T].[_] <> ''delete''' + @Where\r\n");
+                result.Append($"                                WHERE [T].[_] <> ''delete'''\r\n");
+                result.Append($"        SET @sql = @sql + @Where\r\n");
                 result.Append($"        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] {columnRows[0]["#DataType"]})\r\n");
                 result.Append($"        IF @_ IS NULL\r\n");
                 firstTime = true;
                 foreach (var column in filterableColumns)
                 {
+                    var columnName = column["Name"];
+                    var dataType = column["#DataType"];
                     if (firstTime)
                     {
                         result.Append($"            EXEC sp_executesql @sql\r\n");
-                        result.Append($"                               ,N'@{column["Name"]} {column["#DataType"]}");
+                        result.Append($"                               ,N'@F_{columnName} {dataType}");
                         firstTime = false;
                     }
                     else
                     {
                         result.Append($"\r\n");
-                        result.Append($"                               ,@{column["Name"]} {column["#DataType"]}");
+                        result.Append($"                               ,@F_{columnName} {dataType}");
                     }
+                    result.Append($",@U_{columnName} {dataType},@S_{columnName} {dataType}");
                 }
                 result.Append($"'\r\n");
                 foreach (var column in filterableColumns)
-                    result.Append($"                           ,@{column["Name"]} = @W_{column["Name"]}\r\n");
+                {
+                    var columnName = column["Name"];
+                    result.Append($"                           ,@F_{columnName} = @W_F_{columnName}\r\n");
+                    result.Append($"                           ,@U_{columnName} = @W_U_{columnName}\r\n");
+                    result.Append($"                           ,@S_{columnName} = @W_S_{columnName}\r\n");
+                }
                 result.Append($"        ELSE\r\n");
                 result.Append($"            EXEC sp_executesql @sql\r\n");
                 result.Append($"\r\n");

@@ -22,22 +22,44 @@ export default class TForm {
         ButtonsBar: null,
         ConfirmButton: null,
         CancelButton: null,
+        DetailPane: null,
+        DetailTabs: null,
+        DetailGridPanel: null,
     };
     #Grid = null;
+    #masterForm = null;
+    #childGrids = [];
+    #activeChildIndex = 0;
+    #isMasterDetail = false;
+    #detailParentTable = null;
     #actualRecord = null;
     #lastRecord = null;
     #SourceRecord = null;
     #isStaged = false;
 
-    constructor(grid, action) {
+    constructor(grid, action, options = {}) {
         if (!(grid instanceof TGrid))
             throw new Error("Argumento grid não é do tipo TGrid.");
         this.#Grid = grid;
+        this.#masterForm = options.masterForm ?? null;
         this.#Action = action;
         this.#ReturnAction = `grid/${this.#Grid.Table.Database.Name}/${this.#Grid.Table.Name}`;
-        this.#HTML.Container = document.createDocumentFragment();
-        this.#BuildForm();
-        this.#BuildButtonsBar();
+        this.#HTML.Container = document.createElement("div");
+        this.#HTML.Container.className = "form-screen";
+    }
+    #resolveParentTable() {
+        if (this.#Grid.Table.Name === "Tables") {
+            const recordId = this.#actualRecord?.Id ?? this.#lastRecord?.Id;
+            if (recordId != null) {
+                const recordTable = TSystem.GetTable(recordId);
+                if (recordTable)
+                    return recordTable;
+            }
+        }
+        return this.#Grid.Table;
+    }
+    #includesSchemaChildren() {
+        return this.#Grid.Table.Name === "Tables";
     }
     static Initialize(styles, images) {
         if (styles.ClassName !== "Styles")
@@ -81,7 +103,7 @@ export default class TForm {
         return !this.#recordsAreEqual(this.#actualRecord, this.#lastRecord);
     }
     #showsPersist() {
-        if (!this.#isPersistAction())
+        if (!this.#isPersistAction() || this.#masterForm)
             return false;
         if (this.#Action === TSystem.Actions.DELETE)
             return !this.#isStaged;
@@ -90,17 +112,160 @@ export default class TForm {
     #updateConfirmButton() {
         if (this.#Action === TSystem.Actions.QUERY)
             return;
+        if (this.#masterForm && this.#isPersistAction()) {
+            this.#HTML.ConfirmButton.innerText = "Confirmar";
+            this.#HTML.ConfirmButton.style.backgroundImage = TForm.#Images.Confirm;
+            this.#HTML.ConfirmButton.disabled =
+                this.#Action === TSystem.Actions.UPDATE && !this.#hasChanges();
+            return;
+        }
         const persist = this.#showsPersist();
         this.#HTML.ConfirmButton.innerText = persist ? "Persistir" : "Confirmar";
         this.#HTML.ConfirmButton.style.backgroundImage = TForm.#Images.Confirm;
         if (this.#isPersistAction())
-            this.#HTML.ConfirmButton.disabled = !persist && !this.#isStaged;
+            this.#HTML.ConfirmButton.disabled = !TTransaction.isOpen && !persist;
         else
             this.#HTML.ConfirmButton.disabled = false;
     }
     #onFieldChange(name, value) {
         this.#actualRecord[name] = value;
         this.#updateConfirmButton();
+        this.#updateDetailAccess();
+    }
+    #ensureLayout() {
+        if (this.#masterForm) {
+            if (!this.#HTML.Form) {
+                this.#BuildForm(this.#HTML.Container);
+                this.#BuildButtonsBar(this.#HTML.Container);
+            }
+            return;
+        }
+        this.#detailParentTable = this.#resolveParentTable();
+        const childTables = TSystem.GetChildTables(this.#detailParentTable, {
+            includeSchemaChildren: this.#includesSchemaChildren(),
+        });
+        this.#isMasterDetail = childTables.length > 0;
+
+        if (!this.#isMasterDetail) {
+            if (!this.#HTML.Form) {
+                this.#BuildForm(this.#HTML.Container);
+                this.#BuildButtonsBar(this.#HTML.Container);
+            }
+            return;
+        }
+
+        if (!this.#HTML.Form) {
+            const workspace = document.createElement("div");
+            workspace.className = "master-detail-workspace";
+
+            const masterPane = document.createElement("div");
+            masterPane.className = "master-pane";
+            this.#BuildForm(masterPane);
+            this.#BuildButtonsBar(masterPane);
+            workspace.appendChild(masterPane);
+
+            const detailPane = document.createElement("div");
+            detailPane.className = "detail-pane detail-pane-disabled";
+            this.#HTML.DetailPane = detailPane;
+
+            const tabsBar = document.createElement("div");
+            tabsBar.className = "detail-tabs";
+            this.#HTML.DetailTabs = tabsBar;
+            detailPane.appendChild(tabsBar);
+
+            const gridPanel = document.createElement("div");
+            gridPanel.className = "detail-grid-panel";
+            this.#HTML.DetailGridPanel = gridPanel;
+            detailPane.appendChild(gridPanel);
+
+            workspace.appendChild(detailPane);
+            this.#HTML.Container.appendChild(workspace);
+        }
+
+        this.#rebuildChildGrids(childTables);
+    }
+    #rebuildChildGrids(childTables) {
+        this.#childGrids = [];
+        this.#HTML.DetailTabs.replaceChildren();
+        this.#HTML.DetailGridPanel.replaceChildren();
+
+        childTables.forEach((childTable, index) => {
+            const tab = document.createElement("button");
+            tab.type = "button";
+            tab.className = "detail-tab";
+            tab.textContent = childTable.Description;
+            tab.onclick = async () => {
+                try {
+                    await this.#selectChildTab(index);
+                } catch (error) {
+                    this.#showError(error, tab);
+                }
+            };
+            this.#HTML.DetailTabs.appendChild(tab);
+
+            const section = document.createElement("section");
+            section.className = "detail-grid-section";
+
+            const linkColumn = TSystem.GetParentLinkColumn(
+                childTable,
+                this.#detailParentTable,
+                this.#Grid.Table,
+            );
+            const childGrid = new TGrid(childTable.Database.Name, childTable.Name, {
+                embedded: true,
+                masterForm: this,
+            });
+            childGrid.setEnabled(false);
+            section.appendChild(childGrid.HostElement);
+            this.#HTML.DetailGridPanel.appendChild(section);
+            this.#childGrids.push({ table: childTable, grid: childGrid, linkColumn, section, tab });
+        });
+
+        this.#selectChildTab(0, false);
+    }
+    async #returnToCaller() {
+        if (this.#masterForm)
+            await this.#masterForm.Renderize();
+        else
+            await this.#Grid.Renderize();
+    }
+    async #selectChildTab(index, render = true) {
+        if (index < 0 || index >= this.#childGrids.length)
+            return;
+        this.#activeChildIndex = index;
+        for (let i = 0; i < this.#childGrids.length; i++) {
+            const { section, tab } = this.#childGrids[i];
+            const active = i === index;
+            section.classList.toggle("active", active);
+            tab.classList.toggle("active", active);
+        }
+        if (render && this.canAccessChildren)
+            await this.#renderChildGrid(index);
+    }
+    async #renderChildGrid(index) {
+        const entry = this.#childGrids[index];
+        if (!entry)
+            return;
+        const parentId = this.#actualRecord?.Id ?? this.#lastRecord?.Id;
+        if (!parentId)
+            return;
+        const { grid, linkColumn } = entry;
+        if (linkColumn)
+            grid.setParentFilter(linkColumn.Name, parentId);
+        await grid.Renderize(1);
+    }
+    #updateDetailAccess() {
+        if (!this.#isMasterDetail)
+            return;
+        const enabled = this.canAccessChildren;
+        this.#HTML.DetailPane?.classList.toggle("detail-pane-disabled", !enabled);
+        for (const { grid } of this.#childGrids)
+            grid.setEnabled(enabled);
+    }
+    async #refreshChildGrids() {
+        if (!this.#isMasterDetail || !this.canAccessChildren)
+            return;
+        await this.#renderChildGrid(this.#activeChildIndex);
     }
     async #LoadRecord(columns) {
         let source = this.#Grid.SelectedRecord;
@@ -156,8 +321,18 @@ export default class TForm {
             this.#Grid.SaveSearchs(this.#actualRecord);
         }
         else if (this.#isPersistAction()) {
-            if (!TSystem.IsSimpleTable(this.#Grid.Table))
-                throw new Error("Formulário master-detail ainda não implementado.");
+            if (this.#masterForm) {
+                if (this.#Action === TSystem.Actions.UPDATE && !this.#hasChanges())
+                    return;
+                await TTransaction.stage(
+                    this.#Grid.Table,
+                    this.#Action,
+                    this.#actualRecord,
+                    this.#persistLastRecord(),
+                );
+                await this.#masterForm.Renderize();
+                return;
+            }
             if (this.#showsPersist()) {
                 await TTransaction.stage(
                     this.#Grid.Table,
@@ -168,6 +343,12 @@ export default class TForm {
                 this.#lastRecord = this.#copyRecord(this.#actualRecord);
                 this.#isStaged = true;
                 this.#updateConfirmButton();
+                this.#updateDetailAccess();
+                await this.#refreshChildGrids();
+                if (this.#isMasterDetail) {
+                    TScreen.Main = this.#HTML.Container;
+                    this.#HTML.FirstInput?.focus();
+                }
                 return;
             }
             if (TTransaction.isOpen) {
@@ -175,7 +356,7 @@ export default class TForm {
                 this.#isStaged = false;
             }
         }
-        await this.#Grid.Renderize();
+        await this.#returnToCaller();
     }
     async Configure() {
         let columns = this.#Grid.Table.Columns;
@@ -186,6 +367,19 @@ export default class TForm {
         switch (this.#Action) {
             case TSystem.Actions.CREATE:
                 columns = columns.filter(column => column.IsEditable);
+                if (this.#masterForm) {
+                    const linkColumn = TSystem.GetParentLinkColumn(
+                        this.#Grid.Table,
+                        this.#masterForm.parentTable,
+                        this.#masterForm.Table,
+                    );
+                    const parentId = this.#masterForm.actualRecord?.Id
+                        ?? this.#masterForm.lastRecord?.Id;
+                    if (linkColumn && parentId != null) {
+                        this.#actualRecord[linkColumn.Name] = parentId;
+                        columns = columns.filter(column => column !== linkColumn);
+                    }
+                }
                 break;
             case TSystem.Actions.SEARCH:
                 columns = columns.filter(column => column.IsFilterable);
@@ -202,6 +396,7 @@ export default class TForm {
             default:
                 await this.#LoadRecord(columns);
         }
+        this.#ensureLayout();
         for (const column of columns) {
             TEditBox.Create(column, this.#HTML.Form)
                 .configure({
@@ -218,25 +413,33 @@ export default class TForm {
                 });
         }
         this.#updateConfirmButton();
+        this.#updateDetailAccess();
+        await this.#refreshChildGrids();
 
         return this;
     }
-    Renderize() {
+    async Renderize() {
         let title = "",
             message = "";
 
         switch (this.#Action) {
             case TSystem.Actions.CREATE:
                 title = "Inclusão";
-                message = "Preencha os dados, clique em persistir e depois em confirmar...";
+                message = this.#masterForm
+                    ? "Preencha os dados e clique em confirmar..."
+                    : "Preencha os dados, clique em persistir e depois em confirmar...";
                 break;
             case TSystem.Actions.UPDATE:
                 title = "Alteração";
-                message = "Altere os dados, clique em persistir e depois em confirmar...";
+                message = this.#masterForm
+                    ? "Altere os dados e clique em confirmar..."
+                    : "Altere os dados, clique em persistir e depois em confirmar...";
                 break;
             case TSystem.Actions.DELETE:
                 title = "Exclusão";
-                message = "Clique em persistir e depois em confirmar para excluir...";
+                message = this.#masterForm
+                    ? "Clique em confirmar para excluir..."
+                    : "Clique em persistir e depois em confirmar para excluir...";
                 break;
             case TSystem.Actions.SEARCH:
                 title = "Pesquisa";
@@ -255,10 +458,14 @@ export default class TForm {
         TScreen.LastMessage = TScreen.Message = message;
         TScreen.WithBackgroundImage = false;
         TScreen.Main = this.#HTML.Container;
+        if (this.#isMasterDetail && this.canAccessChildren)
+            await this.#refreshChildGrids();
+        this.#updateConfirmButton();
+        this.#updateDetailAccess();
         if (this.#HTML.FirstInput)
             this.#HTML.FirstInput.focus();
     }
-    #BuildForm() {
+    #BuildForm(parent) {
         this.#HTML.Form = document.createElement("form");
         this.#HTML.Form.method = "post";
         this.#HTML.Form.autocomplete = "off";
@@ -268,9 +475,9 @@ export default class TForm {
 
         style.innerText = TForm.#Style;
         this.#HTML.Form.appendChild(style);
-        this.#HTML.Container.appendChild(this.#HTML.Form);
+        parent.appendChild(this.#HTML.Form);
     }
-    #BuildButtonsBar() {
+    #BuildButtonsBar(parent) {
         this.#HTML.ButtonsBar = document.createElement("div");
         this.#HTML.ButtonsBar.className = "buttonsBar";
 
@@ -304,9 +511,13 @@ export default class TForm {
             this.#HTML.CancelButton.onclick = async () => {
                 const focusTarget = this.#captureFocus();
                 try {
+                    if (this.#masterForm) {
+                        await this.#masterForm.Renderize();
+                        return;
+                    }
                     await TTransaction.rollback(this.#Grid.Table);
                     this.#isStaged = false;
-                    await this.#Grid.Renderize();
+                    await this.#returnToCaller();
                 } catch (error) {
                     this.#showError(error, focusTarget);
                 }
@@ -314,15 +525,28 @@ export default class TForm {
             this.#HTML.ButtonsBar.appendChild(this.#HTML.CancelButton);
         }
 
-        this.#HTML.Container.appendChild(this.#HTML.ButtonsBar);
+        parent.appendChild(this.#HTML.ButtonsBar);
     }
     get actualRecord() {
         return this.#actualRecord;
+    }
+    get Table() {
+        return this.#Grid.Table;
+    }
+    get parentTable() {
+        return this.#resolveParentTable();
     }
     get lastRecord() {
         return this.#lastRecord;
     }
     get canAccessChildren() {
-        return this.#isPersistAction() && !this.#showsPersist();
+        const parentId = this.#actualRecord?.Id ?? this.#lastRecord?.Id;
+        if (this.#Action === TSystem.Actions.QUERY)
+            return parentId != null;
+        if (!this.#isPersistAction() || this.#Action === TSystem.Actions.DELETE)
+            return false;
+        if (this.#Action === TSystem.Actions.CREATE)
+            return this.#isStaged;
+        return parentId != null && !this.#showsPersist();
     }
 }

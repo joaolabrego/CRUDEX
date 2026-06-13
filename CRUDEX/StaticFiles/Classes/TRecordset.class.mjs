@@ -19,11 +19,15 @@ export default class TRecordSet {
     #AbsoluteRowIndex = -1;
     #OrderBy = "";
     #Records = [];
+    #showSpinner = true;
+    #rowsPerPage = 0;
 
-    constructor(table) {
+    constructor(table, options = {}) {
         if (!(table instanceof TTable))
             throw new Error("Argumento table não é do tipo TTable.");
         this.#Table = table;
+        this.#showSpinner = options.showSpinner !== false;
+        this.#rowsPerPage = options.rowsPerPage ?? TSystem.RowsPerPage;
         table.Columns.filter(column => column.IsFilterable)
             .forEach(column => {
                 this.#FilterValues[column.Name] = null;
@@ -39,19 +43,37 @@ export default class TRecordSet {
             filter[key] = value;
     }
 
-    async goPage(pageNumber = 1) {
+    #buildRecordFilter() {
+        const payload = {};
+        const fixed = {};
+
+        for (const [key, value] of Object.entries(this.#FixedFilter))
+            this.#appendFilterValue(fixed, key, value);
+        if (Object.keys(fixed).length)
+            payload.Fixed = fixed;
+
         const filter = {};
         for (const [key, value] of Object.entries(this.#FilterValues))
             this.#appendFilterValue(filter, key, value);
-        for (const [key, value] of Object.entries(this.#SearchValues))
-            this.#appendFilterValue(filter, key, value);
+        if (Object.keys(filter).length)
+            payload.Filter = filter;
 
+        const search = {};
+        for (const [key, value] of Object.entries(this.#SearchValues))
+            this.#appendFilterValue(search, key, value);
+        if (Object.keys(search).length)
+            payload.Search = search;
+
+        return payload;
+    }
+
+    async goPage(pageNumber = 1) {
         const parameters = {
             DatabaseName: this.#Table.Database.Name,
             TableName: this.#Table.Name,
             Action: TSystem.Actions.READ,
             InParams: {
-                RecordFilter: JSON.stringify(filter),
+                RecordFilter: JSON.stringify(this.#buildRecordFilter()),
                 OrderBy: this.orderBy,
                 PaddingGridLastPage: TSystem.PaddingGridLastPage,
                 IsActionList: false,
@@ -59,12 +81,12 @@ export default class TRecordSet {
             OutParams: {},
             IOParams: {
                 PageNumber: pageNumber,
-                LimitRows: TSystem.RowsPerPage,
+                LimitRows: this.#rowsPerPage,
                 MaxPage: 0,
             },
         };
 
-        const result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters);
+        const result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters, this.#showSpinner);
         const { main: mainRows, refs } = TConfig.ParseReadDataSet(result.DataSet);
         const refLookup = TRecordSet.#BuildRefLookup(refs);
 
@@ -75,7 +97,7 @@ export default class TRecordSet {
         this.#Records = mainRows.map(row => new TRecord(this.#Table, row, refLookup));
 
         if (this.#AbsoluteRowIndex >= 0) {
-            const pageStart = (this.#PageNumber - 1) * TSystem.RowsPerPage;
+            const pageStart = (this.#PageNumber - 1) * this.#rowsPerPage;
             if (this.#AbsoluteRowIndex < pageStart || this.#AbsoluteRowIndex >= pageStart + this.#Records.length)
                 this.#AbsoluteRowIndex = this.#RowCount > 0 ? pageStart : -1;
         }
@@ -89,7 +111,7 @@ export default class TRecordSet {
             TableName: this.#Table.Name,
             Action: TSystem.Actions.READ,
             InParams: {
-                RecordFilter: JSON.stringify(recordFilter),
+                RecordFilter: JSON.stringify({ Filter: recordFilter }),
                 OrderBy: null,
                 PaddingGridLastPage: false,
                 IsActionList: false,
@@ -102,7 +124,7 @@ export default class TRecordSet {
             },
         };
 
-        const result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters);
+        const result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters, this.#showSpinner);
         const { main, refs } = TConfig.ParseReadDataSet(result.DataSet);
         const refLookup = TRecordSet.#BuildRefLookup(refs);
         const row = main[0];
@@ -123,7 +145,7 @@ export default class TRecordSet {
     }
 
     async #callExecute(parameters) {
-        return await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters);
+        return await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters, this.#showSpinner);
     }
 
     async saveRecord(formAction, actualRecord, lastRecord = null) {
@@ -152,7 +174,7 @@ export default class TRecordSet {
     #LocalIndex() {
         if (this.#AbsoluteRowIndex < 0)
             return -1;
-        return this.#AbsoluteRowIndex - (this.#PageNumber - 1) * TSystem.RowsPerPage;
+        return this.#AbsoluteRowIndex - (this.#PageNumber - 1) * this.#rowsPerPage;
     }
 
     async #EnsureRowIndex(absoluteIndex) {
@@ -168,7 +190,7 @@ export default class TRecordSet {
             this.#AbsoluteRowIndex = this.#RowCount;
             return;
         }
-        const page = Math.floor(absoluteIndex / TSystem.RowsPerPage) + 1;
+        const page = Math.floor(absoluteIndex / this.#rowsPerPage) + 1;
         if (page !== this.#PageNumber || this.#Records.length === 0)
             await this.goPage(page);
         this.#AbsoluteRowIndex = absoluteIndex;
@@ -209,7 +231,7 @@ export default class TRecordSet {
 
     clearFilters() {
         for (const key of Object.keys(this.#FilterValues))
-            this.#FilterValues[key] = this.#FixedFilter[key] ?? null;
+            this.#FilterValues[key] = null;
     }
 
     clearSearch() {

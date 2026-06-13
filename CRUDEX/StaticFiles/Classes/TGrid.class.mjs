@@ -24,6 +24,10 @@ export default class TGrid {
     #Table = null;
     #RecordSet = null;
     #ScrollBar = null;
+    #embedded = false;
+    #masterForm = null;
+    #enabled = true;
+    #rowsPerPage = 0;
 
     #OrderBy = "";
 
@@ -59,14 +63,20 @@ export default class TGrid {
         Query: "",
         Exit: "",
     };
-    constructor(databaseName, tableName) {
+    constructor(databaseName, tableName, options = {}) {
         let database = TSystem.GetDatabase(databaseName);
 
         if (!database) throw new Error("Banco-de-dados não encontrado.");
         this.#Table = database.GetTable(tableName);
         if (!this.#Table)
             throw new Error("Tabela de banco-de-dados não encontrada.");
-        this.#RecordSet = new TRecordSet(this.#Table);
+        this.#embedded = options.embedded === true;
+        this.#masterForm = options.masterForm ?? null;
+        this.#rowsPerPage = this.#embedded ? TSystem.RowsPerChildPage : TSystem.RowsPerPage;
+        this.#RecordSet = new TRecordSet(this.#Table, {
+            showSpinner: !this.#embedded,
+            rowsPerPage: this.#rowsPerPage,
+        });
         this.#HTML.Container = document.createElement("div");
         this.#HTML.Container.className = "container";
         this.#CreateGrid();
@@ -83,6 +93,17 @@ export default class TGrid {
             this.#FilterValues[column.Name] = null;
             this.#SearchValues[column.Name] = null;
         });
+        if (options.fixedFilter)
+            this.#RecordSet.setFixedFilter(options.fixedFilter);
+    }
+    setParentFilter(columnName, value) {
+        if (!columnName)
+            return;
+        this.#RecordSet.setFixedFilter({ [columnName]: value });
+    }
+    setEnabled(enabled) {
+        this.#enabled = enabled;
+        this.#HTML.Container?.classList.toggle("grid-disabled", !enabled);
     }
     static Initialize(styles, images) {
         if (styles.ClassName !== "Styles")
@@ -255,6 +276,8 @@ export default class TGrid {
     }
     ClearFilters() {
         for (let key in this.#FilterValues) this.#FilterValues[key] = null;
+        this.#RecordSet.clearFilters();
+        this.#RecordSet.setFilter(this.#FilterValues);
     }
     IsFiltered() {
         for (let key in this.#FilterValues) {
@@ -313,15 +336,19 @@ export default class TGrid {
                     "Clique na linha que deseja selecionar.";
             else
                 TScreen.LastMessage = TScreen.Message = "Clique em um dos botões.";
-            TScreen.Title = `Manutenção de ${this.#Table.Description}`;
+            if (!this.#embedded)
+                TScreen.Title = `Manutenção de ${this.#Table.Description}`;
             this.#BuildHtmlHead();
             this.#BuildHtmlBody();
             this.#BuildHtmlFoot();
-            TScreen.WithBackgroundImage = true;
-            TScreen.Main = this.#HTML.Container;
-            this.#HTML.Table.focus();
-            this.#ScrollBar.setVisible(this.#RowCount > TSystem.RowsPerPage);
-            this.#ScrollBar.setTitle(`Página atual: ${pageNumber}`);
+            if (!this.#embedded) {
+                TScreen.WithBackgroundImage = true;
+                TScreen.Main = this.#HTML.Container;
+                this.#HTML.Table.focus();
+            }
+            this.#ScrollBar.setVisible(this.#RowCount > this.#rowsPerPage);
+            if (!this.#embedded)
+                this.#ScrollBar.setTitle(`Página atual: ${pageNumber}`);
         } catch (error) {
             TScreen.ShowError(
                 error.message || error.Message,
@@ -483,7 +510,7 @@ export default class TGrid {
         label = document.createElement("label");
         label.style.float = "left";
         label.innerHTML = "Página:&nbsp;&nbsp;";
-        label.hidden = this.#RowCount <= TSystem.RowsPerPage;
+        label.hidden = this.#RowCount <= this.#rowsPerPage;
 
         th.appendChild(label);
 
@@ -493,7 +520,7 @@ export default class TGrid {
         this.#HTML.NumberInput.type = "number";
         this.#HTML.NumberInput.value = Math.floor(this.#PageNumber).toString();
         this.#HTML.NumberInput.title = "Ir para página...";
-        this.#HTML.NumberInput.hidden = this.#RowCount <= TSystem.RowsPerPage;
+        this.#HTML.NumberInput.hidden = this.#RowCount <= this.#rowsPerPage;
         this.#HTML.NumberInput.min = "1";
         this.#HTML.NumberInput.max = this.#PageCount.toString();
         this.#HTML.NumberInput.onchange = (event) => {
@@ -519,7 +546,9 @@ export default class TGrid {
         this.#HTML.CreateButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.CreateButton.onclick = () => {
-            new TForm(this, TSystem.Actions.CREATE).Configure().then((form) => {
+            if (!this.#enabled)
+                return;
+            new TForm(this, TSystem.Actions.CREATE, { masterForm: this.#masterForm }).Configure().then((form) => {
                 if (form) form.Renderize();
             });
         };
@@ -534,10 +563,13 @@ export default class TGrid {
             (TScreen.Message = "Alterar registro");
         this.#HTML.UpdateButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
-        this.#HTML.UpdateButton.onclick = () =>
-            new TForm(this, TSystem.Actions.UPDATE).Configure().then((form) => {
+        this.#HTML.UpdateButton.onclick = () => {
+            if (!this.#enabled)
+                return;
+            new TForm(this, TSystem.Actions.UPDATE, { masterForm: this.#masterForm }).Configure().then((form) => {
                 if (form) form.Renderize();
             });
+        };
         th.appendChild(this.#HTML.UpdateButton);
 
         this.#HTML.DeleteButton = document.createElement("button");
@@ -549,10 +581,13 @@ export default class TGrid {
             (TScreen.Message = "Excluir registro");
         this.#HTML.DeleteButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
-        this.#HTML.DeleteButton.onclick = () =>
-            new TForm(this, TSystem.Actions.DELETE).Configure().then((form) => {
+        this.#HTML.DeleteButton.onclick = () => {
+            if (!this.#enabled)
+                return;
+            new TForm(this, TSystem.Actions.DELETE, { masterForm: this.#masterForm }).Configure().then((form) => {
                 if (form) form.Renderize();
             });
+        };
         th.appendChild(this.#HTML.DeleteButton);
 
         this.#HTML.QueryButton = document.createElement("button");
@@ -564,10 +599,13 @@ export default class TGrid {
             (TScreen.Message = "Ver registro");
         this.#HTML.QueryButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
-        this.#HTML.QueryButton.onclick = () =>
-            new TForm(this, TSystem.Actions.QUERY).Configure().then((form) => {
+        this.#HTML.QueryButton.onclick = () => {
+            if (!this.#enabled)
+                return;
+            new TForm(this, TSystem.Actions.QUERY, { masterForm: this.#masterForm }).Configure().then((form) => {
                 if (form) form.Renderize();
             });
+        };
         th.appendChild(this.#HTML.QueryButton);
 
         this.#HTML.SearchButton = document.createElement("button");
@@ -575,13 +613,14 @@ export default class TGrid {
         this.#HTML.SearchButton.style.backgroundImage = TGrid.#Images.Search;
         this.#HTML.SearchButton.title = "Pesquisar registro (alt-p)";
         this.#HTML.SearchButton.hidden =
-            !filtered && this.#RowCount <= TSystem.RowsPerPage;
+            !filtered && this.#RowCount <= this.#rowsPerPage;
         this.#HTML.SearchButton.onmouseenter = () =>
             (TScreen.Message = "Filtrar registros");
         this.#HTML.SearchButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.SearchButton.onclick = async () => {
-            (await new TForm(this, TSystem.Actions.SEARCH).Configure()).Renderize();
+            const options = this.#masterForm ? { masterForm: this.#masterForm } : {};
+            (await new TForm(this, TSystem.Actions.SEARCH, options).Configure()).Renderize();
         };
         th.appendChild(this.#HTML.SearchButton);
 
@@ -591,13 +630,14 @@ export default class TGrid {
         this.#HTML.FilterButton.style.backgroundImage = TGrid.#Images.Filter;
         this.#HTML.FilterButton.title = "Filtrar registros (alt-f)";
         this.#HTML.FilterButton.hidden =
-            !filtered && this.#RowCount <= TSystem.RowsPerPage;
+            !filtered && this.#RowCount <= this.#rowsPerPage;
         this.#HTML.FilterButton.onmouseenter = () =>
             (TScreen.Message = "Filtrar registros");
         this.#HTML.FilterButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.FilterButton.onclick = async () => {
-            (await new TForm(this, TSystem.Actions.FILTER).Configure()).Renderize();
+            const options = this.#masterForm ? { masterForm: this.#masterForm } : {};
+            (await new TForm(this, TSystem.Actions.FILTER, options).Configure()).Renderize();
         };
         th.appendChild(this.#HTML.FilterButton);
 
@@ -610,9 +650,9 @@ export default class TGrid {
             (TScreen.Message = "Limpar filtragem de registros");
         this.#HTML.UnfilterButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
-        this.#HTML.UnfilterButton.onclick = () => {
+        this.#HTML.UnfilterButton.onclick = async () => {
             this.ClearFilters();
-            this.Renderize();
+            await this.Renderize(1);
         };
         th.appendChild(this.#HTML.UnfilterButton);
 
@@ -635,7 +675,7 @@ export default class TGrid {
         this.#HTML.ExitButton.type = "button";
         this.#HTML.ExitButton.style.backgroundImage = TGrid.#Images.Exit;
         this.#HTML.ExitButton.title = "Retornar ao menu principal (alt-x)";
-        this.#HTML.ExitButton.hidden = false;
+        this.#HTML.ExitButton.hidden = this.#embedded;
         this.#HTML.ExitButton.onmouseenter = () =>
             (TScreen.Message = "Retornar ao menu principal");
         this.#HTML.ExitButton.onmouseleave = () =>
@@ -683,7 +723,10 @@ export default class TGrid {
         }
         return filter;
     }
+    get HostElement() {
+        return this.#HTML.Container;
+    }
     get Container() {
-        return this.#HTML.Table;
+        return this.#HTML.Container;
     }
 }

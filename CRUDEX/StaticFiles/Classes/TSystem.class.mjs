@@ -23,6 +23,7 @@ import TSpinner from "./TSpinner.class.mjs";
 export default class TSystem {
     static #Action = "";
     static #RowsPerPage = 0;
+    static #RowsPerChildPage = 0;
     static #PaddingGridLastPage = false;
     static #Types = [];
     static #Domains = [];
@@ -47,7 +48,9 @@ export default class TSystem {
                 document.body.style = config.Styles.Body;
                 TConfig.CreateProperties(config.Data.System[0], this);
                 this.#RowsPerPage = config.RowsPerPage;
+                this.#RowsPerChildPage = config.RowsPerChildPage;
                 document.documentElement.style.setProperty("--rows-per-page", String(this.#RowsPerPage));
+                document.documentElement.style.setProperty("--rows-per-child-page", String(this.#RowsPerChildPage));
                 this.#PaddingGridLastPage = config.PaddingGridLastPage;
                 TConfig.IdleTimeInMinutesLimit = config.IdleTimeInMinutesLimit;
                 TLogin.Initialize(config.Styles);
@@ -149,13 +152,40 @@ export default class TSystem {
 
         return result;
     }
-    static GetChildTables(table) {
+    static GetChildTables(table, { includeSchemaChildren = false } = {}) {
         if (!table?.Id)
             return [];
-        return this.#Tables.filter(child => child.ParentTableId === table.Id);
+        const seen = new Set();
+        const children = [];
+        const add = (child) => {
+            if (!child || seen.has(child.Id))
+                return;
+            seen.add(child.Id);
+            children.push(child);
+        };
+        for (const child of this.#Tables) {
+            if (child.ParentTableId == table.Id)
+                add(child);
+        }
+        if (includeSchemaChildren
+            && this.#Columns.some(column => column.TableId == table.Id)) {
+            add(this.GetTable("Columns"));
+            add(this.GetTable("Indexes"));
+        }
+        return children;
     }
-    static IsSimpleTable(table) {
-        return this.GetChildTables(table).length === 0;
+    static IsSimpleTable(table, options = {}) {
+        return this.GetChildTables(table, options).length === 0;
+    }
+    static GetParentLinkColumn(childTable, parentTable, contextTable = null) {
+        if (!childTable || !parentTable)
+            return null;
+        let link = childTable.Columns.find(column => column.ReferenceTableId == parentTable.Id);
+        if (link)
+            return link;
+        if (contextTable)
+            link = childTable.Columns.find(column => column.ReferenceTableId == contextTable.Id);
+        return link ?? null;
     }
     /**
      * @param {number} value
@@ -209,6 +239,9 @@ export default class TSystem {
     }
     static get RowsPerPage() {
         return this.#RowsPerPage;
+    }
+    static get RowsPerChildPage() {
+        return this.#RowsPerChildPage;
     }
     static get PaddingGridLastPage() {
         return this.#PaddingGridLastPage;

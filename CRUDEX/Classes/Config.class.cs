@@ -12,6 +12,7 @@ namespace CRUDEX.Classes
     {
         public readonly string ClassName = "Config";
         public readonly int RowsPerPage = Convert.ToInt32(Settings.Get("ROWS_PER_PAGE"));
+        public readonly int RowsPerChildPage = Convert.ToInt32(Settings.Get("ROWS_PER_CHILD_PAGE"));
         public readonly int IdleTimeInMinutesLimit = Convert.ToInt32(Settings.Get("IDLE_TIME_IN_MINUTES_LIMIT"));
         public readonly bool PaddingGridLastPage = Convert.ToBoolean(Settings.Get("PADDING_GRID_LAST_PAGE"));
         public dynamic? Data;

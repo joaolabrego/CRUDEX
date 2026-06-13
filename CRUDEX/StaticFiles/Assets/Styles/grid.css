@@ -148,3 +148,7 @@
     overflow-x: auto;
     overflow-y: hidden;
 }
+
+.grid-disabled {
+    opacity: 0.6;
+}
