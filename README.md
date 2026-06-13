@@ -1,39 +1,85 @@
-CRUDEX 1.0 (concluído): O SGSI mais poderoso do mundo
+# CRUDEX 1.0 — Sistemas de Informação Orientados por Metadados
 
-CONTATO: João da Rocha Labrego — joaolabrego@gmail.com
+O CRUDEX é uma plataforma para construção de sistemas de informação baseada em metadados.
 
-O projeto CRUDEX foi criado para automatizar ao máximo o desenvolvimento de sistemas.
+Em vez de desenvolver manualmente telas, grids, formulários, relacionamentos, validações e operações CRUD para cada sistema, o desenvolvedor descreve a estrutura do sistema e o CRUDEX gera automaticamente a aplicação.
 
-Tive até que inventar um conceito novo para defini-lo: SGSI — Sistema Gerenciador de Sistemas de Informação.
+## Principais recursos
 
-Assim como existem os conceitos de SGBD SQL e SGBD No-SQL, agora existe também o conceito de SGSI CRUDEX. Se futuramente surgirem outros padrões, haverá os SGSI CRUDEX e os SGSI No-CRUDEX.
+### CRUD Dinâmico
 
-O que há de novo nisso?
+Criação automática de:
 
-No CRUDEX, o analista de negócios especifica o sistema diretamente, definindo tabelas, validações, índices, chaves estrangeiras, chaves primárias etc.
+* Grids
+* Formulários
+* Inclusão
+* Alteração
+* Exclusão
+* Consultas
 
-Com base nesses metadados, o CRUDEX gera automaticamente todos os scripts DDL e DML necessários, bem como as stored procedures responsáveis pelas operações de CRUD de cada tabela.
+sem necessidade de desenvolvimento específico para cada tabela.
 
-O sistema também fornece um frontend padrão — feito em HTML, CSS e JavaScript puro (sem frameworks) — em arquitetura Single Page Application e montado dinamicamente no navegador conforme os metadadados configurados para o sistema em execução.
+### Relacionamentos
 
-Com isso, o analista de negócios já pode executar e testar o sistema especificado imediatamente, bastando criar o banco de dados com os scripts gerados automaticamente.
+Relacionamentos entre tabelas são definidos por metadados.
 
-Desse modo, toda a inteligência do sistema reside no banco de dados, incluindo as regras de negócio.
+O CRUDEX reconhece automaticamente:
 
-O analista de negócios deixa de depender do desenvolvedor para validar suas especificações e, caso o frontend padrão atenda às necessidades, o sistema já pode ser considerado pronto para uso.
+* Chaves estrangeiras (FK)
+* Relacionamentos pai-filho
+* Formulários Master-Detail
 
-Se o cliente desejar um frontend mais bonito ou personalizado, o desenvolvedor entra em ação apenas para construir essa interface, desde que as operações de CRUD sejam realizadas via API — nunca diretamente no banco.
+### Lookups Inteligentes
 
-Com isso, o backend passa a ser responsabilidade do analista de negócios ou do DBA — e não mais do desenvolvedor.
+Campos de chave estrangeira são apresentados automaticamente como listas de seleção paginadas.
 
-Ao desenvolvedor cabe apenas a criação de frontends específicos, como aplicativos móveis ou interfaces avançadas, sem interferir na lógica do sistema.
+Nos grids e formulários, o usuário visualiza descrições amigáveis em vez de códigos internos.
 
-IMAGENS DO FRONTEND PADRÃO
+### Paginação Transparente
 
-<img src="./presentation/crudex-tela1.png" alt="Tela do CRUDEX" width="600"/>
+O acesso aos dados é realizado através de datasets paginados.
 
-<img src="./presentation/crudex-tela2.png" alt="Tela do CRUDEX" width="600"/>
+Grids, formulários e listas trabalham sobre datasets sem necessidade de lógica específica de paginação.
 
-<img src="./presentation/crudex-tela3.png" alt="Tela do CRUDEX" width="600"/>
+### Validação
 
-<img src="./presentation/crudex-tela4.png" alt="Tela do CRUDEX" width="600"/>
+Validações podem ser executadas tanto no frontend quanto no backend.
+
+As regras são definidas por metadados e aplicadas automaticamente durante a manutenção dos dados.
+
+### Transações
+
+O CRUDEX possui suporte nativo ao ciclo:
+
+* Validate
+* Persist
+* Commit
+
+permitindo tratamento consistente das operações realizadas pelo usuário.
+
+## Arquitetura
+
+O sistema é baseado em uma arquitetura SPA (Single Page Application), composta por:
+
+* Frontend Web
+* API REST
+* Banco de Dados
+* Metadados centralizados
+
+A estrutura permite evolução da aplicação sem necessidade de alterações específicas para cada sistema construído sobre a plataforma.
+
+## Integração com Wordex
+
+O CRUDEX foi projetado para integração com o Wordex.
+
+Com isso, documentos, relatórios, contratos, etiquetas, crachás e PDFs podem ser gerados diretamente a partir dos dados mantidos pelo sistema.
+
+## Objetivo
+
+O principal objetivo do CRUDEX é reduzir drasticamente o trabalho repetitivo de desenvolvimento de sistemas de informação, permitindo que o desenvolvedor concentre seus esforços nas regras de negócio e não na implementação manual de operações CRUD.
+
+Em outras palavras:
+
+Descreva o sistema.
+
+O CRUDEX constrói a aplicação.
