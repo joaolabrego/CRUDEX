@@ -105,6 +105,66 @@ export default class TRecordSet {
         return this.#Records;
     }
 
+    static #toPickerItem(table, record) {
+        const listable = table.GetListableColumn();
+        const label = listable
+            ? record.getGridValue(listable)
+            : (record.ListItemValue ?? record.Name ?? record.Id);
+        return {
+            ListItemId: record.Id,
+            ListItemName: label,
+            record,
+        };
+    }
+
+    async readPickerPage({ value = "", pageNumber = 1, limitRows = null } = {}) {
+        const pageSize = limitRows ?? this.#rowsPerPage;
+        const listable = this.#Table.GetListableColumn();
+        const parameters = {
+            DatabaseName: this.#Table.Database.Name,
+            TableName: this.#Table.Name,
+            Action: TSystem.Actions.READ,
+            InParams: {
+                RecordFilter: JSON.stringify({ Picker: { Value: value ?? "" } }),
+                OrderBy: listable ? `[${listable.Name}]` : "",
+                PaddingGridLastPage: false,
+                IsActionList: true,
+            },
+            OutParams: {},
+            IOParams: {
+                PageNumber: pageNumber,
+                LimitRows: pageSize,
+                MaxPage: 0,
+            },
+        };
+
+        const result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters, this.#showSpinner);
+        const { main: mainRows, refs } = TConfig.ParseReadDataSet(result.DataSet);
+        const refLookup = TRecordSet.#BuildRefLookup(refs);
+
+        this.#RowCount = Number(result.Parameters?.ReturnValue ?? 0);
+        this.#PageNumber = Number(result.Parameters?.PageNumber ?? pageNumber);
+        this.#PageCount = Number(result.Parameters?.MaxPage ?? 0);
+        this.#PageSize = mainRows.length;
+        this.#Records = mainRows.map(row => new TRecord(this.#Table, row, refLookup));
+        this.#AbsoluteRowIndex = -1;
+
+        return this;
+    }
+
+    static async fetchPickerPage(table, { value = "", pageNumber = 1, limitRows = 5, showSpinner = false } = {}) {
+        const recordSet = new TRecordSet(table, { showSpinner, rowsPerPage: limitRows });
+        await recordSet.readPickerPage({ value, pageNumber, limitRows });
+        return {
+            items: recordSet.records.map(record => TRecordSet.#toPickerItem(table, record)),
+            records: recordSet.records,
+            recordSet,
+            pageNumber: recordSet.pageNumber,
+            pageCount: recordSet.pageCount,
+            rowCount: recordSet.rowCount,
+        };
+    }
+
     async readOne(recordFilter) {
         const parameters = {
             DatabaseName: this.#Table.Database.Name,

@@ -4,7 +4,7 @@
     /* Altere para 5 para cinco colunas */
     gap: 2dvmin;
     justify-items: center;
-    align-items: start;
+    align-items: stretch;
     padding: 1dvmin;
 }
 
@@ -15,11 +15,39 @@
     font-weight: normal;
     text-align: left;
     width: 100%;
-    /* Ajusta o tamanho do fieldset para preencher a célula da grade */
+}
+
+.form .tedit-field {
+    color: black;
+    font-size: var(--font-size-grid);
+    font-weight: normal;
+    text-align: left;
+    width: 100%;
+}
+
+.form .tedit-field.tedit-checkbox-inline {
+    display: flex;
+    align-items: center;
+    align-self: stretch;
+}
+
+.form .tedit-checkbox-row {
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+}
+
+.form .tedit-caption {
+    font-weight: bold;
 }
 
 .form fieldset legend {
     font-weight: bold;
+}
+
+.tedit-body {
+    max-width: var(--field-max-width);
+    box-sizing: border-box;
 }
 
 .form input:not([type="checkbox"]),
@@ -50,6 +78,7 @@
 
 .form textarea {
     width: 100%;
+    min-height: calc(2 * var(--field-height));
     box-sizing: border-box;
 }
 

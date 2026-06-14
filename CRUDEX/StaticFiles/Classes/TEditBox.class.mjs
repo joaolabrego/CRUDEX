@@ -3,13 +3,13 @@
 import TCheckbox from "./TCheckbox.class.mjs";
 import TConfig from "./TConfig.class.mjs";
 import TDropdown from "./TDropdown.class.mjs";
-import TList from "./TList.class.mjs";
+import TRecordSet from "./TRecordset.class.mjs";
 import TMask from "./TMask.class.mjs";
 import TSystem from "./TSystem.class.mjs";
 
 export default class TEditBox {
     #column = null;
-    #fieldset = null;
+    #root = null;
     #legend = null;
     #body = null;
     #checkboxHost = null;
@@ -17,9 +17,11 @@ export default class TEditBox {
     #checkbox = null;
     #dropdown = null;
     #isReference = false;
+    #isCheckboxInline = false;
     #isRequired = false;
     #editMask = null;
     #readOnly = false;
+    #domainVariant = null;
 
     static Create(column, container = null) {
         const edit = new TEditBox(column);
@@ -33,26 +35,55 @@ export default class TEditBox {
             throw new Error("Argumento column é requerido.");
         this.#column = column;
         this.#isReference = !TConfig.IsEmpty(column.ReferenceTableId);
-        this.#buildShell();
-        this.#mountInner();
+        this.#isCheckboxInline = !this.#isReference
+            && column.Domain.Type.Category.HtmlInputType === "checkbox";
+        if (this.#isCheckboxInline)
+            this.#buildCheckboxInlineShell();
+        else {
+            this.#buildFieldsetShell();
+            this.#mountInner();
+        }
     }
 
-    #buildShell() {
-        this.#fieldset = document.createElement("fieldset");
+    #appendRequiredMarker(parent) {
+        if (!this.#column.IsRequired)
+            return;
+        const required = document.createElement("span");
+        required.textContent = " *";
+        required.style.color = "red";
+        required.style.fontSize = "1.5dvmin";
+        required.style.fontWeight = "bold";
+        required.title = "Indica valor requerido";
+        parent.appendChild(required);
+    }
+
+    #buildCheckboxInlineShell() {
+        this.#root = document.createElement("div");
+        this.#root.className = "tedit-field tedit-checkbox tedit-checkbox-inline";
+
+        const row = document.createElement("div");
+        row.className = "tedit-checkbox-row";
+
+        const caption = document.createElement("span");
+        caption.className = "tedit-caption";
+        caption.textContent = this.#column.Caption;
+        this.#appendRequiredMarker(caption);
+
+        const spacer = document.createElement("span");
+        spacer.className = "tedit-checkbox-spacer";
+        spacer.innerHTML = "&nbsp;&nbsp;&nbsp;";
+
+        this.#checkboxHost = document.createElement("span");
+        row.append(caption, spacer, this.#checkboxHost);
+        this.#root.append(row);
+    }
+
+    #buildFieldsetShell() {
+        this.#root = document.createElement("fieldset");
         this.#legend = document.createElement("legend");
         this.#legend.textContent = this.#column.Caption;
-
-        if (this.#column.IsRequired) {
-            const required = document.createElement("span");
-            required.textContent = " *";
-            required.style.color = "red";
-            required.style.fontSize = "1.5dvmin";
-            required.style.fontWeight = "bold";
-            required.title = "Indica valor requerido";
-            this.#legend.appendChild(required);
-        }
-
-        this.#fieldset.appendChild(this.#legend);
+        this.#appendRequiredMarker(this.#legend);
+        this.#root.appendChild(this.#legend);
         this.#body = document.createElement("div");
         this.#body.className = "tedit-body";
     }
@@ -66,6 +97,37 @@ export default class TEditBox {
         return Number(length);
     }
 
+    #effectiveDomain() {
+        return this.#domainVariant ?? this.#column.Domain;
+    }
+
+    #usesCheckboxControl() {
+        if (this.#effectiveDomain().Type.Category.HtmlInputType !== "checkbox")
+            return false;
+        if (this.#domainVariant)
+            return true;
+        return this.#column.Domain.Type.Category.HtmlInputType === "checkbox";
+    }
+
+    #ensureCheckboxHost() {
+        if (this.#checkboxHost)
+            return;
+
+        if (this.#domainVariant) {
+            this.#body.replaceChildren();
+            this.#checkboxHost = document.createElement("span");
+            this.#body.appendChild(this.#checkboxHost);
+            if (!this.#body.parentElement)
+                this.#root.appendChild(this.#body);
+        }
+    }
+
+    #releaseCheckbox() {
+        this.#checkbox = null;
+        if (this.#domainVariant)
+            this.#checkboxHost = null;
+    }
+
     #fieldWidthCh() {
         const editMask = this.#getEditMask();
         if (editMask?.placeholder) {
@@ -74,7 +136,7 @@ export default class TEditBox {
                 return maskLength;
         }
 
-        const own = TEditBox.#domainWidthCh(this.#column.Domain);
+        const own = TEditBox.#domainWidthCh(this.#effectiveDomain());
         if (!this.#isReference)
             return own;
 
@@ -86,22 +148,26 @@ export default class TEditBox {
         return displayCh ?? own;
     }
 
+    static #FIELD_MAX_WIDTH_CH = 50;
+
     #applyControlWidth() {
-        if (!this.#body)
+        if (this.#isCheckboxInline || !this.#body)
             return;
+        this.#body.style.maxWidth = `${TEditBox.#FIELD_MAX_WIDTH_CH}ch`;
         const ch = this.#fieldWidthCh();
         if (ch == null) {
-            this.#body.style.width = "100%";
+            this.#body.style.width = "";
             return;
         }
 
+        const capped = Math.min(ch, TEditBox.#FIELD_MAX_WIDTH_CH);
         // ch = caracteres visíveis; +1dvmin compensa padding horizontal (0.5dvmin × 2) do input.
-        const width = this.#dropdown ? `${ch}ch` : `calc(${ch}ch + 1dvmin)`;
+        const width = this.#dropdown ? `${capped}ch` : `calc(${capped}ch + 1dvmin)`;
         this.#body.style.width = width;
     }
 
     #syncControlAlignment() {
-        if (!this.#body?.parentElement)
+        if (!this.#legend || !this.#body?.parentElement)
             return;
 
         requestAnimationFrame(() => {
@@ -118,23 +184,14 @@ export default class TEditBox {
     #mountInner() {
         const htmlInputType = this.#column.Domain.Type.Category.HtmlInputType;
 
-        if (htmlInputType === "checkbox") {
-            this.#checkboxHost = document.createElement("span");
-            const spacer = document.createElement("span");
-            spacer.innerHTML = "&nbsp;&nbsp;&nbsp;";
-            this.#legend.appendChild(spacer);
-            this.#legend.appendChild(this.#checkboxHost);
-            return;
-        }
-
         if (this.#isReference) {
-            this.#fieldset.appendChild(this.#body);
+            this.#root.appendChild(this.#body);
             return;
         }
 
         this.#control = this.#createNativeInput(htmlInputType);
         this.#body.appendChild(this.#control);
-        this.#fieldset.appendChild(this.#body);
+        this.#root.appendChild(this.#body);
     }
 
     #disableBrowserAutofill(control, keepReadOnly = false) {
@@ -226,16 +283,17 @@ export default class TEditBox {
             return control;
         }
 
+        const domain = this.#effectiveDomain();
         const editMask = this.#getEditMask();
         const control = document.createElement("input");
 
         if (editMask) {
             control.type = "text";
         } else if (htmlInputType === "number") {
-            control.type = this.#column.Domain.Type.Category.HtmlInputType;
-            control.min = this.#column.Domain.Minimum;
-            control.max = this.#column.Domain.Maximum;
-            control.step = 1 / 10 ** (this.#column.Domain.Decimals || 0);
+            control.type = domain.Type.Category.HtmlInputType;
+            control.min = domain.Minimum;
+            control.max = domain.Maximum;
+            control.step = 1 / 10 ** (domain.Decimals || 0);
         } else {
             control.type = htmlInputType;
         }
@@ -243,13 +301,13 @@ export default class TEditBox {
         if (editMask?.placeholder)
             control.maxLength = editMask.placeholder.length;
         else if (htmlInputType !== "number")
-            control.maxLength = this.#column.Domain.Length ?? this.#column.Domain.Type?.MaxLength ?? 20;
+            control.maxLength = domain.Length ?? domain.Type?.MaxLength ?? 20;
 
         return control;
     }
 
     #getEditMask() {
-        const domain = this.#column.Domain;
+        const domain = this.#effectiveDomain();
         const category = domain.Type.Category.Name;
         const scale = domain.Decimals ?? 0;
 
@@ -504,6 +562,7 @@ export default class TEditBox {
     #configureReference(options) {
         const { action, record, sourceRecord, onChange, onConfirm, onCancel, onFirstInput } = options;
         const readOnly = action === TSystem.Actions.DELETE || action === TSystem.Actions.QUERY;
+        this.#root.classList.remove("tedit-checkbox", "tedit-checkbox-inline");
         const refTable = TSystem.GetTable(this.#column.ReferenceTableId);
         const alias = refTable.Alias || refTable.Name;
         const ref = sourceRecord?.references?.[alias];
@@ -538,7 +597,7 @@ export default class TEditBox {
             required: isRequired,
             allowEmpty: !isRequired,
             readOnly,
-            loader: readOnly ? null : (query, page) => TList.fetchPage(refTable, {
+            loader: readOnly ? null : (query, page) => TRecordSet.fetchPickerPage(refTable, {
                 value: query,
                 pageNumber: page,
                 limitRows: pageSize,
@@ -571,6 +630,13 @@ export default class TEditBox {
             onChange: (value) => onChange(this.#column.Name, value),
         };
 
+        this.#root.classList.add("tedit-checkbox");
+        if (this.#domainVariant)
+            this.#ensureCheckboxHost();
+        if (!this.#checkboxHost)
+            throw new Error("Checkbox host is required.");
+
+        this.#checkboxHost.replaceChildren();
         this.#checkbox = isCondition
             ? TCheckbox.Condition(this.#checkboxHost, checkboxOptions)
             : TCheckbox.Edition(this.#checkboxHost, { ...checkboxOptions, required: this.#column.IsRequired });
@@ -589,6 +655,10 @@ export default class TEditBox {
     #configureNativeInput(options) {
         const { action, record, sourceRecord, onChange, onConfirm, onCancel, onFirstInput } = options;
         const readOnly = action === TSystem.Actions.DELETE || action === TSystem.Actions.QUERY;
+        this.#root.classList.remove("tedit-checkbox", "tedit-checkbox-inline");
+        this.#releaseCheckbox();
+        const domain = this.#effectiveDomain();
+        const htmlInputType = domain.Type.Category.HtmlInputType;
         const editMask = this.#getEditMask();
         this.#editMask = editMask && !readOnly ? editMask : null;
         const useDisplayValue = action === TSystem.Actions.QUERY;
@@ -596,11 +666,15 @@ export default class TEditBox {
             ? this.#getDisplayValue(record, sourceRecord)
             : record[this.#column.Name];
 
-        if (!this.#control) {
-            this.#control = this.#createNativeInput(this.#column.Domain.Type.Category.HtmlInputType);
+        const controlKind = htmlInputType === "textarea" ? "textarea" : "input";
+        const needsNewControl = !this.#control
+            || this.#control.closest(".tcheckbox")
+            || this.#control.tagName.toLowerCase() !== controlKind;
+        if (needsNewControl) {
+            this.#control = this.#createNativeInput(htmlInputType);
             this.#body.replaceChildren(this.#control);
             if (!this.#body.parentElement)
-                this.#fieldset.appendChild(this.#body);
+                this.#root.appendChild(this.#body);
         }
 
         this.#control.name = this.#fieldInputName();
@@ -608,7 +682,7 @@ export default class TEditBox {
         this.#control.readOnly = readOnly;
         this.#applyNativeConstraints(this.#control, action, readOnly);
         this.#disableBrowserAutofill(this.#control, readOnly);
-        this.#control.style.textAlign = this.#column.Domain.Type.Category.HtmlInputAlign;
+        this.#control.style.textAlign = domain.Type.Category.HtmlInputAlign;
 
         if (editMask && !readOnly) {
             this.#control.value = this.#formatRawValue(editMask, rawValue);
@@ -639,9 +713,12 @@ export default class TEditBox {
         const onChange = options.onChange
             ?? ((name, value) => { options.record[name] = value; });
 
+        if ("domainVariant" in options)
+            this.#domainVariant = options.domainVariant;
+
         if (this.#isReference)
             this.#configureReference({ ...options, onChange });
-        else if (this.#column.Domain.Type.Category.HtmlInputType === "checkbox")
+        else if (this.#usesCheckboxControl())
             this.#configureCheckbox({ ...options, onChange });
         else
             this.#configureNativeInput({ ...options, onChange });
@@ -652,7 +729,7 @@ export default class TEditBox {
     }
 
     get element() {
-        return this.#fieldset;
+        return this.#root;
     }
 
     get input() {

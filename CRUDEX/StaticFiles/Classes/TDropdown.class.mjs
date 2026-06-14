@@ -45,6 +45,8 @@ export default class TDropdown {
     #handleOutside = null;
     #handleGlobal = null;
     #loader = null;
+    #recordSet = null;
+    #records = new Map();
     #query = "";
     #serverPage = 1;
     #serverPageCount = 1;
@@ -355,10 +357,19 @@ export default class TDropdown {
             .filter(Boolean);
         this.#filtered = items;
         this.#mergeCatalog(items);
+        this.#mergeRecordSet(result);
         if (this.#selected[0])
             this.#mergeCatalog(this.#selected);
         this.#currentPage = 0;
         this.#renderItems();
+    }
+
+    #mergeRecordSet(result) {
+        if (!result?.recordSet)
+            return;
+        this.#recordSet = result.recordSet;
+        for (const record of result.records ?? result.recordSet.records ?? [])
+            this.#records.set(record.Id, record);
     }
 
     #renderItems() {
@@ -732,6 +743,18 @@ export default class TDropdown {
 
     get input() {
         return this.#input ?? this.#trigger;
+    }
+
+    get recordSet() {
+        return this.#recordSet;
+    }
+
+    get records() {
+        return this.#records;
+    }
+
+    getRecord(id) {
+        return this.#records.get(id) ?? null;
     }
 
     destroy() {

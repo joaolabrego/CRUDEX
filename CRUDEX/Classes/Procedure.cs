@@ -119,8 +119,6 @@ namespace CRUDEX.Classes
 
             if (action == Actions.READ)
                 procedureName = $"[dbo].[{tableName}Read]";
-            else if (action == Actions.LIST)
-                procedureName = $"[dbo].[{tableName}List]";
             else if (action == Actions.PERSIST)
                 procedureName = $"[dbo].[{alias}Persist]";
             else if (action == Actions.CREATE)

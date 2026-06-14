@@ -21,7 +21,6 @@
         public const string CREATE = "create";
         public const string UPDATE = "update";
         public const string DELETE = "delete";
-        public const string LIST = "list";
         public const string GENERATE = "generate";
         public const string CHECK = "check";
         public const string RELOAD = "reload";

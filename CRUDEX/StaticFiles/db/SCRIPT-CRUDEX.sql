@@ -16186,6 +16186,9 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[Name]'
+        DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -16275,6 +16278,12 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
         IF @W_F_AskInWords IS NOT NULL BEGIN
             SET @WhereFixed = @WhereFixed + ' AND [T].[AskInWords] = @F_AskInWords'
         END
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE BEGIN
         IF @_ IS NULL BEGIN
             IF @W_U_Id IS NOT NULL BEGIN
                 IF @W_U_Id < CAST('1' AS tinyint)
@@ -16342,6 +16351,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
             SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
+        END
         SET @Where = @WhereFixed
         IF @WhereUser <> ''
             SET @Where = @Where + ' AND (' + @WhereUser + ')'
@@ -16369,7 +16379,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                                ,@F_AskDefault bit,@U_AskDefault bit,@S_AskDefault bit
                                ,@F_AskMinimum bit,@U_AskMinimum bit,@S_AskMinimum bit
                                ,@F_AskMaximum bit,@U_AskMaximum bit,@S_AskMaximum bit
-                               ,@F_AskInWords bit,@U_AskInWords bit,@S_AskInWords bit'
+                               ,@F_AskInWords bit,@U_AskInWords bit,@S_AskInWords bit,@PickerValue nvarchar(25)'
                            ,@F_Id = @W_F_Id
                            ,@U_Id = @W_U_Id
                            ,@S_Id = @W_S_Id
@@ -16397,6 +16407,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                            ,@F_AskInWords = @W_F_AskInWords
                            ,@U_AskInWords = @W_U_AskInWords
                            ,@S_AskInWords = @W_S_AskInWords
+                           ,@PickerValue = @PickerValue
         ELSE
             EXEC sp_executesql @sql
 
@@ -16482,63 +16493,6 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                       ,[AskMaximum]
                       ,[AskInWords]
                     FROM [#result] FOR JSON PATH) AS [result]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[CategoriesList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[CategoriesList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[CategoriesList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[CategoriesList](@Value nvarchar(25)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [#query]
-            FROM [dbo].[Categories]
-            WHERE [Name] LIKE '%' + @Value + '%'
-            ORDER BY [Name]
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
-                          ,[T].[Name] AS [ListItemName]
-                       FROM [#query] [Q]
-                           INNER JOIN [dbo].[Categories] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Name]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -17200,6 +17154,9 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[Name]'
+        DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -17305,6 +17262,12 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
         IF @W_F_IsActive IS NOT NULL BEGIN
             SET @WhereFixed = @WhereFixed + ' AND [T].[IsActive] = @F_IsActive'
         END
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE BEGIN
         IF @_ IS NULL BEGIN
             IF @W_U_Id IS NOT NULL BEGIN
                 IF @W_U_Id < CAST('1' AS tinyint)
@@ -17384,6 +17347,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
             SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
+        END
         SET @Where = @WhereFixed
         IF @WhereUser <> ''
             SET @Where = @Where + ' AND (' + @WhereUser + ')'
@@ -17413,7 +17377,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                                ,@F_AskGridable bit,@U_AskGridable bit,@S_AskGridable bit
                                ,@F_AskCodification bit,@U_AskCodification bit,@S_AskCodification bit
                                ,@F_IsLikeable bit,@U_IsLikeable bit,@S_IsLikeable bit
-                               ,@F_IsActive bit,@U_IsActive bit,@S_IsActive bit'
+                               ,@F_IsActive bit,@U_IsActive bit,@S_IsActive bit,@PickerValue nvarchar(25)'
                            ,@F_Id = @W_F_Id
                            ,@U_Id = @W_U_Id
                            ,@S_Id = @W_S_Id
@@ -17447,6 +17411,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                            ,@F_IsActive = @W_F_IsActive
                            ,@U_IsActive = @W_U_IsActive
                            ,@S_IsActive = @W_S_IsActive
+                           ,@PickerValue = @PickerValue
         ELSE
             EXEC sp_executesql @sql
 
@@ -17566,63 +17531,6 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                       ,[IsActive]
                     FROM [#result] FOR JSON PATH) AS [result]
               ,ISNULL((SELECT [Categories].* FROM [#Categories] AS [Categories] FOR JSON PATH), '[]') AS [Categories]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[TypesList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[TypesList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TypesList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[TypesList](@Value nvarchar(25)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [#query]
-            FROM [dbo].[Types]
-            WHERE [Name] LIKE '%' + @Value + '%'
-            ORDER BY [Name]
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
-                          ,[T].[Name] AS [ListItemName]
-                       FROM [#query] [Q]
-                           INNER JOIN [dbo].[Types] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Name]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -18307,7 +18215,6 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
 END
 GO
 
-
 /**********************************************************************************
 Criar stored procedure [dbo].[DomainValidate]
 **********************************************************************************/
@@ -18919,6 +18826,9 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[Name]'
+        DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -18992,6 +18902,12 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
         IF @W_F_Codification IS NOT NULL BEGIN
             SET @WhereFixed = @WhereFixed + ' AND [T].[Codification] = @F_Codification'
         END
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE BEGIN
         IF @_ IS NULL BEGIN
             IF @W_U_Id IS NOT NULL BEGIN
                 IF @W_U_Id < CAST('1' AS bigint)
@@ -19045,6 +18961,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                 SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
             SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
+        END
         SET @Where = @WhereFixed
         IF @WhereUser <> ''
             SET @Where = @Where + ' AND (' + @WhereUser + ')'
@@ -19069,7 +18986,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                                ,@F_MaskId bigint,@U_MaskId bigint,@S_MaskId bigint
                                ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
                                ,@F_ValidValues nvarchar(max),@U_ValidValues nvarchar(max),@S_ValidValues nvarchar(max)
-                               ,@F_Codification nvarchar(5),@U_Codification nvarchar(5),@S_Codification nvarchar(5)'
+                               ,@F_Codification nvarchar(5),@U_Codification nvarchar(5),@S_Codification nvarchar(5),@PickerValue nvarchar(25)'
                            ,@F_Id = @W_F_Id
                            ,@U_Id = @W_U_Id
                            ,@S_Id = @W_S_Id
@@ -19088,6 +19005,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                            ,@F_Codification = @W_F_Codification
                            ,@U_Codification = @W_U_Codification
                            ,@S_Codification = @W_S_Codification
+                           ,@PickerValue = @PickerValue
         ELSE
             EXEC sp_executesql @sql
 
@@ -19223,63 +19141,6 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
               ,ISNULL((SELECT [Types].* FROM [#Types] AS [Types] FOR JSON PATH), '[]') AS [Types]
               ,ISNULL((SELECT [Categories].* FROM [#Categories] AS [Categories] FOR JSON PATH), '[]') AS [Categories]
               ,ISNULL((SELECT [Masks].* FROM [#Masks] AS [Masks] FOR JSON PATH), '[]') AS [Masks]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[DomainsList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[DomainsList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DomainsList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[DomainsList](@Value nvarchar(25)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [#query]
-            FROM [dbo].[Domains]
-            WHERE [Name] LIKE '%' + @Value + '%'
-            ORDER BY [Name]
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
-                          ,[T].[Name] AS [ListItemName]
-                       FROM [#query] [Q]
-                           INNER JOIN [dbo].[Domains] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Name]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -19861,6 +19722,9 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[Name]'
+        DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -19909,6 +19773,12 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
         IF @W_F_ClientName IS NOT NULL BEGIN
             SET @WhereFixed = @WhereFixed + ' AND [T].[ClientName] = @F_ClientName'
         END
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE BEGIN
         IF @_ IS NULL BEGIN
             IF @W_U_Id IS NOT NULL BEGIN
                 IF @W_U_Id < CAST('1' AS bigint)
@@ -19940,6 +19810,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                 SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
             SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
+        END
         SET @Where = @WhereFixed
         IF @WhereUser <> ''
             SET @Where = @Where + ' AND (' + @WhereUser + ')'
@@ -19961,7 +19832,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
             EXEC sp_executesql @sql
                                ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
                                ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
-                               ,@F_ClientName nvarchar(15),@U_ClientName nvarchar(15),@S_ClientName nvarchar(15)'
+                               ,@F_ClientName nvarchar(15),@U_ClientName nvarchar(15),@S_ClientName nvarchar(15),@PickerValue nvarchar(25)'
                            ,@F_Id = @W_F_Id
                            ,@U_Id = @W_U_Id
                            ,@S_Id = @W_S_Id
@@ -19971,6 +19842,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                            ,@F_ClientName = @W_F_ClientName
                            ,@U_ClientName = @W_U_ClientName
                            ,@S_ClientName = @W_S_ClientName
+                           ,@PickerValue = @PickerValue
         ELSE
             EXEC sp_executesql @sql
 
@@ -20036,63 +19908,6 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                       ,[MaxRetryLogins]
                       ,[IsOffAir]
                     FROM [#result] FOR JSON PATH) AS [result]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[SystemsList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemsList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemsList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[SystemsList](@Value nvarchar(25)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [#query]
-            FROM [dbo].[Systems]
-            WHERE [Name] LIKE '%' + @Value + '%'
-            ORDER BY [Name]
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
-                          ,[T].[Name] AS [ListItemName]
-                       FROM [#query] [Q]
-                           INNER JOIN [dbo].[Systems] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Name]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -20904,7 +20719,6 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
 END
 GO
 
-
 /**********************************************************************************
 Criar stored procedure [dbo].[UserValidate]
 **********************************************************************************/
@@ -21476,6 +21290,9 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[Name]'
+        DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -21530,6 +21347,12 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
         IF @W_F_IsActive IS NOT NULL BEGIN
             SET @WhereFixed = @WhereFixed + ' AND [T].[IsActive] = @F_IsActive'
         END
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE BEGIN
         IF @_ IS NULL BEGIN
             IF @W_U_Id IS NOT NULL BEGIN
                 IF @W_U_Id < CAST('1' AS bigint)
@@ -21567,6 +21390,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                 SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
             SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
+        END
         SET @Where = @WhereFixed
         IF @WhereUser <> ''
             SET @Where = @Where + ' AND (' + @WhereUser + ')'
@@ -21589,7 +21413,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                                ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
                                ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
                                ,@F_FullName nvarchar(50),@U_FullName nvarchar(50),@S_FullName nvarchar(50)
-                               ,@F_IsActive bit,@U_IsActive bit,@S_IsActive bit'
+                               ,@F_IsActive bit,@U_IsActive bit,@S_IsActive bit,@PickerValue nvarchar(25)'
                            ,@F_Id = @W_F_Id
                            ,@U_Id = @W_U_Id
                            ,@S_Id = @W_S_Id
@@ -21602,6 +21426,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                            ,@F_IsActive = @W_F_IsActive
                            ,@U_IsActive = @W_U_IsActive
                            ,@S_IsActive = @W_S_IsActive
+                           ,@PickerValue = @PickerValue
         ELSE
             EXEC sp_executesql @sql
 
@@ -21667,63 +21492,6 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                       ,[RetryLogins]
                       ,[IsActive]
                     FROM [#result] FOR JSON PATH) AS [result]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[UsersList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[UsersList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UsersList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[UsersList](@Value nvarchar(25)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [#query]
-            FROM [dbo].[Users]
-            WHERE [Name] LIKE '%' + @Value + '%'
-            ORDER BY [Name]
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
-                          ,[T].[Name] AS [ListItemName]
-                       FROM [#query] [Q]
-                           INNER JOIN [dbo].[Users] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Name]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -22285,6 +22053,9 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[Name]'
+        DECLARE @PickerValue nvarchar(50) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -22341,6 +22112,12 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
         IF @W_F_Name IS NOT NULL BEGIN
             SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
         END
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(50))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE BEGIN
         IF @_ IS NULL BEGIN
             IF @W_U_Id IS NOT NULL BEGIN
                 IF @W_U_Id < CAST('1' AS bigint)
@@ -22386,6 +22163,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                 SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
             SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
+        END
         SET @Where = @WhereFixed
         IF @WhereUser <> ''
             SET @Where = @Where + ' AND (' + @WhereUser + ')'
@@ -22408,7 +22186,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                                ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
                                ,@F_SystemId bigint,@U_SystemId bigint,@S_SystemId bigint
                                ,@F_UserId bigint,@U_UserId bigint,@S_UserId bigint
-                               ,@F_Name nvarchar(50),@U_Name nvarchar(50),@S_Name nvarchar(50)'
+                               ,@F_Name nvarchar(50),@U_Name nvarchar(50),@S_Name nvarchar(50),@PickerValue nvarchar(50)'
                            ,@F_Id = @W_F_Id
                            ,@U_Id = @W_U_Id
                            ,@S_Id = @W_S_Id
@@ -22421,6 +22199,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                            ,@F_Name = @W_F_Name
                            ,@U_Name = @W_U_Name
                            ,@S_Name = @W_S_Name
+                           ,@PickerValue = @PickerValue
         ELSE
             EXEC sp_executesql @sql
 
@@ -22504,63 +22283,6 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                     FROM [#result] FOR JSON PATH) AS [result]
               ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
               ,ISNULL((SELECT [Users].* FROM [#Users] AS [Users] FOR JSON PATH), '[]') AS [Users]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[SystemsUsersList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemsUsersList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemsUsersList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[SystemsUsersList](@Value nvarchar(50)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [#query]
-            FROM [dbo].[SystemsUsers]
-            WHERE [Name] LIKE '%' + @Value + '%'
-            ORDER BY [Name]
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
-                          ,[T].[Name] AS [ListItemName]
-                       FROM [#query] [Q]
-                           INNER JOIN [dbo].[SystemsUsers] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Name]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -23255,7 +22977,6 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
 END
 GO
 
-
 /**********************************************************************************
 Criar stored procedure [dbo].[DatabaseValidate]
 **********************************************************************************/
@@ -23853,6 +23574,9 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[Name]'
+        DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -23911,6 +23635,12 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
         IF @W_F_Alias IS NOT NULL BEGIN
             SET @WhereFixed = @WhereFixed + ' AND [T].[Alias] = @F_Alias'
         END
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE BEGIN
         IF @_ IS NULL BEGIN
             IF @W_U_Id IS NOT NULL BEGIN
                 IF @W_U_Id < CAST('1' AS bigint)
@@ -23952,6 +23682,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                 SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
             SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
+        END
         SET @Where = @WhereFixed
         IF @WhereUser <> ''
             SET @Where = @Where + ' AND (' + @WhereUser + ')'
@@ -23974,7 +23705,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                                ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
                                ,@F_ConnectionId bigint,@U_ConnectionId bigint,@S_ConnectionId bigint
                                ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
-                               ,@F_Alias nvarchar(25),@U_Alias nvarchar(25),@S_Alias nvarchar(25)'
+                               ,@F_Alias nvarchar(25),@U_Alias nvarchar(25),@S_Alias nvarchar(25),@PickerValue nvarchar(25)'
                            ,@F_Id = @W_F_Id
                            ,@U_Id = @W_U_Id
                            ,@S_Id = @W_S_Id
@@ -23987,6 +23718,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                            ,@F_Alias = @W_F_Alias
                            ,@U_Alias = @W_U_Alias
                            ,@S_Alias = @W_S_Alias
+                           ,@PickerValue = @PickerValue
         ELSE
             EXEC sp_executesql @sql
 
@@ -24070,63 +23802,6 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                       ,[CurrentOperationId]
                     FROM [#result] FOR JSON PATH) AS [result]
               ,ISNULL((SELECT [Connections].* FROM [#Connections] AS [Connections] FOR JSON PATH), '[]') AS [Connections]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[DatabasesList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabasesList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabasesList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[DatabasesList](@Value nvarchar(25)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [#query]
-            FROM [dbo].[Databases]
-            WHERE [Name] LIKE '%' + @Value + '%'
-            ORDER BY [Name]
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
-                          ,[T].[Name] AS [ListItemName]
-                       FROM [#query] [Q]
-                           INNER JOIN [dbo].[Databases] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Name]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -24688,6 +24363,9 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[Name]'
+        DECLARE @PickerValue nvarchar(50) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -24744,6 +24422,12 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
         IF @W_F_Name IS NOT NULL BEGIN
             SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
         END
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(50))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE BEGIN
         IF @_ IS NULL BEGIN
             IF @W_U_Id IS NOT NULL BEGIN
                 IF @W_U_Id < CAST('1' AS bigint)
@@ -24789,6 +24473,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                 SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
             SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
+        END
         SET @Where = @WhereFixed
         IF @WhereUser <> ''
             SET @Where = @Where + ' AND (' + @WhereUser + ')'
@@ -24811,7 +24496,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                                ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
                                ,@F_SystemId bigint,@U_SystemId bigint,@S_SystemId bigint
                                ,@F_DatabaseId bigint,@U_DatabaseId bigint,@S_DatabaseId bigint
-                               ,@F_Name nvarchar(50),@U_Name nvarchar(50),@S_Name nvarchar(50)'
+                               ,@F_Name nvarchar(50),@U_Name nvarchar(50),@S_Name nvarchar(50),@PickerValue nvarchar(50)'
                            ,@F_Id = @W_F_Id
                            ,@U_Id = @W_U_Id
                            ,@S_Id = @W_S_Id
@@ -24824,6 +24509,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                            ,@F_Name = @W_F_Name
                            ,@U_Name = @W_U_Name
                            ,@S_Name = @W_S_Name
+                           ,@PickerValue = @PickerValue
         ELSE
             EXEC sp_executesql @sql
 
@@ -24919,63 +24605,6 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
               ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
               ,ISNULL((SELECT [Databases].* FROM [#Databases] AS [Databases] FOR JSON PATH), '[]') AS [Databases]
               ,ISNULL((SELECT [Connections].* FROM [#Connections] AS [Connections] FOR JSON PATH), '[]') AS [Connections]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[SystemsDatabasesList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemsDatabasesList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[SystemsDatabasesList](@Value nvarchar(50)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [#query]
-            FROM [dbo].[SystemsDatabases]
-            WHERE [Name] LIKE '%' + @Value + '%'
-            ORDER BY [Name]
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
-                          ,[T].[Name] AS [ListItemName]
-                       FROM [#query] [Q]
-                           INNER JOIN [dbo].[SystemsDatabases] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Name]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -25575,6 +25204,9 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[Name]'
+        DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -25630,6 +25262,12 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
         IF @W_F_IsLegacy IS NOT NULL BEGIN
             SET @WhereFixed = @WhereFixed + ' AND [T].[IsLegacy] = @F_IsLegacy'
         END
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE BEGIN
         IF @_ IS NULL BEGIN
             IF @W_U_Id IS NOT NULL BEGIN
                 IF @W_U_Id < CAST('1' AS bigint)
@@ -25667,6 +25305,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                 SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
             SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
+        END
         SET @Where = @WhereFixed
         IF @WhereUser <> ''
             SET @Where = @Where + ' AND (' + @WhereUser + ')'
@@ -25689,7 +25328,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                                ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
                                ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
                                ,@F_Alias nvarchar(25),@U_Alias nvarchar(25),@S_Alias nvarchar(25)
-                               ,@F_IsLegacy bit,@U_IsLegacy bit,@S_IsLegacy bit'
+                               ,@F_IsLegacy bit,@U_IsLegacy bit,@S_IsLegacy bit,@PickerValue nvarchar(25)'
                            ,@F_Id = @W_F_Id
                            ,@U_Id = @W_U_Id
                            ,@S_Id = @W_S_Id
@@ -25702,6 +25341,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                            ,@F_IsLegacy = @W_F_IsLegacy
                            ,@U_IsLegacy = @W_U_IsLegacy
                            ,@S_IsLegacy = @W_S_IsLegacy
+                           ,@PickerValue = @PickerValue
         ELSE
             EXEC sp_executesql @sql
 
@@ -25785,63 +25425,6 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                       ,[CurrentId]
                     FROM [#result] FOR JSON PATH) AS [result]
               ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[TablesList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[TablesList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TablesList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[TablesList](@Value nvarchar(25)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [#query]
-            FROM [dbo].[Tables]
-            WHERE [Name] LIKE '%' + @Value + '%'
-            ORDER BY [Name]
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
-                          ,[T].[Name] AS [ListItemName]
-                       FROM [#query] [Q]
-                           INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Name]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -26411,6 +25994,9 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[Name]'
+        DECLARE @PickerValue nvarchar(50) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -26467,6 +26053,12 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
         IF @W_F_Name IS NOT NULL BEGIN
             SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
         END
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(50))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE BEGIN
         IF @_ IS NULL BEGIN
             IF @W_U_Id IS NOT NULL BEGIN
                 IF @W_U_Id < CAST('1' AS bigint)
@@ -26512,6 +26104,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                 SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
             SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
+        END
         SET @Where = @WhereFixed
         IF @WhereUser <> ''
             SET @Where = @Where + ' AND (' + @WhereUser + ')'
@@ -26534,7 +26127,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                                ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
                                ,@F_DatabaseId bigint,@U_DatabaseId bigint,@S_DatabaseId bigint
                                ,@F_TableId bigint,@U_TableId bigint,@S_TableId bigint
-                               ,@F_Name nvarchar(50),@U_Name nvarchar(50),@S_Name nvarchar(50)'
+                               ,@F_Name nvarchar(50),@U_Name nvarchar(50),@S_Name nvarchar(50),@PickerValue nvarchar(50)'
                            ,@F_Id = @W_F_Id
                            ,@U_Id = @W_U_Id
                            ,@S_Id = @W_S_Id
@@ -26547,6 +26140,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                            ,@F_Name = @W_F_Name
                            ,@U_Name = @W_U_Name
                            ,@S_Name = @W_S_Name
+                           ,@PickerValue = @PickerValue
         ELSE
             EXEC sp_executesql @sql
 
@@ -26656,63 +26250,6 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
               ,ISNULL((SELECT [Databases].* FROM [#Databases] AS [Databases] FOR JSON PATH), '[]') AS [Databases]
               ,ISNULL((SELECT [Connections].* FROM [#Connections] AS [Connections] FOR JSON PATH), '[]') AS [Connections]
               ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[DatabasesTablesList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabasesTablesList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[DatabasesTablesList](@Value nvarchar(50)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [#query]
-            FROM [dbo].[DatabasesTables]
-            WHERE [Name] LIKE '%' + @Value + '%'
-            ORDER BY [Name]
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
-                          ,[T].[Name] AS [ListItemName]
-                       FROM [#query] [Q]
-                           INNER JOIN [dbo].[DatabasesTables] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Name]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -28007,7 +27544,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
 END
 GO
 
-
 /**********************************************************************************
 Criar stored procedure [dbo].[IndexValidate]
 **********************************************************************************/
@@ -28559,6 +28095,9 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[Name]'
+        DECLARE @PickerValue nvarchar(50) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -28613,6 +28152,12 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
         IF @W_F_IsUnique IS NOT NULL BEGIN
             SET @WhereFixed = @WhereFixed + ' AND [T].[IsUnique] = @F_IsUnique'
         END
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(50))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE BEGIN
         IF @_ IS NULL BEGIN
             IF @W_U_Id IS NOT NULL BEGIN
                 IF @W_U_Id < CAST('1' AS bigint)
@@ -28654,6 +28199,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                 SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
             SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
+        END
         SET @Where = @WhereFixed
         IF @WhereUser <> ''
             SET @Where = @Where + ' AND (' + @WhereUser + ')'
@@ -28676,7 +28222,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                                ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
                                ,@F_TableId bigint,@U_TableId bigint,@S_TableId bigint
                                ,@F_Name nvarchar(50),@U_Name nvarchar(50),@S_Name nvarchar(50)
-                               ,@F_IsUnique bit,@U_IsUnique bit,@S_IsUnique bit'
+                               ,@F_IsUnique bit,@U_IsUnique bit,@S_IsUnique bit,@PickerValue nvarchar(50)'
                            ,@F_Id = @W_F_Id
                            ,@U_Id = @W_U_Id
                            ,@S_Id = @W_S_Id
@@ -28689,6 +28235,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                            ,@F_IsUnique = @W_F_IsUnique
                            ,@U_IsUnique = @W_U_IsUnique
                            ,@S_IsUnique = @W_S_IsUnique
+                           ,@PickerValue = @PickerValue
         ELSE
             EXEC sp_executesql @sql
 
@@ -28773,63 +28320,6 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                       ,[IsUnique]
                     FROM [#result] FOR JSON PATH) AS [result]
               ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[IndexesList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexesList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexesList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[IndexesList](@Value nvarchar(50)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [#query]
-            FROM [dbo].[Indexes]
-            WHERE [Name] LIKE '%' + @Value + '%'
-            ORDER BY [Name]
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
-                          ,[T].[Name] AS [ListItemName]
-                       FROM [#query] [Q]
-                           INNER JOIN [dbo].[Indexes] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Name]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -29699,7 +29189,6 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
 END
 GO
 
-
 /**********************************************************************************
 Criar stored procedure [dbo].[SessionValidate]
 **********************************************************************************/
@@ -30486,7 +29975,6 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
 END
 GO
 
-
 /**********************************************************************************
 Criar stored procedure [dbo].[TransactionValidate]
 **********************************************************************************/
@@ -30946,7 +30434,6 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
     RETURN 0
 END
 GO
-
 
 /**********************************************************************************
 Criar stored procedure [dbo].[OperationValidate]
@@ -31702,7 +31189,6 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
     RETURN 0
 END
 GO
-
 
 /**********************************************************************************
 Criar stored procedure [dbo].[UnicityValidate]
@@ -32551,7 +32037,6 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
 END
 GO
 
-
 /**********************************************************************************
 Criar stored procedure [dbo].[OperatorValidate]
 **********************************************************************************/
@@ -33087,6 +32572,9 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[Name]'
+        DECLARE @PickerValue nvarchar(15) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -33139,6 +32627,12 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
         IF @W_F_CodeJS IS NOT NULL BEGIN
             SET @WhereFixed = @WhereFixed + ' AND [T].[CodeJS] = @F_CodeJS'
         END
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(15))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE BEGIN
         IF @_ IS NULL BEGIN
             IF @W_U_Id IS NOT NULL BEGIN
                 IF @W_U_Id < CAST('1' AS tinyint)
@@ -33176,6 +32670,7 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                 SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
             SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
+        END
         SET @Where = @WhereFixed
         IF @WhereUser <> ''
             SET @Where = @Where + ' AND (' + @WhereUser + ')'
@@ -33198,7 +32693,7 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                                ,N'@F_Id tinyint,@U_Id tinyint,@S_Id tinyint
                                ,@F_Name nvarchar(15),@U_Name nvarchar(15),@S_Name nvarchar(15)
                                ,@F_CodeSQL nvarchar(15),@U_CodeSQL nvarchar(15),@S_CodeSQL nvarchar(15)
-                               ,@F_CodeJS nvarchar(15),@U_CodeJS nvarchar(15),@S_CodeJS nvarchar(15)'
+                               ,@F_CodeJS nvarchar(15),@U_CodeJS nvarchar(15),@S_CodeJS nvarchar(15),@PickerValue nvarchar(15)'
                            ,@F_Id = @W_F_Id
                            ,@U_Id = @W_U_Id
                            ,@S_Id = @W_S_Id
@@ -33211,6 +32706,7 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                            ,@F_CodeJS = @W_F_CodeJS
                            ,@U_CodeJS = @W_U_CodeJS
                            ,@S_CodeJS = @W_S_CodeJS
+                           ,@PickerValue = @PickerValue
         ELSE
             EXEC sp_executesql @sql
 
@@ -33268,63 +32764,6 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                       ,[CodeSQL]
                       ,[CodeJS]
                     FROM [#result] FOR JSON PATH) AS [result]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[OperatorsList]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[OperatorsList]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[OperatorsList] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[OperatorsList](@Value nvarchar(15)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @Value IS NULL
-            SET @Value = ''
-        SELECT [Id]
-            INTO [#query]
-            FROM [dbo].[Operators]
-            WHERE [Name] LIKE '%' + @Value + '%'
-            ORDER BY [Name]
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-               ,@sql NVARCHAR(MAX)
-
-        CREATE UNIQUE INDEX [#unqQuery] ON [#query]([Id])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SET @sql = 'SELECT [T].[Id] AS [ListItemId]
-                          ,[T].[Name] AS [ListItemName]
-                       FROM [#query] [Q]
-                           INNER JOIN [dbo].[Operators] [T] ON [T].[Id] = [Q].[Id]
-                       ORDER BY [T].[Name]
-                       OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
-                       FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
         SET @ReturnValue = @RowCount
 
     RETURN 0

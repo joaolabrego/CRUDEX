@@ -1,12 +1,23 @@
 ﻿"use strict";
 
 import TScreen from "./TScreen.class.mjs";
+import TConfig from "./TConfig.class.mjs";
 import TEditBox from "./TEditBox.class.mjs";
 import TGrid from "./TGrid.class.mjs";
 import TSystem from "./TSystem.class.mjs";
 import TTransaction from "./TTransaction.class.mjs";
 
 export default class TForm {
+    static #COLUMNS_TABLE = "Columns";
+    static #COLUMNS_VARIANT_FIELDS = ["Default", "Minimum", "Maximum"];
+    static #COLUMNS_VARIANT_DOMAIN_COLUMN = "DomainId";
+    static #COLUMNS_VARIANT_ASK_FLAG = {
+        Default: "AskDefault",
+        Minimum: "AskMinimum",
+        Maximum: "AskMaximum",
+    };
+    static #FORM_GRID_COLUMNS = 5;
+
     #Action = "";
     #ReturnAction = "";
     static #Style = "";
@@ -119,8 +130,107 @@ export default class TForm {
     }
     #onFieldChange(name, value) {
         this.#actualRecord[name] = value;
+        if (this.#Grid.Table.Name === TForm.#COLUMNS_TABLE
+            && name === TForm.#COLUMNS_VARIANT_DOMAIN_COLUMN)
+            this.#refreshColumnsVariantFields();
         this.#updateConfirmButton();
         this.#updateDetailAccess();
+    }
+
+    #editConfigureOptions() {
+        return {
+            action: this.#Action,
+            record: this.#actualRecord,
+            sourceRecord: this.#SourceRecord,
+            onChange: (name, value) => this.#onFieldChange(name, value),
+            onConfirm: () => this.#HTML.ConfirmButton.click(),
+            onCancel: () => this.#HTML.CancelButton?.click(),
+            onFirstInput: (input) => {
+                if (!this.#HTML.FirstInput)
+                    this.#HTML.FirstInput = input;
+            },
+        };
+    }
+
+    #columnsCategoryAskFlags() {
+        const domainId = this.#actualRecord[TForm.#COLUMNS_VARIANT_DOMAIN_COLUMN];
+        if (TConfig.IsEmpty(domainId))
+            return null;
+        const category = TSystem.GetDomain(domainId)?.Type?.Category;
+        if (!category)
+            return null;
+        return {
+            AskDefault: category.AskDefault,
+            AskMinimum: category.AskMinimum,
+            AskMaximum: category.AskMaximum,
+        };
+    }
+
+    #columnsVariantFieldVisible(column) {
+        if (this.#Grid.Table.Name !== TForm.#COLUMNS_TABLE)
+            return true;
+        if (!TForm.#COLUMNS_VARIANT_FIELDS.includes(column.Name))
+            return true;
+
+        const askFlag = TForm.#COLUMNS_VARIANT_ASK_FLAG[column.Name];
+        const flags = this.#columnsCategoryAskFlags();
+        if (!flags || !askFlag)
+            return true;
+
+        return flags[askFlag] === true;
+    }
+
+    #columnsDomainVariant(column) {
+        if (this.#Grid.Table.Name !== TForm.#COLUMNS_TABLE)
+            return undefined;
+        if (!TForm.#COLUMNS_VARIANT_FIELDS.includes(column.Name))
+            return undefined;
+        const domainId = this.#actualRecord[TForm.#COLUMNS_VARIANT_DOMAIN_COLUMN];
+        if (TConfig.IsEmpty(domainId))
+            return null;
+        return TSystem.GetDomain(domainId);
+    }
+
+    #refreshColumnsVariantFields() {
+        const baseOptions = this.#editConfigureOptions();
+        for (const edit of this.#editBoxes) {
+            const column = edit.column;
+            if (this.#columnsDomainVariant(column) === undefined)
+                continue;
+
+            const visible = this.#columnsVariantFieldVisible(column);
+            edit.element.style.display = visible ? "" : "none";
+            if (!visible) {
+                this.#actualRecord[column.Name] = null;
+                continue;
+            }
+
+            const variant = this.#columnsDomainVariant(column);
+            edit.configure({ ...baseOptions, domainVariant: variant });
+        }
+        this.#balanceFormGridTail();
+    }
+
+    #balanceFormGridTail() {
+        const form = this.#HTML.Form;
+        if (!form)
+            return;
+
+        const cells = [...form.children].filter(el =>
+            (el.tagName === "FIELDSET" || el.classList.contains("tedit-field"))
+            && el.style.display !== "none");
+
+        for (const el of cells)
+            el.style.gridColumn = "";
+
+        const remainder = cells.length % TForm.#FORM_GRID_COLUMNS;
+        if (remainder === 0)
+            return;
+
+        const startCol = Math.floor((TForm.#FORM_GRID_COLUMNS - remainder) / 2) + 1;
+        cells.slice(-remainder).forEach((el, index) => {
+            el.style.gridColumn = String(startCol + index);
+        });
     }
     #ensureLayout() {
         if (this.#masterForm) {
@@ -406,22 +516,18 @@ export default class TForm {
                 await this.#LoadRecord(columns);
         }
         this.#ensureLayout();
+        const baseOptions = this.#editConfigureOptions();
         for (const column of columns) {
-            const edit = TEditBox.Create(column, this.#HTML.Form)
-                .configure({
-                    action: this.#Action,
-                    record: this.#actualRecord,
-                    sourceRecord: this.#SourceRecord,
-                    onChange: (name, value) => this.#onFieldChange(name, value),
-                    onConfirm: () => this.#HTML.ConfirmButton.click(),
-                    onCancel: () => this.#HTML.CancelButton?.click(),
-                    onFirstInput: (input) => {
-                        if (!this.#HTML.FirstInput)
-                            this.#HTML.FirstInput = input;
-                    },
-                });
+            const options = { ...baseOptions };
+            const variant = this.#columnsDomainVariant(column);
+            if (variant !== undefined)
+                options.domainVariant = variant;
+            const edit = TEditBox.Create(column, this.#HTML.Form).configure(options);
+            if (!this.#columnsVariantFieldVisible(column))
+                edit.element.style.display = "none";
             this.#editBoxes.push(edit);
         }
+        this.#balanceFormGridTail();
         this.#updateConfirmButton();
         this.#updateDetailAccess();
         await this.#refreshChildGrids();
