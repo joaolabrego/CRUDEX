@@ -161,8 +161,8 @@ export default class TEditBox {
         }
 
         const capped = Math.min(ch, TEditBox.#FIELD_MAX_WIDTH_CH);
-        // ch = caracteres visíveis; +1dvmin compensa padding horizontal (0.5dvmin × 2) do input.
-        const width = this.#dropdown ? `${capped}ch` : `calc(${capped}ch + 1dvmin)`;
+        // ch = caracteres visíveis; --field-h-chrome = padding (0.5×2) + border (0.1×2) do controlo.
+        const width = `calc(${capped}ch + var(--field-h-chrome))`;
         this.#body.style.width = width;
     }
 

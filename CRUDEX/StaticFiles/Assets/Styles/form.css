@@ -70,6 +70,8 @@
     height: var(--field-height);
     padding: 0.5dvmin;
     box-sizing: border-box;
+    border: 0.1dvmin solid #000;
+    border-radius: 0.1dvmin;
 }
 
 .tedit-body .tdropdown {
