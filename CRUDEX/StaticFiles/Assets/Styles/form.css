@@ -11,10 +11,25 @@
 .form fieldset {
     border: none;
     color: black;
-    font-size: 1.5dvmin;
+    font-size: var(--font-size-grid);
+    font-weight: normal;
     text-align: left;
     width: 100%;
     /* Ajusta o tamanho do fieldset para preencher a célula da grade */
+}
+
+.form fieldset legend {
+    font-weight: bold;
+}
+
+.form input:not([type="checkbox"]),
+.form textarea,
+.form .tdropdown-input,
+.form .tdropdown-trigger {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
 }
 
 .form input[type="checkbox"] {
@@ -22,13 +37,20 @@
     height: var(--font-size-grid);
 }
 
-.form input {
-    height: calc(var(--background-color-control) + 0.5dvmin);
-    font-size: inherit;
+.form input:not([type="checkbox"]) {
+    width: 100%;
+    height: var(--field-height);
+    padding: 0.5dvmin;
+    box-sizing: border-box;
+}
+
+.tedit-body .tdropdown {
+    width: 100%;
 }
 
 .form textarea {
-    font-size: var(--background-color-control);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .buttonsBar {
@@ -44,7 +66,7 @@
     margin-right: 5dvmin;
     width: 20dvmin;
     height: 3.5dvmin;
-    font-size: 1.5dvmin;
+    font-size: var(--font-size-grid);
     background: var(--background-color-control);
     background-position: left;
     background-repeat: no-repeat;

@@ -55,7 +55,64 @@ export default class TEditBox {
         this.#fieldset.appendChild(this.#legend);
         this.#body = document.createElement("div");
         this.#body.className = "tedit-body";
-        this.#body.style.width = "100%";
+    }
+
+    static #domainWidthCh(domain) {
+        if (!domain)
+            return null;
+        const length = domain.Length ?? domain.Type?.MaxLength;
+        if (length == null || length <= 0)
+            return null;
+        return Number(length);
+    }
+
+    #fieldWidthCh() {
+        const editMask = this.#getEditMask();
+        if (editMask?.placeholder) {
+            const maskLength = String(editMask.placeholder).length;
+            if (maskLength > 0)
+                return maskLength;
+        }
+
+        const own = TEditBox.#domainWidthCh(this.#column.Domain);
+        if (!this.#isReference)
+            return own;
+
+        const refTable = TSystem.GetTable(this.#column.ReferenceTableId);
+        const listable = refTable?.GetListableColumn();
+        const displayCh = TEditBox.#domainWidthCh(listable?.Domain);
+
+        // FK: largura da coluna listada/exibida/editada, não do Id oculto.
+        return displayCh ?? own;
+    }
+
+    #applyControlWidth() {
+        if (!this.#body)
+            return;
+        const ch = this.#fieldWidthCh();
+        if (ch == null) {
+            this.#body.style.width = "100%";
+            return;
+        }
+
+        // ch = caracteres visíveis; +1dvmin compensa padding horizontal (0.5dvmin × 2) do input.
+        const width = this.#dropdown ? `${ch}ch` : `calc(${ch}ch + 1dvmin)`;
+        this.#body.style.width = width;
+    }
+
+    #syncControlAlignment() {
+        if (!this.#body?.parentElement)
+            return;
+
+        requestAnimationFrame(() => {
+            const legendWidth = this.#legend.getBoundingClientRect().width;
+            const bodyWidth = this.#body.getBoundingClientRect().width;
+
+            if (legendWidth > bodyWidth)
+                this.#body.style.marginLeft = `${(legendWidth - bodyWidth) / 2}px`;
+            else
+                this.#body.style.marginLeft = "";
+        });
     }
 
     #mountInner() {
@@ -174,8 +231,6 @@ export default class TEditBox {
 
         if (editMask) {
             control.type = "text";
-            if (editMask.placeholder)
-                control.maxLength = editMask.placeholder.length;
         } else if (htmlInputType === "number") {
             control.type = this.#column.Domain.Type.Category.HtmlInputType;
             control.min = this.#column.Domain.Minimum;
@@ -185,10 +240,10 @@ export default class TEditBox {
             control.type = htmlInputType;
         }
 
-        if (htmlInputType !== "number" || editMask) {
-            control.size = this.#column.Domain.Type.MaxLength ?? this.#column.Domain.Length ?? 20;
-            control.maxLength = this.#column.Domain.Length ?? 20;
-        }
+        if (editMask?.placeholder)
+            control.maxLength = editMask.placeholder.length;
+        else if (htmlInputType !== "number")
+            control.maxLength = this.#column.Domain.Length ?? this.#column.Domain.Type?.MaxLength ?? 20;
 
         return control;
     }
@@ -591,6 +646,8 @@ export default class TEditBox {
         else
             this.#configureNativeInput({ ...options, onChange });
 
+        this.#applyControlWidth();
+        this.#syncControlAlignment();
         return this;
     }
 
