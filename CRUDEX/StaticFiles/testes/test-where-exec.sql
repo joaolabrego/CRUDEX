@@ -4,8 +4,8 @@ IF OBJECT_ID('tempdb..#tmpTable') IS NOT NULL DROP TABLE #tmpTable;
 
 CREATE TABLE #tmpOperations([_] CHAR(1), [Id] BIGINT, [DomainId] BIGINT, [IsRequired] BIT);
 
-DECLARE @RecordFilter NVARCHAR(MAX) = N'{"Filter":{"DomainId":1,"IsRequired":true}}';
-DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
+DECLARE @RecordFilterGrid NVARCHAR(MAX) = N'{"Filter":{"DomainId":1,"IsRequired":true}}';
+DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$.Filter._'))
        ,@WhereFixed NVARCHAR(MAX) = ''
        ,@WhereFilter NVARCHAR(MAX) = ''
        ,@WhereSearch NVARCHAR(MAX) = ''
@@ -13,8 +13,8 @@ DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordF
        ,@Where NVARCHAR(MAX) = ''
        ,@sql NVARCHAR(MAX);
 
-DECLARE @W_U_DomainId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.DomainId') AS bigint)
-       ,@W_U_IsRequired bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsRequired') AS bit);
+DECLARE @W_U_DomainId bigint = CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.DomainId') AS bigint)
+       ,@W_U_IsRequired bit = CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsRequired') AS bit);
 
 IF @W_U_DomainId IS NOT NULL
     SET @WhereFilter = @WhereFilter + ' AND [T].[DomainId] = @U_DomainId';

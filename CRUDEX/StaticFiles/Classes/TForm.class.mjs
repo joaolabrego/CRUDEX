@@ -9,12 +9,31 @@ import TTransaction from "./TTransaction.class.mjs";
 
 export default class TForm {
     static #COLUMNS_TABLE = "Columns";
-    static #COLUMNS_VARIANT_FIELDS = ["Default", "Minimum", "Maximum"];
-    static #COLUMNS_VARIANT_DOMAIN_COLUMN = "DomainId";
-    static #COLUMNS_VARIANT_ASK_FLAG = {
-        Default: "AskDefault",
-        Minimum: "AskMinimum",
-        Maximum: "AskMaximum",
+    static #DOMAINS_TABLE = "Domains";
+    static #COLUMNS_DRIVER = "DomainId";
+    static #DOMAINS_DRIVER = "TypeId";
+    static #METADATA_FIELD_FLAGS = {
+        Columns: {
+            Default: { source: "category", flag: "AskDefault", variant: true },
+            Minimum: { source: "category", flag: "AskMinimum", variant: true },
+            Maximum: { source: "category", flag: "AskMaximum", variant: true },
+            IsEncrypted: { source: "category", flag: "AskEncrypted" },
+            IsListable: { source: "category", flag: "AskListable" },
+            IsInWords: { source: "category", flag: "AskInWords" },
+            IsPrimarykey: { source: "type", flag: "AskPrimarykey" },
+            IsAutoIncrement: { source: "type", flag: "AskAutoincrement" },
+            IsFilterable: { source: "type", flag: "AskFilterable" },
+            IsGridable: { source: "type", flag: "AskGridable" },
+        },
+        Domains: {
+            MaskId: { source: "category", flag: "AskMask" },
+            Length: { source: "type", flag: "AskLength" },
+            Decimals: { source: "type", flag: "AskDecimals" },
+            Codification: { source: "type", flag: "AskCodification" },
+            Default: { source: "category", flag: "AskDefault", variant: true },
+            Minimum: { source: "category", flag: "AskMinimum", variant: true },
+            Maximum: { source: "category", flag: "AskMaximum", variant: true },
+        },
     };
     static #FORM_GRID_COLUMNS = 5;
 
@@ -130,9 +149,9 @@ export default class TForm {
     }
     #onFieldChange(name, value) {
         this.#actualRecord[name] = value;
-        if (this.#Grid.Table.Name === TForm.#COLUMNS_TABLE
-            && name === TForm.#COLUMNS_VARIANT_DOMAIN_COLUMN)
-            this.#refreshColumnsVariantFields();
+        const driver = this.#metadataDriverColumn();
+        if (driver && name === driver)
+            this.#refreshMetadataVariantFields();
         this.#updateConfirmButton();
         this.#updateDetailAccess();
     }
@@ -152,63 +171,100 @@ export default class TForm {
         };
     }
 
-    #columnsCategoryAskFlags() {
-        const domainId = this.#actualRecord[TForm.#COLUMNS_VARIANT_DOMAIN_COLUMN];
-        if (TConfig.IsEmpty(domainId))
-            return null;
-        const category = TSystem.GetDomain(domainId)?.Type?.Category;
-        if (!category)
-            return null;
-        return {
-            AskDefault: category.AskDefault,
-            AskMinimum: category.AskMinimum,
-            AskMaximum: category.AskMaximum,
-        };
+    #metadataDriverColumn() {
+        if (this.#Grid.Table.Name === TForm.#COLUMNS_TABLE)
+            return TForm.#COLUMNS_DRIVER;
+        if (this.#Grid.Table.Name === TForm.#DOMAINS_TABLE)
+            return TForm.#DOMAINS_DRIVER;
+        return null;
     }
 
-    #columnsVariantFieldVisible(column) {
-        if (this.#Grid.Table.Name !== TForm.#COLUMNS_TABLE)
-            return true;
-        if (!TForm.#COLUMNS_VARIANT_FIELDS.includes(column.Name))
+    #metadataFieldRule(column) {
+        const rules = TForm.#METADATA_FIELD_FLAGS[this.#Grid.Table.Name];
+        return rules?.[column.Name] ?? null;
+    }
+
+    #metadataAskContext() {
+        if (this.#Grid.Table.Name === TForm.#COLUMNS_TABLE) {
+            const domainId = this.#actualRecord[TForm.#COLUMNS_DRIVER];
+            if (TConfig.IsEmpty(domainId))
+                return null;
+            const domain = TSystem.GetDomain(domainId);
+            if (!domain?.Type?.Category)
+                return null;
+            return { category: domain.Type.Category, type: domain.Type };
+        }
+        if (this.#Grid.Table.Name === TForm.#DOMAINS_TABLE) {
+            const typeId = this.#actualRecord[TForm.#DOMAINS_DRIVER];
+            if (TConfig.IsEmpty(typeId))
+                return null;
+            const type = TSystem.GetType(typeId);
+            if (!type?.Category)
+                return null;
+            return { category: type.Category, type };
+        }
+        return null;
+    }
+
+    #metadataFieldVisible(column) {
+        const rule = this.#metadataFieldRule(column);
+        if (!rule)
             return true;
 
-        const askFlag = TForm.#COLUMNS_VARIANT_ASK_FLAG[column.Name];
-        const flags = this.#columnsCategoryAskFlags();
-        if (!flags)
+        const context = this.#metadataAskContext();
+        if (!context)
             return false;
-        if (!askFlag)
-            return true;
 
-        return flags[askFlag] === true;
+        const source = rule.source === "category" ? context.category : context.type;
+        return source?.[rule.flag] === true;
     }
 
-    #columnsDomainVariant(column) {
-        if (this.#Grid.Table.Name !== TForm.#COLUMNS_TABLE)
+    #metadataDomainVariant(column) {
+        const rule = this.#metadataFieldRule(column);
+        if (!rule?.variant)
             return undefined;
-        if (!TForm.#COLUMNS_VARIANT_FIELDS.includes(column.Name))
-            return undefined;
-        const domainId = this.#actualRecord[TForm.#COLUMNS_VARIANT_DOMAIN_COLUMN];
-        if (TConfig.IsEmpty(domainId))
-            return null;
-        return TSystem.GetDomain(domainId);
+
+        if (this.#Grid.Table.Name === TForm.#COLUMNS_TABLE) {
+            const domainId = this.#actualRecord[TForm.#COLUMNS_DRIVER];
+            if (TConfig.IsEmpty(domainId))
+                return null;
+            return TSystem.GetDomain(domainId);
+        }
+        if (this.#Grid.Table.Name === TForm.#DOMAINS_TABLE) {
+            const typeId = this.#actualRecord[TForm.#DOMAINS_DRIVER];
+            if (TConfig.IsEmpty(typeId))
+                return null;
+            const type = TSystem.GetType(typeId);
+            if (!type)
+                return null;
+            return {
+                Length: this.#actualRecord.Length,
+                Decimals: this.#actualRecord.Decimals,
+                Type: type,
+            };
+        }
+        return undefined;
     }
 
-    #refreshColumnsVariantFields() {
+    #refreshMetadataVariantFields() {
         const baseOptions = this.#editConfigureOptions();
         for (const edit of this.#editBoxes) {
             const column = edit.column;
-            if (this.#columnsDomainVariant(column) === undefined)
+            if (!this.#metadataFieldRule(column))
                 continue;
 
-            const visible = this.#columnsVariantFieldVisible(column);
+            const visible = this.#metadataFieldVisible(column);
             edit.element.style.display = visible ? "" : "none";
             if (!visible) {
                 this.#actualRecord[column.Name] = null;
                 continue;
             }
 
-            const variant = this.#columnsDomainVariant(column);
-            edit.configure({ ...baseOptions, domainVariant: variant });
+            const options = { ...baseOptions };
+            const variant = this.#metadataDomainVariant(column);
+            if (variant !== undefined)
+                options.domainVariant = variant;
+            edit.configure(options);
         }
         this.#balanceFormGridTail();
     }
@@ -547,15 +603,18 @@ export default class TForm {
         const baseOptions = this.#editConfigureOptions();
         for (const column of columns) {
             const options = { ...baseOptions };
-            const variant = this.#columnsDomainVariant(column);
+            const variant = this.#metadataDomainVariant(column);
             if (variant !== undefined)
                 options.domainVariant = variant;
             const edit = TEditBox.Create(column, this.#HTML.Form).configure(options);
-            if (!this.#columnsVariantFieldVisible(column))
+            if (!this.#metadataFieldVisible(column))
                 edit.element.style.display = "none";
             this.#editBoxes.push(edit);
         }
-        this.#balanceFormGridTail();
+        if (this.#metadataDriverColumn())
+            this.#refreshMetadataVariantFields();
+        else
+            this.#balanceFormGridTail();
         this.#updateConfirmButton();
         this.#updateDetailAccess();
         await this.#refreshChildGrids();

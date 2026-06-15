@@ -177,9 +177,32 @@ namespace crudex.Classes
             var dataType = column["#DataType"];
             var validations = GetConstraints(column, domains, types);
 
-            result.Append($"{indent}IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = '{name}' AND [type] = 0)\r\n");
-            result.Append($"{indent}   OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = '{name}' AND [type] = 0)\r\n");
-            result.Append($"{indent}   OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = '{name}' AND [type] = 0)\r\n");
+            result.Append($"{indent}IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = '{name}' AND [type] = 0)\r\n");
+            result.Append($"{indent}   OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = '{name}' AND [type] = 0)\r\n");
+            result.Append($"{indent}   OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = '{name}' AND [type] = 0)\r\n");
+            result.Append($"{indent}   OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = '{name}' AND [type] = 0)\r\n");
+            result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] IS NULL'\r\n");
+            result.Append($"{indent}ELSE IF {valueVariable} IS NOT NULL BEGIN\r\n");
+            if (validations.TryGetValue("Minimum", out dynamic? value))
+            {
+                result.Append($"{indent}    IF {valueVariable} < CAST('{value}' AS {dataType})\r\n");
+                result.Append($"{indent}        THROW 51000, 'Valor de {name} deve ser maior que ou igual a ''{value}''', 1\r\n");
+            }
+            if (validations.TryGetValue("Maximum", out value))
+            {
+                result.Append($"{indent}    IF {valueVariable} > CAST('{value}' AS {dataType})\r\n");
+                result.Append($"{indent}        THROW 51000, 'Valor de {name} deve ser menor que ou igual a ''{value}''', 1\r\n");
+            }
+            result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] = {parameterName}'\r\n");
+            result.Append($"{indent}END\r\n");
+        }
+        private static void AppendReadTableFilterColumn(StringBuilder result, DataRow column, TDataRows domains, TDataRows types, string valueVariable, string parameterName, string indent)
+        {
+            var name = column["Name"];
+            var dataType = column["#DataType"];
+            var validations = GetConstraints(column, domains, types);
+
+            result.Append($"{indent}IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = '{name}' AND [type] = 0)\r\n");
             result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] IS NULL'\r\n");
             result.Append($"{indent}ELSE IF {valueVariable} IS NOT NULL BEGIN\r\n");
             if (validations.TryGetValue("Minimum", out dynamic? value))
@@ -211,6 +234,85 @@ namespace crudex.Classes
                 result.Append($"{indent}    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[{name}], [O].[{name}]) LIKE ''%'' + @{name} + ''%'''\r\n");
             else
                 result.Append($"{indent}    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[{name}], [O].[{name}]) = @{name}'\r\n");
+        }
+
+        static bool IsInWordsColumn(DataRow column) => Settings.ToBoolean(column["IsInWords"]);
+
+        static string InWordsColumnName(object columnName) => $"{columnName}InWords";
+
+        static void AppendReadInWordsColumnFromJson(StringBuilder result, DataRow column)
+        {
+            if (!IsInWordsColumn(column))
+                return;
+            var dataType = column["#DataType"];
+            result.Append($"              ,CAST([dbo].[NUMBER_IN_WORDS](CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.{column["Name"]}') AS {dataType})) AS NVARCHAR(MAX)) AS [{InWordsColumnName(column["Name"])}]\r\n");
+        }
+
+        static void AppendReadInWordsColumnFromAlias(StringBuilder result, DataRow column, string alias, string indent = "                              ")
+        {
+            if (!IsInWordsColumn(column))
+                return;
+            var dataType = column["#DataType"];
+            result.Append($"{indent},CAST([dbo].[NUMBER_IN_WORDS](CAST([{alias}].[{column["Name"]}] AS {dataType})) AS NVARCHAR(MAX)) AS [{InWordsColumnName(column["Name"])}]\r\n");
+        }
+
+        static void AppendReadInWordsResultSchema(StringBuilder result, DataRow column, string indent = "                    ")
+        {
+            if (!IsInWordsColumn(column))
+                return;
+            result.Append($"{indent},CAST(NULL AS NVARCHAR(MAX)) AS [{InWordsColumnName(column["Name"])}]\r\n");
+        }
+
+        static void AppendReadInWordsJsonOutput(StringBuilder result, DataRow column, string indent = "                      ")
+        {
+            if (!IsInWordsColumn(column))
+                return;
+            result.Append($"{indent},[{InWordsColumnName(column["Name"])}]\r\n");
+        }
+
+        private static void AppendReadExecutesqlParams(StringBuilder result, TDataRows filterableColumns, bool includeTableFilters, bool includeGridFilters, string indent)
+        {
+            if (!includeTableFilters && !includeGridFilters)
+                return;
+
+            var first = true;
+            foreach (var column in filterableColumns)
+            {
+                if (!includeTableFilters)
+                    break;
+                if (first)
+                {
+                    result.Append($"{indent},N'");
+                    first = false;
+                }
+                else
+                    result.Append(",");
+                result.Append($"@T_{column["Name"]} {column["#DataType"]}");
+            }
+            foreach (var column in filterableColumns)
+            {
+                if (!includeGridFilters)
+                    break;
+                if (first)
+                {
+                    result.Append($"{indent},N'");
+                    first = false;
+                }
+                else
+                    result.Append(",");
+                result.Append($"@{column["Name"]} {column["#DataType"]}");
+            }
+            if (!first)
+                result.Append($"'\r\n");
+        }
+        private static void AppendReadExecutesqlAssignments(StringBuilder result, TDataRows filterableColumns, bool includeTableFilters, bool includeGridFilters, string indent)
+        {
+            if (includeTableFilters)
+                foreach (var column in filterableColumns)
+                    result.Append($"{indent},@T_{column["Name"]} = @WT_{column["Name"]}\r\n");
+            if (includeGridFilters)
+                foreach (var column in filterableColumns)
+                    result.Append($"{indent},@{column["Name"]} = @W_{column["Name"]}\r\n");
         }
         private static StringBuilder GetScriptCreateDatabase(DataRow database, bool isDocker)
         {
@@ -1340,6 +1442,7 @@ namespace crudex.Classes
                     firstTime = false;
                 }
                 result.Append($"{spaces}              ,[R].[{column["Name"]}]\r\n");
+                AppendReadInWordsColumnFromAlias(result, column, "R", $"{spaces}              ");
             }
             if (spaces == "")
                 result.Append($"{spaces}            INTO [{tmpName}]\r\n");
@@ -1381,7 +1484,8 @@ namespace crudex.Classes
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}Read] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
                 result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}Read](@Login NVARCHAR(MAX)\r\n");
-                result.Append($"                                          ,@RecordFilter NVARCHAR(MAX)\r\n");
+                result.Append($"                                          ,@RecordFilterGrid NVARCHAR(MAX)\r\n");
+                result.Append($"                                          ,@RecordFilterTable NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@RecordSearch NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@OrderBy NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@PaddingGridLastPage BIT\r\n");
@@ -1396,10 +1500,14 @@ namespace crudex.Classes
                 result.Append($"\r\n");
                 result.Append($"    DECLARE @LoginId BIGINT\r\n");
                 AppendLoginCall(result, "@LoginId");
-                result.Append($"    IF @RecordFilter IS NULL\r\n");
-                result.Append("            SET @RecordFilter = '{}'\r\n");
-                result.Append($"        ELSE IF ISJSON(@RecordFilter) = 0\r\n");
-                result.Append($"            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1\r\n");
+                result.Append($"    IF @RecordFilterGrid IS NULL\r\n");
+                result.Append("            SET @RecordFilterGrid = '{}'\r\n");
+                result.Append($"        ELSE IF ISJSON(@RecordFilterGrid) = 0\r\n");
+                result.Append($"            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1\r\n");
+                result.Append($"        IF @RecordFilterTable IS NULL\r\n");
+                result.Append("            SET @RecordFilterTable = '{}'\r\n");
+                result.Append($"        ELSE IF ISJSON(@RecordFilterTable) = 0\r\n");
+                result.Append($"            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1\r\n");
                 result.Append($"        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0\r\n");
                 result.Append($"            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1\r\n");
                 result.Append($"        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))\r\n");
@@ -1453,6 +1561,7 @@ namespace crudex.Classes
                         firstTime = false;
                     }
                     result.Append($"              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.{column["Name"]}') AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
+                    AppendReadInWordsColumnFromJson(result, column);
                 }
                 result.Append($"            INTO [#tmpOperations]\r\n");
                 result.Append($"            FROM [dbo].[Operations]\r\n");
@@ -1465,14 +1574,31 @@ namespace crudex.Classes
                 var filterableColumns = columnRows.FindAll(column => Settings.ToBoolean(column["IsFilterable"]));
                 var idDataType = columnRows[0]["#DataType"];
 
-                result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))\r\n");
+                result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))\r\n");
                 result.Append($"               ,@Where NVARCHAR(MAX) = ''\r\n");
                 result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
                 result.Append($"\r\n");
+                if (filterableColumns.Count > 0)
+                {
+                    firstTime = true;
+                    foreach (var column in filterableColumns)
+                    {
+                        if (firstTime)
+                        {
+                            result.Append($"        DECLARE @WT_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilterTable, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            firstTime = false;
+                        }
+                        else
+                            result.Append($"               ,@WT_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilterTable, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                    }
+                    result.Append($"\r\n");
+                    foreach (var column in filterableColumns)
+                        AppendReadTableFilterColumn(result, column, domains, types, $"@WT_{column["Name"]}", $"@T_{column["Name"]}", "        ");
+                }
                 if (listableColumn != null)
                 {
                     result.Append($"        IF @IsActionList = 1 BEGIN\r\n");
-                    result.Append($"            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS {listableColumn["#DataType"]})\r\n");
+                    result.Append($"            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS {listableColumn["#DataType"]})\r\n");
                     result.Append($"            IF @PickerValue IS NULL\r\n");
                     result.Append($"                SET @PickerValue = ''\r\n");
                     result.Append($"            SET @Where = @Where + ' AND [T].[{listableColumn["Name"]}] LIKE ''%'' + @PickerValue + ''%'''\r\n");
@@ -1486,11 +1612,11 @@ namespace crudex.Classes
                 {
                     if (firstTime)
                     {
-                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]}))\r\n");
+                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilterGrid, '$.{column["Name"]}') AS {column["#DataType"]}))\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]}))\r\n");
+                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilterGrid, '$.{column["Name"]}') AS {column["#DataType"]}))\r\n");
                 }
                 if (filterableColumns.Count > 0)
                     result.Append($"\r\n");
@@ -1526,34 +1652,43 @@ namespace crudex.Classes
                 if (listableColumn != null)
                 {
                     result.Append($"            EXEC sp_executesql @sql\r\n");
-                    result.Append($"                               ,N'@PickerValue {listableColumn["#DataType"]}'\r\n");
-                    result.Append($"                               ,@PickerValue = @PickerValue\r\n");
+                    if (filterableColumns.Count > 0)
+                    {
+                        result.Append($"                               ,N'@PickerValue {listableColumn["#DataType"]}");
+                        foreach (var column in filterableColumns)
+                            result.Append($",@T_{column["Name"]} {column["#DataType"]}");
+                        result.Append($"'\r\n");
+                        result.Append($"                               ,@PickerValue = @PickerValue\r\n");
+                        foreach (var column in filterableColumns)
+                            result.Append($"                               ,@T_{column["Name"]} = @WT_{column["Name"]}\r\n");
+                    }
+                    else
+                    {
+                        result.Append($"                               ,N'@PickerValue {listableColumn["#DataType"]}'\r\n");
+                        result.Append($"                               ,@PickerValue = @PickerValue\r\n");
+                    }
                     result.Append($"        END ELSE IF @_ IS NULL BEGIN\r\n");
                 }
 
                 if (filterableColumns.Count > 0)
                 {
-                    firstTime = true;
-                    foreach (var column in filterableColumns)
-                    {
-                        if (firstTime)
-                        {
-                            result.Append($"            EXEC sp_executesql @sql\r\n");
-                            result.Append($"                               ,N'@{column["Name"]} {column["#DataType"]}");
-                            firstTime = false;
-                        }
-                        else
-                            result.Append($",@{column["Name"]} {column["#DataType"]}");
-                    }
-                    result.Append($"'\r\n");
-                    foreach (var column in filterableColumns)
-                        result.Append($"                               ,@{column["Name"]} = @W_{column["Name"]}\r\n");
+                    result.Append($"            EXEC sp_executesql @sql\r\n");
+                    AppendReadExecutesqlParams(result, filterableColumns, includeTableFilters: true, includeGridFilters: true, "                               ");
+                    AppendReadExecutesqlAssignments(result, filterableColumns, includeTableFilters: true, includeGridFilters: true, "                               ");
                 }
                 else
                     result.Append($"            EXEC sp_executesql @sql\r\n");
 
-                result.Append($"        END ELSE\r\n");
-                result.Append($"            EXEC sp_executesql @sql\r\n");
+                result.Append($"        END ELSE BEGIN\r\n");
+                if (filterableColumns.Count > 0)
+                {
+                    result.Append($"            EXEC sp_executesql @sql\r\n");
+                    AppendReadExecutesqlParams(result, filterableColumns, includeTableFilters: true, includeGridFilters: false, "                               ");
+                    AppendReadExecutesqlAssignments(result, filterableColumns, includeTableFilters: true, includeGridFilters: false, "                               ");
+                }
+                else
+                    result.Append($"            EXEC sp_executesql @sql\r\n");
+                result.Append($"        END\r\n");
 
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
@@ -1639,6 +1774,7 @@ namespace crudex.Classes
                         firstTime = false;
                     }
                     result.Append($"                    ,CAST(NULL AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
+                    AppendReadInWordsResultSchema(result, column);
                 }
                 result.Append($"            INTO [#result]\r\n");
 
@@ -1646,7 +1782,10 @@ namespace crudex.Classes
                 result.Append($"                        SELECT ''{table["Alias"]}'' AS [Kind]\r\n");
                 result.Append($"                              ,[#].[Recno]\r\n");
                 foreach (var column in columnRows)
+                {
                     result.Append($"                              ,[T].[{column["Name"]}]\r\n");
+                    AppendReadInWordsColumnFromAlias(result, column, "T");
+                }
                 result.Append($"                            FROM [#tmpTable] [#]\r\n");
                 result.Append($"                                INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[Id] = [#].[Id]\r\n");
                 result.Append($"                            WHERE [#].[_] = ''T''\r\n");
@@ -1654,7 +1793,10 @@ namespace crudex.Classes
                 result.Append($"                            SELECT ''{table["Alias"]}'' AS [Kind]\r\n");
                 result.Append($"                                  ,[#].[Recno]\r\n");
                 foreach (var column in columnRows)
+                {
                     result.Append($"                                  ,[O].[{column["Name"]}]\r\n");
+                    AppendReadInWordsColumnFromAlias(result, column, "O", "                                  ");
+                }
                 result.Append($"                                FROM [#tmpTable] [#]\r\n");
                 result.Append($"                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]\r\n");
                 result.Append($"                                WHERE [#].[_] = ''O''\r\n");
@@ -1676,6 +1818,7 @@ namespace crudex.Classes
                 foreach (var column in columnRows)
                 {
                     result.Append($"                      ,[{column["Name"]}]\r\n");
+                    AppendReadInWordsJsonOutput(result, column);
                     if (Settings.ToBoolean(column["IsListable"]))
                         result.Append($"                      ,[{column["Name"]}] AS [ListItemValue]\r\n");
                 }

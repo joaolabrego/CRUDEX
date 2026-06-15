@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Data;
 using System.Net;
@@ -15,6 +15,7 @@ namespace CRUDEX.Classes
         public readonly int RowsPerChildPage = Convert.ToInt32(Settings.Get("ROWS_PER_CHILD_PAGE"));
         public readonly int IdleTimeInMinutesLimit = Convert.ToInt32(Settings.Get("IDLE_TIME_IN_MINUTES_LIMIT"));
         public readonly bool PaddingGridLastPage = Convert.ToBoolean(Settings.Get("PADDING_GRID_LAST_PAGE"));
+        public string RsaPublicKey { get; private set; } = string.Empty;
         public dynamic? Data;
         public TDictionary? Parameters;
         public Styles? Styles;
@@ -58,6 +59,8 @@ namespace CRUDEX.Classes
                     Tables = result.DataSet.Tables[3].Rows[0].Table,
                 };
 
+            config.RsaPublicKey = TransportCrypto.ServerPublicKeySpki;
+
             return config;
         }
         public static async Task SendMailAsync(string recipients, string subject, string body, bool isHtml = true)
@@ -98,7 +101,6 @@ namespace CRUDEX.Classes
                    $"        <meta name='copyright' content='© 2024 Labrego' />\r\n" +
                    $"        <meta name='description' content='Sistema de operações CRUD em tabelas de bancos-de-dados MS-SQL Server' />\r\n" +
                    $"        <link rel='icon' href='{favIcon}' />\r\n" +
-                   $"        <script src='./Classes/3th/crypto-js.min.js'></script>\r\n" +
                    $"        <title>{systemName.ToUpper()}</title>\r\n" +
                    (message == null ? $"        <script type='module' defer>\r\n" +
                                       $"            import TSystem from './Classes/TSystem.class.mjs'\r\n" +

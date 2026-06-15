@@ -1147,7 +1147,7 @@ namespace CRUDEX.StaticFiles.testes
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}Read] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
                 result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}Read](@SessionId BIGINT\r\n");
-                result.Append($"                                          ,@RecordFilter NVARCHAR(MAX)\r\n");
+                result.Append($"                                          ,@RecordFilterGrid NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@RecordSearch NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@OrderBy NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@PaddingGridLastPage BIT\r\n");
@@ -1163,10 +1163,10 @@ namespace CRUDEX.StaticFiles.testes
                 result.Append($"        SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
                 result.Append($"        IF @SessionId IS NULL\r\n");
                 result.Append($"            THROW 51000, 'Valor de @SessionId é requerido', 1\r\n");
-                result.Append($"        IF @RecordFilter IS NULL\r\n");
-                result.Append("            SET @RecordFilter = '{}'\r\n");
-                result.Append($"        ELSE IF ISJSON(@RecordFilter) = 0\r\n");
-                result.Append($"            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1\r\n");
+                result.Append($"        IF @RecordFilterGrid IS NULL\r\n");
+                result.Append("            SET @RecordFilterGrid = '{}'\r\n");
+                result.Append($"        ELSE IF ISJSON(@RecordFilterGrid) = 0\r\n");
+                result.Append($"            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1\r\n");
                 result.Append($"        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))\r\n");
                 result.Append($"        IF @OrderBy = ''\r\n");
                 result.Append($"            SET @OrderBy = '[Id]'\r\n");
@@ -1218,7 +1218,7 @@ namespace CRUDEX.StaticFiles.testes
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
                 result.Append($"        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))\r\n");
+                result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))\r\n");
                 result.Append($"               ,@Where NVARCHAR(MAX) = ''\r\n");
                 result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
                 result.Append($"\r\n");
@@ -1231,11 +1231,11 @@ namespace CRUDEX.StaticFiles.testes
                 {
                     if (firstTime)
                     {
-                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilterGrid, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilterGrid, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
                 foreach (var column in filterableColumns)
@@ -1317,11 +1317,11 @@ namespace CRUDEX.StaticFiles.testes
                 {
                     if (firstTime)
                     {
-                        result.Append($"                DECLARE @S_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"                DECLARE @S_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilterGrid, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                         firstTime = false;
                     }
                     else
-                        result.Append($"                       ,@S_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        result.Append($"                       ,@S_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilterGrid, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                 }
                 result.Append($"\r\n");
 

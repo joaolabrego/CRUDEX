@@ -10,15 +10,18 @@ namespace CRUDEX.Classes
         public readonly static string ClassName = "Login";
         public static string SerializeParameters(TDictionary login, bool forceAuthenticate = false)
         {
+            var action = Convert.ToString(login["Action"]) ?? string.Empty;
             return JsonConvert.SerializeObject(new
             {
                 SystemName = login["SystemName"],
                 UserName = login["UserName"],
                 Password = login["Password"],
-                LoginId = login["Action"] == Actions.LOGIN || login["Action"] == Actions.CHANGE ? null : login["LoginId"],
+                LoginId = action == Actions.LOGIN || action == Actions.CHANGE ? null : login["LoginId"],
                 Action = forceAuthenticate ? Actions.AUTHENTICATE : login["Action"],
                 NewPassword = login["NewPassword"],
                 RetypedPassword = login["RetypedPassword"],
+                PublicKey = login.TryGetValue("PublicKey", out dynamic? publicKey) ? publicKey : null,
+                ClientRsaPublicKey = login.TryGetValue("ClientRsaPublicKey", out dynamic? clientRsa) ? clientRsa : null,
             });
         }
         public static async Task<TResult> Execute(TDictionary? parameters, bool forceAuthenticate = false)
@@ -47,7 +50,17 @@ namespace CRUDEX.Classes
         }
         public static async Task<string> GetPublicKey(long loginId)
         {
-            return (await Procedure.Execute(
+            return (await GetSessionKeys(loginId)).AesKey;
+        }
+
+        public static async Task<string> GetClientRsaPublicKey(long loginId)
+        {
+            return (await GetSessionKeys(loginId)).ClientRsaPublicKey;
+        }
+
+        static async Task<(string AesKey, string ClientRsaPublicKey)> GetSessionKeys(long loginId)
+        {
+            var row = (await Procedure.Execute(
                 Settings.ConnectionString(),
                 "[dbo].[GetPublicKey]",
                 Config.ToDictionary(new
@@ -56,7 +69,10 @@ namespace CRUDEX.Classes
                     {
                         LoginId = loginId,
                     }
-                }))).DataSet.Tables[0].Rows[0]["PublicKey"].ToString() ?? string.Empty;
+                }))).DataSet.Tables[0].Rows[0];
+            return (
+                row["PublicKey"].ToString() ?? string.Empty,
+                row["ClientRsaPublicKey"].ToString() ?? string.Empty);
         }
     }
 }

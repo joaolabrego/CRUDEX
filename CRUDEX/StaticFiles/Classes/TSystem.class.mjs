@@ -1,6 +1,7 @@
-﻿"use strict";
+"use strict";
 
 import TConfig from "./TConfig.class.mjs";
+import TransportCrypto from "./TransportCrypto.class.mjs";
 import TGrid from "./TGrid.class.mjs";
 import TCheckbox from "./TCheckbox.class.mjs";
 import TDropdown from "./TDropdown.class.mjs";
@@ -37,7 +38,8 @@ export default class TSystem {
 
     static Run(withBackgroundImage = true) {
         TConfig.GetAPI("config")
-            .then(config => {
+            .then(async config => {
+                await TransportCrypto.Initialize(config.RsaPublicKey);
                 document.addEventListener("wheel",
                     event => {
                         if (event.ctrlKey)

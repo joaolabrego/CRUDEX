@@ -88,6 +88,27 @@ Detalhes de cada aba: [reference.md](reference.md).
 
 ## Sistema atual — runtime
 
+### Criptografia unificada
+
+Uma única primitiva (`TransportCrypto` em C# e JS): **AES-256-GCM** com envelope JSON v1.
+
+| Uso | Conteúdo cifrado | ek | Chave AES |
+|-----|------------------|-----|-----------|
+| **Transporte API** | JSON inteiro de request/response | Sempre (RSA-OAEP) | Por mensagem; `ek` embrulha a AES com RSA do **destinatário** |
+| **Coluna `IsEncrypted`** | Valor do campo (string) | Não | **Mestra** (`DATA_ENCRYPTION_KEY` em appsettings / env) |
+
+**RSA dual:** servidor mantém par fixo (`RSA_PRIVATE_KEY` / `RSA_PUBLIC_KEY` em appsettings, auto-criado); pública retornada no `config`. Cliente gera par RSA **por instância** (cada carga da SPA); pública enviada no login (`ClientRsaPublicKey` → `Sessions`). **Bidirecional:** request → `ek` com pública do **servidor**; response → `ek` com pública do **cliente**. A chave AES nunca trafega em claro.
+
+Envelope transporte: `{ "v": 1, "ek", "iv", "t", "d" }`. Colunas armazenadas: `{ "v", "iv", "t", "d" }` sem `ek`.
+
+API transporte: `EncryptTransport` / `DecryptValue` + unwrap `ek`; colunas: `EncryptStoredValue` / `DecryptStoredValue`.
+
+**Implementação:** `RecordCrypto` cifra `ActualRecord`/`LastRecord` no persist e decifra o `DataSet` no read (servidor). Frontend recebe valores em claro dentro do transporte cifrado.
+
+Chave mestra: `DATA_ENCRYPTION_KEY` (base64, 32 bytes). Par RSA servidor: `RSA_PRIVATE_KEY` / `RSA_PUBLIC_KEY` (PKCS#8 / SPKI base64). `Settings.Get` prioriza variável de ambiente. Se ausente ou inválida no `appsettings.json`, o servidor **gera e grava** na primeira inicialização.
+
+**Fase atual:** transporte ativo; colunas com `IsEncrypted = 1` no metadado são cifradas no servidor ao gravar e decifradas ao ler.
+
 ### Rotas
 
 `/{system}.{environment}` — ex.: `crudex.dev`

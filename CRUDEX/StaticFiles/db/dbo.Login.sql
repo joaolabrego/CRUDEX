@@ -17,6 +17,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 				,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.UserName') AS VARCHAR(25))
 				,@Password VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.Password') AS VARCHAR(256))
 				,@PublicKey VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.PublicKey') AS VARCHAR(256))
+				,@ClientRsaPublicKey NVARCHAR(512) = CAST(JSON_VALUE(@Parameters, '$.ClientRsaPublicKey') AS NVARCHAR(512))
 				,@PasswordAux VARCHAR(256)
 				,@SystemId BIGINT
 				,@SystemIdAux BIGINT
@@ -98,6 +99,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 								  [SystemId],
 								  [UserId],
 								  [PublicKey],
+								  [ClientRsaPublicKey],
 								  [IsLogged],
 								  [CreatedAt],
 								  [CreatedBy])
@@ -105,6 +107,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 								  @SystemId,
 								  @UserId,
 								  @PublicKey,
+								  @ClientRsaPublicKey,
 								  1,
 								  GETDATE(),
 								  @UserName)

@@ -476,6 +476,7 @@ IF (SELECT object_id('[dbo].[Sessions]', 'U')) IS NOT NULL
 CREATE TABLE [dbo].[Sessions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[SystemId] bigint NOT NULL CHECK ([SystemId] >= CAST('1' AS bigint))
                                     ,[UserId] bigint NOT NULL CHECK ([UserId] >= CAST('1' AS bigint))
+                                    ,[ClientRsaPublicKey] nvarchar(512) NULL
                                     ,[PublicKey] nvarchar(256) NULL
                                     ,[IsLogged] bit NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
@@ -485,7 +486,7 @@ CREATE TABLE [dbo].[Sessions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bi
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Sessions] ADD CONSTRAINT PK_Sessions PRIMARY KEY CLUSTERED ([Id])
-CREATE  INDEX [IDX_Sessions_SystemId_UserId_IsLogged] ON [dbo].[Sessions]([ClientId] ASC, [SystemId] ASC, [UserId] ASC, [IsLogged] ASC)
+CREATE  INDEX [IDX_Sessions_SystemId_UserId_IsLogged] ON [dbo].[Sessions]([ClientId] ASC, [SystemId] ASC, [UserId] ASC, [PublicKey] ASC)
 CREATE UNIQUE INDEX [UNQ_Sessions_UniqueIdentifier] ON [dbo].[Sessions]([UniqueIdentifier] ASC)
 GO
 
@@ -504,7 +505,7 @@ CREATE TABLE [dbo].[Transactions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' A
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED ([Id])
-CREATE  INDEX [IDX_Transactions_SessionId_IsConfirmed] ON [dbo].[Transactions]([ClientId] ASC, [SessionId] ASC, [IsConfirmed] ASC)
+CREATE  INDEX [IDX_Transactions_SessionId_IsConfirmed] ON [dbo].[Transactions]([ClientId] ASC, [Id] ASC, [SessionId] ASC)
 CREATE UNIQUE INDEX [UNQ_Transactions_UniqueIdentifier] ON [dbo].[Transactions]([UniqueIdentifier] ASC)
 GO
 
@@ -527,7 +528,7 @@ CREATE TABLE [dbo].[Operations]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS 
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED ([Id])
-CREATE  INDEX [IDX_Operations_TransactionId_TableName_IsConfirmed] ON [dbo].[Operations]([ClientId] ASC, [TransactionId] ASC, [TableName] ASC, [IsConfirmed] ASC)
+CREATE  INDEX [IDX_Operations_TransactionId_TableName_IsConfirmed] ON [dbo].[Operations]([ClientId] ASC, [Id] ASC, [TransactionId] ASC, [TableName] ASC)
 CREATE UNIQUE INDEX [UNQ_Operations_UniqueIdentifier] ON [dbo].[Operations]([UniqueIdentifier] ASC)
 GO
 
@@ -547,8 +548,8 @@ CREATE TABLE [dbo].[Unicities]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS b
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Unicities] ADD CONSTRAINT PK_Unicities PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Unicities_ColumnId1_ColumnId2] ON [dbo].[Unicities]([ClientId] ASC, [ColumnId1] ASC, [ColumnId2] ASC)
-CREATE UNIQUE INDEX [UNQ_Unicities_ColumnId2_ColumnId1] ON [dbo].[Unicities]([ClientId] ASC, [ColumnId2] ASC, [ColumnId1] ASC)
+CREATE UNIQUE INDEX [UNQ_Unicities_ColumnId1_ColumnId2] ON [dbo].[Unicities]([ClientId] ASC, [Id] ASC, [ColumnId1] ASC)
+CREATE UNIQUE INDEX [UNQ_Unicities_ColumnId2_ColumnId1] ON [dbo].[Unicities]([ClientId] ASC, [ColumnId1] ASC, [Id] ASC)
 CREATE UNIQUE INDEX [UNQ_Unicities_UniqueIdentifier] ON [dbo].[Unicities]([UniqueIdentifier] ASC)
 GO
 
@@ -954,6 +955,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 				,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.UserName') AS VARCHAR(25))
 				,@Password VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.Password') AS VARCHAR(256))
 				,@PublicKey VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.PublicKey') AS VARCHAR(256))
+				,@ClientRsaPublicKey NVARCHAR(512) = CAST(JSON_VALUE(@Parameters, '$.ClientRsaPublicKey') AS NVARCHAR(512))
 				,@PasswordAux VARCHAR(256)
 				,@SystemId BIGINT
 				,@SystemIdAux BIGINT
@@ -1035,6 +1037,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 								  [SystemId],
 								  [UserId],
 								  [PublicKey],
+								  [ClientRsaPublicKey],
 								  [IsLogged],
 								  [CreatedAt],
 								  [CreatedBy])
@@ -1042,6 +1045,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 								  @SystemId,
 								  @UserId,
 								  @PublicKey,
+								  @ClientRsaPublicKey,
 								  1,
 								  GETDATE(),
 								  @UserName)
@@ -1091,6 +1095,7 @@ ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT
 	IF @LoginId IS NULL
 		THROW 51000, 'Parâmetro @LoginId é requerido', 1
 	SELECT [PublicKey]
+		  ,[ClientRsaPublicKey]
 		FROM [dbo].[Sessions]
 		WHERE [Id] = @LoginId
 	IF @@ROWCOUNT = 0
@@ -1601,15 +1606,15 @@ Criar function [dbo].[NUMBER_IN_WORDS]
 IF(SELECT object_id('[dbo].[NUMBER_IN_WORDS]', 'FN')) IS NULL
 	EXEC('CREATE FUNCTION [dbo].[NUMBER_IN_WORDS]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
 GO
-ALTER FUNCTION [dbo].[NUMBER_IN_WORDS](@Value AS DECIMAL(18,2)
-										,@EnglishOrPortuguese BIT = 1
-										,@CurrencyInSingular VARCHAR(50) = NULL
-										,@CurrencyInPlural VARCHAR(50) = NULL
-										,@CentsInSingular VARCHAR(50) = NULL
-										,@CentsInPlural VARCHAR(50) = NULL)
+ALTER FUNCTION [dbo].[NUMBER_IN_WORDS](@Value AS DECIMAL(18,2))
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
-	DECLARE @Power INT = 0,
+	DECLARE @EnglishOrPortuguese BIT = 1,
+		    @CurrencyInSingular VARCHAR(50) = 'Real',
+		    @CurrencyInPlural VARCHAR(50) = 'Reais',
+		    @CentsInSingular VARCHAR(50) = 'Centavo',
+		    @CentsInPlural VARCHAR(50) = 'Centavos',
+		    @Power INT = 0,
 		    @Separator VARCHAR(5) = '',
 		    @PartialValue INT,
 		    @Digito INT = 0,
@@ -1622,69 +1627,28 @@ BEGIN
 			@ValueOfThousands INT = 0
 	DECLARE @Powers TABLE (Id INT, NomeSingular VARCHAR(50), NomePlural VARCHAR(50))
 
-	IF @EnglishOrPortuguese = 1 BEGIN
-		IF @CurrencyInSingular IS NULL
-			SET @CurrencyInSingular = 'Real'
-		IF @CurrencyInPlural IS NULL
-			SET @CurrencyInPlural = 'Reais'
-		IF @CentsInSingular IS NULL
-			SET @CentsInSingular = 'Centavo'
-		IF @CentsInPlural IS NULL
-			SET @CentsInPlural = 'Centavos'
-		SET @Of = ' de '
-		SET @And = ' e '
-		IF @Value < 0 BEGIN
-			SET @Value = -@Value
-			SET @Minus = 'Menos'
-		END	
-		INSERT @Powers
-			VALUES(0,'', ''),
-				  (1,'Mil', 'Mil'),
-				  (2,'Milhão', 'Milhões'),
-				  (3,'Bilhão', 'Bilhões'),
-				  (4,'Trilhão', 'Trilhões'),
-				  (5,'Quatrilhão', 'Quatrilhões'),
-				  (6,'Quintilhão', 'Quintilhões'),
-				  (7,'Sextilhão', 'Sextilhões'),
-				  (8,'Septilhão', 'Septilhões'),
-				  (9,'Octilhão', 'Octilhões'),
-				  (10,'Nonilhão', 'Nonilhões'),
-				  (11,'Decilhão', 'Decilhões'),
-			      (12,'Undecilhão', 'Undecilhões'),
-				  (13,'Duodecilhão', 'Duodecilhões'),
-				  (14,'Tredecilhão', 'Tredecilhões')
-	END ELSE BEGIN
-		IF @CurrencyInSingular IS NULL
-			SET @CurrencyInSingular = 'Dollar'
-		IF @CurrencyInPlural IS NULL
-			SET @CurrencyInPlural = 'Dollars'
-		IF @CentsInSingular IS NULL
-			SET @CentsInSingular = 'Cent'
-		IF @CentsInPlural IS NULL
-			SET @CentsInPlural = 'Cents'
-		SET @Of = ' of '
-		SET @And = ' and '
-		IF @Value < 0 BEGIN
-			SET @Value = -@Value
-			SET @Minus = 'Minus'
-		END	
-		INSERT @Powers
-			VALUES(0,'', ''),
-				  (1,'Thousand', 'Thousand'),
-				  (2,'Million', 'Million'),
-				  (3,'Billion', 'Billion'),
-				  (4,'Trillion', 'Trillion'),
-				  (5,'Quadrillion', 'Quadrillion'),
-				  (6,'Quintillion', 'Quintillion'),
-				  (7,'Sextillion', 'Sextillion'),
-				  (8,'Septillion', 'Septillion'),
-				  (9,'Octillion', 'Octillion'),
-				  (10,'Nonillion', 'Nonillion'),
-				  (11,'Decillion', 'Decillion'),
-				  (12,'Undecillion', 'Undecillion'),
-				  (13,'Duodecillion', 'Duodecillion'),
-				  (14,'Tredecillion', 'Tredecillion')
-	END
+	SET @Of = ' de '
+	SET @And = ' e '
+	IF @Value < 0 BEGIN
+		SET @Value = -@Value
+		SET @Minus = 'Menos'
+	END	
+	INSERT @Powers
+		VALUES(0,'', ''),
+			  (1,'Mil', 'Mil'),
+			  (2,'Milhão', 'Milhões'),
+			  (3,'Bilhão', 'Bilhões'),
+			  (4,'Trilhão', 'Trilhões'),
+			  (5,'Quatrilhão', 'Quatrilhões'),
+			  (6,'Quintilhão', 'Quintilhões'),
+			  (7,'Sextilhão', 'Sextilhões'),
+			  (8,'Septilhão', 'Septilhões'),
+			  (9,'Octilhão', 'Octilhões'),
+			  (10,'Nonilhão', 'Nonilhões'),
+			  (11,'Decilhão', 'Decilhões'),
+		      (12,'Undecilhão', 'Undecilhões'),
+			  (13,'Duodecilhão', 'Duodecilhões'),
+			  (14,'Tredecilhão', 'Tredecilhões')
 	SET @PartialValue = FLOOR(@Value)
 	WHILE @PartialValue > 0 BEGIN
 		SET @LastDigit = @Digito
@@ -5159,6 +5123,37 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+INSERT INTO [dbo].[Domains] ([Id]
+                                ,[TypeId]
+                                ,[MaskId]
+                                ,[Name]
+                                ,[Length]
+                                ,[Decimals]
+                                ,[ValidValues]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[Codification]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('23' AS bigint)
+                                ,CAST('20' AS tinyint)
+                                ,NULL
+                                ,CAST('Nvarchar(512)' AS nvarchar(25))
+                                ,CAST('512' AS smallint)
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Systems]
@@ -6539,7 +6534,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
-                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13040,13 +13035,13 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('124' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('20' AS smallint)
-                                ,CAST('11' AS bigint)
+                                ,CAST('23' AS bigint)
                                 ,NULL
-                                ,CAST('PublicKey' AS nvarchar(25))
+                                ,CAST('ClientRsaPublicKey' AS nvarchar(25))
                                 ,NULL
-                                ,CAST('Chave pública do usuário' AS nvarchar(50))
-                                ,CAST('Chave pública' AS nvarchar(25))
-                                ,CAST('Chave pública' AS nvarchar(25))
+                                ,CAST('Chave pública RSA do usuário' AS nvarchar(50))
+                                ,CAST('Chave pública RSA' AS nvarchar(25))
+                                ,CAST('Chave pública RSA' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -13093,6 +13088,59 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('125' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('25' AS smallint)
+                                ,CAST('11' AS bigint)
+                                ,NULL
+                                ,CAST('PublicKey' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Chave pública AES do usuário' AS nvarchar(50))
+                                ,CAST('Chave pública AES' AS nvarchar(25))
+                                ,CAST('Chave pública AES' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('126' AS bigint)
+                                ,CAST('17' AS bigint)
+                                ,CAST('30' AS smallint)
                                 ,CAST('6' AS bigint)
                                 ,NULL
                                 ,CAST('IsLogged' AS nvarchar(25))
@@ -13143,7 +13191,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('126' AS bigint)
+                         VALUES (CAST('127' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13196,7 +13244,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('127' AS bigint)
+                         VALUES (CAST('128' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13249,7 +13297,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('128' AS bigint)
+                         VALUES (CAST('129' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13302,7 +13350,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('129' AS bigint)
+                         VALUES (CAST('130' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13355,7 +13403,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('130' AS bigint)
+                         VALUES (CAST('131' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13408,7 +13456,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('131' AS bigint)
+                         VALUES (CAST('132' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -13461,7 +13509,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('132' AS bigint)
+                         VALUES (CAST('133' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('21' AS bigint)
@@ -13514,7 +13562,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('133' AS bigint)
+                         VALUES (CAST('134' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('12' AS bigint)
@@ -13567,7 +13615,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('134' AS bigint)
+                         VALUES (CAST('135' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('12' AS bigint)
@@ -13620,7 +13668,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('135' AS bigint)
+                         VALUES (CAST('136' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13673,7 +13721,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('136' AS bigint)
+                         VALUES (CAST('137' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13726,7 +13774,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('137' AS bigint)
+                         VALUES (CAST('138' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13779,7 +13827,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('138' AS bigint)
+                         VALUES (CAST('139' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13832,7 +13880,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('139' AS bigint)
+                         VALUES (CAST('140' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13885,7 +13933,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('140' AS bigint)
+                         VALUES (CAST('141' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('5' AS bigint)
@@ -13938,7 +13986,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('141' AS bigint)
+                         VALUES (CAST('142' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('7' AS bigint)
@@ -13991,7 +14039,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('142' AS bigint)
+                         VALUES (CAST('143' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('7' AS bigint)
@@ -14044,7 +14092,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('143' AS bigint)
+                         VALUES (CAST('144' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('7' AS bigint)
@@ -15308,7 +15356,7 @@ INSERT INTO [dbo].[Indexkeys] ([Id]
                          VALUES (CAST('40' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('15' AS smallint)
-                                ,CAST('135' AS bigint)
+                                ,CAST('132' AS bigint)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -16135,7 +16183,8 @@ IF(SELECT object_id('[dbo].[CategoriesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[CategoriesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -16156,10 +16205,14 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -16201,6 +16254,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) AS [Id]
+              ,CAST([dbo].[NUMBER_IN_WORDS](CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint)) AS NVARCHAR(MAX)) AS [IdInWords]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.HtmlInputType') AS nvarchar(10)) AS [HtmlInputType]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.HtmlInputAlign') AS nvarchar(6)) AS [HtmlInputAlign]
@@ -16218,87 +16272,153 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
+        DECLARE @WT_Id tinyint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS tinyint)
+               ,@WT_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(25))
+               ,@WT_AskEncrypted bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskEncrypted') AS bit)
+               ,@WT_AskMask bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskMask') AS bit)
+               ,@WT_AskListable bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskListable') AS bit)
+               ,@WT_AskDefault bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskDefault') AS bit)
+               ,@WT_AskMinimum bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskMinimum') AS bit)
+               ,@WT_AskMaximum bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskMaximum') AS bit)
+               ,@WT_AskInWords bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskInWords') AS bit)
+
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS tinyint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskEncrypted' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskEncrypted] IS NULL'
+        ELSE IF @WT_AskEncrypted IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskEncrypted] = @T_AskEncrypted'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskMask' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskMask] IS NULL'
+        ELSE IF @WT_AskMask IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskMask] = @T_AskMask'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskListable' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskListable] IS NULL'
+        ELSE IF @WT_AskListable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskListable] = @T_AskListable'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskDefault' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskDefault] IS NULL'
+        ELSE IF @WT_AskDefault IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskDefault] = @T_AskDefault'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskMinimum' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskMinimum] IS NULL'
+        ELSE IF @WT_AskMinimum IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskMinimum] = @T_AskMinimum'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskMaximum' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskMaximum] IS NULL'
+        ELSE IF @WT_AskMaximum IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskMaximum] = @T_AskMaximum'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskInWords' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskInWords] IS NULL'
+        ELSE IF @WT_AskInWords IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskInWords] = @T_AskInWords'
+        END
         IF @IsActionList = 1 BEGIN
-            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
             SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
         END ELSE IF @_ IS NULL BEGIN
-            DECLARE @W_Id tinyint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS tinyint))
-                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
-                   ,@W_AskEncrypted bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskEncrypted') AS bit))
-                   ,@W_AskMask bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskMask') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskMask') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskMask') AS bit))
-                   ,@W_AskListable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskListable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskListable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskListable') AS bit))
-                   ,@W_AskDefault bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskDefault') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskDefault') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskDefault') AS bit))
-                   ,@W_AskMinimum bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskMinimum') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskMinimum') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskMinimum') AS bit))
-                   ,@W_AskMaximum bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskMaximum') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskMaximum') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskMaximum') AS bit))
-                   ,@W_AskInWords bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskInWords') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskInWords') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskInWords') AS bit))
+            DECLARE @W_Id tinyint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS tinyint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(25)))
+                   ,@W_AskEncrypted bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskEncrypted') AS bit))
+                   ,@W_AskMask bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskMask') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskMask') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskMask') AS bit))
+                   ,@W_AskListable bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskListable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskListable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskListable') AS bit))
+                   ,@W_AskDefault bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskDefault') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskDefault') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskDefault') AS bit))
+                   ,@W_AskMinimum bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskMinimum') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskMinimum') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskMinimum') AS bit))
+                   ,@W_AskMaximum bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskMaximum') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskMaximum') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskMaximum') AS bit))
+                   ,@W_AskInWords bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskInWords') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskInWords') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskInWords') AS bit))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS tinyint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskEncrypted' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskEncrypted' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskEncrypted' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskEncrypted' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskEncrypted' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskEncrypted' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskEncrypted' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskEncrypted] IS NULL'
             ELSE IF @W_AskEncrypted IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskEncrypted] = @AskEncrypted'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskMask' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskMask' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskMask' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskMask' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskMask' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskMask' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskMask' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskMask] IS NULL'
             ELSE IF @W_AskMask IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskMask] = @AskMask'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskListable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskListable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskListable' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskListable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskListable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskListable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskListable' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskListable] IS NULL'
             ELSE IF @W_AskListable IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskListable] = @AskListable'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskDefault' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskDefault' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskDefault' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskDefault' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskDefault' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskDefault' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskDefault' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskDefault] IS NULL'
             ELSE IF @W_AskDefault IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskDefault] = @AskDefault'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskMinimum' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskMinimum' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskMinimum' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskMinimum' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskMinimum' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskMinimum' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskMinimum' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskMinimum] IS NULL'
             ELSE IF @W_AskMinimum IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskMinimum] = @AskMinimum'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskMaximum' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskMaximum' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskMaximum' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskMaximum' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskMaximum' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskMaximum' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskMaximum' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskMaximum] IS NULL'
             ELSE IF @W_AskMaximum IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskMaximum] = @AskMaximum'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskInWords' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskInWords' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskInWords' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskInWords' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskInWords' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskInWords' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskInWords' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskInWords] IS NULL'
             ELSE IF @W_AskInWords IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskInWords] = @AskInWords'
@@ -16325,11 +16445,29 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nvarchar(25)'
+                               ,N'@PickerValue nvarchar(25),@T_Id tinyint,@T_Name nvarchar(25),@T_AskEncrypted bit,@T_AskMask bit,@T_AskListable bit,@T_AskDefault bit,@T_AskMinimum bit,@T_AskMaximum bit,@T_AskInWords bit'
                                ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_AskEncrypted = @WT_AskEncrypted
+                               ,@T_AskMask = @WT_AskMask
+                               ,@T_AskListable = @WT_AskListable
+                               ,@T_AskDefault = @WT_AskDefault
+                               ,@T_AskMinimum = @WT_AskMinimum
+                               ,@T_AskMaximum = @WT_AskMaximum
+                               ,@T_AskInWords = @WT_AskInWords
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id tinyint,@Name nvarchar(25),@AskEncrypted bit,@AskMask bit,@AskListable bit,@AskDefault bit,@AskMinimum bit,@AskMaximum bit,@AskInWords bit'
+                               ,N'@T_Id tinyint,@T_Name nvarchar(25),@T_AskEncrypted bit,@T_AskMask bit,@T_AskListable bit,@T_AskDefault bit,@T_AskMinimum bit,@T_AskMaximum bit,@T_AskInWords bit,@Id tinyint,@Name nvarchar(25),@AskEncrypted bit,@AskMask bit,@AskListable bit,@AskDefault bit,@AskMinimum bit,@AskMaximum bit,@AskInWords bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_AskEncrypted = @WT_AskEncrypted
+                               ,@T_AskMask = @WT_AskMask
+                               ,@T_AskListable = @WT_AskListable
+                               ,@T_AskDefault = @WT_AskDefault
+                               ,@T_AskMinimum = @WT_AskMinimum
+                               ,@T_AskMaximum = @WT_AskMaximum
+                               ,@T_AskInWords = @WT_AskInWords
                                ,@Id = @W_Id
                                ,@Name = @W_Name
                                ,@AskEncrypted = @W_AskEncrypted
@@ -16339,8 +16477,19 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                                ,@AskMinimum = @W_AskMinimum
                                ,@AskMaximum = @W_AskMaximum
                                ,@AskInWords = @W_AskInWords
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id tinyint,@T_Name nvarchar(25),@T_AskEncrypted bit,@T_AskMask bit,@T_AskListable bit,@T_AskDefault bit,@T_AskMinimum bit,@T_AskMaximum bit,@T_AskInWords bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_AskEncrypted = @WT_AskEncrypted
+                               ,@T_AskMask = @WT_AskMask
+                               ,@T_AskListable = @WT_AskListable
+                               ,@T_AskDefault = @WT_AskDefault
+                               ,@T_AskMinimum = @WT_AskMinimum
+                               ,@T_AskMaximum = @WT_AskMaximum
+                               ,@T_AskInWords = @WT_AskInWords
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -16436,6 +16585,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS tinyint) AS [Id]
+                    ,CAST(NULL AS NVARCHAR(MAX)) AS [IdInWords]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(10)) AS [HtmlInputType]
                     ,CAST(NULL AS nvarchar(6)) AS [HtmlInputAlign]
@@ -16451,6 +16601,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                         SELECT ''Category'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
+                              ,CAST([dbo].[NUMBER_IN_WORDS](CAST([T].[Id] AS tinyint)) AS NVARCHAR(MAX)) AS [IdInWords]
                               ,[T].[Name]
                               ,[T].[HtmlInputType]
                               ,[T].[HtmlInputAlign]
@@ -16468,6 +16619,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                             SELECT ''Category'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
+                                  ,CAST([dbo].[NUMBER_IN_WORDS](CAST([O].[Id] AS tinyint)) AS NVARCHAR(MAX)) AS [IdInWords]
                                   ,[O].[Name]
                                   ,[O].[HtmlInputType]
                                   ,[O].[HtmlInputAlign]
@@ -16487,6 +16639,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
         EXEC sp_executesql @sql
         SELECT (SELECT [Kind]
                       ,[Id]
+                      ,[IdInWords]
                       ,[Name]
                       ,[Name] AS [ListItemValue]
                       ,[HtmlInputType]
@@ -17109,7 +17262,8 @@ IF(SELECT object_id('[dbo].[TypesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TypesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -17130,10 +17284,14 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -17196,103 +17354,183 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
+        DECLARE @WT_Id tinyint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS tinyint)
+               ,@WT_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(25))
+               ,@WT_AskLength bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskLength') AS bit)
+               ,@WT_AskDecimals bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskDecimals') AS bit)
+               ,@WT_AskPrimarykey bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskPrimarykey') AS bit)
+               ,@WT_AskAutoincrement bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskAutoincrement') AS bit)
+               ,@WT_AskFilterable bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskFilterable') AS bit)
+               ,@WT_AskGridable bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskGridable') AS bit)
+               ,@WT_AskCodification bit = CAST(JSON_VALUE(@RecordFilterTable, '$.AskCodification') AS bit)
+               ,@WT_IsLikeable bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsLikeable') AS bit)
+               ,@WT_IsActive bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsActive') AS bit)
+
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS tinyint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskLength' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskLength] IS NULL'
+        ELSE IF @WT_AskLength IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskLength] = @T_AskLength'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskDecimals' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskDecimals] IS NULL'
+        ELSE IF @WT_AskDecimals IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskDecimals] = @T_AskDecimals'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskPrimarykey' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskPrimarykey] IS NULL'
+        ELSE IF @WT_AskPrimarykey IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskPrimarykey] = @T_AskPrimarykey'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskAutoincrement' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskAutoincrement] IS NULL'
+        ELSE IF @WT_AskAutoincrement IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskAutoincrement] = @T_AskAutoincrement'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskFilterable' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskFilterable] IS NULL'
+        ELSE IF @WT_AskFilterable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskFilterable] = @T_AskFilterable'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskGridable' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskGridable] IS NULL'
+        ELSE IF @WT_AskGridable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskGridable] = @T_AskGridable'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskCodification' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[AskCodification] IS NULL'
+        ELSE IF @WT_AskCodification IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[AskCodification] = @T_AskCodification'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsLikeable' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsLikeable] IS NULL'
+        ELSE IF @WT_IsLikeable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsLikeable] = @T_IsLikeable'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsActive' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsActive] IS NULL'
+        ELSE IF @WT_IsActive IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsActive] = @T_IsActive'
+        END
         IF @IsActionList = 1 BEGIN
-            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
             SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
         END ELSE IF @_ IS NULL BEGIN
-            DECLARE @W_Id tinyint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS tinyint))
-                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
-                   ,@W_AskLength bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskLength') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskLength') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskLength') AS bit))
-                   ,@W_AskDecimals bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskDecimals') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskDecimals') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskDecimals') AS bit))
-                   ,@W_AskPrimarykey bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskPrimarykey') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskPrimarykey') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskPrimarykey') AS bit))
-                   ,@W_AskAutoincrement bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskAutoincrement') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskAutoincrement') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskAutoincrement') AS bit))
-                   ,@W_AskFilterable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskFilterable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskFilterable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskFilterable') AS bit))
-                   ,@W_AskGridable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskGridable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskGridable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskGridable') AS bit))
-                   ,@W_AskCodification bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskCodification') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskCodification') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskCodification') AS bit))
-                   ,@W_IsLikeable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsLikeable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsLikeable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsLikeable') AS bit))
-                   ,@W_IsActive bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsActive') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsActive') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsActive') AS bit))
+            DECLARE @W_Id tinyint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS tinyint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(25)))
+                   ,@W_AskLength bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskLength') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskLength') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskLength') AS bit))
+                   ,@W_AskDecimals bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskDecimals') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskDecimals') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskDecimals') AS bit))
+                   ,@W_AskPrimarykey bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskPrimarykey') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskPrimarykey') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskPrimarykey') AS bit))
+                   ,@W_AskAutoincrement bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskAutoincrement') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskAutoincrement') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskAutoincrement') AS bit))
+                   ,@W_AskFilterable bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskFilterable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskFilterable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskFilterable') AS bit))
+                   ,@W_AskGridable bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskGridable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskGridable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskGridable') AS bit))
+                   ,@W_AskCodification bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.AskCodification') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.AskCodification') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.AskCodification') AS bit))
+                   ,@W_IsLikeable bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsLikeable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsLikeable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsLikeable') AS bit))
+                   ,@W_IsActive bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsActive') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsActive') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsActive') AS bit))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS tinyint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskLength' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskLength' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskLength' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskLength' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskLength' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskLength' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskLength' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskLength] IS NULL'
             ELSE IF @W_AskLength IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskLength] = @AskLength'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskDecimals' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskDecimals' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskDecimals' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskDecimals' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskDecimals' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskDecimals' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskDecimals' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskDecimals] IS NULL'
             ELSE IF @W_AskDecimals IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskDecimals] = @AskDecimals'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskPrimarykey' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskPrimarykey' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskPrimarykey' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskPrimarykey' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskPrimarykey' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskPrimarykey' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskPrimarykey' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskPrimarykey] IS NULL'
             ELSE IF @W_AskPrimarykey IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskPrimarykey] = @AskPrimarykey'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskAutoincrement' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskAutoincrement' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskAutoincrement' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskAutoincrement' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskAutoincrement' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskAutoincrement' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskAutoincrement' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskAutoincrement] IS NULL'
             ELSE IF @W_AskAutoincrement IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskAutoincrement] = @AskAutoincrement'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskFilterable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskFilterable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskFilterable' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskFilterable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskFilterable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskFilterable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskFilterable' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskFilterable] IS NULL'
             ELSE IF @W_AskFilterable IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskFilterable] = @AskFilterable'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskGridable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskGridable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskGridable' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskGridable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskGridable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskGridable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskGridable' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskGridable] IS NULL'
             ELSE IF @W_AskGridable IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskGridable] = @AskGridable'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'AskCodification' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'AskCodification' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'AskCodification' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'AskCodification' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'AskCodification' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'AskCodification' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'AskCodification' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[AskCodification] IS NULL'
             ELSE IF @W_AskCodification IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[AskCodification] = @AskCodification'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsLikeable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsLikeable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsLikeable' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsLikeable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsLikeable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsLikeable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsLikeable' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsLikeable] IS NULL'
             ELSE IF @W_IsLikeable IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsLikeable] = @IsLikeable'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsActive' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsActive' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsActive' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsActive' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsActive' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsActive' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsActive' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsActive] IS NULL'
             ELSE IF @W_IsActive IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsActive] = @IsActive'
@@ -17319,11 +17557,33 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nvarchar(25)'
+                               ,N'@PickerValue nvarchar(25),@T_Id tinyint,@T_Name nvarchar(25),@T_AskLength bit,@T_AskDecimals bit,@T_AskPrimarykey bit,@T_AskAutoincrement bit,@T_AskFilterable bit,@T_AskGridable bit,@T_AskCodification bit,@T_IsLikeable bit,@T_IsActive bit'
                                ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_AskLength = @WT_AskLength
+                               ,@T_AskDecimals = @WT_AskDecimals
+                               ,@T_AskPrimarykey = @WT_AskPrimarykey
+                               ,@T_AskAutoincrement = @WT_AskAutoincrement
+                               ,@T_AskFilterable = @WT_AskFilterable
+                               ,@T_AskGridable = @WT_AskGridable
+                               ,@T_AskCodification = @WT_AskCodification
+                               ,@T_IsLikeable = @WT_IsLikeable
+                               ,@T_IsActive = @WT_IsActive
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id tinyint,@Name nvarchar(25),@AskLength bit,@AskDecimals bit,@AskPrimarykey bit,@AskAutoincrement bit,@AskFilterable bit,@AskGridable bit,@AskCodification bit,@IsLikeable bit,@IsActive bit'
+                               ,N'@T_Id tinyint,@T_Name nvarchar(25),@T_AskLength bit,@T_AskDecimals bit,@T_AskPrimarykey bit,@T_AskAutoincrement bit,@T_AskFilterable bit,@T_AskGridable bit,@T_AskCodification bit,@T_IsLikeable bit,@T_IsActive bit,@Id tinyint,@Name nvarchar(25),@AskLength bit,@AskDecimals bit,@AskPrimarykey bit,@AskAutoincrement bit,@AskFilterable bit,@AskGridable bit,@AskCodification bit,@IsLikeable bit,@IsActive bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_AskLength = @WT_AskLength
+                               ,@T_AskDecimals = @WT_AskDecimals
+                               ,@T_AskPrimarykey = @WT_AskPrimarykey
+                               ,@T_AskAutoincrement = @WT_AskAutoincrement
+                               ,@T_AskFilterable = @WT_AskFilterable
+                               ,@T_AskGridable = @WT_AskGridable
+                               ,@T_AskCodification = @WT_AskCodification
+                               ,@T_IsLikeable = @WT_IsLikeable
+                               ,@T_IsActive = @WT_IsActive
                                ,@Id = @W_Id
                                ,@Name = @W_Name
                                ,@AskLength = @W_AskLength
@@ -17335,8 +17595,21 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                                ,@AskCodification = @W_AskCodification
                                ,@IsLikeable = @W_IsLikeable
                                ,@IsActive = @W_IsActive
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id tinyint,@T_Name nvarchar(25),@T_AskLength bit,@T_AskDecimals bit,@T_AskPrimarykey bit,@T_AskAutoincrement bit,@T_AskFilterable bit,@T_AskGridable bit,@T_AskCodification bit,@T_IsLikeable bit,@T_IsActive bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_AskLength = @WT_AskLength
+                               ,@T_AskDecimals = @WT_AskDecimals
+                               ,@T_AskPrimarykey = @WT_AskPrimarykey
+                               ,@T_AskAutoincrement = @WT_AskAutoincrement
+                               ,@T_AskFilterable = @WT_AskFilterable
+                               ,@T_AskGridable = @WT_AskGridable
+                               ,@T_AskCodification = @WT_AskCodification
+                               ,@T_IsLikeable = @WT_IsLikeable
+                               ,@T_IsActive = @WT_IsActive
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -17507,6 +17780,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Category' AS [Kind]
               ,[R].[Id]
+              ,CAST([dbo].[NUMBER_IN_WORDS](CAST([R].[Id] AS tinyint)) AS NVARCHAR(MAX)) AS [IdInWords]
               ,[R].[Name]
               ,[R].[HtmlInputType]
               ,[R].[HtmlInputAlign]
@@ -18031,7 +18305,8 @@ IF(SELECT object_id('[dbo].[MasksRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MasksRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -18052,10 +18327,14 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -18103,24 +18382,39 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(25))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(25)))
+
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
@@ -18147,11 +18441,17 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@Name nvarchar(25)'
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@Id bigint,@Name nvarchar(25)'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
                                ,@Id = @W_Id
                                ,@Name = @W_Name
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_Name nvarchar(25)'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -18801,7 +19101,8 @@ IF(SELECT object_id('[dbo].[DomainsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DomainsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -18822,10 +19123,14 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -18884,65 +19189,112 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_TypeId tinyint = CAST(JSON_VALUE(@RecordFilterTable, '$.TypeId') AS tinyint)
+               ,@WT_MaskId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.MaskId') AS bigint)
+               ,@WT_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(25))
+               ,@WT_ValidValues nvarchar(max) = CAST(JSON_VALUE(@RecordFilterTable, '$.ValidValues') AS nvarchar(max))
+               ,@WT_Codification nvarchar(5) = CAST(JSON_VALUE(@RecordFilterTable, '$.Codification') AS nvarchar(5))
+
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'TypeId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[TypeId] IS NULL'
+        ELSE IF @WT_TypeId IS NOT NULL BEGIN
+            IF @WT_TypeId < CAST('1' AS tinyint)
+                THROW 51000, 'Valor de TypeId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[TypeId] = @T_TypeId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'MaskId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[MaskId] IS NULL'
+        ELSE IF @WT_MaskId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[MaskId] = @T_MaskId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ValidValues' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ValidValues] IS NULL'
+        ELSE IF @WT_ValidValues IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ValidValues] = @T_ValidValues'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Codification' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Codification] IS NULL'
+        ELSE IF @WT_Codification IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Codification] = @T_Codification'
+        END
         IF @IsActionList = 1 BEGIN
-            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
             SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
         END ELSE IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_TypeId tinyint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.TypeId') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.TypeId') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.TypeId') AS tinyint))
-                   ,@W_MaskId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.MaskId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.MaskId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.MaskId') AS bigint))
-                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
-                   ,@W_ValidValues nvarchar(max) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ValidValues') AS nvarchar(max)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ValidValues') AS nvarchar(max)), CAST(JSON_VALUE(@RecordFilter, '$.ValidValues') AS nvarchar(max)))
-                   ,@W_Codification nvarchar(5) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Codification') AS nvarchar(5)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Codification') AS nvarchar(5)), CAST(JSON_VALUE(@RecordFilter, '$.Codification') AS nvarchar(5)))
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_TypeId tinyint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.TypeId') AS tinyint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.TypeId') AS tinyint), CAST(JSON_VALUE(@RecordFilterGrid, '$.TypeId') AS tinyint))
+                   ,@W_MaskId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.MaskId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.MaskId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.MaskId') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(25)))
+                   ,@W_ValidValues nvarchar(max) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.ValidValues') AS nvarchar(max)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.ValidValues') AS nvarchar(max)), CAST(JSON_VALUE(@RecordFilterGrid, '$.ValidValues') AS nvarchar(max)))
+                   ,@W_Codification nvarchar(5) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Codification') AS nvarchar(5)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Codification') AS nvarchar(5)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Codification') AS nvarchar(5)))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'TypeId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'TypeId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'TypeId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'TypeId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'TypeId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'TypeId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'TypeId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[TypeId] IS NULL'
             ELSE IF @W_TypeId IS NOT NULL BEGIN
                 IF @W_TypeId < CAST('1' AS tinyint)
                     THROW 51000, 'Valor de TypeId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[TypeId] = @TypeId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'MaskId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'MaskId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'MaskId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'MaskId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'MaskId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'MaskId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'MaskId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[MaskId] IS NULL'
             ELSE IF @W_MaskId IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[MaskId] = @MaskId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'ValidValues' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'ValidValues' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'ValidValues' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'ValidValues' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'ValidValues' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ValidValues' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'ValidValues' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[ValidValues] IS NULL'
             ELSE IF @W_ValidValues IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[ValidValues] = @ValidValues'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Codification' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Codification' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Codification' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Codification' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Codification' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Codification' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Codification' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Codification] IS NULL'
             ELSE IF @W_Codification IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Codification] = @Codification'
@@ -18969,19 +19321,39 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nvarchar(25)'
+                               ,N'@PickerValue nvarchar(25),@T_Id bigint,@T_TypeId tinyint,@T_MaskId bigint,@T_Name nvarchar(25),@T_ValidValues nvarchar(max),@T_Codification nvarchar(5)'
                                ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_TypeId = @WT_TypeId
+                               ,@T_MaskId = @WT_MaskId
+                               ,@T_Name = @WT_Name
+                               ,@T_ValidValues = @WT_ValidValues
+                               ,@T_Codification = @WT_Codification
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@TypeId tinyint,@MaskId bigint,@Name nvarchar(25),@ValidValues nvarchar(max),@Codification nvarchar(5)'
+                               ,N'@T_Id bigint,@T_TypeId tinyint,@T_MaskId bigint,@T_Name nvarchar(25),@T_ValidValues nvarchar(max),@T_Codification nvarchar(5),@Id bigint,@TypeId tinyint,@MaskId bigint,@Name nvarchar(25),@ValidValues nvarchar(max),@Codification nvarchar(5)'
+                               ,@T_Id = @WT_Id
+                               ,@T_TypeId = @WT_TypeId
+                               ,@T_MaskId = @WT_MaskId
+                               ,@T_Name = @WT_Name
+                               ,@T_ValidValues = @WT_ValidValues
+                               ,@T_Codification = @WT_Codification
                                ,@Id = @W_Id
                                ,@TypeId = @W_TypeId
                                ,@MaskId = @W_MaskId
                                ,@Name = @W_Name
                                ,@ValidValues = @W_ValidValues
                                ,@Codification = @W_Codification
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_TypeId tinyint,@T_MaskId bigint,@T_Name nvarchar(25),@T_ValidValues nvarchar(max),@T_Codification nvarchar(5)'
+                               ,@T_Id = @WT_Id
+                               ,@T_TypeId = @WT_TypeId
+                               ,@T_MaskId = @WT_MaskId
+                               ,@T_Name = @WT_Name
+                               ,@T_ValidValues = @WT_ValidValues
+                               ,@T_Codification = @WT_Codification
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -19131,6 +19503,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
         CREATE UNIQUE INDEX [#Types] ON [#Types](Id)
         SELECT DISTINCT 'Category' AS [Kind]
               ,[R].[Id]
+              ,CAST([dbo].[NUMBER_IN_WORDS](CAST([R].[Id] AS tinyint)) AS NVARCHAR(MAX)) AS [IdInWords]
               ,[R].[Name]
               ,[R].[HtmlInputType]
               ,[R].[HtmlInputAlign]
@@ -19702,7 +20075,8 @@ IF(SELECT object_id('[dbo].[SystemsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -19723,10 +20097,14 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -19780,39 +20158,63 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(25))
+               ,@WT_ClientName nvarchar(15) = CAST(JSON_VALUE(@RecordFilterTable, '$.ClientName') AS nvarchar(15))
+
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ClientName' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ClientName] IS NULL'
+        ELSE IF @WT_ClientName IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ClientName] = @T_ClientName'
+        END
         IF @IsActionList = 1 BEGIN
-            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
             SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
         END ELSE IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
-                   ,@W_ClientName nvarchar(15) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ClientName') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ClientName') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.ClientName') AS nvarchar(15)))
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(25)))
+                   ,@W_ClientName nvarchar(15) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.ClientName') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.ClientName') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilterGrid, '$.ClientName') AS nvarchar(15)))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'ClientName' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'ClientName' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'ClientName' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'ClientName' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'ClientName' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ClientName' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'ClientName' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[ClientName] IS NULL'
             ELSE IF @W_ClientName IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[ClientName] = @ClientName'
@@ -19839,16 +20241,27 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nvarchar(25)'
+                               ,N'@PickerValue nvarchar(25),@T_Id bigint,@T_Name nvarchar(25),@T_ClientName nvarchar(15)'
                                ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_ClientName = @WT_ClientName
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@Name nvarchar(25),@ClientName nvarchar(15)'
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_ClientName nvarchar(15),@Id bigint,@Name nvarchar(25),@ClientName nvarchar(15)'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_ClientName = @WT_ClientName
                                ,@Id = @W_Id
                                ,@Name = @W_Name
                                ,@ClientName = @W_ClientName
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_ClientName nvarchar(15)'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_ClientName = @WT_ClientName
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -20493,7 +20906,8 @@ IF(SELECT object_id('[dbo].[MenusRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[MenusRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -20514,10 +20928,14 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -20569,36 +20987,62 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_SystemId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.SystemId') AS bigint))
-                   ,@W_Caption nvarchar(20) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Caption') AS nvarchar(20)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Caption') AS nvarchar(20)), CAST(JSON_VALUE(@RecordFilter, '$.Caption') AS nvarchar(20)))
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_SystemId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.SystemId') AS bigint)
+               ,@WT_Caption nvarchar(20) = CAST(JSON_VALUE(@RecordFilterTable, '$.Caption') AS nvarchar(20))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'SystemId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[SystemId] IS NULL'
+        ELSE IF @WT_SystemId IS NOT NULL BEGIN
+            IF @WT_SystemId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[SystemId] = @T_SystemId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Caption' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Caption] IS NULL'
+        ELSE IF @WT_Caption IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Caption] = @T_Caption'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_SystemId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.SystemId') AS bigint))
+                   ,@W_Caption nvarchar(20) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Caption') AS nvarchar(20)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Caption') AS nvarchar(20)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Caption') AS nvarchar(20)))
+
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'SystemId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'SystemId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'SystemId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'SystemId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'SystemId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'SystemId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'SystemId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[SystemId] IS NULL'
             ELSE IF @W_SystemId IS NOT NULL BEGIN
                 IF @W_SystemId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Caption' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Caption' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Caption' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Caption' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Caption' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Caption' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Caption' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Caption] IS NULL'
             ELSE IF @W_Caption IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Caption] = @Caption'
@@ -20625,12 +21069,20 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@SystemId bigint,@Caption nvarchar(20)'
+                               ,N'@T_Id bigint,@T_SystemId bigint,@T_Caption nvarchar(20),@Id bigint,@SystemId bigint,@Caption nvarchar(20)'
+                               ,@T_Id = @WT_Id
+                               ,@T_SystemId = @WT_SystemId
+                               ,@T_Caption = @WT_Caption
                                ,@Id = @W_Id
                                ,@SystemId = @W_SystemId
                                ,@Caption = @W_Caption
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_SystemId bigint,@T_Caption nvarchar(20)'
+                               ,@T_Id = @WT_Id
+                               ,@T_SystemId = @WT_SystemId
+                               ,@T_Caption = @WT_Caption
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -21289,7 +21741,8 @@ IF(SELECT object_id('[dbo].[UsersRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UsersRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -21310,10 +21763,14 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -21367,47 +21824,78 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(25))
+               ,@WT_FullName nvarchar(50) = CAST(JSON_VALUE(@RecordFilterTable, '$.FullName') AS nvarchar(50))
+               ,@WT_IsActive bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsActive') AS bit)
+
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'FullName' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[FullName] IS NULL'
+        ELSE IF @WT_FullName IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[FullName] = @T_FullName'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsActive' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsActive] IS NULL'
+        ELSE IF @WT_IsActive IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsActive] = @T_IsActive'
+        END
         IF @IsActionList = 1 BEGIN
-            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
             SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
         END ELSE IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
-                   ,@W_FullName nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.FullName') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.FullName') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.FullName') AS nvarchar(50)))
-                   ,@W_IsActive bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsActive') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsActive') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsActive') AS bit))
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(25)))
+                   ,@W_FullName nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.FullName') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.FullName') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilterGrid, '$.FullName') AS nvarchar(50)))
+                   ,@W_IsActive bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsActive') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsActive') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsActive') AS bit))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'FullName' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'FullName' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'FullName' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'FullName' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'FullName' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'FullName' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'FullName' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[FullName] IS NULL'
             ELSE IF @W_FullName IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[FullName] = @FullName'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsActive' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsActive' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsActive' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsActive' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsActive' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsActive' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsActive' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsActive] IS NULL'
             ELSE IF @W_IsActive IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsActive] = @IsActive'
@@ -21434,17 +21922,31 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nvarchar(25)'
+                               ,N'@PickerValue nvarchar(25),@T_Id bigint,@T_Name nvarchar(25),@T_FullName nvarchar(50),@T_IsActive bit'
                                ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_FullName = @WT_FullName
+                               ,@T_IsActive = @WT_IsActive
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@Name nvarchar(25),@FullName nvarchar(50),@IsActive bit'
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_FullName nvarchar(50),@T_IsActive bit,@Id bigint,@Name nvarchar(25),@FullName nvarchar(50),@IsActive bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_FullName = @WT_FullName
+                               ,@T_IsActive = @WT_IsActive
                                ,@Id = @W_Id
                                ,@Name = @W_Name
                                ,@FullName = @W_FullName
                                ,@IsActive = @W_IsActive
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_FullName nvarchar(50),@T_IsActive bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_FullName = @WT_FullName
+                               ,@T_IsActive = @WT_IsActive
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -22063,7 +22565,8 @@ IF(SELECT object_id('[dbo].[SystemsUsersRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsUsersRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -22084,10 +22587,14 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -22139,51 +22646,86 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_SystemId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.SystemId') AS bigint)
+               ,@WT_UserId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.UserId') AS bigint)
+               ,@WT_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(50))
+
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'SystemId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[SystemId] IS NULL'
+        ELSE IF @WT_SystemId IS NOT NULL BEGIN
+            IF @WT_SystemId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[SystemId] = @T_SystemId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'UserId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[UserId] IS NULL'
+        ELSE IF @WT_UserId IS NOT NULL BEGIN
+            IF @WT_UserId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[UserId] = @T_UserId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
         IF @IsActionList = 1 BEGIN
-            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(50))
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(50))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
             SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
         END ELSE IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_SystemId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.SystemId') AS bigint))
-                   ,@W_UserId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.UserId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.UserId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.UserId') AS bigint))
-                   ,@W_Name nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(50)))
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_SystemId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.SystemId') AS bigint))
+                   ,@W_UserId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.UserId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.UserId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.UserId') AS bigint))
+                   ,@W_Name nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(50)))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'SystemId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'SystemId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'SystemId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'SystemId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'SystemId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'SystemId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'SystemId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[SystemId] IS NULL'
             ELSE IF @W_SystemId IS NOT NULL BEGIN
                 IF @W_SystemId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'UserId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'UserId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'UserId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'UserId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'UserId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'UserId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'UserId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[UserId] IS NULL'
             ELSE IF @W_UserId IS NOT NULL BEGIN
                 IF @W_UserId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[UserId] = @UserId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
@@ -22210,17 +22752,31 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nvarchar(50)'
+                               ,N'@PickerValue nvarchar(50),@T_Id bigint,@T_SystemId bigint,@T_UserId bigint,@T_Name nvarchar(50)'
                                ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_SystemId = @WT_SystemId
+                               ,@T_UserId = @WT_UserId
+                               ,@T_Name = @WT_Name
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@SystemId bigint,@UserId bigint,@Name nvarchar(50)'
+                               ,N'@T_Id bigint,@T_SystemId bigint,@T_UserId bigint,@T_Name nvarchar(50),@Id bigint,@SystemId bigint,@UserId bigint,@Name nvarchar(50)'
+                               ,@T_Id = @WT_Id
+                               ,@T_SystemId = @WT_SystemId
+                               ,@T_UserId = @WT_UserId
+                               ,@T_Name = @WT_Name
                                ,@Id = @W_Id
                                ,@SystemId = @W_SystemId
                                ,@UserId = @W_UserId
                                ,@Name = @W_Name
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_SystemId bigint,@T_UserId bigint,@T_Name nvarchar(50)'
+                               ,@T_Id = @WT_Id
+                               ,@T_SystemId = @WT_SystemId
+                               ,@T_UserId = @WT_UserId
+                               ,@T_Name = @WT_Name
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -22831,7 +23387,8 @@ IF(SELECT object_id('[dbo].[ConnectionsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ConnectionsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -22852,10 +23409,14 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -22903,32 +23464,54 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_Environment nvarchar(3) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Environment') AS nvarchar(3)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Environment') AS nvarchar(3)), CAST(JSON_VALUE(@RecordFilter, '$.Environment') AS nvarchar(3)))
-                   ,@W_ConnectionString nvarchar(256) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ConnectionString') AS nvarchar(256)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ConnectionString') AS nvarchar(256)), CAST(JSON_VALUE(@RecordFilter, '$.ConnectionString') AS nvarchar(256)))
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_Environment nvarchar(3) = CAST(JSON_VALUE(@RecordFilterTable, '$.Environment') AS nvarchar(3))
+               ,@WT_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@RecordFilterTable, '$.ConnectionString') AS nvarchar(256))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Environment' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Environment] IS NULL'
+        ELSE IF @WT_Environment IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Environment] = @T_Environment'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ConnectionString' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ConnectionString] IS NULL'
+        ELSE IF @WT_ConnectionString IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ConnectionString] = @T_ConnectionString'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_Environment nvarchar(3) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Environment') AS nvarchar(3)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Environment') AS nvarchar(3)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Environment') AS nvarchar(3)))
+                   ,@W_ConnectionString nvarchar(256) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.ConnectionString') AS nvarchar(256)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.ConnectionString') AS nvarchar(256)), CAST(JSON_VALUE(@RecordFilterGrid, '$.ConnectionString') AS nvarchar(256)))
+
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Environment' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Environment' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Environment' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Environment' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Environment' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Environment' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Environment' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Environment] IS NULL'
             ELSE IF @W_Environment IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Environment] = @Environment'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'ConnectionString' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'ConnectionString' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'ConnectionString' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'ConnectionString' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'ConnectionString' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ConnectionString' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'ConnectionString' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[ConnectionString] IS NULL'
             ELSE IF @W_ConnectionString IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[ConnectionString] = @ConnectionString'
@@ -22955,12 +23538,20 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@Environment nvarchar(3),@ConnectionString nvarchar(256)'
+                               ,N'@T_Id bigint,@T_Environment nvarchar(3),@T_ConnectionString nvarchar(256),@Id bigint,@Environment nvarchar(3),@ConnectionString nvarchar(256)'
+                               ,@T_Id = @WT_Id
+                               ,@T_Environment = @WT_Environment
+                               ,@T_ConnectionString = @WT_ConnectionString
                                ,@Id = @W_Id
                                ,@Environment = @W_Environment
                                ,@ConnectionString = @W_ConnectionString
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_Environment nvarchar(3),@T_ConnectionString nvarchar(256)'
+                               ,@T_Id = @WT_Id
+                               ,@T_Environment = @WT_Environment
+                               ,@T_ConnectionString = @WT_ConnectionString
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -23602,7 +24193,8 @@ IF(SELECT object_id('[dbo].[DatabasesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabasesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -23623,10 +24215,14 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -23682,49 +24278,82 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_ConnectionId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.ConnectionId') AS bigint)
+               ,@WT_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(25))
+               ,@WT_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilterTable, '$.Alias') AS nvarchar(25))
+
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ConnectionId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ConnectionId] IS NULL'
+        ELSE IF @WT_ConnectionId IS NOT NULL BEGIN
+            IF @WT_ConnectionId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de ConnectionId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[ConnectionId] = @T_ConnectionId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Alias' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Alias] IS NULL'
+        ELSE IF @WT_Alias IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Alias] = @T_Alias'
+        END
         IF @IsActionList = 1 BEGIN
-            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
             SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
         END ELSE IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_ConnectionId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ConnectionId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ConnectionId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.ConnectionId') AS bigint))
-                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
-                   ,@W_Alias nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Alias') AS nvarchar(25)))
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_ConnectionId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.ConnectionId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.ConnectionId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.ConnectionId') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(25)))
+                   ,@W_Alias nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Alias') AS nvarchar(25)))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'ConnectionId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'ConnectionId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'ConnectionId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'ConnectionId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'ConnectionId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ConnectionId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'ConnectionId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[ConnectionId] IS NULL'
             ELSE IF @W_ConnectionId IS NOT NULL BEGIN
                 IF @W_ConnectionId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de ConnectionId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[ConnectionId] = @ConnectionId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Alias' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Alias' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Alias' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Alias' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Alias' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Alias' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Alias' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Alias] IS NULL'
             ELSE IF @W_Alias IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Alias] = @Alias'
@@ -23751,17 +24380,31 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nvarchar(25)'
+                               ,N'@PickerValue nvarchar(25),@T_Id bigint,@T_ConnectionId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25)'
                                ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_ConnectionId = @WT_ConnectionId
+                               ,@T_Name = @WT_Name
+                               ,@T_Alias = @WT_Alias
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@ConnectionId bigint,@Name nvarchar(25),@Alias nvarchar(25)'
+                               ,N'@T_Id bigint,@T_ConnectionId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@Id bigint,@ConnectionId bigint,@Name nvarchar(25),@Alias nvarchar(25)'
+                               ,@T_Id = @WT_Id
+                               ,@T_ConnectionId = @WT_ConnectionId
+                               ,@T_Name = @WT_Name
+                               ,@T_Alias = @WT_Alias
                                ,@Id = @W_Id
                                ,@ConnectionId = @W_ConnectionId
                                ,@Name = @W_Name
                                ,@Alias = @W_Alias
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_ConnectionId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25)'
+                               ,@T_Id = @WT_Id
+                               ,@T_ConnectionId = @WT_ConnectionId
+                               ,@T_Name = @WT_Name
+                               ,@T_Alias = @WT_Alias
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -24398,7 +25041,8 @@ IF(SELECT object_id('[dbo].[SystemsDatabasesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SystemsDatabasesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -24419,10 +25063,14 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -24474,51 +25122,86 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_SystemId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.SystemId') AS bigint)
+               ,@WT_DatabaseId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.DatabaseId') AS bigint)
+               ,@WT_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(50))
+
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'SystemId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[SystemId] IS NULL'
+        ELSE IF @WT_SystemId IS NOT NULL BEGIN
+            IF @WT_SystemId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[SystemId] = @T_SystemId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'DatabaseId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[DatabaseId] IS NULL'
+        ELSE IF @WT_DatabaseId IS NOT NULL BEGIN
+            IF @WT_DatabaseId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[DatabaseId] = @T_DatabaseId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
         IF @IsActionList = 1 BEGIN
-            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(50))
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(50))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
             SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
         END ELSE IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_SystemId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.SystemId') AS bigint))
-                   ,@W_DatabaseId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.DatabaseId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.DatabaseId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.DatabaseId') AS bigint))
-                   ,@W_Name nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(50)))
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_SystemId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.SystemId') AS bigint))
+                   ,@W_DatabaseId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.DatabaseId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.DatabaseId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.DatabaseId') AS bigint))
+                   ,@W_Name nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(50)))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'SystemId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'SystemId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'SystemId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'SystemId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'SystemId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'SystemId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'SystemId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[SystemId] IS NULL'
             ELSE IF @W_SystemId IS NOT NULL BEGIN
                 IF @W_SystemId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'DatabaseId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'DatabaseId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'DatabaseId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'DatabaseId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'DatabaseId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'DatabaseId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'DatabaseId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[DatabaseId] IS NULL'
             ELSE IF @W_DatabaseId IS NOT NULL BEGIN
                 IF @W_DatabaseId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[DatabaseId] = @DatabaseId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
@@ -24545,17 +25228,31 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nvarchar(50)'
+                               ,N'@PickerValue nvarchar(50),@T_Id bigint,@T_SystemId bigint,@T_DatabaseId bigint,@T_Name nvarchar(50)'
                                ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_SystemId = @WT_SystemId
+                               ,@T_DatabaseId = @WT_DatabaseId
+                               ,@T_Name = @WT_Name
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@SystemId bigint,@DatabaseId bigint,@Name nvarchar(50)'
+                               ,N'@T_Id bigint,@T_SystemId bigint,@T_DatabaseId bigint,@T_Name nvarchar(50),@Id bigint,@SystemId bigint,@DatabaseId bigint,@Name nvarchar(50)'
+                               ,@T_Id = @WT_Id
+                               ,@T_SystemId = @WT_SystemId
+                               ,@T_DatabaseId = @WT_DatabaseId
+                               ,@T_Name = @WT_Name
                                ,@Id = @W_Id
                                ,@SystemId = @W_SystemId
                                ,@DatabaseId = @W_DatabaseId
                                ,@Name = @W_Name
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_SystemId bigint,@T_DatabaseId bigint,@T_Name nvarchar(50)'
+                               ,@T_Id = @WT_Id
+                               ,@T_SystemId = @WT_SystemId
+                               ,@T_DatabaseId = @WT_DatabaseId
+                               ,@T_Name = @WT_Name
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -25242,7 +25939,8 @@ IF(SELECT object_id('[dbo].[TablesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TablesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -25263,10 +25961,14 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -25321,47 +26023,78 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(25))
+               ,@WT_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilterTable, '$.Alias') AS nvarchar(25))
+               ,@WT_IsLegacy bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsLegacy') AS bit)
+
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Alias' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Alias] IS NULL'
+        ELSE IF @WT_Alias IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Alias] = @T_Alias'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsLegacy' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsLegacy] IS NULL'
+        ELSE IF @WT_IsLegacy IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsLegacy] = @T_IsLegacy'
+        END
         IF @IsActionList = 1 BEGIN
-            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
             SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
         END ELSE IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
-                   ,@W_Alias nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Alias') AS nvarchar(25)))
-                   ,@W_IsLegacy bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsLegacy') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsLegacy') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsLegacy') AS bit))
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(25)))
+                   ,@W_Alias nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Alias') AS nvarchar(25)))
+                   ,@W_IsLegacy bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsLegacy') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsLegacy') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsLegacy') AS bit))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Alias' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Alias' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Alias' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Alias' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Alias' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Alias' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Alias' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Alias] IS NULL'
             ELSE IF @W_Alias IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Alias] = @Alias'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsLegacy' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsLegacy' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsLegacy' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsLegacy' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsLegacy' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsLegacy' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsLegacy' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsLegacy] IS NULL'
             ELSE IF @W_IsLegacy IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsLegacy] = @IsLegacy'
@@ -25388,17 +26121,31 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nvarchar(25)'
+                               ,N'@PickerValue nvarchar(25),@T_Id bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsLegacy bit'
                                ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_Alias = @WT_Alias
+                               ,@T_IsLegacy = @WT_IsLegacy
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@Name nvarchar(25),@Alias nvarchar(25),@IsLegacy bit'
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsLegacy bit,@Id bigint,@Name nvarchar(25),@Alias nvarchar(25),@IsLegacy bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_Alias = @WT_Alias
+                               ,@T_IsLegacy = @WT_IsLegacy
                                ,@Id = @W_Id
                                ,@Name = @W_Name
                                ,@Alias = @W_Alias
                                ,@IsLegacy = @W_IsLegacy
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsLegacy bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_Alias = @WT_Alias
+                               ,@T_IsLegacy = @WT_IsLegacy
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -26043,7 +26790,8 @@ IF(SELECT object_id('[dbo].[DatabasesTablesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[DatabasesTablesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -26064,10 +26812,14 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -26119,51 +26871,86 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_DatabaseId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.DatabaseId') AS bigint)
+               ,@WT_TableId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.TableId') AS bigint)
+               ,@WT_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(50))
+
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'DatabaseId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[DatabaseId] IS NULL'
+        ELSE IF @WT_DatabaseId IS NOT NULL BEGIN
+            IF @WT_DatabaseId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[DatabaseId] = @T_DatabaseId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'TableId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[TableId] IS NULL'
+        ELSE IF @WT_TableId IS NOT NULL BEGIN
+            IF @WT_TableId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[TableId] = @T_TableId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
         IF @IsActionList = 1 BEGIN
-            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(50))
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(50))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
             SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
         END ELSE IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_DatabaseId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.DatabaseId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.DatabaseId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.DatabaseId') AS bigint))
-                   ,@W_TableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.TableId') AS bigint))
-                   ,@W_Name nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(50)))
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_DatabaseId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.DatabaseId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.DatabaseId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.DatabaseId') AS bigint))
+                   ,@W_TableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.TableId') AS bigint))
+                   ,@W_Name nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(50)))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'DatabaseId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'DatabaseId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'DatabaseId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'DatabaseId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'DatabaseId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'DatabaseId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'DatabaseId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[DatabaseId] IS NULL'
             ELSE IF @W_DatabaseId IS NOT NULL BEGIN
                 IF @W_DatabaseId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[DatabaseId] = @DatabaseId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'TableId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'TableId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'TableId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'TableId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'TableId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'TableId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'TableId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[TableId] IS NULL'
             ELSE IF @W_TableId IS NOT NULL BEGIN
                 IF @W_TableId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[TableId] = @TableId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
@@ -26190,17 +26977,31 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nvarchar(50)'
+                               ,N'@PickerValue nvarchar(50),@T_Id bigint,@T_DatabaseId bigint,@T_TableId bigint,@T_Name nvarchar(50)'
                                ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_DatabaseId = @WT_DatabaseId
+                               ,@T_TableId = @WT_TableId
+                               ,@T_Name = @WT_Name
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@DatabaseId bigint,@TableId bigint,@Name nvarchar(50)'
+                               ,N'@T_Id bigint,@T_DatabaseId bigint,@T_TableId bigint,@T_Name nvarchar(50),@Id bigint,@DatabaseId bigint,@TableId bigint,@Name nvarchar(50)'
+                               ,@T_Id = @WT_Id
+                               ,@T_DatabaseId = @WT_DatabaseId
+                               ,@T_TableId = @WT_TableId
+                               ,@T_Name = @WT_Name
                                ,@Id = @W_Id
                                ,@DatabaseId = @W_DatabaseId
                                ,@TableId = @W_TableId
                                ,@Name = @W_Name
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_DatabaseId bigint,@T_TableId bigint,@T_Name nvarchar(50)'
+                               ,@T_Id = @WT_Id
+                               ,@T_DatabaseId = @WT_DatabaseId
+                               ,@T_TableId = @WT_TableId
+                               ,@T_Name = @WT_Name
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -27031,7 +27832,8 @@ IF(SELECT object_id('[dbo].[ColumnsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[ColumnsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -27052,10 +27854,14 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -27122,128 +27928,235 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_TableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.TableId') AS bigint))
-                   ,@W_DomainId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.DomainId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.DomainId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.DomainId') AS bigint))
-                   ,@W_ReferenceTableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ReferenceTableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ReferenceTableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.ReferenceTableId') AS bigint))
-                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
-                   ,@W_Alias nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Alias') AS nvarchar(25)))
-                   ,@W_IsAutoIncrement bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsAutoIncrement') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsAutoIncrement') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsAutoIncrement') AS bit))
-                   ,@W_IsRequired bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsRequired') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsRequired') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsRequired') AS bit))
-                   ,@W_IsListable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsListable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsListable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsListable') AS bit))
-                   ,@W_IsFilterable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsFilterable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsFilterable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsFilterable') AS bit))
-                   ,@W_IsEditable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsEditable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsEditable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsEditable') AS bit))
-                   ,@W_IsGridable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsGridable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsGridable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsGridable') AS bit))
-                   ,@W_IsEncrypted bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsEncrypted') AS bit))
-                   ,@W_IsInWords bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsInWords') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsInWords') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsInWords') AS bit))
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_TableId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.TableId') AS bigint)
+               ,@WT_DomainId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.DomainId') AS bigint)
+               ,@WT_ReferenceTableId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.ReferenceTableId') AS bigint)
+               ,@WT_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(25))
+               ,@WT_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilterTable, '$.Alias') AS nvarchar(25))
+               ,@WT_IsAutoIncrement bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsAutoIncrement') AS bit)
+               ,@WT_IsRequired bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsRequired') AS bit)
+               ,@WT_IsListable bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsListable') AS bit)
+               ,@WT_IsFilterable bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsFilterable') AS bit)
+               ,@WT_IsEditable bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsEditable') AS bit)
+               ,@WT_IsGridable bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsGridable') AS bit)
+               ,@WT_IsEncrypted bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsEncrypted') AS bit)
+               ,@WT_IsInWords bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsInWords') AS bit)
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'TableId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[TableId] IS NULL'
+        ELSE IF @WT_TableId IS NOT NULL BEGIN
+            IF @WT_TableId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[TableId] = @T_TableId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'DomainId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[DomainId] IS NULL'
+        ELSE IF @WT_DomainId IS NOT NULL BEGIN
+            IF @WT_DomainId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de DomainId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[DomainId] = @T_DomainId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ReferenceTableId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ReferenceTableId] IS NULL'
+        ELSE IF @WT_ReferenceTableId IS NOT NULL BEGIN
+            IF @WT_ReferenceTableId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[ReferenceTableId] = @T_ReferenceTableId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Alias' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Alias] IS NULL'
+        ELSE IF @WT_Alias IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Alias] = @T_Alias'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsAutoIncrement' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsAutoIncrement] IS NULL'
+        ELSE IF @WT_IsAutoIncrement IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsAutoIncrement] = @T_IsAutoIncrement'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsRequired' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsRequired] IS NULL'
+        ELSE IF @WT_IsRequired IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsRequired] = @T_IsRequired'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsListable' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsListable] IS NULL'
+        ELSE IF @WT_IsListable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsListable] = @T_IsListable'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsFilterable' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsFilterable] IS NULL'
+        ELSE IF @WT_IsFilterable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsFilterable] = @T_IsFilterable'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsEditable' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsEditable] IS NULL'
+        ELSE IF @WT_IsEditable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsEditable] = @T_IsEditable'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsGridable' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsGridable] IS NULL'
+        ELSE IF @WT_IsGridable IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsGridable] = @T_IsGridable'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsEncrypted' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsEncrypted] IS NULL'
+        ELSE IF @WT_IsEncrypted IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsEncrypted] = @T_IsEncrypted'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsInWords' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsInWords] IS NULL'
+        ELSE IF @WT_IsInWords IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsInWords] = @T_IsInWords'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_TableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.TableId') AS bigint))
+                   ,@W_DomainId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.DomainId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.DomainId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.DomainId') AS bigint))
+                   ,@W_ReferenceTableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.ReferenceTableId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.ReferenceTableId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.ReferenceTableId') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(25)))
+                   ,@W_Alias nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Alias') AS nvarchar(25)))
+                   ,@W_IsAutoIncrement bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsAutoIncrement') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsAutoIncrement') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsAutoIncrement') AS bit))
+                   ,@W_IsRequired bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsRequired') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsRequired') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsRequired') AS bit))
+                   ,@W_IsListable bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsListable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsListable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsListable') AS bit))
+                   ,@W_IsFilterable bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsFilterable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsFilterable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsFilterable') AS bit))
+                   ,@W_IsEditable bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsEditable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsEditable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsEditable') AS bit))
+                   ,@W_IsGridable bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsGridable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsGridable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsGridable') AS bit))
+                   ,@W_IsEncrypted bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsEncrypted') AS bit))
+                   ,@W_IsInWords bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsInWords') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsInWords') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsInWords') AS bit))
+
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'TableId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'TableId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'TableId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'TableId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'TableId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'TableId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'TableId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[TableId] IS NULL'
             ELSE IF @W_TableId IS NOT NULL BEGIN
                 IF @W_TableId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[TableId] = @TableId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'DomainId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'DomainId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'DomainId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'DomainId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'DomainId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'DomainId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'DomainId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[DomainId] IS NULL'
             ELSE IF @W_DomainId IS NOT NULL BEGIN
                 IF @W_DomainId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de DomainId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[DomainId] = @DomainId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'ReferenceTableId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'ReferenceTableId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'ReferenceTableId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'ReferenceTableId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'ReferenceTableId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ReferenceTableId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'ReferenceTableId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[ReferenceTableId] IS NULL'
             ELSE IF @W_ReferenceTableId IS NOT NULL BEGIN
                 IF @W_ReferenceTableId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[ReferenceTableId] = @ReferenceTableId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Alias' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Alias' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Alias' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Alias' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Alias' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Alias' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Alias' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Alias] IS NULL'
             ELSE IF @W_Alias IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Alias] = @Alias'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsAutoIncrement' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsAutoIncrement' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsAutoIncrement' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsAutoIncrement' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsAutoIncrement' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsAutoIncrement' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsAutoIncrement' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsAutoIncrement] IS NULL'
             ELSE IF @W_IsAutoIncrement IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsAutoIncrement] = @IsAutoIncrement'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsRequired' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsRequired' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsRequired' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsRequired' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsRequired' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsRequired' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsRequired' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsRequired] IS NULL'
             ELSE IF @W_IsRequired IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsRequired] = @IsRequired'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsListable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsListable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsListable' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsListable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsListable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsListable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsListable' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsListable] IS NULL'
             ELSE IF @W_IsListable IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsListable] = @IsListable'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsFilterable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsFilterable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsFilterable' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsFilterable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsFilterable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsFilterable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsFilterable' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsFilterable] IS NULL'
             ELSE IF @W_IsFilterable IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsFilterable] = @IsFilterable'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsEditable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsEditable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsEditable' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsEditable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsEditable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsEditable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsEditable' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsEditable] IS NULL'
             ELSE IF @W_IsEditable IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsEditable] = @IsEditable'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsGridable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsGridable' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsGridable' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsGridable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsGridable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsGridable' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsGridable' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsGridable] IS NULL'
             ELSE IF @W_IsGridable IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsGridable] = @IsGridable'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsEncrypted' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsEncrypted' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsEncrypted' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsEncrypted' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsEncrypted' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsEncrypted' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsEncrypted' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsEncrypted] IS NULL'
             ELSE IF @W_IsEncrypted IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsEncrypted] = @IsEncrypted'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsInWords' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsInWords' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsInWords' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsInWords' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsInWords' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsInWords' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsInWords' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsInWords] IS NULL'
             ELSE IF @W_IsInWords IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsInWords] = @IsInWords'
@@ -27270,7 +28183,21 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@TableId bigint,@DomainId bigint,@ReferenceTableId bigint,@Name nvarchar(25),@Alias nvarchar(25),@IsAutoIncrement bit,@IsRequired bit,@IsListable bit,@IsFilterable bit,@IsEditable bit,@IsGridable bit,@IsEncrypted bit,@IsInWords bit'
+                               ,N'@T_Id bigint,@T_TableId bigint,@T_DomainId bigint,@T_ReferenceTableId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsAutoIncrement bit,@T_IsRequired bit,@T_IsListable bit,@T_IsFilterable bit,@T_IsEditable bit,@T_IsGridable bit,@T_IsEncrypted bit,@T_IsInWords bit,@Id bigint,@TableId bigint,@DomainId bigint,@ReferenceTableId bigint,@Name nvarchar(25),@Alias nvarchar(25),@IsAutoIncrement bit,@IsRequired bit,@IsListable bit,@IsFilterable bit,@IsEditable bit,@IsGridable bit,@IsEncrypted bit,@IsInWords bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_TableId = @WT_TableId
+                               ,@T_DomainId = @WT_DomainId
+                               ,@T_ReferenceTableId = @WT_ReferenceTableId
+                               ,@T_Name = @WT_Name
+                               ,@T_Alias = @WT_Alias
+                               ,@T_IsAutoIncrement = @WT_IsAutoIncrement
+                               ,@T_IsRequired = @WT_IsRequired
+                               ,@T_IsListable = @WT_IsListable
+                               ,@T_IsFilterable = @WT_IsFilterable
+                               ,@T_IsEditable = @WT_IsEditable
+                               ,@T_IsGridable = @WT_IsGridable
+                               ,@T_IsEncrypted = @WT_IsEncrypted
+                               ,@T_IsInWords = @WT_IsInWords
                                ,@Id = @W_Id
                                ,@TableId = @W_TableId
                                ,@DomainId = @W_DomainId
@@ -27285,8 +28212,24 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                ,@IsGridable = @W_IsGridable
                                ,@IsEncrypted = @W_IsEncrypted
                                ,@IsInWords = @W_IsInWords
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_TableId bigint,@T_DomainId bigint,@T_ReferenceTableId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsAutoIncrement bit,@T_IsRequired bit,@T_IsListable bit,@T_IsFilterable bit,@T_IsEditable bit,@T_IsGridable bit,@T_IsEncrypted bit,@T_IsInWords bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_TableId = @WT_TableId
+                               ,@T_DomainId = @WT_DomainId
+                               ,@T_ReferenceTableId = @WT_ReferenceTableId
+                               ,@T_Name = @WT_Name
+                               ,@T_Alias = @WT_Alias
+                               ,@T_IsAutoIncrement = @WT_IsAutoIncrement
+                               ,@T_IsRequired = @WT_IsRequired
+                               ,@T_IsListable = @WT_IsListable
+                               ,@T_IsFilterable = @WT_IsFilterable
+                               ,@T_IsEditable = @WT_IsEditable
+                               ,@T_IsGridable = @WT_IsGridable
+                               ,@T_IsEncrypted = @WT_IsEncrypted
+                               ,@T_IsInWords = @WT_IsInWords
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -27560,6 +28503,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
         CREATE UNIQUE INDEX [#Types] ON [#Types](Id)
         SELECT DISTINCT 'Category' AS [Kind]
               ,[R].[Id]
+              ,CAST([dbo].[NUMBER_IN_WORDS](CAST([R].[Id] AS tinyint)) AS NVARCHAR(MAX)) AS [IdInWords]
               ,[R].[Name]
               ,[R].[HtmlInputType]
               ,[R].[HtmlInputAlign]
@@ -28135,7 +29079,8 @@ IF(SELECT object_id('[dbo].[IndexesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -28156,10 +29101,14 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -28211,49 +29160,82 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_TableId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.TableId') AS bigint)
+               ,@WT_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(50))
+               ,@WT_IsUnique bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsUnique') AS bit)
+
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'TableId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[TableId] IS NULL'
+        ELSE IF @WT_TableId IS NOT NULL BEGIN
+            IF @WT_TableId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[TableId] = @T_TableId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsUnique' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsUnique] IS NULL'
+        ELSE IF @WT_IsUnique IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsUnique] = @T_IsUnique'
+        END
         IF @IsActionList = 1 BEGIN
-            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(50))
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(50))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
             SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
         END ELSE IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_TableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.TableId') AS bigint))
-                   ,@W_Name nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(50)))
-                   ,@W_IsUnique bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsUnique') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsUnique') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsUnique') AS bit))
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_TableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.TableId') AS bigint))
+                   ,@W_Name nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(50)))
+                   ,@W_IsUnique bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsUnique') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsUnique') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsUnique') AS bit))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'TableId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'TableId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'TableId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'TableId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'TableId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'TableId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'TableId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[TableId] IS NULL'
             ELSE IF @W_TableId IS NOT NULL BEGIN
                 IF @W_TableId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[TableId] = @TableId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsUnique' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsUnique' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsUnique' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsUnique' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsUnique' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsUnique' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsUnique' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsUnique] IS NULL'
             ELSE IF @W_IsUnique IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsUnique] = @IsUnique'
@@ -28280,17 +29262,31 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nvarchar(50)'
+                               ,N'@PickerValue nvarchar(50),@T_Id bigint,@T_TableId bigint,@T_Name nvarchar(50),@T_IsUnique bit'
                                ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_TableId = @WT_TableId
+                               ,@T_Name = @WT_Name
+                               ,@T_IsUnique = @WT_IsUnique
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@TableId bigint,@Name nvarchar(50),@IsUnique bit'
+                               ,N'@T_Id bigint,@T_TableId bigint,@T_Name nvarchar(50),@T_IsUnique bit,@Id bigint,@TableId bigint,@Name nvarchar(50),@IsUnique bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_TableId = @WT_TableId
+                               ,@T_Name = @WT_Name
+                               ,@T_IsUnique = @WT_IsUnique
                                ,@Id = @W_Id
                                ,@TableId = @W_TableId
                                ,@Name = @W_Name
                                ,@IsUnique = @W_IsUnique
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_TableId bigint,@T_Name nvarchar(50),@T_IsUnique bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_TableId = @WT_TableId
+                               ,@T_Name = @WT_Name
+                               ,@T_IsUnique = @WT_IsUnique
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -28940,7 +29936,8 @@ IF(SELECT object_id('[dbo].[IndexkeysRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[IndexkeysRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -28961,10 +29958,14 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -29014,46 +30015,81 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_IndexId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IndexId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IndexId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.IndexId') AS bigint))
-                   ,@W_ColumnId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ColumnId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ColumnId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.ColumnId') AS bigint))
-                   ,@W_IsDescending bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsDescending') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsDescending') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsDescending') AS bit))
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_IndexId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.IndexId') AS bigint)
+               ,@WT_ColumnId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.ColumnId') AS bigint)
+               ,@WT_IsDescending bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsDescending') AS bit)
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IndexId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IndexId] IS NULL'
+        ELSE IF @WT_IndexId IS NOT NULL BEGIN
+            IF @WT_IndexId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de IndexId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[IndexId] = @T_IndexId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ColumnId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ColumnId] IS NULL'
+        ELSE IF @WT_ColumnId IS NOT NULL BEGIN
+            IF @WT_ColumnId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de ColumnId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[ColumnId] = @T_ColumnId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsDescending' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsDescending] IS NULL'
+        ELSE IF @WT_IsDescending IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsDescending] = @T_IsDescending'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_IndexId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IndexId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IndexId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.IndexId') AS bigint))
+                   ,@W_ColumnId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.ColumnId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.ColumnId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.ColumnId') AS bigint))
+                   ,@W_IsDescending bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsDescending') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsDescending') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsDescending') AS bit))
+
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IndexId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IndexId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IndexId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IndexId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IndexId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IndexId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IndexId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IndexId] IS NULL'
             ELSE IF @W_IndexId IS NOT NULL BEGIN
                 IF @W_IndexId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de IndexId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[IndexId] = @IndexId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'ColumnId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'ColumnId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'ColumnId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'ColumnId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'ColumnId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ColumnId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'ColumnId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[ColumnId] IS NULL'
             ELSE IF @W_ColumnId IS NOT NULL BEGIN
                 IF @W_ColumnId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de ColumnId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[ColumnId] = @ColumnId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsDescending' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsDescending' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsDescending' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsDescending' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsDescending' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsDescending' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsDescending' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsDescending] IS NULL'
             ELSE IF @W_IsDescending IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsDescending] = @IsDescending'
@@ -29080,13 +30116,23 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@IndexId bigint,@ColumnId bigint,@IsDescending bit'
+                               ,N'@T_Id bigint,@T_IndexId bigint,@T_ColumnId bigint,@T_IsDescending bit,@Id bigint,@IndexId bigint,@ColumnId bigint,@IsDescending bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_IndexId = @WT_IndexId
+                               ,@T_ColumnId = @WT_ColumnId
+                               ,@T_IsDescending = @WT_IsDescending
                                ,@Id = @W_Id
                                ,@IndexId = @W_IndexId
                                ,@ColumnId = @W_ColumnId
                                ,@IsDescending = @W_IsDescending
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_IndexId bigint,@T_ColumnId bigint,@T_IsDescending bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_IndexId = @WT_IndexId
+                               ,@T_ColumnId = @WT_ColumnId
+                               ,@T_IsDescending = @WT_IsDescending
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -29378,6 +30424,7 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [SystemId] = JSON_VALUE(@LastRecord, '$.SystemId')
                                   AND [UserId] = JSON_VALUE(@LastRecord, '$.UserId')
+                                  AND [dbo].[IS_EQUAL]([ClientRsaPublicKey], JSON_VALUE(@LastRecord, '$.ClientRsaPublicKey'), 'nvarchar') = 1
                                   AND [dbo].[IS_EQUAL]([PublicKey], JSON_VALUE(@LastRecord, '$.PublicKey'), 'nvarchar') = 1
                                   AND [IsLogged] = JSON_VALUE(@LastRecord, '$.IsLogged'))
             AND NOT EXISTS(SELECT 1
@@ -29388,6 +30435,7 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SystemId') = JSON_VALUE(@LastRecord, '$.SystemId')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.UserId') = JSON_VALUE(@LastRecord, '$.UserId')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ClientRsaPublicKey'), JSON_VALUE(@LastRecord, '$.ClientRsaPublicKey'), 'nvarchar') = 1
                                   AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.PublicKey'), JSON_VALUE(@LastRecord, '$.PublicKey'), 'nvarchar') = 1
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsLogged') = JSON_VALUE(@LastRecord, '$.IsLogged'))
                 THROW 51000, 'Registro de Sessions alterado por outro usuário', 1
@@ -29401,6 +30449,7 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
 
             DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
                    ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+                   ,@W_ClientRsaPublicKey nvarchar(512) = CAST(JSON_VALUE(@ActualRecord, '$.ClientRsaPublicKey') AS nvarchar(512))
                    ,@W_PublicKey nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS nvarchar(256))
                    ,@W_IsLogged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit)
 
@@ -29608,12 +30657,14 @@ ALTER PROCEDURE [dbo].[SessionCreate](@Login NVARCHAR(MAX)
 
         DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
                ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+               ,@W_ClientRsaPublicKey nvarchar(512) = CAST(JSON_VALUE(@ActualRecord, '$.ClientRsaPublicKey') AS nvarchar(512))
                ,@W_PublicKey nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS nvarchar(256))
                ,@W_IsLogged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit)
 
         INSERT INTO [dbo].[Sessions] ([Id]
                                             ,[SystemId]
                                             ,[UserId]
+                                            ,[ClientRsaPublicKey]
                                             ,[PublicKey]
                                             ,[IsLogged]
                                             ,[CreatedAt]
@@ -29621,6 +30672,7 @@ ALTER PROCEDURE [dbo].[SessionCreate](@Login NVARCHAR(MAX)
                                       VALUES (@W_Id
                                              ,@W_SystemId
                                              ,@W_UserId
+                                             ,@W_ClientRsaPublicKey
                                              ,@W_PublicKey
                                              ,@W_IsLogged
                                              ,GETDATE()
@@ -29696,12 +30748,14 @@ ALTER PROCEDURE [dbo].[SessionUpdate](@Login NVARCHAR(MAX)
 
         DECLARE @W_SystemId bigint = CAST(JSON_VALUE(@ActualRecord, '$.SystemId') AS bigint)
                ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
+               ,@W_ClientRsaPublicKey nvarchar(512) = CAST(JSON_VALUE(@ActualRecord, '$.ClientRsaPublicKey') AS nvarchar(512))
                ,@W_PublicKey nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS nvarchar(256))
                ,@W_IsLogged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit)
 
         UPDATE [dbo].[Sessions] SET [Id] = @W_Id
                                           ,[SystemId] = @W_SystemId
                                           ,[UserId] = @W_UserId
+                                          ,[ClientRsaPublicKey] = @W_ClientRsaPublicKey
                                           ,[PublicKey] = @W_PublicKey
                                           ,[IsLogged] = @W_IsLogged
                                           ,[UpdatedAt] = GETDATE()
@@ -29795,7 +30849,8 @@ IF(SELECT object_id('[dbo].[SessionsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[SessionsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -29816,10 +30871,14 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -29860,6 +30919,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SystemId') AS bigint) AS [SystemId]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.UserId') AS bigint) AS [UserId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ClientRsaPublicKey') AS nvarchar(512)) AS [ClientRsaPublicKey]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.PublicKey') AS nvarchar(256)) AS [PublicKey]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsLogged') AS bit) AS [IsLogged]
             INTO [#tmpOperations]
@@ -29869,46 +30929,81 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_SystemId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.SystemId') AS bigint))
-                   ,@W_UserId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.UserId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.UserId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.UserId') AS bigint))
-                   ,@W_IsLogged bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsLogged') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsLogged') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsLogged') AS bit))
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_SystemId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.SystemId') AS bigint)
+               ,@WT_UserId bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.UserId') AS bigint)
+               ,@WT_IsLogged bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsLogged') AS bit)
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'SystemId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[SystemId] IS NULL'
+        ELSE IF @WT_SystemId IS NOT NULL BEGIN
+            IF @WT_SystemId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[SystemId] = @T_SystemId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'UserId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[UserId] IS NULL'
+        ELSE IF @WT_UserId IS NOT NULL BEGIN
+            IF @WT_UserId < CAST('1' AS bigint)
+                THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[UserId] = @T_UserId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsLogged' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsLogged] IS NULL'
+        ELSE IF @WT_IsLogged IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsLogged] = @T_IsLogged'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_SystemId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.SystemId') AS bigint))
+                   ,@W_UserId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.UserId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.UserId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.UserId') AS bigint))
+                   ,@W_IsLogged bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsLogged') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsLogged') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsLogged') AS bit))
+
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'SystemId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'SystemId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'SystemId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'SystemId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'SystemId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'SystemId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'SystemId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[SystemId] IS NULL'
             ELSE IF @W_SystemId IS NOT NULL BEGIN
                 IF @W_SystemId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'UserId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'UserId' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'UserId' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'UserId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'UserId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'UserId' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'UserId' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[UserId] IS NULL'
             ELSE IF @W_UserId IS NOT NULL BEGIN
                 IF @W_UserId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[UserId] = @UserId'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsLogged' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsLogged' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsLogged' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsLogged' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsLogged' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsLogged' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsLogged' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsLogged] IS NULL'
             ELSE IF @W_IsLogged IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsLogged] = @IsLogged'
@@ -29935,13 +31030,23 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@SystemId bigint,@UserId bigint,@IsLogged bit'
+                               ,N'@T_Id bigint,@T_SystemId bigint,@T_UserId bigint,@T_IsLogged bit,@Id bigint,@SystemId bigint,@UserId bigint,@IsLogged bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_SystemId = @WT_SystemId
+                               ,@T_UserId = @WT_UserId
+                               ,@T_IsLogged = @WT_IsLogged
                                ,@Id = @W_Id
                                ,@SystemId = @W_SystemId
                                ,@UserId = @W_UserId
                                ,@IsLogged = @W_IsLogged
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_SystemId bigint,@T_UserId bigint,@T_IsLogged bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_SystemId = @WT_SystemId
+                               ,@T_UserId = @WT_UserId
+                               ,@T_IsLogged = @WT_IsLogged
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -30009,6 +31114,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [SystemId]
                     ,CAST(NULL AS bigint) AS [UserId]
+                    ,CAST(NULL AS nvarchar(512)) AS [ClientRsaPublicKey]
                     ,CAST(NULL AS nvarchar(256)) AS [PublicKey]
                     ,CAST(NULL AS bit) AS [IsLogged]
             INTO [#result]
@@ -30018,6 +31124,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                               ,[T].[Id]
                               ,[T].[SystemId]
                               ,[T].[UserId]
+                              ,[T].[ClientRsaPublicKey]
                               ,[T].[PublicKey]
                               ,[T].[IsLogged]
                             FROM [#tmpTable] [#]
@@ -30029,6 +31136,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                                   ,[O].[Id]
                                   ,[O].[SystemId]
                                   ,[O].[UserId]
+                                  ,[O].[ClientRsaPublicKey]
                                   ,[O].[PublicKey]
                                   ,[O].[IsLogged]
                                 FROM [#tmpTable] [#]
@@ -30066,6 +31174,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                       ,[Id]
                       ,[SystemId]
                       ,[UserId]
+                      ,[ClientRsaPublicKey]
                       ,[PublicKey]
                       ,[IsLogged]
                     FROM [#result] FOR JSON PATH) AS [result]
@@ -30328,7 +31437,8 @@ IF(SELECT object_id('[dbo].[TransactionsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[TransactionsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -30349,10 +31459,14 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -30400,16 +31514,26 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -30438,10 +31562,14 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint'
+                               ,N'@T_Id bigint,@Id bigint'
+                               ,@T_Id = @WT_Id
                                ,@Id = @W_Id
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint'
+                               ,@T_Id = @WT_Id
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -30518,6 +31646,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[UserId]
+              ,[R].[ClientRsaPublicKey]
               ,[R].[PublicKey]
               ,[R].[IsLogged]
             INTO [#Sessions]
@@ -31066,7 +32195,8 @@ IF(SELECT object_id('[dbo].[OperationsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[OperationsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -31087,10 +32217,14 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -31142,16 +32276,26 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
@@ -31180,10 +32324,14 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint'
+                               ,N'@T_Id bigint,@Id bigint'
+                               ,@T_Id = @WT_Id
                                ,@Id = @W_Id
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint'
+                               ,@T_Id = @WT_Id
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -31281,6 +32429,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[UserId]
+              ,[R].[ClientRsaPublicKey]
               ,[R].[PublicKey]
               ,[R].[IsLogged]
             INTO [#Sessions]
@@ -31437,13 +32586,13 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
             IF @W_IsBidirectional IS NULL
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2)
+                IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [Id] = @W_Id AND [ColumnId1] = @W_ColumnId1)
                     THROW 51000, 'Chave única de UNQ_Unicities_ColumnId1_ColumnId2 já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1)
+                IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_ColumnId1 AND [Id] = @W_Id)
                     THROW 51000, 'Chave única de UNQ_Unicities_ColumnId2_ColumnId1 já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_ColumnId1 AND [ColumnId2] = @W_ColumnId2 AND [Id] <> @W_Id)
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [Id] = @W_Id AND [ColumnId1] = @W_ColumnId1 AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Unicities_ColumnId1_ColumnId2 já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId2] = @W_ColumnId2 AND [ColumnId1] = @W_ColumnId1 AND [Id] <> @W_Id)
+            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_ColumnId1 AND [Id] = @W_Id AND [Id] <> @W_Id)
                 THROW 51000, 'Chave única de UNQ_Unicities_ColumnId2_ColumnId1 já existe', 1
             END
         END
@@ -31818,7 +32967,8 @@ IF(SELECT object_id('[dbo].[UnicitiesRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[UnicitiesRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -31839,10 +32989,14 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -31891,42 +33045,73 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        IF @_ IS NULL BEGIN
-            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
-                   ,@W_ColumnId1 bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ColumnId1') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ColumnId1') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.ColumnId1') AS bigint))
-                   ,@W_ColumnId2 bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ColumnId2') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ColumnId2') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.ColumnId2') AS bigint))
-                   ,@W_IsBidirectional bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsBidirectional') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsBidirectional') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsBidirectional') AS bit))
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS bigint)
+               ,@WT_ColumnId1 bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.ColumnId1') AS bigint)
+               ,@WT_ColumnId2 bigint = CAST(JSON_VALUE(@RecordFilterTable, '$.ColumnId2') AS bigint)
+               ,@WT_IsBidirectional bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsBidirectional') AS bit)
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS bigint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ColumnId1' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ColumnId1] IS NULL'
+        ELSE IF @WT_ColumnId1 IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ColumnId1] = @T_ColumnId1'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ColumnId2' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ColumnId2] IS NULL'
+        ELSE IF @WT_ColumnId2 IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ColumnId2] = @T_ColumnId2'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsBidirectional' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsBidirectional] IS NULL'
+        ELSE IF @WT_IsBidirectional IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsBidirectional] = @T_IsBidirectional'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
+                   ,@W_ColumnId1 bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.ColumnId1') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.ColumnId1') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.ColumnId1') AS bigint))
+                   ,@W_ColumnId2 bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.ColumnId2') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.ColumnId2') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.ColumnId2') AS bigint))
+                   ,@W_IsBidirectional bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsBidirectional') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsBidirectional') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsBidirectional') AS bit))
+
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'ColumnId1' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'ColumnId1' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'ColumnId1' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'ColumnId1' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'ColumnId1' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ColumnId1' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'ColumnId1' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[ColumnId1] IS NULL'
             ELSE IF @W_ColumnId1 IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[ColumnId1] = @ColumnId1'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'ColumnId2' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'ColumnId2' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'ColumnId2' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'ColumnId2' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'ColumnId2' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'ColumnId2' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'ColumnId2' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[ColumnId2] IS NULL'
             ELSE IF @W_ColumnId2 IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[ColumnId2] = @ColumnId2'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'IsBidirectional' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'IsBidirectional' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'IsBidirectional' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsBidirectional' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsBidirectional' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsBidirectional' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsBidirectional' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[IsBidirectional] IS NULL'
             ELSE IF @W_IsBidirectional IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsBidirectional] = @IsBidirectional'
@@ -31953,13 +33138,23 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id bigint,@ColumnId1 bigint,@ColumnId2 bigint,@IsBidirectional bit'
+                               ,N'@T_Id bigint,@T_ColumnId1 bigint,@T_ColumnId2 bigint,@T_IsBidirectional bit,@Id bigint,@ColumnId1 bigint,@ColumnId2 bigint,@IsBidirectional bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_ColumnId1 = @WT_ColumnId1
+                               ,@T_ColumnId2 = @WT_ColumnId2
+                               ,@T_IsBidirectional = @WT_IsBidirectional
                                ,@Id = @W_Id
                                ,@ColumnId1 = @W_ColumnId1
                                ,@ColumnId2 = @W_ColumnId2
                                ,@IsBidirectional = @W_IsBidirectional
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_ColumnId1 bigint,@T_ColumnId2 bigint,@T_IsBidirectional bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_ColumnId1 = @WT_ColumnId1
+                               ,@T_ColumnId2 = @WT_ColumnId2
+                               ,@T_IsBidirectional = @WT_IsBidirectional
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT
@@ -32659,7 +33854,8 @@ IF(SELECT object_id('[dbo].[OperatorsRead]', 'P')) IS NULL
     EXEC('CREATE PROCEDURE [dbo].[OperatorsRead] AS PRINT 1')
 GO
 ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
-                                          ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordFilterGrid NVARCHAR(MAX)
+                                          ,@RecordFilterTable NVARCHAR(MAX)
                                           ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
@@ -32680,10 +33876,14 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
     IF @LoginId IS NULL
         THROW 51000, 'LoginId é requerido', 1
 
-    IF @RecordFilter IS NULL
-            SET @RecordFilter = '{}'
-        ELSE IF ISJSON(@RecordFilter) = 0
-            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+    IF @RecordFilterGrid IS NULL
+            SET @RecordFilterGrid = '{}'
+        ELSE IF ISJSON(@RecordFilterGrid) = 0
+            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1
+        IF @RecordFilterTable IS NULL
+            SET @RecordFilterTable = '{}'
+        ELSE IF ISJSON(@RecordFilterTable) = 0
+            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1
         IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
             THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
@@ -32735,47 +33935,78 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
+        DECLARE @WT_Id tinyint = CAST(JSON_VALUE(@RecordFilterTable, '$.Id') AS tinyint)
+               ,@WT_Name nvarchar(15) = CAST(JSON_VALUE(@RecordFilterTable, '$.Name') AS nvarchar(15))
+               ,@WT_CodeSQL nvarchar(15) = CAST(JSON_VALUE(@RecordFilterTable, '$.CodeSQL') AS nvarchar(15))
+               ,@WT_CodeJS nvarchar(15) = CAST(JSON_VALUE(@RecordFilterTable, '$.CodeJS') AS nvarchar(15))
+
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Id] IS NULL'
+        ELSE IF @WT_Id IS NOT NULL BEGIN
+            IF @WT_Id < CAST('1' AS tinyint)
+                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'CodeSQL' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[CodeSQL] IS NULL'
+        ELSE IF @WT_CodeSQL IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[CodeSQL] = @T_CodeSQL'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'CodeJS' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[CodeJS] IS NULL'
+        ELSE IF @WT_CodeJS IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[CodeJS] = @T_CodeJS'
+        END
         IF @IsActionList = 1 BEGIN
-            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(15))
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(15))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
             SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
         END ELSE IF @_ IS NULL BEGIN
-            DECLARE @W_Id tinyint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS tinyint))
-                   ,@W_Name nvarchar(15) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(15)))
-                   ,@W_CodeSQL nvarchar(15) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.CodeSQL') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.CodeSQL') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.CodeSQL') AS nvarchar(15)))
-                   ,@W_CodeJS nvarchar(15) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.CodeJS') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.CodeJS') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.CodeJS') AS nvarchar(15)))
+            DECLARE @W_Id tinyint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS tinyint))
+                   ,@W_Name nvarchar(15) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Name') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Name') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Name') AS nvarchar(15)))
+                   ,@W_CodeSQL nvarchar(15) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.CodeSQL') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.CodeSQL') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilterGrid, '$.CodeSQL') AS nvarchar(15)))
+                   ,@W_CodeJS nvarchar(15) = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.CodeJS') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.CodeJS') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilterGrid, '$.CodeJS') AS nvarchar(15)))
 
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Id' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Id' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Id] IS NULL'
             ELSE IF @W_Id IS NOT NULL BEGIN
                 IF @W_Id < CAST('1' AS tinyint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
                 SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'Name' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Name' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'Name' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[Name] IS NULL'
             ELSE IF @W_Name IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'CodeSQL' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'CodeSQL' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'CodeSQL' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'CodeSQL' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'CodeSQL' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'CodeSQL' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'CodeSQL' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[CodeSQL] IS NULL'
             ELSE IF @W_CodeSQL IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[CodeSQL] = @CodeSQL'
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = 'CodeJS' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = 'CodeJS' AND [type] = 0)
-               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = 'CodeJS' AND [type] = 0)
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'CodeJS' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'CodeJS' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'CodeJS' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'CodeJS' AND [type] = 0)
                 SET @Where = @Where + ' AND [T].[CodeJS] IS NULL'
             ELSE IF @W_CodeJS IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[CodeJS] = @CodeJS'
@@ -32802,17 +34033,31 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nvarchar(15)'
+                               ,N'@PickerValue nvarchar(15),@T_Id tinyint,@T_Name nvarchar(15),@T_CodeSQL nvarchar(15),@T_CodeJS nvarchar(15)'
                                ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_CodeSQL = @WT_CodeSQL
+                               ,@T_CodeJS = @WT_CodeJS
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@Id tinyint,@Name nvarchar(15),@CodeSQL nvarchar(15),@CodeJS nvarchar(15)'
+                               ,N'@T_Id tinyint,@T_Name nvarchar(15),@T_CodeSQL nvarchar(15),@T_CodeJS nvarchar(15),@Id tinyint,@Name nvarchar(15),@CodeSQL nvarchar(15),@CodeJS nvarchar(15)'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_CodeSQL = @WT_CodeSQL
+                               ,@T_CodeJS = @WT_CodeJS
                                ,@Id = @W_Id
                                ,@Name = @W_Name
                                ,@CodeSQL = @W_CodeSQL
                                ,@CodeJS = @W_CodeJS
-        END ELSE
+        END ELSE BEGIN
             EXEC sp_executesql @sql
+                               ,N'@T_Id tinyint,@T_Name nvarchar(15),@T_CodeSQL nvarchar(15),@T_CodeJS nvarchar(15)'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_CodeSQL = @WT_CodeSQL
+                               ,@T_CodeJS = @WT_CodeJS
+        END
 
         DECLARE @RowCount INT = @@ROWCOUNT
                ,@OffSet INT

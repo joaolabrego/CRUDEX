@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 import TConfig from "./TConfig.class.mjs";
 import TScreen from "./TScreen.class.mjs";
@@ -6,7 +6,6 @@ import TSystem from "./TSystem.class.mjs";
 
 export default class TLogin {
     static #LoginId = 0;
-    static #PublicKey = "";
     static #HTML = {
         Container: null,
         UserName: null,
@@ -206,8 +205,8 @@ export default class TLogin {
                             TSystem.Action = TSystem.Actions.MENU;
                         })
                         .catch(error => {
-                            TScreen.ErrorMessage = error.Message;
-                            if (error.Message.toLowerCase().includes("senha"))
+                            TScreen.ErrorMessage = error.message || error.Message;
+                            if ((error.message || error.Message || "").toLowerCase().includes("senha"))
                                 this.#HTML.Password.focus();
                             else
                                 this.#HTML.UserName.focus();
@@ -221,8 +220,8 @@ export default class TLogin {
                         TSystem.Action = TSystem.Actions.MENU;
                     })
                     .catch(error => {
-                        TScreen.ErrorMessage = error.Message;
-                        if (error.Message.toLowerCase().includes("senha"))
+                        TScreen.ErrorMessage = error.message || error.Message;
+                        if ((error.message || error.Message || "").toLowerCase().includes("senha"))
                             this.#HTML.Password.focus();
                         else
                             this.#HTML.UserName.focus();
@@ -247,9 +246,6 @@ export default class TLogin {
     }
     static get LoginId() {
         return this.#LoginId;
-    }
-    static get PublicKey() {
-        return this.#PublicKey;
     }
     static set UserName(value) {
         this.#HTML.UserName.value = TScreen.UserName = value;

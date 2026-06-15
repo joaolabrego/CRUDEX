@@ -1,10 +1,11 @@
-﻿"use strict";
+"use strict";
 
 import TLogin from "./TLogin.class.mjs";
 import TScreen from "./TScreen.class.mjs";
 import TSystem from "./TSystem.class.mjs";
 import TSpinner from "./TSpinner.class.mjs";
 import TCheckbox from "./TCheckbox.class.mjs";
+import TransportCrypto from "./TransportCrypto.class.mjs";
 
 export default class TConfig {
     static #Locale = null;
@@ -30,11 +31,18 @@ export default class TConfig {
                 "Content-Type": "application/json",
             },
             url = location.pathname.replace(/\/$/, ""),
-            useSpinner = showSpinner && action !== "config";
+            useSpinner = showSpinner && action !== "config",
+            useCrypto = action !== "config",
+            establishSession = action === "login" || action === "change";
 
         try {
             if (useSpinner)
                 TSpinner.Show();
+            if (establishSession) {
+                if (!TransportCrypto.ClientRsaPublicKeySpki)
+                    throw new Error("Chave pública RSA do cliente não inicializada.");
+                await TransportCrypto.beginSession();
+            }
             if (action === "config") {
                 body.Parameters = { Action: "config" };
             }
@@ -46,6 +54,8 @@ export default class TConfig {
                     Password: TLogin.Password,
                     NewPassword: parameters.NewPassword ?? null,
                     RetypedPassword: parameters.RetypedPassword ?? null,
+                    PublicKey: TransportCrypto.SessionKeyB64,
+                    ClientRsaPublicKey: TransportCrypto.ClientRsaPublicKeySpki,
                 };
                 if (action === "change")
                     parameters = {};
@@ -53,6 +63,7 @@ export default class TConfig {
             }
             else if (action === "logout") {
                 request.LoginId = TLogin.LoginId;
+                headers.LoginId = String(TLogin.LoginId);
                 body.Login = {
                     Action: "logout",
                     SystemName: TSystem.Name,
@@ -61,11 +72,13 @@ export default class TConfig {
                     LoginId: TLogin.LoginId,
                     NewPassword: null,
                     RetypedPassword: null,
+                    ClientRsaPublicKey: TransportCrypto.ClientRsaPublicKeySpki,
                 };
                 body.Parameters = parameters;
             }
             else {
                 request.LoginId = TLogin.LoginId;
+                headers.LoginId = String(TLogin.LoginId);
                 body.Login = {
                     Action: "authenticate",
                     SystemName: TSystem.Name,
@@ -74,24 +87,51 @@ export default class TConfig {
                     LoginId: TLogin.LoginId,
                     NewPassword: null,
                     RetypedPassword: null,
+                    ClientRsaPublicKey: TransportCrypto.ClientRsaPublicKeySpki,
                 };
                 body.Parameters = parameters;
             }
-            request.Request = JSON.stringify(body);
-            if (action === "logout" && navigator.sendBeacon) {
-                result = navigator.sendBeacon(url, new Blob([JSON.stringify(request)], { type: 'application/json' })) ? {} : { ClassName: "Error", Message: "Erro ao enviar LOGOUT via sendBeacon." };
+
+            const plain = JSON.stringify(body);
+            if (useCrypto && !TransportCrypto.ClientRsaPublicKeySpki)
+                throw new Error("Chave pública RSA do cliente não inicializada.");
+            request.Request = useCrypto
+                ? await TransportCrypto.encrypt(plain)
+                : plain;
+
+            if (action === "logout") {
+                const wire = JSON.stringify(request);
+                if (navigator.sendBeacon) {
+                    if (!navigator.sendBeacon(url, new Blob([wire], { type: "application/json" })))
+                        await fetch(url, { method: "POST", headers, body: wire, keepalive: true });
+                } else {
+                    await fetch(url, { method: "POST", headers, body: wire, keepalive: true });
+                }
+                TransportCrypto.clearSession();
+                result = {};
             } else {
-                let response = await fetch(url, {
+                const response = await fetch(url, {
                     method: "POST",
                     headers,
                     body: JSON.stringify(request),
                 });
-                result = JSON.parse((await response.json()).Response);
+                const outer = await response.json();
+                const payload = TransportCrypto.isEncryptedEnvelope(outer.Response)
+                    ? await TransportCrypto.decrypt(outer.Response)
+                    : outer.Response;
+                result = JSON.parse(payload);
             }
-            if (result.ClassName === "Error")
+            if (result.ClassName === "Error") {
+                if (establishSession)
+                    TransportCrypto.clearSession();
                 throw result;
+            }
 
             return result;
+        } catch (error) {
+            if (establishSession)
+                TransportCrypto.clearSession();
+            throw error;
         } finally {
             if (useSpinner)
                 TSpinner.Hide();

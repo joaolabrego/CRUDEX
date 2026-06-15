@@ -1,15 +1,15 @@
 ﻿IF(SELECT object_id('[dbo].[NUMBER_IN_WORDS]', 'FN')) IS NULL
 	EXEC('CREATE FUNCTION [dbo].[NUMBER_IN_WORDS]() RETURNS VARCHAR(MAX) AS BEGIN RETURN '''' END')
 GO
-ALTER FUNCTION [dbo].[NUMBER_IN_WORDS](@Value AS DECIMAL(18,2)
-										,@EnglishOrPortuguese BIT = 1
-										,@CurrencyInSingular VARCHAR(50) = NULL
-										,@CurrencyInPlural VARCHAR(50) = NULL
-										,@CentsInSingular VARCHAR(50) = NULL
-										,@CentsInPlural VARCHAR(50) = NULL)
+ALTER FUNCTION [dbo].[NUMBER_IN_WORDS](@Value AS DECIMAL(18,2))
 RETURNS VARCHAR(MAX) AS  
 BEGIN 
-	DECLARE @Power INT = 0,
+	DECLARE @EnglishOrPortuguese BIT = 1,
+		    @CurrencyInSingular VARCHAR(50) = 'Real',
+		    @CurrencyInPlural VARCHAR(50) = 'Reais',
+		    @CentsInSingular VARCHAR(50) = 'Centavo',
+		    @CentsInPlural VARCHAR(50) = 'Centavos',
+		    @Power INT = 0,
 		    @Separator VARCHAR(5) = '',
 		    @PartialValue INT,
 		    @Digito INT = 0,
@@ -22,69 +22,28 @@ BEGIN
 			@ValueOfThousands INT = 0
 	DECLARE @Powers TABLE (Id INT, NomeSingular VARCHAR(50), NomePlural VARCHAR(50))
 
-	IF @EnglishOrPortuguese = 1 BEGIN
-		IF @CurrencyInSingular IS NULL
-			SET @CurrencyInSingular = 'Real'
-		IF @CurrencyInPlural IS NULL
-			SET @CurrencyInPlural = 'Reais'
-		IF @CentsInSingular IS NULL
-			SET @CentsInSingular = 'Centavo'
-		IF @CentsInPlural IS NULL
-			SET @CentsInPlural = 'Centavos'
-		SET @Of = ' de '
-		SET @And = ' e '
-		IF @Value < 0 BEGIN
-			SET @Value = -@Value
-			SET @Minus = 'Menos'
-		END	
-		INSERT @Powers
-			VALUES(0,'', ''),
-				  (1,'Mil', 'Mil'),
-				  (2,'Milhão', 'Milhões'),
-				  (3,'Bilhão', 'Bilhões'),
-				  (4,'Trilhão', 'Trilhões'),
-				  (5,'Quatrilhão', 'Quatrilhões'),
-				  (6,'Quintilhão', 'Quintilhões'),
-				  (7,'Sextilhão', 'Sextilhões'),
-				  (8,'Septilhão', 'Septilhões'),
-				  (9,'Octilhão', 'Octilhões'),
-				  (10,'Nonilhão', 'Nonilhões'),
-				  (11,'Decilhão', 'Decilhões'),
-			      (12,'Undecilhão', 'Undecilhões'),
-				  (13,'Duodecilhão', 'Duodecilhões'),
-				  (14,'Tredecilhão', 'Tredecilhões')
-	END ELSE BEGIN
-		IF @CurrencyInSingular IS NULL
-			SET @CurrencyInSingular = 'Dollar'
-		IF @CurrencyInPlural IS NULL
-			SET @CurrencyInPlural = 'Dollars'
-		IF @CentsInSingular IS NULL
-			SET @CentsInSingular = 'Cent'
-		IF @CentsInPlural IS NULL
-			SET @CentsInPlural = 'Cents'
-		SET @Of = ' of '
-		SET @And = ' and '
-		IF @Value < 0 BEGIN
-			SET @Value = -@Value
-			SET @Minus = 'Minus'
-		END	
-		INSERT @Powers
-			VALUES(0,'', ''),
-				  (1,'Thousand', 'Thousand'),
-				  (2,'Million', 'Million'),
-				  (3,'Billion', 'Billion'),
-				  (4,'Trillion', 'Trillion'),
-				  (5,'Quadrillion', 'Quadrillion'),
-				  (6,'Quintillion', 'Quintillion'),
-				  (7,'Sextillion', 'Sextillion'),
-				  (8,'Septillion', 'Septillion'),
-				  (9,'Octillion', 'Octillion'),
-				  (10,'Nonillion', 'Nonillion'),
-				  (11,'Decillion', 'Decillion'),
-				  (12,'Undecillion', 'Undecillion'),
-				  (13,'Duodecillion', 'Duodecillion'),
-				  (14,'Tredecillion', 'Tredecillion')
-	END
+	SET @Of = ' de '
+	SET @And = ' e '
+	IF @Value < 0 BEGIN
+		SET @Value = -@Value
+		SET @Minus = 'Menos'
+	END	
+	INSERT @Powers
+		VALUES(0,'', ''),
+			  (1,'Mil', 'Mil'),
+			  (2,'Milhão', 'Milhões'),
+			  (3,'Bilhão', 'Bilhões'),
+			  (4,'Trilhão', 'Trilhões'),
+			  (5,'Quatrilhão', 'Quatrilhões'),
+			  (6,'Quintilhão', 'Quintilhões'),
+			  (7,'Sextilhão', 'Sextilhões'),
+			  (8,'Septilhão', 'Septilhões'),
+			  (9,'Octilhão', 'Octilhões'),
+			  (10,'Nonilhão', 'Nonilhões'),
+			  (11,'Decilhão', 'Decilhões'),
+		      (12,'Undecilhão', 'Undecilhões'),
+			  (13,'Duodecilhão', 'Duodecilhões'),
+			  (14,'Tredecilhão', 'Tredecilhões')
 	SET @PartialValue = FLOOR(@Value)
 	WHILE @PartialValue > 0 BEGIN
 		SET @LastDigit = @Digito

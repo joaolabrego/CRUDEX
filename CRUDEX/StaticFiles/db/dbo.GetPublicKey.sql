@@ -9,6 +9,7 @@ ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT
 	IF @LoginId IS NULL
 		THROW 51000, 'Parâmetro @LoginId é requerido', 1
 	SELECT [PublicKey]
+		  ,[ClientRsaPublicKey]
 		FROM [dbo].[Sessions]
 		WHERE [Id] = @LoginId
 	IF @@ROWCOUNT = 0

@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using crudex.Classes.Models;
 using Microsoft.Data.SqlClient;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
@@ -136,8 +136,16 @@ namespace CRUDEX.Classes
                 ? BuildProcedureParameters(parameters, action)
                 : parameters?["Parameters"];
 
+            if (action == Actions.PERSIST && procedureParameters is TDictionary persistParameters && !string.IsNullOrWhiteSpace(tableName))
+                await RecordCrypto.EncryptPersistParametersAsync(persistParameters, tableName);
+
             var withReturnValueOut = !ActionsWithoutReturnValueOut.Contains(action);
-            return await Execute(connectionString, procedureName, procedureParameters, withReturnValueOut);
+            var result = await Execute(connectionString, procedureName, procedureParameters, withReturnValueOut);
+
+            if (action == Actions.READ && !string.IsNullOrWhiteSpace(tableName))
+                await RecordCrypto.DecryptReadResultAsync(result.DataSet, tableName);
+
+            return result;
         }
     }
 }

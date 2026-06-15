@@ -20,21 +20,7 @@ namespace CRUDEX.Classes
             Actions.PERSIST,
             Actions.COMMIT,
         };
-        static TDictionary? GetChildDictionary(TDictionary? parent, string key)
-        {
-            if (parent == null || !parent.TryGetValue(key, out dynamic? child) || child is not TDictionary childDictionary)
-                return null;
-            return childDictionary;
-        }
-        static string RequireDictionaryValue(TDictionary? dictionary, string key, string context)
-        {
-            if (dictionary == null || !dictionary.TryGetValue(key, out dynamic? value))
-                throw new Exception($"{context}.{key} é obrigatório no JSON.");
-            var text = Convert.ToString(value) ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(text))
-                throw new Exception($"{context}.{key} não pode ser vazio.");
-            return text;
-        }
+
         private static async Task Main()
         {
             var app = Settings.Initialize();
@@ -79,9 +65,29 @@ namespace CRUDEX.Classes
             app.MapPost("/{systemName}", async (HttpContext context, string systemName) => await ExecuteRoute(context, systemName));
             await app.RunAsync();
         }
-        private static async Task ExecuteRoute(HttpContext context, string systemName = "", string? routeAction = null)
+
+        static TDictionary? GetChildDictionary(TDictionary? parent, string key)
+        {
+            if (parent == null || !parent.TryGetValue(key, out dynamic? child) || child is not TDictionary childDictionary)
+                return null;
+            return childDictionary;
+        }
+
+        static string RequireDictionaryValue(TDictionary? dictionary, string key, string context)
+        {
+            if (dictionary == null || !dictionary.TryGetValue(key, out dynamic? value))
+                throw new Exception($"{context}.{key} é obrigatório no JSON.");
+            var text = Convert.ToString(value) ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(text))
+                throw new Exception($"{context}.{key} não pode ser vazio.");
+            return text;
+        }
+
+        static async Task ExecuteRoute(HttpContext context, string systemName = "", string? routeAction = null)
         {
             var isApiRequest = context.Request.Method == "POST";
+            byte[]? aesKey = null;
+            string? clientRsaPublicKey = null;
 
             try
             {
@@ -114,8 +120,11 @@ namespace CRUDEX.Classes
 
                 using var reader = new StreamReader(context.Request.Body);
                 var bodyText = await reader.ReadToEndAsync();
-                var json = Config.ToDictionary(JsonConvert.DeserializeObject(string.IsNullOrWhiteSpace(bodyText) ? "{}" : bodyText));
-                var request = Config.ToDictionary(JsonConvert.DeserializeObject(Convert.ToString(json["Request"] ?? "{}")));
+                var outer = Config.ToDictionary(JsonConvert.DeserializeObject(string.IsNullOrWhiteSpace(bodyText) ? "{}" : bodyText) ?? new object());
+                var requestText = Convert.ToString(outer["Request"] ?? "{}") ?? "{}";
+                aesKey = await Api.ResolveRequestAesKey(context, outer, requestText);
+                var requestJson = Api.DecryptRequestPayload(requestText, aesKey);
+                var request = Config.ToDictionary(JsonConvert.DeserializeObject(requestJson) ?? new object());
                 var parameters = Config.ToDictionary(new
                 {
                     Login = request.TryGetValue("Login", out dynamic? login) ? login : null,
@@ -124,6 +133,8 @@ namespace CRUDEX.Classes
 
                 var loginDict = GetChildDictionary(parameters, "Login");
                 var parmsDict = GetChildDictionary(parameters, "Parameters");
+                if (loginDict?.TryGetValue("ClientRsaPublicKey", out dynamic? clientRsa) == true)
+                    clientRsaPublicKey = Convert.ToString(clientRsa);
                 var hasLoginAction = loginDict?.ContainsKey("Action") == true;
                 var hasParametersAction = parmsDict?.ContainsKey("Action") == true;
                 var loginAction = hasLoginAction ? RequireDictionaryValue(loginDict, "Action", "Login") : string.Empty;
@@ -142,8 +153,7 @@ namespace CRUDEX.Classes
                 else
                     throw new Exception("Ação não especificada no JSON (Login.Action ou Parameters.Action).");
 
-                context.Response.ContentType = "application/json; charset=utf-8";
-                await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
+                await Api.WriteJsonResponse(context, response, aesKey, clientRsaPublicKey);
             }
             catch (Exception ex)
             {
@@ -155,9 +165,7 @@ namespace CRUDEX.Classes
                 else
                 {
                     var response = JsonConvert.SerializeObject(new Error(ex.Message));
-
-                    context.Response.ContentType = "application/json; charset=utf-8";
-                    await context.Response.WriteAsync(JsonConvert.SerializeObject(new { Response = response, }), Encoding.UTF8);
+                    await Api.WriteJsonResponse(context, response, aesKey, clientRsaPublicKey);
                 }
             }
         }
