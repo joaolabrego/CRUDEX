@@ -27,6 +27,7 @@ export default class TGrid {
     #ScrollBar = null;
     #embedded = false;
     #masterForm = null;
+    #readOnlyCud = false;
     #enabled = true;
     #rowsPerPage = 0;
 
@@ -73,6 +74,7 @@ export default class TGrid {
             throw new Error("Tabela de banco-de-dados não encontrada.");
         this.#embedded = options.embedded === true;
         this.#masterForm = options.masterForm ?? null;
+        this.#readOnlyCud = options.readOnlyCud === true;
         this.#rowsPerPage = this.#embedded ? TSystem.RowsPerChildPage : TSystem.RowsPerPage;
         this.#RecordSet = new TRecordSet(this.#Table, {
             showSpinner: !this.#embedded,
@@ -557,7 +559,12 @@ export default class TGrid {
                 this.#HTML.SelectedRow.style =
                     "background-color: var(--background-color-control);";
             };
-            tr.ondblclick = () => this.#HTML.UpdateButton.click();
+            tr.ondblclick = () => {
+                if (this.#readOnlyCud)
+                    this.#HTML.QueryButton.click();
+                else
+                    this.#HTML.UpdateButton.click();
+            };
             this.#gridColumns().forEach(
                 (column) => {
                     const td = document.createElement("td");
@@ -612,13 +619,13 @@ export default class TGrid {
         this.#HTML.CreateButton.type = "button";
         this.#HTML.CreateButton.style.backgroundImage = TGrid.#Images.Insert;
         this.#HTML.CreateButton.title = "Incluir registro (alt-i)";
-        this.#HTML.CreateButton.hidden = false;
+        this.#HTML.CreateButton.hidden = this.#readOnlyCud;
         this.#HTML.CreateButton.onmouseenter = () =>
             (TScreen.Message = "Incluir registro");
         this.#HTML.CreateButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.CreateButton.onclick = () => {
-            if (!this.#enabled)
+            if (!this.#enabled || this.#readOnlyCud)
                 return;
             new TForm(this, TSystem.Actions.CREATE, { masterForm: this.#masterForm }).Configure().then((form) => {
                 if (form) form.Renderize();
@@ -630,13 +637,13 @@ export default class TGrid {
         this.#HTML.UpdateButton.type = "button";
         this.#HTML.UpdateButton.style.backgroundImage = TGrid.#Images.Edit;
         this.#HTML.UpdateButton.title = "Alterar registro (alt-a)";
-        this.#HTML.UpdateButton.hidden = this.#RowCount === 0;
+        this.#HTML.UpdateButton.hidden = this.#readOnlyCud || this.#RowCount === 0;
         this.#HTML.UpdateButton.onmouseenter = () =>
             (TScreen.Message = "Alterar registro");
         this.#HTML.UpdateButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.UpdateButton.onclick = () => {
-            if (!this.#enabled)
+            if (!this.#enabled || this.#readOnlyCud)
                 return;
             new TForm(this, TSystem.Actions.UPDATE, { masterForm: this.#masterForm }).Configure().then((form) => {
                 if (form) form.Renderize();
@@ -648,13 +655,13 @@ export default class TGrid {
         this.#HTML.DeleteButton.type = "button";
         this.#HTML.DeleteButton.style.backgroundImage = TGrid.#Images.Delete;
         this.#HTML.DeleteButton.title = "Excluir registro (alt-e)";
-        this.#HTML.DeleteButton.hidden = this.#RowCount === 0;
+        this.#HTML.DeleteButton.hidden = this.#readOnlyCud || this.#RowCount === 0;
         this.#HTML.DeleteButton.onmouseenter = () =>
             (TScreen.Message = "Excluir registro");
         this.#HTML.DeleteButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.DeleteButton.onclick = () => {
-            if (!this.#enabled)
+            if (!this.#enabled || this.#readOnlyCud)
                 return;
             new TForm(this, TSystem.Actions.DELETE, { masterForm: this.#masterForm }).Configure().then((form) => {
                 if (form) form.Renderize();
@@ -680,12 +687,13 @@ export default class TGrid {
         };
         th.appendChild(this.#HTML.QueryButton);
 
+        const canFilterOrSearch = this.#RowCount >= 2;
+
         this.#HTML.SearchButton = document.createElement("button");
         this.#HTML.SearchButton.type = "button";
         this.#HTML.SearchButton.style.backgroundImage = TGrid.#Images.Search;
         this.#HTML.SearchButton.title = "Pesquisar registro (alt-p)";
-        this.#HTML.SearchButton.hidden =
-            !filtered && this.#RowCount <= this.#rowsPerPage;
+        this.#HTML.SearchButton.hidden = !canFilterOrSearch;
         this.#HTML.SearchButton.onmouseenter = () =>
             (TScreen.Message = "Filtrar registros");
         this.#HTML.SearchButton.onmouseleave = () =>
@@ -701,8 +709,7 @@ export default class TGrid {
         this.#HTML.FilterButton.type = "button";
         this.#HTML.FilterButton.style.backgroundImage = TGrid.#Images.Filter;
         this.#HTML.FilterButton.title = "Filtrar registros (alt-f)";
-        this.#HTML.FilterButton.hidden =
-            !filtered && this.#RowCount <= this.#rowsPerPage;
+        this.#HTML.FilterButton.hidden = !canFilterOrSearch;
         this.#HTML.FilterButton.onmouseenter = () =>
             (TScreen.Message = "Filtrar registros");
         this.#HTML.FilterButton.onmouseleave = () =>

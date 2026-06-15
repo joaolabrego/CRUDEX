@@ -302,6 +302,10 @@ export default class TForm {
             el.style.gridColumn = String(startCol + index);
         });
     }
+    #showsChildDetail() {
+        return this.#Action !== TSystem.Actions.FILTER
+            && this.#Action !== TSystem.Actions.SEARCH;
+    }
     #ensureLayout() {
         if (this.#masterForm) {
             if (!this.#HTML.Form) {
@@ -312,7 +316,7 @@ export default class TForm {
         }
         this.#detailParentTable = this.#Grid.Table;
         const childTables = TSystem.GetChildTables(this.#detailParentTable);
-        this.#isMasterDetail = childTables.length > 0;
+        this.#isMasterDetail = childTables.length > 0 && this.#showsChildDetail();
 
         if (!this.#isMasterDetail) {
             if (!this.#HTML.Form) {
@@ -382,6 +386,7 @@ export default class TForm {
             const childGrid = new TGrid(childTable.Database.Name, childTable.Name, {
                 embedded: true,
                 masterForm: this,
+                readOnlyCud: this.#Action === TSystem.Actions.QUERY,
             });
             childGrid.setEnabled(false);
             section.appendChild(childGrid.HostElement);
@@ -412,11 +417,18 @@ export default class TForm {
         if (render && this.canAccessChildren)
             await this.#renderChildGrid(index);
     }
+    #resolveChildScopeId() {
+        const selected = this.#Grid.SelectedRecord;
+        return this.#actualRecord?.Id
+            ?? this.#lastRecord?.Id
+            ?? selected?.Id
+            ?? null;
+    }
     async #renderChildGrid(index) {
         const entry = this.#childGrids[index];
         if (!entry)
             return;
-        const parentId = this.#actualRecord?.Id ?? this.#lastRecord?.Id;
+        const parentId = this.#resolveChildScopeId();
         if (!parentId)
             return;
         const { grid, linkColumn } = entry;
@@ -595,12 +607,16 @@ export default class TForm {
                 );
                 break;
             case TSystem.Actions.SEARCH:
-                columns = columns.filter(column => column.IsFilterable);
+                columns = this.#excludeParentLinkColumn(
+                    columns.filter(column => column.IsFilterable),
+                );
                 for (const column of columns)
                     this.#actualRecord[column.Name] = this.#Grid.SearchValues[column.Name];
                 break;
             case TSystem.Actions.FILTER:
-                columns = columns.filter(column => column.IsFilterable);
+                columns = this.#excludeParentLinkColumn(
+                    columns.filter(column => column.IsFilterable),
+                );
                 for (const column of columns)
                     this.#actualRecord[column.Name] = this.#Grid.FilterValues[column.Name];
                 break;
@@ -672,7 +688,9 @@ export default class TForm {
                 break;
             case TSystem.Actions.QUERY:
                 title = "Consulta";
-                message = "Visualize as informações e clique sair para retornar...";
+                message = this.#isMasterDetail
+                    ? "Visualize o registro pai e use as abas para consultar os filhos (somente leitura nos filhos)..."
+                    : "Visualize as informações e clique sair para retornar...";
                 break;
         }
         TScreen.Title = `${title} de ${this.#Grid.Table.Description}`;
@@ -761,7 +779,7 @@ export default class TForm {
         return this.#lastRecord;
     }
     get canAccessChildren() {
-        const parentId = this.#actualRecord?.Id ?? this.#lastRecord?.Id;
+        const parentId = this.#resolveChildScopeId();
         if (this.#Action === TSystem.Actions.QUERY)
             return parentId != null;
         if (!this.#isPersistAction() || this.#Action === TSystem.Actions.DELETE)
