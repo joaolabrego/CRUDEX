@@ -10,7 +10,7 @@ Plataforma para construção de sistemas de informação orientados por **metada
 ## Sumário
 
 1. [Conceitos fundamentais](#conceitos-fundamentais)
-2. [Parte I — Manual do usuário](#parte-i--manual-do-usuário)
+2. [Parte I — Manual do usuário](#parte-i--manual-do-usuário) — inclui [Atalhos de teclado](#atalhos-de-teclado)
 3. [Parte II — Manual do desenvolvedor](#parte-ii--manual-do-desenvolvedor)
 4. [Parte III — Evolução (Novíssimo)](#parte-iii--evolução-novíssimo)
 5. [Glossário](#glossário)
@@ -72,24 +72,13 @@ O grid mostra as colunas marcadas como **listáveis** (`IsListable`) nos metadad
 | Alterar | Abre formulário de **alteração** do registro selecionado | Alt+A |
 | Excluir | Abre formulário de **exclusão** | Alt+E |
 | Ver | Abre formulário somente leitura (**consulta**) | Alt+V |
-| Pesquisar | Localiza registro na página conforme critérios | — (tooltip: Alt+P) |
+| Pesquisar | Localiza registro na página conforme critérios | *(sem atalho; tooltip indica Alt+P)* |
 | Filtrar | Restringe os dados carregados do servidor | Alt+F |
 | Desfiltrar | Remove todos os filtros ativos | Alt+L |
 | Desordenar | Remove ordenação customizada | Alt+O |
 | Sair | Volta ao menu principal | Alt+X |
 
-#### Navegação no grid
-
-| Tecla | Ação |
-|-------|------|
-| ↑ / ↓ | Registro anterior / seguinte |
-| Page Up / Page Down | Página anterior / seguinte |
-| Ctrl+E / Ctrl+X | Registro anterior / seguinte (alternativo) |
-| Ctrl+C / Ctrl+R | Página anterior / seguinte (alternativo) |
-| Enter | Abre **Alterar** no registro selecionado |
-| Esc | Sair (volta ao menu) |
-
-Campo numérico no rodapé: digite o número da página e confirme para ir diretamente a ela.
+Navegação e demais teclas: ver [Atalhos de teclado — grid](#atalhos-de-teclado).
 
 ### Operações CRUD
 
@@ -124,6 +113,8 @@ Campos exibidos dependem da operação e das flags nos metadados (`IsEditable`, 
 
 Várias operações podem ser persistidas na mesma transação antes do commit.
 
+**Inclusão:** após **Confirmar** com sucesso, o formulário é **remontado vazio** para uma nova inclusão (não volta ao grid). Use **Cancelar** para retornar à lista.
+
 #### Campos especiais
 
 | Tipo | Comportamento |
@@ -134,13 +125,6 @@ Várias operações podem ser persistidas na mesma transação antes do commit.
 | **Obrigatório** | Balão nativo do navegador bloqueia Persistir/Confirmar se vazio |
 
 Mensagens de validação usam o **Caption** do campo (texto amigável), não o nome técnico.
-
-#### Atalhos no formulário
-
-| Tecla | Ação |
-|-------|------|
-| Tab / Enter | Próximo campo |
-| Esc | Cancelar (ou Confirmar em consulta) |
 
 ### Filtro e pesquisa
 
@@ -163,14 +147,7 @@ Clique no checkbox cicla:
 
 Em campos **obrigatórios** na edição, o ciclo é apenas **sim → não** (sem nulo/ignorar).
 
-#### Tecla Del / Backspace (campos opcionais)
-
-Disponível em **Filtro** e **Pesquisa**, apenas em campos **não obrigatórios**, com o campo vazio:
-
-1. **1.º Del** — define condição **nulo**
-2. **2.º Del** — **ignora** o critério
-
-Se o checkbox já está em **nulo**, Del passa direto para **ignorar**.
+Para alternar **nulo** e **ignorar** com o teclado, use **Del** ou **Backspace** — ver [Atalhos de teclado — filtro e pesquisa](#formulário--filtro-e-pesquisa-del--backspace).
 
 #### Diferença entre filtro e pesquisa
 
@@ -189,6 +166,82 @@ Mostra os critérios ativos, por exemplo:
 - `Name = 'Código'`
 
 Critérios ignorados não aparecem.
+
+### Atalhos de teclado
+
+Referência consolidada. No **grid**, clique na tabela antes de usar os atalhos (ela recebe o foco). No **formulário**, o atalho vale para o **campo com foco**.
+
+#### Grid — ações (Alt + tecla)
+
+| Atalho | Ação |
+|--------|------|
+| Alt+I | Incluir |
+| Alt+A | Alterar |
+| Alt+E | Excluir |
+| Alt+V | Consultar (Ver) |
+| Alt+F | Filtrar |
+| Alt+L | Desfiltrar |
+| Alt+O | Desordenar |
+| Alt+X | Sair (menu) |
+
+> O botão **Pesquisar** exibe *Alt+P* no tooltip, mas esse atalho **ainda não está ligado** no grid — use o clique no botão.
+
+#### Grid — navegação
+
+| Tecla | Ação |
+|-------|------|
+| ↑ / ↓ | Registro anterior / seguinte |
+| Page Up / Page Down | Página anterior / seguinte |
+| Ctrl+E / Ctrl+X | Registro anterior / seguinte (alternativo) |
+| Ctrl+C / Ctrl+R | Página anterior / seguinte (alternativo) |
+| Enter | Abre **Alterar** no registro selecionado |
+| Esc | Sair (volta ao menu) |
+
+Campo numérico no rodapé: digite o número da página e confirme para ir diretamente a ela.
+
+#### Formulário — navegação geral
+
+| Tecla | Ação |
+|-------|------|
+| Tab / Enter | Próximo campo (`input`, `textarea` ou checkbox) |
+| Esc | **Cancelar** e fechar; em **Consulta**, confirma e sai |
+
+#### Formulário — checkbox
+
+Com o foco no checkbox:
+
+| Tecla / mouse | Ação |
+|---------------|------|
+| Clique | Avança para o próximo estado |
+| Espaço / Enter | Idem |
+
+Ciclos de estado:
+
+| Modo | Ciclo |
+|------|-------|
+| **Edição** (incluir/alterar) | sim → não → nulo *(só se opcional)* |
+| **Condição** (filtrar/pesquisar) | sim → não → nulo → ignorar |
+
+#### Formulário — filtro e pesquisa (Del / Backspace)
+
+Válido apenas em **Filtrar** e **Pesquisar**, em campos **não obrigatórios** (`IsRequired = false`).
+
+Funciona em **texto**, **número**, **lista (FK/dropdown)** e **checkbox**.
+
+| Situação | Del ou Backspace |
+|----------|------------------|
+| Campo **com conteúdo** | Apaga normalmente (não altera o modo condição) |
+| Campo **vazio**, 1.ª vez | Define critério **nulo** (placeholder `nulo`, filtro `IS NULL`) |
+| Campo **vazio**, 2.ª vez | **Ignora** o critério (equivalente a vazio/transparente) |
+| Checkbox já em **nulo** | Vai direto para **ignorar** |
+
+Fluxo resumido em campo vazio:
+
+```
+(vazio / ignorar) ──Del──► nulo ──Del──► ignorar
+```
+
+Alternativa ao teclado: clique no checkbox para ciclar até **nulo** ou **ignorar**; em listas FK, o placeholder `nulo` indica o estado ativo.
 
 ### Ordenação
 

@@ -458,8 +458,26 @@ export default class TForm {
                 await TTransaction.commit(this.#Grid.Table);
                 this.#isStaged = false;
             }
+            if (this.#Action === TSystem.Actions.CREATE && !this.#masterForm) {
+                await this.#restartCreate();
+                return;
+            }
         }
         await this.#returnToCaller();
+    }
+    #clearFormFields() {
+        if (!this.#HTML.Form)
+            return;
+        const style = this.#HTML.Form.querySelector("style");
+        this.#HTML.Form.replaceChildren();
+        if (style)
+            this.#HTML.Form.appendChild(style);
+    }
+    async #restartCreate() {
+        this.#HTML.FirstInput = null;
+        this.#SourceRecord = null;
+        await this.Configure();
+        await this.Renderize();
     }
     #validateForm() {
         for (const edit of this.#editBoxes) {
@@ -525,6 +543,7 @@ export default class TForm {
                 await this.#LoadRecord(columns);
         }
         this.#ensureLayout();
+        this.#clearFormFields();
         const baseOptions = this.#editConfigureOptions();
         for (const column of columns) {
             const options = { ...baseOptions };
