@@ -217,7 +217,7 @@ export default class TEditBox {
         return TEditBox.#widthChFromDomain(this.#effectiveDomain());
     }
 
-    static #FIELD_MAX_WIDTH_CH = 50;
+    static #FIELD_MAX_WIDTH_CH = 45;
 
     #applyControlWidth() {
         if (this.#isCheckboxInline || !this.#body)
