@@ -504,6 +504,9 @@ export default class TEditBox {
         if (editMask.category === "datetime")
             return TMask.ToDateTime(displayValue);
 
+        if (editMask.kind === "pattern")
+            return TMask.ToRawValue(displayValue, editMask.mask, editMask.options);
+
         return displayValue;
     }
 

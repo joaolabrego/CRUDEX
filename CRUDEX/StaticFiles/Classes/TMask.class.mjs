@@ -305,6 +305,44 @@ export default class TMask {
         return Number.parseFloat(value);
     }
 
+    /** Extrai valor bruto percorrendo a máscara: só posições # contam; literais são ignorados. */
+    static ToRawValue(displayValue, masks, options = "") {
+        if (displayValue === null || displayValue === undefined)
+            return "";
+        const input = String(displayValue);
+        if (input.trim() === "")
+            return "";
+
+        let mask = "";
+        if (Array.isArray(masks)) {
+            for (const candidate of masks) {
+                mask = String(candidate);
+                if (mask.length >= input.length)
+                    break;
+            }
+        } else {
+            mask = String(masks);
+        }
+
+        let result = "";
+        let index = 0;
+        for (let j = 0; j < mask.length && index < input.length; j++) {
+            if (mask[j] === this.#NumericMask) {
+                result += input[index++];
+            } else if (input[index] === mask[j]) {
+                index++;
+            }
+        }
+
+        options = String(options).toLowerCase();
+        if (options.includes("upper"))
+            result = result.toUpperCase();
+        else if (options.includes("lower"))
+            result = result.toLowerCase();
+
+        return result;
+    }
+
     static ToDate(value) {
         value = value.replace(/\D/g, "");
 
