@@ -240,10 +240,7 @@ export default class TDropdown {
     #applyRequiredConstraints() {
         if (!this.#input || this.#readOnly)
             return;
-        if (this.#required)
-            this.#input.setAttribute("required", "required");
-        else
-            this.#input.removeAttribute("required");
+        this.#input.removeAttribute("required");
     }
 
     #applyReadOnlyState() {
@@ -265,6 +262,7 @@ export default class TDropdown {
         const openControl = this.#input ?? this.#trigger;
 
         if (!this.#readOnly) {
+            this.#container.addEventListener("mousedown", () => this.dismissValidityBalloon());
             this.#icon.addEventListener("mousedown", (e) => {
                 e.preventDefault();
                 openControl?.focus();
@@ -274,6 +272,7 @@ export default class TDropdown {
 
         if (this.#input && !this.#readOnly) {
             this.#input.addEventListener("input", (e) => {
+                this.dismissValidityBalloon();
                 void this.#filterItems(e.target.value.trim());
                 this.#showList();
             });
@@ -291,6 +290,7 @@ export default class TDropdown {
         if (this.#trigger) {
             this.#trigger.addEventListener("click", (e) => {
                 e.stopPropagation();
+                this.dismissValidityBalloon();
                 this.#toggleList();
             });
         }
@@ -757,21 +757,27 @@ export default class TDropdown {
             this.#input?.classList.remove("invalid");
             return;
         }
-        const target = this.#input ?? this.#trigger;
-        if (!target)
-            return;
-        if (this.#required && !this.isValid())
-            target.setCustomValidity("Informe um valor");
-        else
-            target.setCustomValidity("");
+        const invalid = this.#required && !this.isValid();
         if (this.#input)
-            this.#input.classList.toggle("invalid", this.#required && !this.isValid());
+            this.#input.classList.toggle("invalid", invalid);
     }
 
-    reportValidity() {
-        this.syncFormValidity();
+    dismissValidityBalloon() {
         const target = this.#input ?? this.#trigger;
-        return target?.reportValidity() ?? true;
+        target?.setCustomValidity("");
+    }
+
+    reportValidity(message = "Informe um valor") {
+        const target = this.#input ?? this.#trigger;
+        if (!target)
+            return true;
+        this.syncFormValidity();
+        if (this.#required && !this.isValid()) {
+            target.setCustomValidity(message);
+            return target.reportValidity();
+        }
+        target.setCustomValidity("");
+        return true;
     }
 
     get element() {

@@ -37,6 +37,12 @@
     width: 100%;
 }
 
+.form .tedit-field.tedit-checkbox-inline[data-readonly="false"] .tedit-caption,
+.form .tedit-field.tedit-checkbox-inline[data-readonly="false"] .tedit-checkbox-spacer {
+    cursor: pointer;
+    user-select: none;
+}
+
 .form .tedit-caption {
     font-weight: bold;
 }

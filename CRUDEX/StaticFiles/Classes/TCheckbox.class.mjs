@@ -159,6 +159,7 @@ export default class TCheckbox {
         this.#button.tabIndex = this.#readOnly ? -1 : 0;
 
         this.#symbol = document.createElement("span");
+        this.#symbol.className = "tcheckbox-symbol";
         this.#button.appendChild(this.#symbol);
         this.#root.appendChild(this.#button);
 
@@ -227,6 +228,7 @@ export default class TCheckbox {
     #advance() {
         if (this.#readOnly)
             return;
+        this.#validityInput?.setCustomValidity("");
         const cycle = this.#cycle();
         let index = cycle.indexOf(this.#state);
         if (index < 0)
@@ -288,12 +290,7 @@ export default class TCheckbox {
             return;
         }
         const invalid = this.#isRequired && !this.isValid();
-        if (this.#validityInput) {
-            if (invalid)
-                this.#validityInput.setCustomValidity("Informe um valor");
-            else
-                this.#validityInput.setCustomValidity("");
-        }
+        this.#validityInput?.setCustomValidity("");
         this.#root.classList.toggle("invalid", invalid);
     }
 
@@ -303,20 +300,24 @@ export default class TCheckbox {
         return this.#state !== TCheckbox.States.NULL;
     }
 
-    reportValidity() {
+    reportValidity(message = "Informe um valor") {
         this.#syncFormValidity();
         if (this.isValid())
             return true;
         const anchor = this.#validityInput;
         if (!anchor)
             return false;
+        anchor.setCustomValidity(message);
         anchor.focus();
-        anchor.reportValidity();
-        return false;
+        return anchor.reportValidity();
     }
 
     syncFormValidity() {
         this.#syncFormValidity();
+    }
+
+    advance() {
+        this.#advance();
     }
 
     get validityInput() {

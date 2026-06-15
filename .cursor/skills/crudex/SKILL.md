@@ -2,8 +2,10 @@
 name: crudex
 description: >-
   Orienta trabalho no SGSI CRUDEX. Use ao modificar metadados, procedures, frontend,
-  gerador SQL ou implementar o modelo Novíssimo (CRUDEX_Novissimo.xlsm). O sistema
-  atual reflete CRUDEX.xlsm e SCRIPT-CRUDEX.sql; o alvo de implementação é o Novíssimo.
+
+gerador SQL, integração Wordex (Reports, Queries, JSON, iframe) ou implementar o
+  modelo Novíssimo (CRUDEX_Novissimo.xlsm). O sistema atual reflete CRUDEX.xlsm e
+  SCRIPT-CRUDEX.sql; o alvo de implementação é o Novíssimo.
 ---
 
 # CRUDEX — SGSI
@@ -169,3 +171,30 @@ Metadados documentados nas 34 abas de `CRUDEX_Novissimo.xlsm`. Haverá extensõe
 | **Forms master-detail** | **Não existe** | `Ref.IsParentChild` — formulário pai com filhas |
 
 Prioridade de runtime: **`TRecordSet` + `TRecord`** (agora) → `TGrid`/relatórios → `Config`/procedures Novíssimo → master-detail, `TMask`, `Bhv`, `Mnu`/`Tbl`.
+
+## Wordex + CRUDEX (integração 1.0)
+
+Relatórios PDF via **iframe** + template Wordex salvo + JSON gerado pelo CRUDEX.
+
+| Metadado | Papel |
+|----------|--------|
+| **Reports** | Template HTML autossuficiente (Wordex) |
+| **Queries** | Tabela raiz + pai-filho/FK → árvore JSON (**não** confundir com VIEW do SQL) |
+
+**Kind JSON** = `Categories.Name`. Vetor → `collection`; objeto → `object`; senão Category explícita. Macro `wordex.xlsm` = spec da geração JSON.
+
+### Sistema de informação completo (visão)
+
+```text
+Dados (CRUD)  →  Informação (semântica)  →  Apresentação (Wordex + futuro)
+   tabelas         domínios, queries,           relatório, dashboard,
+   transações      regras, metadado             etiqueta, crachá, NF-e, …
+```
+
+CRUDEX cobre **dados** hoje; **Queries** ligam a **semântica** exportável; **Wordex** (e extensões) cobrem **apresentação** — tudo metadado, sem projeto por entrega.
+
+**Dashboard** = apenas um **Report** (template Wordex) com **várias tabelas/gráficos** Wordex no layout; **uma Query por fonte** (cada tabela do dashboard liga a sua Query / collection no JSON).
+
+**Formatos Wordex:** A0…A10, B, C, ANSI, etc. + **personalizado** (largura/altura mm) — crachá, etiqueta, qualquer documento; no personalizado, definição de **etiquetas** na folha.
+
+Detalhes: [../wordex/SKILL.md](../wordex/SKILL.md) e [../wordex/reference.md](../wordex/reference.md). Projeto: `Wordex/`.

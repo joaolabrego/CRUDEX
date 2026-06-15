@@ -263,18 +263,25 @@ export default class TEditBox {
     }
 
     #syncNativeValidity(control) {
-        if (!control || this.#readOnly || !this.#isRequired) {
+        if (!control || this.#readOnly)
             control?.setCustomValidity("");
-            return;
-        }
+    }
+
+    #applyValidationMessage(control) {
+        if (!control || this.#readOnly || !this.#isRequired)
+            return false;
         const caption = this.#column.Caption;
         const { empty, incomplete } = this.#nativeValueState(control);
-        if (empty)
+        if (empty) {
             control.setCustomValidity(`Informe ${caption}`);
-        else if (incomplete)
+            return true;
+        }
+        if (incomplete) {
             control.setCustomValidity("Informe um valor completo");
-        else
-            control.setCustomValidity("");
+            return true;
+        }
+        control.setCustomValidity("");
+        return false;
     }
 
     #applyNativeConstraints(control, action, readOnly) {
@@ -285,6 +292,16 @@ export default class TEditBox {
         else
             control.removeAttribute("required");
         this.#syncNativeValidity(control);
+    }
+
+    #bindValidityDismiss(control) {
+        if (!control || this.#readOnly || control.dataset.crudexValidityDismiss === "true")
+            return;
+        control.dataset.crudexValidityDismiss = "true";
+        const dismiss = () => control.setCustomValidity("");
+        control.addEventListener("click", dismiss);
+        control.addEventListener("input", dismiss);
+        control.addEventListener("keydown", dismiss);
     }
 
     reportValidity() {
@@ -320,18 +337,14 @@ export default class TEditBox {
             return false;
         }
         if (this.#control) {
-            this.#syncNativeValidity(this.#control);
-            if (this.#isRequired) {
-                const { empty, incomplete } = this.#nativeValueState(this.#control);
-                if (empty || incomplete) {
-                    const unlock = this.#control.hasAttribute("readonly")
-                        && this.#control.dataset.crudexAutofillGuard;
-                    if (unlock)
-                        this.#control.removeAttribute("readonly");
-                    this.#control.focus();
-                    this.#control.reportValidity();
-                    return false;
-                }
+            if (this.#isRequired && this.#applyValidationMessage(this.#control)) {
+                const unlock = this.#control.hasAttribute("readonly")
+                    && this.#control.dataset.crudexAutofillGuard;
+                if (unlock)
+                    this.#control.removeAttribute("readonly");
+                this.#control.focus();
+                this.#control.reportValidity();
+                return false;
             }
             this.#control.setCustomValidity("");
             return true;
@@ -697,6 +710,7 @@ export default class TEditBox {
         this.#disableBrowserAutofill(this.#control, readOnly);
         this.#control.Column = this.#column;
         this.#dropdown.syncFormValidity();
+        this.#bindValidityDismiss(this.#control);
         this.#bindControlKeys(this.#control, action, onConfirm, onCancel, onChange);
         this.#control.onfocus = (event) => event.target.select();
         onFirstInput?.(this.#control);
@@ -714,6 +728,7 @@ export default class TEditBox {
         };
 
         this.#root.classList.add("tedit-checkbox");
+        this.#root.dataset.readonly = readOnly ? "true" : "false";
         if (this.#domainVariant)
             this.#ensureCheckboxHost();
         if (!this.#checkboxHost)
@@ -731,8 +746,22 @@ export default class TEditBox {
         this.#disableBrowserAutofill(this.#control, readOnly);
         this.#control.Column = this.#column;
         this.#checkbox.element.TCheckbox = this.#checkbox;
+        this.#bindCheckboxCaptionClick(readOnly);
         this.#bindControlKeys(this.#control, action, onConfirm, onCancel, onChange);
         onFirstInput?.(this.#control);
+    }
+
+    #bindCheckboxCaptionClick(readOnly) {
+        if (!this.#isCheckboxInline || readOnly)
+            return;
+
+        const advance = () => this.#checkbox?.advance();
+        for (const element of this.#root.querySelectorAll(".tedit-caption, .tedit-checkbox-spacer")) {
+            if (element.dataset.checkboxLabelBound === "true")
+                continue;
+            element.dataset.checkboxLabelBound = "true";
+            element.addEventListener("click", advance);
+        }
     }
 
     #configureNativeInput(options) {
@@ -803,6 +832,7 @@ export default class TEditBox {
         }
 
         this.#bindControlKeys(this.#control, action, onConfirm, onCancel, onChange);
+        this.#bindValidityDismiss(this.#control);
         this.#control.onfocus = (event) => event.target.select();
         onFirstInput?.(this.#control);
     }
