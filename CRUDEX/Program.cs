@@ -21,8 +21,15 @@ namespace CRUDEX.Classes
             Actions.COMMIT,
         };
 
-        private static async Task Main()
+        private static async Task Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "--generate-script")
+            {
+                var withInsertData = args.Any(arg => arg.Equals("--with-data", StringComparison.OrdinalIgnoreCase));
+                await Scripts.Generate(withInsertData: withInsertData);
+                return;
+            }
+
             var app = Settings.Initialize();
 
             app.Use(async (context, next) =>

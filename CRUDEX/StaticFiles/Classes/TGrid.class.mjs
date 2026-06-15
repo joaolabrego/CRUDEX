@@ -4,6 +4,7 @@ import TForm from "./TForm.class.mjs";
 import TScreen from "./TScreen.class.mjs";
 import TSystem from "./TSystem.class.mjs";
 import TCheckbox from "./TCheckbox.class.mjs";
+import TCondition from "./TCondition.class.mjs";
 import TConfig from "./TConfig.class.mjs";
 import TRecordSet from "./TRecordset.class.mjs";
 import TScrollBar from "./TScrollBar.class.mjs";
@@ -282,11 +283,13 @@ export default class TGrid {
             if (!record.hasOwnProperty(key))
                 continue;
             let value = record[key];
-            if (typeof value === "object" && value !== null && !TCheckbox.hasCondition(value))
+            if (typeof value === "object" && value !== null
+                && !TCheckbox.hasCondition(value) && !TCondition.isCriterion(value))
                 value = null;
-            this.#FilterValues[key] = TCheckbox.hasCondition(value)
-                ? value
-                : TConfig.IsEmpty(value) ? null : value;
+            if (TCheckbox.hasCondition(value))
+                this.#FilterValues[key] = value;
+            else
+                this.#FilterValues[key] = TCondition.normalizeStoredFilter(value);
         }
         this.#RecordSet.setFilter(this.#FilterValues);
     }
@@ -297,8 +300,7 @@ export default class TGrid {
     }
     IsFiltered() {
         for (let key in this.#FilterValues) {
-            const value = this.#FilterValues[key];
-            if (TCheckbox.hasCondition(value) || !TConfig.IsEmpty(value))
+            if (TCondition.willApplyFilter(this.#FilterValues[key]))
                 return true;
         }
 
@@ -309,11 +311,13 @@ export default class TGrid {
             if (!record.hasOwnProperty(key))
                 continue;
             let value = record[key];
-            if (typeof value === "object" && value !== null && !TCheckbox.hasCondition(value))
+            if (typeof value === "object" && value !== null
+                && !TCheckbox.hasCondition(value) && !TCondition.isCriterion(value))
                 value = null;
-            this.#SearchValues[key] = TCheckbox.hasCondition(value)
-                ? value
-                : TConfig.IsEmpty(value) ? null : value;
+            if (TCheckbox.hasCondition(value))
+                this.#SearchValues[key] = value;
+            else
+                this.#SearchValues[key] = TCondition.normalizeStoredFilter(value);
         }
         this.#RecordSet.setSearch(this.#SearchValues);
     }
@@ -323,8 +327,7 @@ export default class TGrid {
     }
     IsSearched() {
         for (let key in this.#SearchValues) {
-            const value = this.#SearchValues[key];
-            if (TCheckbox.hasCondition(value) || !TConfig.IsEmpty(value))
+            if (TCondition.willApplyFilter(this.#SearchValues[key]))
                 return true;
         }
 
@@ -333,6 +336,20 @@ export default class TGrid {
     #valueMatchesSearch(column, record, searchValue) {
         if (TCheckbox.isIgnored(searchValue) && TConfig.IsEmpty(searchValue))
             return true;
+        if (TCondition.isCriterion(searchValue)) {
+            const op = searchValue.op;
+            const expected = searchValue.value;
+            const actual = record[column.Name];
+            if (TCheckbox.isNullMarker(searchValue))
+                return actual == null;
+            if (expected === null || expected === undefined)
+                return actual == null;
+            if (op === 9 && expected != null)
+                return String(actual ?? "").toLowerCase().includes(String(expected).replace(/^%|%$/g, "").toLowerCase());
+            if (Array.isArray(expected))
+                return expected.some(item => item == actual);
+            return actual == expected;
+        }
         if (TCheckbox.hasCondition(searchValue)) {
             const expected = TCheckbox.toFilterValue(searchValue);
             const actual = record[column.Name];
@@ -774,7 +791,7 @@ export default class TGrid {
         let filter = "";
 
         for (const key in this.#FilterValues) {
-            const part = TCheckbox.formatCriterion(key, this.#FilterValues[key]);
+            const part = TCondition.formatCriterion(key, this.#FilterValues[key]);
             if (part)
                 filter += `${filter === "" ? "" : " AND "}${part}`;
         }

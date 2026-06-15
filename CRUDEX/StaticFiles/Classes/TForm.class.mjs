@@ -156,6 +156,18 @@ export default class TForm {
         this.#updateDetailAccess();
     }
 
+    #collectFilterValues() {
+        for (const edit of this.#editBoxes) {
+            if (edit.element.style.display === "none") {
+                this.#actualRecord[edit.column.Name] = null;
+                continue;
+            }
+            const value = edit.collectFilterValue(this.#Action);
+            if (value !== undefined)
+                this.#actualRecord[edit.column.Name] = value;
+        }
+    }
+
     #editConfigureOptions() {
         return {
             action: this.#Action,
@@ -379,9 +391,11 @@ export default class TForm {
 
         this.#selectChildTab(0, false);
     }
-    async #returnToCaller() {
+    async #returnToCaller(gridPageNumber = null) {
         if (this.#masterForm)
             await this.#masterForm.Renderize();
+        else if (gridPageNumber != null)
+            await this.#Grid.Renderize(gridPageNumber);
         else
             await this.#Grid.Renderize();
     }
@@ -471,11 +485,15 @@ export default class TForm {
         if (this.#isPersistAction() && !this.#validateForm())
             return;
         if (this.#Action === TSystem.Actions.FILTER) {
+            this.#collectFilterValues();
             this.#Grid.SaveFilters(this.#actualRecord);
+            await this.#returnToCaller(1);
+            return;
         }
         else if (this.#Action === TSystem.Actions.SEARCH) {
+            this.#collectFilterValues();
             this.#Grid.SaveSearchs(this.#actualRecord);
-            await this.#returnToCaller();
+            await this.#returnToCaller(1);
             this.#Grid.ClearSearches();
             return;
         }

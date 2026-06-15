@@ -51,6 +51,93 @@
     font-weight: bold;
 }
 
+.form fieldset.tedit-condition-field {
+    justify-self: stretch;
+}
+
+.tedit-condition-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 0.35dvmin;
+    width: 100%;
+    margin-left: 0;
+}
+
+.tedit-operator-host {
+    flex: 0 0 auto;
+    padding-top: 0;
+}
+
+.tedit-condition-row .tedit-operator-host {
+    height: var(--field-height);
+    display: flex;
+    align-items: center;
+}
+
+.tedit-operator {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: var(--field-height);
+    padding: 0 var(--select-edge-inset);
+    border: 0.1dvmin solid #000;
+    border-radius: 0.1dvmin;
+    background: var(--background-color-control);
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.tedit-operator-symbol {
+    flex: 0 0 auto;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.tedit-operator-select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    opacity: 0;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.tedit-between-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35dvmin;
+    width: 100%;
+}
+
+.tedit-between-row input,
+.tedit-between-row textarea {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.tedit-between-sep {
+    flex: 0 0 auto;
+    color: #666;
+    user-select: none;
+}
+
+.tedit-condition-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-left: 0 !important;
+}
+
 .tedit-body {
     max-width: var(--field-max-width);
     box-sizing: border-box;
@@ -71,13 +158,18 @@
     height: var(--font-size-grid);
 }
 
-.form input:not([type="checkbox"]):not(.tcheckbox-validity) {
+.form input:not([type="checkbox"]):not(.tcheckbox-validity):not(.tdropdown-input) {
     width: 100%;
     height: var(--field-height);
     padding: 0.5dvmin;
     box-sizing: border-box;
     border: 0.1dvmin solid #000;
     border-radius: 0.1dvmin;
+}
+
+.form .tdropdown-input {
+    text-align: left;
+    padding: 0.5dvmin 2.4dvmin 0.5dvmin 0.5dvmin;
 }
 
 .tedit-body .tdropdown {

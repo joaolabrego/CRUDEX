@@ -20,6 +20,7 @@ import TIndex from "./TIndex.class.mjs";
 import TIndexkey from "./TIndexkey.class.mjs";
 import TCategory from "./TCategory.class.mjs";
 import TMask from "./TMask.class.mjs";
+import TComparator from "./TComparator.class.mjs";
 import TSpinner from "./TSpinner.class.mjs";
 export default class TSystem {
     static #Action = "";
@@ -33,7 +34,8 @@ export default class TSystem {
     static #Columns = [];
     static #Categories = [];
     static #Masks = [];
-    static #Unicities = [];
+    static #Comparators = [];
+    static #Rules = [];
     static #Actions = null;
 
     static Run(withBackgroundImage = true) {
@@ -69,6 +71,8 @@ export default class TSystem {
                 config.Data.Types.forEach(row => this.#Types.push(new TType(row)));
                 config.Data.Domains.forEach(row => this.#Domains.push(new TDomain(row)));
                 config.Data.Masks.forEach(row => this.#Masks.push(new TMask(row)));
+                (config.Data.Comparators ?? []).forEach(row => this.#Comparators.push(new TComparator(row)));
+                this.#Rules = config.Data.Rules ?? [];
                 config.Data.Databases.forEach(databaseRow => {
                     let database = new TDatabase(databaseRow);
 
@@ -136,6 +140,18 @@ export default class TSystem {
      */
     static GetCategory(id) {
         return this.#Categories.find(category => category.Id === id);
+    }
+    static GetComparator(id) {
+        return this.#Comparators.find(comparator => comparator.Id === Number(id));
+    }
+    static GetRulesForCategory(categoryId) {
+        return this.#Rules.filter(rule => Number(rule.CategoryId) === Number(categoryId));
+    }
+    static get Comparators() {
+        return this.#Comparators;
+    }
+    static get Rules() {
+        return this.#Rules;
     }
     /**
      * @param {string | number} value

@@ -41,11 +41,10 @@ namespace crudex.Classes
                 .FindAll(row => Settings.ToLong(row["DatabaseId"]) == Settings.ToLong(database["Id"]));
             var references = new TDataRows();
             var firstTime = true;
+            var databaseTableRows = GetDatabaseTableRows(databaseTables, tables, columns);
 
-            foreach (DataRow databaseTable in databaseTables)
+            foreach (var table in databaseTableRows)
             {
-                var table = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(databaseTable["TableId"]));
-
                 if (firstTime)
                 {
                     result.AppendLine(GetScriptCreateDatabase(database, isDocker).ToString());
@@ -70,10 +69,8 @@ namespace crudex.Classes
                     result.AppendLine(GetScriptInsertTable(table, columns, datatable).ToString());
                 }
             }
-            foreach (DataRow databaseTable in databaseTables)
+            foreach (var table in databaseTableRows)
             {
-                var table = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(databaseTable["TableId"]));
-
                 result.AppendLine(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys, unicities).ToString());
                 result.AppendLine(GetScriptPersistTable(table, columns, systemName, databaseName).ToString());
                 if (!HasDedicatedApiCreateProcedure(table))
@@ -94,6 +91,7 @@ namespace crudex.Classes
         }
         private static async Task<DataSet> ExcelToDataSet()
         {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             var filePath = Path.Combine(Directory.GetCurrentDirectory(), Settings.Get("FILENAME_EXCEL"));
 
             await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.None, 4096, useAsync: true);
@@ -171,7 +169,7 @@ namespace crudex.Classes
 
             return result;
         }
-        private static void AppendReadFilterColumn(StringBuilder result, DataRow column, TDataRows domains, TDataRows types, string valueVariable, string parameterName, string indent)
+        private static void AppendReadFilterColumn(StringBuilder result, DataRow column, TDataRows domains, TDataRows types, string indent)
         {
             var name = column["Name"];
             var dataType = column["#DataType"];
@@ -182,18 +180,30 @@ namespace crudex.Classes
             result.Append($"{indent}   OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = '{name}' AND [type] = 0)\r\n");
             result.Append($"{indent}   OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = '{name}' AND [type] = 0)\r\n");
             result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] IS NULL'\r\n");
-            result.Append($"{indent}ELSE IF {valueVariable} IS NOT NULL BEGIN\r\n");
+            result.Append($"{indent}ELSE IF @G_{name}_op IS NOT NULL BEGIN\r\n");
             if (validations.TryGetValue("Minimum", out dynamic? value))
             {
-                result.Append($"{indent}    IF {valueVariable} < CAST('{value}' AS {dataType})\r\n");
+                result.Append($"{indent}    IF @G_{name}_op NOT IN (7, 8, 11, 12) AND @G_{name}_v IS NOT NULL AND @G_{name}_v < CAST('{value}' AS {dataType})\r\n");
                 result.Append($"{indent}        THROW 51000, 'Valor de {name} deve ser maior que ou igual a ''{value}''', 1\r\n");
             }
             if (validations.TryGetValue("Maximum", out value))
             {
-                result.Append($"{indent}    IF {valueVariable} > CAST('{value}' AS {dataType})\r\n");
+                result.Append($"{indent}    IF @G_{name}_op NOT IN (7, 8, 11, 12) AND @G_{name}_v IS NOT NULL AND @G_{name}_v > CAST('{value}' AS {dataType})\r\n");
                 result.Append($"{indent}        THROW 51000, 'Valor de {name} deve ser menor que ou igual a ''{value}''', 1\r\n");
             }
-            result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] = {parameterName}'\r\n");
+            result.Append($"{indent}    DECLARE @opSql_{name} NVARCHAR(15)\r\n");
+            result.Append($"{indent}    SELECT @opSql_{name} = CASE @G_{name}_op\r\n");
+            result.Append($"{indent}        WHEN 1 THEN '<' WHEN 2 THEN '<=' WHEN 3 THEN '=' WHEN 4 THEN '<>'\r\n");
+            result.Append($"{indent}        WHEN 5 THEN '>=' WHEN 6 THEN '>' WHEN 9 THEN 'LIKE' WHEN 10 THEN 'NOT LIKE'\r\n");
+            result.Append($"{indent}        ELSE '=' END\r\n");
+            result.Append($"{indent}    IF @G_{name}_op IN (7, 8) AND @G_{name}_vals IS NOT NULL\r\n");
+            result.Append($"{indent}        SET @Where = @Where + ' AND [T].[{name}] ' + CASE WHEN @G_{name}_op = 7 THEN 'IN' ELSE 'NOT IN' END + ' (SELECT CAST([value] AS {dataType}) FROM OPENJSON(@{name}_vals))'\r\n");
+            result.Append($"{indent}    ELSE IF @G_{name}_op IN (11, 12) AND @G_{name}_v1 IS NOT NULL AND @G_{name}_v2 IS NOT NULL\r\n");
+            result.Append($"{indent}        SET @Where = @Where + ' AND [T].[{name}] ' + CASE WHEN @G_{name}_op = 11 THEN 'BETWEEN' ELSE 'NOT BETWEEN' END + ' @{name}_v1 AND @{name}_v2'\r\n");
+            result.Append($"{indent}    ELSE IF @G_{name}_op = 9 AND @G_{name}_v IS NOT NULL\r\n");
+            result.Append($"{indent}        SET @Where = @Where + ' AND [T].[{name}] LIKE ''%'' + @{name} + ''%'''\r\n");
+            result.Append($"{indent}    ELSE IF @G_{name}_v IS NOT NULL\r\n");
+            result.Append($"{indent}        SET @Where = @Where + ' AND [T].[{name}] ' + @opSql_{name} + ' @{name}'\r\n");
             result.Append($"{indent}END\r\n");
         }
         private static void AppendReadTableFilterColumn(StringBuilder result, DataRow column, TDataRows domains, TDataRows types, string valueVariable, string parameterName, string indent)
@@ -222,18 +232,121 @@ namespace crudex.Classes
         {
             var name = column["Name"];
             var dataType = Convert.ToString(column["#DataType"]) ?? string.Empty;
-            var isText = dataType.StartsWith("nvarchar", StringComparison.OrdinalIgnoreCase)
-                || dataType.StartsWith("varchar", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(dataType, "ntext", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(dataType, "text", StringComparison.OrdinalIgnoreCase);
+            var colRef = $"COALESCE([D].[{name}], [O].[{name}])";
 
             result.Append($"{indent}IF EXISTS(SELECT 1 FROM OPENJSON(@RecordSearch) WHERE [key] = '{name}' AND [type] = 0)\r\n");
-            result.Append($"{indent}    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[{name}], [O].[{name}]) IS NULL'\r\n");
-            result.Append($"{indent}ELSE IF @S_{name} IS NOT NULL\r\n");
-            if (isText)
-                result.Append($"{indent}    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[{name}], [O].[{name}]) LIKE ''%'' + @{name} + ''%'''\r\n");
+            result.Append($"{indent}BEGIN\r\n");
+            result.Append($"{indent}    IF @Where <> '' SET @Where = @Where + ' AND '\r\n");
+            result.Append($"{indent}    SET @Where = @Where + '{colRef} IS NULL'\r\n");
+            result.Append($"{indent}END\r\n");
+            result.Append($"{indent}ELSE IF @S_{name}_op IS NOT NULL BEGIN\r\n");
+            result.Append($"{indent}    DECLARE @opSqlS_{name} NVARCHAR(15)\r\n");
+            result.Append($"{indent}    SELECT @opSqlS_{name} = CASE @S_{name}_op\r\n");
+            result.Append($"{indent}        WHEN 1 THEN '<' WHEN 2 THEN '<=' WHEN 3 THEN '=' WHEN 4 THEN '<>'\r\n");
+            result.Append($"{indent}        WHEN 5 THEN '>=' WHEN 6 THEN '>' WHEN 9 THEN 'LIKE' WHEN 10 THEN 'NOT LIKE'\r\n");
+            result.Append($"{indent}        ELSE '=' END\r\n");
+            result.Append($"{indent}    IF @Where <> '' SET @Where = @Where + ' AND '\r\n");
+            result.Append($"{indent}    IF @S_{name}_op IN (7, 8)\r\n");
+            result.Append($"{indent}        SET @Where = @Where + '{colRef} ' + CASE WHEN @S_{name}_op = 7 THEN 'IN' ELSE 'NOT IN' END + ' (SELECT CAST([value] AS {dataType}) FROM OPENJSON(@{name}_vals))'\r\n");
+            result.Append($"{indent}    ELSE IF @S_{name}_op IN (11, 12)\r\n");
+            result.Append($"{indent}        SET @Where = @Where + '{colRef} ' + CASE WHEN @S_{name}_op = 11 THEN 'BETWEEN' ELSE 'NOT BETWEEN' END + ' @{name}_v1 AND @{name}_v2'\r\n");
+            result.Append($"{indent}    ELSE IF @S_{name}_op = 9\r\n");
+            result.Append($"{indent}        SET @Where = @Where + '{colRef} LIKE ''%'' + @{name} + ''%'''\r\n");
+            result.Append($"{indent}    ELSE\r\n");
+            result.Append($"{indent}        SET @Where = @Where + '{colRef} ' + @opSqlS_{name} + ' @{name}'\r\n");
+            result.Append($"{indent}END\r\n");
+        }
+
+        private static void AppendReadGridFilterDeclareVars(StringBuilder result, DataRow column, bool isSearch, bool declare)
+        {
+            var name = column["Name"];
+            var dataType = column["#DataType"];
+            var prefix = isSearch ? "S" : "G";
+            var lead = declare ? "            DECLARE " : "                   ,";
+
+            result.Append($"{lead}@{prefix}_{name}_op TINYINT\r\n");
+            result.Append($"                   ,@{prefix}_{name}_v {dataType}\r\n");
+            result.Append($"                   ,@{prefix}_{name}_vals NVARCHAR(MAX)\r\n");
+            result.Append($"                   ,@{prefix}_{name}_v1 {dataType}\r\n");
+            result.Append($"                   ,@{prefix}_{name}_v2 {dataType}\r\n");
+        }
+
+        private static void AppendReadGridFilterAssignVars(StringBuilder result, DataRow column, bool isSearch)
+        {
+            var name = column["Name"];
+            var dataType = column["#DataType"];
+            var prefix = isSearch ? "S" : "G";
+            var jsonVariable = isSearch ? "@RecordSearch" : "@RecordFilterGrid";
+            var dataTypeText = Convert.ToString(dataType) ?? string.Empty;
+            var isText = dataTypeText.StartsWith("nvarchar", StringComparison.OrdinalIgnoreCase)
+                || dataTypeText.StartsWith("varchar", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(dataTypeText, "ntext", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(dataTypeText, "text", StringComparison.OrdinalIgnoreCase);
+            var defaultOp = isSearch && isText ? "9" : "3";
+            var indent = isSearch ? "                " : "            ";
+
+            if (!isSearch)
+            {
+                result.Append($"{indent}SELECT @{prefix}_{name}_op = TRY_CAST(JSON_VALUE({jsonVariable}, '$.Filter.{name}.op') AS TINYINT)\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_op IS NULL SELECT @{prefix}_{name}_op = TRY_CAST(JSON_VALUE({jsonVariable}, '$.Fixed.{name}.op') AS TINYINT)\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_op IS NULL SELECT @{prefix}_{name}_op = TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}.op') AS TINYINT)\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_op IS NULL AND JSON_VALUE({jsonVariable}, '$.Filter.{name}') IS NOT NULL AND JSON_QUERY({jsonVariable}, '$.Filter.{name}') IS NULL SET @{prefix}_{name}_op = 3\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_op IS NULL AND JSON_VALUE({jsonVariable}, '$.Fixed.{name}') IS NOT NULL AND JSON_QUERY({jsonVariable}, '$.Fixed.{name}') IS NULL SET @{prefix}_{name}_op = 3\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_op IS NULL AND JSON_VALUE({jsonVariable}, '$.{name}') IS NOT NULL AND JSON_QUERY({jsonVariable}, '$.{name}') IS NULL SET @{prefix}_{name}_op = 3\r\n");
+
+                result.Append($"{indent}SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.Filter.{name}.value') AS {dataType})\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_v IS NULL SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.Fixed.{name}.value') AS {dataType})\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_v IS NULL SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}.value') AS {dataType})\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_v IS NULL SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.Filter.{name}') AS {dataType})\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_v IS NULL SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.Fixed.{name}') AS {dataType})\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_v IS NULL SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}') AS {dataType})\r\n");
+
+                result.Append($"{indent}SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.Filter.{name}.value')\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_vals IS NULL SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.Fixed.{name}.value')\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_vals IS NULL SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.{name}.value')\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_vals IS NULL SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.Filter.{name}')\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_vals IS NULL SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.Fixed.{name}')\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_vals IS NULL SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.{name}')\r\n");
+            }
             else
-                result.Append($"{indent}    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[{name}], [O].[{name}]) = @{name}'\r\n");
+            {
+                result.Append($"{indent}SELECT @{prefix}_{name}_op = TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}.op') AS TINYINT)\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_op IS NULL AND JSON_VALUE({jsonVariable}, '$.{name}') IS NOT NULL AND JSON_QUERY({jsonVariable}, '$.{name}') IS NULL SET @{prefix}_{name}_op = {defaultOp}\r\n");
+
+                result.Append($"{indent}SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}.value') AS {dataType})\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_v IS NULL SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}') AS {dataType})\r\n");
+
+                result.Append($"{indent}SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.{name}.value')\r\n");
+                result.Append($"{indent}IF @{prefix}_{name}_vals IS NULL SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.{name}')\r\n");
+            }
+
+            result.Append($"{indent}SELECT @{prefix}_{name}_v1 = TRY_CAST(JSON_VALUE(@{prefix}_{name}_vals, '$[0]') AS {dataType})\r\n");
+            result.Append($"{indent}SELECT @{prefix}_{name}_v2 = TRY_CAST(JSON_VALUE(@{prefix}_{name}_vals, '$[1]') AS {dataType})\r\n");
+        }
+
+        private static List<DataRow> GetDatabaseTableRows(TDataRows databaseTables, TDataRows tables, TDataRows columns)
+        {
+            var rows = new TDataRows();
+            var seen = new HashSet<long>();
+
+            foreach (var databaseTable in databaseTables)
+            {
+                var table = tables.First(row => Settings.ToLong(row["Id"]) == Settings.ToLong(databaseTable["TableId"]));
+                var id = Settings.ToLong(table["Id"]);
+                if (seen.Add(id))
+                    rows.Add(table);
+            }
+
+            foreach (var table in tables)
+            {
+                var id = Settings.ToLong(table["Id"]);
+                if (seen.Contains(id) || GetTableColumnRows(columns, table).Count == 0)
+                    continue;
+                rows.Add(table);
+                seen.Add(id);
+            }
+
+            return rows;
         }
 
         static bool IsInWordsColumn(DataRow column) => Settings.ToBoolean(column["IsInWords"]);
@@ -300,6 +413,8 @@ namespace crudex.Classes
             {
                 if (!includeGridFilters)
                     break;
+                var name = column["Name"];
+                var dataType = column["#DataType"];
                 if (first)
                 {
                     result.Append($"{indent},N'");
@@ -307,7 +422,7 @@ namespace crudex.Classes
                 }
                 else
                     result.Append(",");
-                result.Append($"@{column["Name"]} {column["#DataType"]}");
+                result.Append($"@{name} {dataType},@{name}_v1 {dataType},@{name}_v2 {dataType},@{name}_vals NVARCHAR(MAX)");
             }
             if (!first)
                 result.Append($"'\r\n");
@@ -319,7 +434,13 @@ namespace crudex.Classes
                     result.Append($"{indent},@T_{column["Name"]} = @WT_{column["Name"]}\r\n");
             if (includeGridFilters)
                 foreach (var column in filterableColumns)
-                    result.Append($"{indent},@{column["Name"]} = @W_{column["Name"]}\r\n");
+                {
+                    var name = column["Name"];
+                    result.Append($"{indent},@{name} = @G_{name}_v\r\n");
+                    result.Append($"{indent},@{name}_v1 = @G_{name}_v1\r\n");
+                    result.Append($"{indent},@{name}_v2 = @G_{name}_v2\r\n");
+                    result.Append($"{indent},@{name}_vals = @G_{name}_vals\r\n");
+                }
         }
         private static StringBuilder GetScriptCreateDatabase(DataRow database, bool isDocker)
         {
@@ -760,6 +881,17 @@ namespace crudex.Classes
 
             return result;
         }
+        private static bool IsUnicodeSqlType(string? dataType) =>
+            !string.IsNullOrWhiteSpace(dataType)
+            && dataType.TrimStart().StartsWith("n", StringComparison.OrdinalIgnoreCase);
+
+        private static string FormatSqlCast(string literal, string dataType)
+        {
+            var escaped = literal.Replace("'", "''");
+            var prefix = IsUnicodeSqlType(dataType) ? "N" : "";
+            return $"CAST({prefix}'{escaped}' AS {dataType})";
+        }
+
         private static StringBuilder GetScriptInsertTable(DataRow table, TDataRows columns, TDataRows dataRows)
         {
             var result = new StringBuilder();
@@ -805,9 +937,9 @@ namespace crudex.Classes
                             if ((value = Settings.ToString(value)) == string.Empty)
                                 value = "NULL";
                             else if (categoryName == "undefined")
-                                value = $"CAST('{value}' AS {data["#DataType"]})";
+                                value = FormatSqlCast(Settings.ToString(value), Settings.ToString(data["#DataType"]));
                             else
-                                value = $"CAST('{value}' AS {column["#DataType"]})";
+                                value = FormatSqlCast(Settings.ToString(value), Settings.ToString(column["#DataType"]));
                             if (firstTime)
                             {
                                 result.Append($"                         VALUES ({value}");
@@ -1629,18 +1761,17 @@ namespace crudex.Classes
                 firstTime = true;
                 foreach (var column in filterableColumns)
                 {
-                    if (firstTime)
-                    {
-                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilterGrid, '$.{column["Name"]}') AS {column["#DataType"]}))\r\n");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilterGrid, '$.{column["Name"]}') AS {column["#DataType"]}))\r\n");
+                    AppendReadGridFilterDeclareVars(result, column, isSearch: false, declare: firstTime);
+                    firstTime = false;
                 }
                 if (filterableColumns.Count > 0)
                     result.Append($"\r\n");
                 foreach (var column in filterableColumns)
-                    AppendReadFilterColumn(result, column, domains, types, $"@W_{column["Name"]}", $"@{column["Name"]}", "            ");
+                    AppendReadGridFilterAssignVars(result, column, isSearch: false);
+                if (filterableColumns.Count > 0)
+                    result.Append($"\r\n");
+                foreach (var column in filterableColumns)
+                    AppendReadFilterColumn(result, column, domains, types, "            ");
                 result.Append($"        END ELSE\r\n");
                 result.Append($"            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'\r\n");
 
@@ -1724,20 +1855,18 @@ namespace crudex.Classes
                 result.Append($"            DECLARE @SearchRecno BIGINT = NULL\r\n");
                 result.Append($"            IF @RecordSearch IS NOT NULL BEGIN\r\n");
 
-                firstTime = true;
-                foreach (var column in filterableColumns)
+                if (filterableColumns.Count > 0)
                 {
-                    if (firstTime)
-                    {
-                        result.Append($"                DECLARE @Recno BIGINT\r\n");
-                        result.Append($"                       ,@S_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordSearch, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($"                       ,@S_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordSearch, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
-                }
-                if (filterableColumns.Count == 0)
                     result.Append($"                DECLARE @Recno BIGINT\r\n");
+                    foreach (var column in filterableColumns)
+                        AppendReadGridFilterDeclareVars(result, column, isSearch: true, declare: false);
+                }
+                else
+                    result.Append($"                DECLARE @Recno BIGINT\r\n");
+                if (filterableColumns.Count > 0)
+                    result.Append($"\r\n");
+                foreach (var column in filterableColumns)
+                    AppendReadGridFilterAssignVars(result, column, isSearch: true);
                 if (filterableColumns.Count > 0)
                     result.Append($"\r\n");
                 result.Append($"                SET @Where = ''\r\n");
@@ -1754,18 +1883,26 @@ namespace crudex.Classes
                     firstTime = true;
                     foreach (var column in filterableColumns)
                     {
+                        var name = column["Name"];
+                        var dataType = column["#DataType"];
                         if (firstTime)
                         {
                             result.Append($"                    EXEC sp_executesql @sql\r\n");
-                            result.Append($"                                       ,N'@{column["Name"]} {column["#DataType"]}");
+                            result.Append($"                                       ,N'@{name} {dataType},@{name}_v1 {dataType},@{name}_v2 {dataType},@{name}_vals NVARCHAR(MAX)");
                             firstTime = false;
                         }
                         else
-                            result.Append($",@{column["Name"]} {column["#DataType"]}");
+                            result.Append($",@{name} {dataType},@{name}_v1 {dataType},@{name}_v2 {dataType},@{name}_vals NVARCHAR(MAX)");
                     }
                     result.Append($", @r BIGINT OUTPUT'\r\n");
                     foreach (var column in filterableColumns)
-                        result.Append($"                                       ,@{column["Name"]} = @S_{column["Name"]}\r\n");
+                    {
+                        var name = column["Name"];
+                        result.Append($"                                       ,@{name} = @S_{name}_v\r\n");
+                        result.Append($"                                       ,@{name}_v1 = @S_{name}_v1\r\n");
+                        result.Append($"                                       ,@{name}_v2 = @S_{name}_v2\r\n");
+                        result.Append($"                                       ,@{name}_vals = @S_{name}_vals\r\n");
+                    }
                     result.Append($"                                       ,@r = @Recno OUTPUT\r\n");
                 }
                 else

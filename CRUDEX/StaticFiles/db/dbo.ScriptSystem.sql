@@ -78,7 +78,6 @@ BEGIN
 				,[T].[Description]
 				,[T].[ParentTableId]
 				,[PT].[Name] AS [#ParentTableName]
-				,[T].[IsLegacy]
 				,[T].[CurrentId]
 			INTO [#Tables]
 			FROM [dbo].[Tables] [T]

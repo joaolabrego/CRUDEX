@@ -10,6 +10,7 @@
     --control-height: 5dvmin;
     --field-height: 2.8dvmin;
     --field-h-chrome: 1.2dvmin;
+    --select-edge-inset: 0.35dvmin;
     --field-max-width: 50ch;
     --opacity-screen: 0.5;
     --font-size-grid: 1.5dvmin;

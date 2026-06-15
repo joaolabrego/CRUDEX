@@ -48,6 +48,8 @@ namespace CRUDEX.Classes
                     Indexkeys = ConfigTable(dataSet, 9),
                     Masks = ConfigTable(dataSet, 10),
                     Unicities = ConfigTable(dataSet, 11),
+                    Comparators = ConfigTable(dataSet, 12),
+                    Rules = ConfigTable(dataSet, 13),
                     Actions = Actions.GetObject(),
                 };
                 config.Styles = new Styles();

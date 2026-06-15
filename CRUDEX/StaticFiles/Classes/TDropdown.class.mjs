@@ -7,7 +7,6 @@ export default class TDropdown {
         SINGLE: "single",
         MULTI: "multi",
         ADDABLE: "addable",
-        CARDINALITY: "cardinality",
     };
 
     static #Style = "";
@@ -22,6 +21,7 @@ export default class TDropdown {
     #currentPage = 0;
     #idField = "Id";
     #labelField = "Name";
+    #titleField = null;
     #placeholder = "";
     #minItems = 0;
     #maxItems = Infinity;
@@ -43,7 +43,8 @@ export default class TDropdown {
     #itemsBox = null;
     #prevBtn = null;
     #nextBtn = null;
-    #hint = null;
+    #listSearchInput = null;
+    #listSearch = false;
     #handleOutside = null;
     #handleGlobal = null;
     #loader = null;
@@ -52,6 +53,7 @@ export default class TDropdown {
     #query = "";
     #serverPage = 1;
     #serverPageCount = 1;
+    #paginate = true;
 
     static Initialize(styles) {
         if (styles.ClassName !== "Styles")
@@ -75,10 +77,6 @@ export default class TDropdown {
         return new TDropdown(container, { ...options, mode: TDropdown.Modes.ADDABLE });
     }
 
-    static Cardinality(container, options = {}) {
-        return new TDropdown(container, { ...options, mode: TDropdown.Modes.CARDINALITY });
-    }
-
     constructor(container, options = {}) {
         if (!container)
             throw new Error("Container element is required.");
@@ -91,7 +89,10 @@ export default class TDropdown {
         this.#itemsPerPage = options.itemsPerPage ?? 5;
         this.#idField = options.idField ?? "Id";
         this.#labelField = options.labelField ?? "Name";
+        this.#titleField = options.titleField ?? null;
         this.#placeholder = options.placeholder ?? "";
+        if (options.containerClass)
+            this.#container.classList.add(options.containerClass);
         this.#minItems = options.minItems ?? 0;
         this.#maxItems = options.maxItems ?? Infinity;
         this.#exactItems = options.exactItems ?? null;
@@ -102,15 +103,22 @@ export default class TDropdown {
         this.#allowEmpty = options.allowEmpty ?? !this.#required;
         this.#readOnly = options.readOnly ?? false;
         this.#loader = options.loader ?? null;
+        this.#paginate = options.paginate !== false;
+        this.#listSearch = options.listSearch === true || (this.#mode === TDropdown.Modes.MULTI && this.#loader != null);
 
-        if (this.#mode === TDropdown.Modes.CARDINALITY && this.#exactItems != null) {
+        if (options.paginate === false)
+            this.#itemsPerPage = options.itemsPerPage ?? Number.MAX_SAFE_INTEGER;
+        else if (options.itemsPerPage != null)
+            this.#itemsPerPage = options.itemsPerPage;
+
+        if (this.#mode === TDropdown.Modes.MULTI && this.#exactItems != null) {
             this.#maxItems = this.#exactItems;
             if (this.#requireExact)
                 this.#minItems = this.#exactItems;
         }
 
         this.#catalog = (options.data ?? options.catalog ?? [])
-            .map(item => TDropdown.#normalizeItem(item, this.#idField, this.#labelField))
+            .map(item => TDropdown.#normalizeItem(item, this.#idField, this.#labelField, this.#titleField))
             .filter(Boolean);
 
         this.#buildDom();
@@ -153,26 +161,27 @@ export default class TDropdown {
         TDropdown.#StyleInjected = true;
     }
 
-    static #normalizeItem(item, idField, labelField) {
+    static #normalizeItem(item, idField, labelField, titleField = null) {
         if (item === null || item === undefined)
             return null;
         if (typeof item === "string" || typeof item === "number")
-            return { id: item, label: String(item), raw: item };
+            return { id: item, label: String(item), title: "", raw: item };
         const id = item[idField] ?? item.Id ?? item.ListItemId ?? item.id;
         const label = item[labelField] ?? item.ListItemValue ?? item.Name
             ?? item.ListItemName ?? item.label ?? String(id ?? "");
-        return { id, label, raw: item };
+        const title = titleField
+            ? (item[titleField] ?? item.Description ?? "")
+            : "";
+        return { id, label, title, raw: item };
     }
 
     #isListMode() {
         return this.#mode === TDropdown.Modes.MULTI
-            || this.#mode === TDropdown.Modes.ADDABLE
-            || this.#mode === TDropdown.Modes.CARDINALITY;
+            || this.#mode === TDropdown.Modes.ADDABLE;
     }
 
     #isAddableMode() {
-        return this.#mode === TDropdown.Modes.ADDABLE
-            || this.#mode === TDropdown.Modes.CARDINALITY;
+        return this.#mode === TDropdown.Modes.ADDABLE;
     }
 
     #buildDom() {
@@ -212,6 +221,18 @@ export default class TDropdown {
         this.#list.className = "tdropdown-list";
         this.#inputWrap.append(this.#list);
 
+        if (this.#mode === TDropdown.Modes.MULTI && this.#listSearch) {
+            const searchWrap = document.createElement("div");
+            searchWrap.className = "tdropdown-list-search";
+            this.#listSearchInput = document.createElement("input");
+            this.#listSearchInput.type = "text";
+            this.#listSearchInput.className = "tdropdown-list-search-input";
+            this.#listSearchInput.placeholder = "Filtrar...";
+            this.#listSearchInput.autocomplete = "off";
+            searchWrap.append(this.#listSearchInput);
+            this.#list.append(searchWrap);
+        }
+
         this.#itemsBox = document.createElement("div");
         this.#list.append(this.#itemsBox);
 
@@ -229,12 +250,6 @@ export default class TDropdown {
         this.#nextBtn.type = "button";
         this.#nextBtn.textContent = "►";
         pagination.append(this.#nextBtn);
-
-        if (this.#mode === TDropdown.Modes.CARDINALITY) {
-            this.#hint = document.createElement("div");
-            this.#hint.className = "tdropdown-hint";
-            this.#container.append(this.#hint);
-        }
     }
 
     #applyRequiredConstraints() {
@@ -281,6 +296,7 @@ export default class TDropdown {
                 void this.#toggleList();
             });
             this.#input.addEventListener("blur", () => {
+                this.#commitPendingInput(false);
                 this.#revertInput();
                 this.#hideList();
                 this.#updateValidity();
@@ -323,11 +339,18 @@ export default class TDropdown {
         });
 
         this.#list.addEventListener("mousedown", (e) => e.preventDefault());
+
+        if (this.#listSearchInput && !this.#readOnly) {
+            this.#listSearchInput.addEventListener("input", (e) => {
+                void this.#filterItems(e.target.value.trim());
+            });
+            this.#listSearchInput.addEventListener("keydown", (e) => e.stopPropagation());
+        }
     }
 
     #sourceItems() {
         if (this.#isAddableMode())
-            return this.#manualValues.map(v => TDropdown.#normalizeItem(v, this.#idField, this.#labelField));
+            return this.#manualValues.map(v => TDropdown.#normalizeItem(v, this.#idField, this.#labelField, this.#titleField));
         return this.#catalog;
     }
 
@@ -371,12 +394,12 @@ export default class TDropdown {
         this.#serverPage = result.pageNumber ?? page;
         this.#serverPageCount = Math.max(1, result.pageCount ?? 1);
         const items = (result.items ?? [])
-            .map(item => TDropdown.#normalizeItem(item, this.#idField, this.#labelField))
+            .map(item => TDropdown.#normalizeItem(item, this.#idField, this.#labelField, this.#titleField))
             .filter(Boolean);
         this.#filtered = items;
         this.#mergeCatalog(items);
         this.#mergeRecordSet(result);
-        if (this.#selected[0])
+        if (this.#selected.length)
             this.#mergeCatalog(this.#selected);
         this.#currentPage = 0;
         this.#renderItems();
@@ -395,7 +418,9 @@ export default class TDropdown {
         const end = start + this.#itemsPerPage;
         const pageItems = this.#loader
             ? this.#filtered
-            : this.#filtered.slice(start, end);
+            : this.#paginate
+                ? this.#filtered.slice(start, end)
+                : this.#filtered;
 
         this.#itemsBox.replaceChildren();
 
@@ -413,22 +438,29 @@ export default class TDropdown {
         pageItems.forEach((item) => {
             const row = document.createElement("div");
             row.className = "tdropdown-item";
+            const selected = this.#isSelected(item);
+            const atMax = this.#selected.length >= this.#maxItems;
 
             if (this.#mode === TDropdown.Modes.MULTI) {
                 const check = document.createElement("input");
                 check.type = "checkbox";
                 check.className = "tdropdown-check";
-                check.checked = this.#isSelected(item);
+                check.checked = selected;
+                check.disabled = atMax && !selected;
                 check.addEventListener("change", (e) => {
                     e.stopPropagation();
                     this.#toggleSelected(item);
                 });
                 row.append(check);
+                if (atMax && !selected)
+                    row.classList.add("tdropdown-item-disabled");
             }
 
             const label = document.createElement("div");
             label.className = "tdropdown-label";
             label.textContent = item.label;
+            if (item.title)
+                row.title = item.title;
             row.append(label);
 
             if (this.#isAddableMode()) {
@@ -454,8 +486,11 @@ export default class TDropdown {
                 });
             } else {
                 row.addEventListener("click", (e) => {
-                    if (e.target.type !== "checkbox")
-                        this.#toggleSelected(item);
+                    if (e.target.type === "checkbox")
+                        return;
+                    if (!selected && atMax)
+                        return;
+                    this.#toggleSelected(item);
                 });
             }
 
@@ -468,6 +503,10 @@ export default class TDropdown {
     }
 
     #updatePagination() {
+        if (!this.#paginate) {
+            this.#prevBtn.parentElement.style.display = "none";
+            return;
+        }
         if (this.#loader) {
             this.#prevBtn.disabled = this.#serverPage <= 1;
             this.#nextBtn.disabled = this.#serverPage >= this.#serverPageCount;
@@ -496,8 +535,9 @@ export default class TDropdown {
         const height = this.#list.scrollHeight;
         const below = window.innerHeight - rect.bottom;
         const above = rect.top;
+        const openUp = below < height && above > height;
 
-        if (below < height && above > height) {
+        if (openUp) {
             this.#list.style.top = "auto";
             this.#list.style.bottom = `${anchor.offsetHeight}px`;
         } else {
@@ -507,6 +547,7 @@ export default class TDropdown {
 
         this.#list.style.visibility = "visible";
         this.#list.classList.add("open");
+        this.#listSearchInput?.focus();
     }
 
     #hideList() {
@@ -528,6 +569,8 @@ export default class TDropdown {
 
     async #openList() {
         this.#query = "";
+        if (this.#listSearchInput)
+            this.#listSearchInput.value = "";
         if (this.#loader)
             await this.#loadServerPage(1);
         else if (!this.#isAddableMode())
@@ -557,8 +600,10 @@ export default class TDropdown {
             return;
         }
         this.#selected = [item];
-        if (this.#input)
+        if (this.#input) {
             this.#input.value = item.label;
+            this.#input.title = item.title ?? "";
+        }
         this.#hideList();
         this.#emitChange();
         this.#updateValidity();
@@ -567,8 +612,11 @@ export default class TDropdown {
     #toggleSelected(item) {
         if (this.#isSelected(item))
             this.#selected = this.#selected.filter(s => !(s.id === item.id && s.label === item.label));
-        else
+        else {
+            if (this.#selected.length >= this.#maxItems)
+                return;
             this.#selected.push(item);
+        }
         this.#updateTriggerLabel();
         this.#renderItems();
         this.#emitChange();
@@ -619,7 +667,7 @@ export default class TDropdown {
         const needle = label.toLowerCase();
         const before = this.#manualValues.length;
         this.#manualValues = this.#manualValues.filter(v => {
-            const item = TDropdown.#normalizeItem(v, this.#idField, this.#labelField);
+            const item = TDropdown.#normalizeItem(v, this.#idField, this.#labelField, this.#titleField);
             return item.label.toLowerCase() !== needle;
         });
         if (this.#manualValues.length !== before) {
@@ -652,16 +700,11 @@ export default class TDropdown {
     #updateValidity() {
         const valid = this.isValid();
         this.syncFormValidity();
+        const invalid = !valid && (this.#required || this.#requireExact);
         if (this.#input)
-            this.#input.classList.toggle("invalid", !valid);
-        if (this.#hint) {
-            const count = this.#manualValues.length;
-            const target = this.#exactItems ?? this.#minItems;
-            this.#hint.textContent = this.#requireExact && this.#exactItems != null
-                ? `Informe exatamente ${this.#exactItems} item(ns). Atual: ${count}.`
-                : `Mínimo ${this.#minItems}, máximo ${this.#maxItems}. Atual: ${count}.`;
-            this.#hint.classList.toggle("invalid", !valid);
-        }
+            this.#input.classList.toggle("invalid", invalid);
+        if (this.#trigger)
+            this.#trigger.classList.toggle("invalid", invalid);
     }
 
     #exportItem(item) {
@@ -670,9 +713,50 @@ export default class TDropdown {
         return this.#valueAs === "id" ? item.id : item;
     }
 
+    #findItemByLabel(text) {
+        const needle = text.trim();
+        if (!needle)
+            return null;
+        const pool = [...this.#catalog];
+        for (const item of this.#filtered) {
+            if (!pool.some(entry => entry.id == item.id && entry.label === item.label))
+                pool.push(item);
+        }
+        const exact = pool.filter(item => item.label === needle);
+        if (exact.length === 1)
+            return exact[0];
+        const lower = needle.toLowerCase();
+        const ci = pool.filter(item => item.label.toLowerCase() === lower);
+        return ci.length === 1 ? ci[0] : null;
+    }
+
+    #commitPendingInput(emitChange = true) {
+        if (this.#mode !== TDropdown.Modes.SINGLE || !this.#input || this.#readOnly)
+            return false;
+        if (this.#hasSelectedId()) {
+            const label = this.#selected[0].label ?? "";
+            if (label === this.#input.value.trim())
+                return false;
+        }
+        const match = this.#findItemByLabel(this.#input.value);
+        if (!match)
+            return false;
+        this.#selected = [match];
+        this.#input.value = match.label;
+        this.#input.title = match.title ?? "";
+        if (emitChange)
+            this.#emitChange();
+        return true;
+    }
+
+    resolveCommittedValue() {
+        this.#commitPendingInput(false);
+        return this.getValue();
+    }
+
     setCatalog(data) {
         this.#catalog = (data ?? [])
-            .map(item => TDropdown.#normalizeItem(item, this.#idField, this.#labelField))
+            .map(item => TDropdown.#normalizeItem(item, this.#idField, this.#labelField, this.#titleField))
             .filter(Boolean);
         if (this.#itemsBox)
             this.#refresh();
@@ -682,11 +766,11 @@ export default class TDropdown {
         if (item === null || item === undefined)
             return null;
         if (typeof item === "object")
-            return TDropdown.#normalizeItem(item, this.#idField, this.#labelField);
+            return TDropdown.#normalizeItem(item, this.#idField, this.#labelField, this.#titleField);
         const hit = this.#catalog.find(c => c.id == item);
         if (hit)
             return hit;
-        return TDropdown.#normalizeItem(item, this.#idField, this.#labelField);
+        return TDropdown.#normalizeItem(item, this.#idField, this.#labelField, this.#titleField);
     }
 
     setValue(value, emitChange = true) {
@@ -706,8 +790,10 @@ export default class TDropdown {
         } else {
             const list = Array.isArray(value) ? value : (value ? [value] : []);
             this.#selected = list
-                .map(item => TDropdown.#normalizeItem(item, this.#idField, this.#labelField))
+                .map(item => this.#resolveItem(item))
                 .filter(Boolean);
+            if (this.#selected.length)
+                this.#mergeCatalog(this.#selected);
             this.#updateTriggerLabel();
         }
         this.#refresh();
@@ -720,7 +806,7 @@ export default class TDropdown {
             return this.#exportItem(this.#selected[0] ?? null);
         if (this.#isAddableMode())
             return this.#manualValues.map(v => {
-                const item = TDropdown.#normalizeItem(v, this.#idField, this.#labelField);
+                const item = TDropdown.#normalizeItem(v, this.#idField, this.#labelField, this.#titleField);
                 return this.#valueAs === "id" ? item.id : (typeof v === "object" ? v : item);
             });
         return this.#selected.map(item => this.#exportItem(item));
@@ -755,11 +841,14 @@ export default class TDropdown {
         if (this.#readOnly) {
             this.#input?.setCustomValidity("");
             this.#input?.classList.remove("invalid");
+            this.#trigger?.classList.remove("invalid");
             return;
         }
-        const invalid = this.#required && !this.isValid();
+        const invalid = (this.#required || this.#requireExact) && !this.isValid();
         if (this.#input)
             this.#input.classList.toggle("invalid", invalid);
+        if (this.#trigger)
+            this.#trigger.classList.toggle("invalid", invalid);
     }
 
     dismissValidityBalloon() {
@@ -772,7 +861,7 @@ export default class TDropdown {
         if (!target)
             return true;
         this.syncFormValidity();
-        if (this.#required && !this.isValid()) {
+        if ((this.#required || this.#requireExact) && !this.isValid()) {
             target.setCustomValidity(message);
             return target.reportValidity();
         }

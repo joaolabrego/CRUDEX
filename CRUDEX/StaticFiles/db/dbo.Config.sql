@@ -82,7 +82,6 @@ BEGIN
 				,[T].[Alias]
 				,[T].[Description]
 				,[T].[ParentTableId]
-				,[T].[IsLegacy]
 			INTO [#Tables]
 			FROM [dbo].[Tables] [T]
 				INNER JOIN [dbo].[DatabasesTables] [DT] ON [DT].[TableId] = [T].[Id]
@@ -244,6 +243,22 @@ BEGIN
 				INTO [#Unicities]
 				FROM [dbo].[Unicities] [U]
 				WHERE EXISTS(SELECT 1 FROM [dbo].[#Columns] WHERE [Id] IN ([U].[ColumnId1], [U].[ColumnId2]))
+			-- 12 [Comparators]
+			SELECT 'Comparator' AS [Kind]
+					,[Id]
+					,[Symbol]
+					,[Description]
+					,[Arity]
+				INTO [#Comparators]
+				FROM [dbo].[Comparators]
+
+			-- 13 [Rules]
+			SELECT 'Rule' AS [Kind]
+					,[Id]
+					,[CategoryId]
+					,[ComparatorId]
+				INTO [#Rules]
+				FROM [dbo].[Rules]
 		END
 
 		-- Results
@@ -260,6 +275,8 @@ BEGIN
 			SELECT * FROM [#Indexkeys] ORDER BY [IndexId], [Sequence] -- 9 [#Indexkeys]
 			SELECT * FROM [#Masks] ORDER BY [Id] -- 10 [#Masks]
 			SELECT * FROM [#Unicities] ORDER BY [Id] -- 11 [#Unicities]
+			SELECT * FROM [#Comparators] ORDER BY [Id] -- 12 [#Comparators]
+			SELECT * FROM [#Rules] ORDER BY [CategoryId], [ComparatorId] -- 13 [#Rules]
 		END ELSE BEGIN
 			SELECT * FROM [#Connections] ORDER BY [Id] -- 1 [#Connections]]
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]

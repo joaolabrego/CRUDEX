@@ -1,6 +1,7 @@
-﻿"use strict";
+"use strict";
 
 import TCheckbox from "./TCheckbox.class.mjs";
+import TCondition from "./TCondition.class.mjs";
 import TConfig from "./TConfig.class.mjs";
 import TRecord from "./TRecord.class.mjs";
 import TSystem from "./TSystem.class.mjs";
@@ -36,11 +37,16 @@ export default class TRecordSet {
     }
 
     #appendFilterValue(filter, key, value) {
-        const filterValue = TCheckbox.toFilterValue(value);
+        if (TCheckbox.hasCondition(value)) {
+            const filterValue = TCheckbox.toFilterValue(value);
+            if (filterValue !== undefined)
+                filter[key] = filterValue;
+            return;
+        }
+        const stored = TCondition.normalizeStoredFilter(value);
+        const filterValue = TCondition.toFilterPayload(stored);
         if (filterValue !== undefined)
             filter[key] = filterValue;
-        else if (!TCheckbox.isIgnored(value) && !TConfig.IsEmpty(value))
-            filter[key] = value;
     }
 
     #buildRecordFilter() {
@@ -322,16 +328,13 @@ export default class TRecordSet {
         return Object.keys(this.#FilterValues).some(key => {
             if (Object.hasOwn(this.#FixedFilter, key))
                 return false;
-            const value = this.#FilterValues[key];
-            return TCheckbox.hasCondition(value) || !TConfig.IsEmpty(value);
+            return TCondition.willApplyFilter(this.#FilterValues[key]);
         });
     }
 
     isSearched() {
-        return Object.keys(this.#SearchValues).some(key => {
-            const value = this.#SearchValues[key];
-            return TCheckbox.hasCondition(value) || !TConfig.IsEmpty(value);
-        });
+        return Object.keys(this.#SearchValues).some(key =>
+            TCondition.willApplyFilter(this.#SearchValues[key]));
     }
 
     clearOrderBy() {
