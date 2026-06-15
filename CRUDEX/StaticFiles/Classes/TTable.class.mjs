@@ -88,7 +88,17 @@ export default class TTable {
         return this.#Indexes.find(index => index.Id === indexNameOrId);
     }
     GetListableColumn() {
-        return this.#Columns.find(column => column.IsListable);
+        const listable = this.#Columns
+            .filter(column => column.IsListable && !column.IsVirtual)
+            .sort((left, right) => (left.Sequence ?? 0) - (right.Sequence ?? 0));
+
+        return listable.find(column => column.Name === "Name")
+            ?? listable.find(column => {
+                const htmlType = column.Domain?.Type?.Category?.HtmlInputType;
+                return htmlType && htmlType !== "checkbox";
+            })
+            ?? listable[0]
+            ?? null;
     }
     get Columns() {
         return this.#Columns;

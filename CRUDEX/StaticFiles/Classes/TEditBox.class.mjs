@@ -105,6 +105,76 @@ export default class TEditBox {
         return Number(length);
     }
 
+    static #editMaskForDomain(domain) {
+        if (!domain)
+            return null;
+        const category = domain.Type.Category.Name;
+        const scale = domain.Decimals ?? 0;
+
+        if (scale > 0 && category === "number") {
+            const precision = domain.Length ?? domain.Type.MaxLength ?? 12;
+            return {
+                kind: "decimal",
+                precision,
+                scale,
+                placeholder: TConfig.GetNumericMask(precision, scale),
+                category,
+            };
+        }
+
+        if (!TConfig.IsEmpty(domain.MaskId)) {
+            const maskRow = TSystem.GetMask(domain.MaskId);
+            if (maskRow?.Mask) {
+                let mask = maskRow.Mask;
+                if (typeof mask === "string" && mask.includes("|"))
+                    mask = mask.split("|").map(part => part.trim());
+                const placeholder = Array.isArray(mask) ? mask[mask.length - 1] : mask;
+
+                if (!Array.isArray(mask) && category === "number" && TMask.IsNumericMask(mask)) {
+                    const scale = domain.Decimals ?? 0;
+                    return {
+                        kind: "decimal",
+                        precision: TMask.CountNumericMaskDigits(mask),
+                        scale,
+                        placeholder,
+                        category,
+                    };
+                }
+
+                return {
+                    kind: "pattern",
+                    mask,
+                    options: domain.Codification ?? "",
+                    placeholder,
+                    category,
+                };
+            }
+        }
+
+        if (category === "number" && domain.Length) {
+            const placeholder = TConfig.GetNumericMask(domain.Length, 0);
+            return {
+                kind: "decimal",
+                precision: domain.Length,
+                scale: 0,
+                placeholder,
+                category,
+            };
+        }
+
+        return null;
+    }
+
+    static #widthChFromDomain(domain) {
+        const editMask = TEditBox.#editMaskForDomain(domain);
+        if (editMask?.placeholder) {
+            const maskLength = String(editMask.placeholder).length;
+            if (maskLength > 0)
+                return maskLength;
+        }
+        return TEditBox.#domainWidthCh(domain);
+    }
+
     #effectiveDomain() {
         return this.#domainVariant ?? this.#column.Domain;
     }
@@ -137,23 +207,14 @@ export default class TEditBox {
     }
 
     #fieldWidthCh() {
-        const editMask = this.#getEditMask();
-        if (editMask?.placeholder) {
-            const maskLength = String(editMask.placeholder).length;
-            if (maskLength > 0)
-                return maskLength;
+        if (this.#isReference) {
+            const refTable = TSystem.GetTable(this.#column.ReferenceTableId);
+            const listable = refTable?.GetListableColumn();
+            const domain = listable?.Domain ?? this.#effectiveDomain();
+            return TEditBox.#widthChFromDomain(domain);
         }
 
-        const own = TEditBox.#domainWidthCh(this.#effectiveDomain());
-        if (!this.#isReference)
-            return own;
-
-        const refTable = TSystem.GetTable(this.#column.ReferenceTableId);
-        const listable = refTable?.GetListableColumn();
-        const displayCh = TEditBox.#domainWidthCh(listable?.Domain);
-
-        // FK: largura da coluna listada/exibida/editada, não do Id oculto.
-        return displayCh ?? own;
+        return TEditBox.#widthChFromDomain(this.#effectiveDomain());
     }
 
     static #FIELD_MAX_WIDTH_CH = 50;
@@ -364,7 +425,6 @@ export default class TEditBox {
         if (htmlInputType === "textarea") {
             const control = document.createElement("textarea");
             control.rows = 2;
-            control.cols = 50;
             return control;
         }
 
@@ -392,62 +452,7 @@ export default class TEditBox {
     }
 
     #getEditMask() {
-        const domain = this.#effectiveDomain();
-        const category = domain.Type.Category.Name;
-        const scale = domain.Decimals ?? 0;
-
-        if (scale > 0 && category === "number") {
-            const precision = domain.Length ?? domain.Type.MaxLength ?? 12;
-            return {
-                kind: "decimal",
-                precision,
-                scale,
-                placeholder: TConfig.GetNumericMask(precision, scale),
-                category,
-            };
-        }
-
-        if (!TConfig.IsEmpty(domain.MaskId)) {
-            const maskRow = TSystem.GetMask(domain.MaskId);
-            if (maskRow?.Mask) {
-                let mask = maskRow.Mask;
-                if (typeof mask === "string" && mask.includes("|"))
-                    mask = mask.split("|").map(part => part.trim());
-                const placeholder = Array.isArray(mask) ? mask[mask.length - 1] : mask;
-
-                if (!Array.isArray(mask) && category === "number" && TMask.IsNumericMask(mask)) {
-                    const scale = domain.Decimals ?? 0;
-                    return {
-                        kind: "decimal",
-                        precision: TMask.CountNumericMaskDigits(mask),
-                        scale,
-                        placeholder,
-                        category,
-                    };
-                }
-
-                return {
-                    kind: "pattern",
-                    mask,
-                    options: domain.Codification ?? "",
-                    placeholder,
-                    category,
-                };
-            }
-        }
-
-        if (category === "number" && domain.Length) {
-            const placeholder = TConfig.GetNumericMask(domain.Length, 0);
-            return {
-                kind: "decimal",
-                precision: domain.Length,
-                scale: 0,
-                placeholder,
-                category,
-            };
-        }
-
-        return null;
+        return TEditBox.#editMaskForDomain(this.#effectiveDomain());
     }
 
     #rawToMaskDigits(value, category) {

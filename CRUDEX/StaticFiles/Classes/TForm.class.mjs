@@ -8,32 +8,22 @@ import TSystem from "./TSystem.class.mjs";
 import TTransaction from "./TTransaction.class.mjs";
 
 export default class TForm {
-    static #COLUMNS_TABLE = "Columns";
-    static #DOMAINS_TABLE = "Domains";
-    static #COLUMNS_DRIVER = "DomainId";
-    static #DOMAINS_DRIVER = "TypeId";
-    static #METADATA_FIELD_FLAGS = {
-        Columns: {
-            Default: { source: "category", flag: "AskDefault", variant: true },
-            Minimum: { source: "category", flag: "AskMinimum", variant: true },
-            Maximum: { source: "category", flag: "AskMaximum", variant: true },
-            IsEncrypted: { source: "category", flag: "AskEncrypted" },
-            IsListable: { source: "category", flag: "AskListable" },
-            IsInWords: { source: "category", flag: "AskInWords" },
-            IsPrimarykey: { source: "type", flag: "AskPrimarykey" },
-            IsAutoIncrement: { source: "type", flag: "AskAutoincrement" },
-            IsFilterable: { source: "type", flag: "AskFilterable" },
-            IsGridable: { source: "type", flag: "AskGridable" },
-        },
-        Domains: {
-            MaskId: { source: "category", flag: "AskMask" },
-            Length: { source: "type", flag: "AskLength" },
-            Decimals: { source: "type", flag: "AskDecimals" },
-            Codification: { source: "type", flag: "AskCodification" },
-            Default: { source: "category", flag: "AskDefault", variant: true },
-            Minimum: { source: "category", flag: "AskMinimum", variant: true },
-            Maximum: { source: "category", flag: "AskMaximum", variant: true },
-        },
+    static #METADATA_DRIVER_COLUMNS = ["DomainId", "TypeId", "CategoryId"];
+    static #ASK_FIELD_RULES = {
+        Default: { source: "category", flag: "AskDefault", variant: true },
+        Minimum: { source: "category", flag: "AskMinimum", variant: true },
+        Maximum: { source: "category", flag: "AskMaximum", variant: true },
+        MaskId: { source: "category", flag: "AskMask" },
+        IsListable: { source: "category", flag: "AskListable" },
+        IsEncrypted: { source: "category", flag: "AskEncrypted" },
+        IsInWords: { source: "category", flag: "AskInWords" },
+        Length: { source: "type", flag: "AskLength" },
+        Decimals: { source: "type", flag: "AskDecimals" },
+        Codification: { source: "type", flag: "AskCodification" },
+        IsPrimarykey: { source: "type", flag: "AskPrimarykey" },
+        IsAutoIncrement: { source: "type", flag: "AskAutoincrement" },
+        IsFilterable: { source: "type", flag: "AskFilterable" },
+        IsGridable: { source: "type", flag: "AskGridable" },
     };
     static #FORM_GRID_COLUMNS = 5;
 
@@ -184,43 +174,58 @@ export default class TForm {
     }
 
     #metadataDriverColumn() {
-        if (this.#Grid.Table.Name === TForm.#COLUMNS_TABLE)
-            return TForm.#COLUMNS_DRIVER;
-        if (this.#Grid.Table.Name === TForm.#DOMAINS_TABLE)
-            return TForm.#DOMAINS_DRIVER;
+        for (const name of TForm.#METADATA_DRIVER_COLUMNS) {
+            const column = this.#Grid.Table.Columns.find(
+                item => item.Name === name && item.ReferenceTableId,
+            );
+            if (column)
+                return name;
+        }
         return null;
     }
 
     #metadataFieldRule(column) {
-        const rules = TForm.#METADATA_FIELD_FLAGS[this.#Grid.Table.Name];
-        return rules?.[column.Name] ?? null;
+        return TForm.#ASK_FIELD_RULES[column.Name] ?? null;
     }
 
     #metadataAskContext() {
-        if (this.#Grid.Table.Name === TForm.#COLUMNS_TABLE) {
-            const domainId = this.#actualRecord[TForm.#COLUMNS_DRIVER];
-            if (TConfig.IsEmpty(domainId))
-                return null;
+        const record = this.#actualRecord;
+        let category = null;
+        let type = null;
+
+        const domainId = record.DomainId;
+        if (!TConfig.IsEmpty(domainId)) {
             const domain = TSystem.GetDomain(domainId);
-            if (!domain?.Type?.Category)
-                return null;
-            return { category: domain.Type.Category, type: domain.Type };
+            if (domain?.Type) {
+                type = domain.Type;
+                category = domain.Type.Category ?? category;
+            }
         }
-        if (this.#Grid.Table.Name === TForm.#DOMAINS_TABLE) {
-            const typeId = this.#actualRecord[TForm.#DOMAINS_DRIVER];
-            if (TConfig.IsEmpty(typeId))
-                return null;
-            const type = TSystem.GetType(typeId);
-            if (!type?.Category)
-                return null;
-            return { category: type.Category, type };
+
+        const typeId = record.TypeId;
+        if (!TConfig.IsEmpty(typeId)) {
+            const resolved = TSystem.GetType(typeId);
+            if (resolved) {
+                type = resolved;
+                category = resolved.Category ?? category;
+            }
         }
-        return null;
+
+        const categoryId = record.CategoryId;
+        if (!TConfig.IsEmpty(categoryId)) {
+            const resolved = TSystem.GetCategory(categoryId);
+            if (resolved)
+                category = resolved;
+        }
+
+        if (!category && !type)
+            return null;
+        return { category, type };
     }
 
     #metadataFieldVisible(column) {
         const rule = this.#metadataFieldRule(column);
-        if (!rule)
+        if (!rule || !this.#metadataDriverColumn())
             return true;
 
         const context = this.#metadataAskContext();
@@ -236,26 +241,29 @@ export default class TForm {
         if (!rule?.variant)
             return undefined;
 
-        if (this.#Grid.Table.Name === TForm.#COLUMNS_TABLE) {
-            const domainId = this.#actualRecord[TForm.#COLUMNS_DRIVER];
+        const driver = this.#metadataDriverColumn();
+        if (driver === "DomainId") {
+            const domainId = this.#actualRecord.DomainId;
             if (TConfig.IsEmpty(domainId))
                 return null;
             return TSystem.GetDomain(domainId);
         }
-        if (this.#Grid.Table.Name === TForm.#DOMAINS_TABLE) {
-            const typeId = this.#actualRecord[TForm.#DOMAINS_DRIVER];
-            if (TConfig.IsEmpty(typeId))
-                return null;
-            const type = TSystem.GetType(typeId);
-            if (!type)
-                return null;
-            return {
-                Length: this.#actualRecord.Length,
-                Decimals: this.#actualRecord.Decimals,
-                Type: type,
-            };
-        }
-        return undefined;
+
+        const context = this.#metadataAskContext();
+        if (!context?.category)
+            return null;
+
+        const type = context.type ?? {
+            Category: context.category,
+            MaxLength: this.#actualRecord.MaxLength ?? this.#actualRecord.Length,
+            Name: this.#actualRecord.Name ?? "",
+        };
+
+        return {
+            Length: this.#actualRecord.Length ?? this.#actualRecord.MaxLength,
+            Decimals: this.#actualRecord.Decimals ?? 0,
+            Type: type,
+        };
     }
 
     #refreshMetadataVariantFields() {
@@ -333,7 +341,6 @@ export default class TForm {
             const masterPane = document.createElement("div");
             masterPane.className = "master-pane";
             this.#BuildForm(masterPane);
-            this.#BuildButtonsBar(masterPane);
             workspace.appendChild(masterPane);
 
             const detailPane = document.createElement("div");
@@ -351,6 +358,7 @@ export default class TForm {
             detailPane.appendChild(gridPanel);
 
             workspace.appendChild(detailPane);
+            this.#BuildButtonsBar(workspace);
             this.#HTML.Container.appendChild(workspace);
         }
 
