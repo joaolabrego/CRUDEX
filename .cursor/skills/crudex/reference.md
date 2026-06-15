@@ -212,7 +212,9 @@ Substitui hardcode em `TForm` (`min`, `max`, `HtmlInputType` fixos) por regras d
 
 **Substituem Windows Services** — o CRUDEX agenda e dispara tarefas em background via metadados, sem serviço Windows externo.
 
-Agendamento por tenant (`ClientId`): `Interval`, `Periodicity` (ex. `day`), `TimeOfDay`, `DayOfMonth`, `NextRunDate`, flags `IsBusinessDays`, `IsFirstOrLastDay`, `IsRunOnce`, `IsActive`.
+Agendamento por tenant (`ClientId`): `Interval`, `Periodicity` (ex. `day`), `TimeOfDay`, `DayOfMonth`, `NextRunDate`, flags `IsBusinessDays`, `IsFirstOrLastDay`, `IsRunOnce`, `IsActive`, `IsForwardHoliday`.
+
+`IsForwardHoliday` (com `IsBusinessDays`): se a data nominal cair em feriado/fim de semana, `1` = avançar para o próximo dia útil; `0` = retroagir para o dia útil anterior. Implementação futura em função de calendário separada de `NextDate`.
 
 **Lacuna atual:** falta ligar `Sch` ao **o quê** executar. Intenção: disparar `Scr`/`Url` (scripts SQL e chamadas HTTP/API), uma ou várias — mesmo payload do sniper, disparo por tempo.
 
