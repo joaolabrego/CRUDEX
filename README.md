@@ -2,7 +2,7 @@
 
 O CRUDEX é uma plataforma para construção de sistemas de informação baseada em metadados.
 
-Em vez de desenvolver manualmente telas, grids, formulários, relacionamentos, validações e operações CRUD para cada sistema, o desenvolvedor descreve a estrutura do sistema e o CRUDEX gera automaticamente a aplicação.
+Em vez de desenvolver manualmente telas, grids, formulários, relacionamentos, validações e operações CRUD para cada sistema, o desenvolvedor descreve a estrutura do sistema e o CRUDEX gera dinamicamente a aplicação.
 
 ## Principais recursos
 
@@ -82,4 +82,8 @@ Em outras palavras:
 
 Descreva o sistema.
 
-O CRUDEX constrói a aplicação.
+O CRUDEX gera dinamicamente a aplicação.
+
+## Documentação
+
+- [Manual do CRUDEX 1.0](MANUAL.md) — guia do usuário e do desenvolvedor

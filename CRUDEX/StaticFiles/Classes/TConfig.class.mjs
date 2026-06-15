@@ -4,6 +4,7 @@ import TLogin from "./TLogin.class.mjs";
 import TScreen from "./TScreen.class.mjs";
 import TSystem from "./TSystem.class.mjs";
 import TSpinner from "./TSpinner.class.mjs";
+import TCheckbox from "./TCheckbox.class.mjs";
 
 export default class TConfig {
     static #Locale = null;
@@ -115,7 +116,13 @@ export default class TConfig {
         }
     }
     static IsEmpty(value) {
-        return value === null || value === undefined || String(value).trim() === "";
+        if (TCheckbox.isNullMarker(value))
+            return false;
+        if (value === null || value === undefined)
+            return true;
+        if (typeof value === "object")
+            return false;
+        return String(value).trim() === "";
     }
     static CreateProperties(origin, target) {
         for (let [key, value] of Object.entries(origin)) {

@@ -281,7 +281,9 @@ export default class TGrid {
         for (let key in this.#FilterValues) {
             if (!record.hasOwnProperty(key))
                 continue;
-            const value = record[key];
+            let value = record[key];
+            if (typeof value === "object" && value !== null && !TCheckbox.hasCondition(value))
+                value = null;
             this.#FilterValues[key] = TCheckbox.hasCondition(value)
                 ? value
                 : TConfig.IsEmpty(value) ? null : value;
@@ -306,7 +308,9 @@ export default class TGrid {
         for (let key in this.#SearchValues) {
             if (!record.hasOwnProperty(key))
                 continue;
-            const value = record[key];
+            let value = record[key];
+            if (typeof value === "object" && value !== null && !TCheckbox.hasCondition(value))
+                value = null;
             this.#SearchValues[key] = TCheckbox.hasCondition(value)
                 ? value
                 : TConfig.IsEmpty(value) ? null : value;
@@ -767,13 +771,12 @@ export default class TGrid {
         return this.#OrderBy.slice(0, -1);
     }
     get Filter() {
-        var filter = "";
+        let filter = "";
 
-        for (let key in this.#FilterValues) {
-            let value = this.#FilterValues[key];
-
-            if (value !== null)
-                filter += `${filter === "" ? "" : " AND "}${key} = '${value}'`;
+        for (const key in this.#FilterValues) {
+            const part = TCheckbox.formatCriterion(key, this.#FilterValues[key]);
+            if (part)
+                filter += `${filter === "" ? "" : " AND "}${part}`;
         }
         return filter;
     }

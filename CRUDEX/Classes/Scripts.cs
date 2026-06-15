@@ -177,7 +177,11 @@ namespace crudex.Classes
             var dataType = column["#DataType"];
             var validations = GetConstraints(column, domains, types);
 
-            result.Append($"{indent}IF {valueVariable} IS NOT NULL BEGIN\r\n");
+            result.Append($"{indent}IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Filter') WHERE [key] = '{name}' AND [type] = 0)\r\n");
+            result.Append($"{indent}   OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter, '$.Fixed') WHERE [key] = '{name}' AND [type] = 0)\r\n");
+            result.Append($"{indent}   OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilter) WHERE [key] = '{name}' AND [type] = 0)\r\n");
+            result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] IS NULL'\r\n");
+            result.Append($"{indent}ELSE IF {valueVariable} IS NOT NULL BEGIN\r\n");
             if (validations.TryGetValue("Minimum", out dynamic? value))
             {
                 result.Append($"{indent}    IF {valueVariable} < CAST('{value}' AS {dataType})\r\n");
@@ -200,7 +204,9 @@ namespace crudex.Classes
                 || string.Equals(dataType, "ntext", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(dataType, "text", StringComparison.OrdinalIgnoreCase);
 
-            result.Append($"{indent}IF @S_{name} IS NOT NULL\r\n");
+            result.Append($"{indent}IF EXISTS(SELECT 1 FROM OPENJSON(@RecordSearch) WHERE [key] = '{name}' AND [type] = 0)\r\n");
+            result.Append($"{indent}    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[{name}], [O].[{name}]) IS NULL'\r\n");
+            result.Append($"{indent}ELSE IF @S_{name} IS NOT NULL\r\n");
             if (isText)
                 result.Append($"{indent}    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[{name}], [O].[{name}]) LIKE ''%'' + @{name} + ''%'''\r\n");
             else

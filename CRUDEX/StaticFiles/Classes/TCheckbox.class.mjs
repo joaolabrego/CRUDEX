@@ -71,6 +71,23 @@ export default class TCheckbox {
         return value;
     }
 
+    static formatCriterion(key, value) {
+        if (TCheckbox.isIgnored(value))
+            return "";
+        if (TCheckbox.isNullMarker(value))
+            return `${key} IS NULL`;
+        if (typeof value === "object" && value !== null) {
+            if (TCheckbox.isNullMarker(value.ListItemId))
+                return `${key} IS NULL`;
+            return "";
+        }
+        if (value === true)
+            return `${key} = sim`;
+        if (value === false)
+            return `${key} = não`;
+        return `${key} = '${value}'`;
+    }
+
     static #injectStyle() {
         if (TCheckbox.#StyleInjected || !TCheckbox.#Style)
             return;
@@ -100,8 +117,15 @@ export default class TCheckbox {
         [TCheckbox.States.TRUE]: "sim",
         [TCheckbox.States.FALSE]: "não",
         [TCheckbox.States.NULL]: "nulo",
-        [TCheckbox.States.EMPTY]: "vazio",
     };
+
+    #titleForState(state) {
+        if (this.#nullAsEmpty && this.#readOnly && state === TCheckbox.States.EMPTY)
+            return TCheckbox.#titles[TCheckbox.States.NULL];
+        if (state === TCheckbox.States.EMPTY)
+            return this.#mode === TCheckbox.Modes.CONDITION ? "ignorar" : "vazio";
+        return TCheckbox.#titles[state];
+    }
 
     static #symbols = {
         [TCheckbox.States.TRUE]: "✓",
@@ -240,9 +264,7 @@ export default class TCheckbox {
         this.#state = state;
         this.#root.dataset.state = this.#state;
         this.#symbol.textContent = TCheckbox.#symbols[this.#state];
-        const title = this.#nullAsEmpty && this.#readOnly && this.#state === TCheckbox.States.EMPTY
-            ? TCheckbox.#titles[TCheckbox.States.NULL]
-            : TCheckbox.#titles[this.#state];
+        const title = this.#titleForState(this.#state);
         this.#root.title = title;
         this.#button.title = title;
         this.#button.setAttribute("aria-checked",

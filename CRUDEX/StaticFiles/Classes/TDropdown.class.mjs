@@ -1,5 +1,7 @@
 ﻿"use strict";
 
+import TCheckbox from "./TCheckbox.class.mjs";
+
 export default class TDropdown {
     static Modes = {
         SINGLE: "single",
@@ -116,9 +118,14 @@ export default class TDropdown {
         this.#applyReadOnlyState();
         this.#bindEvents();
 
-        if (options.value !== undefined && options.value !== null && options.value !== "")
-            this.setValue(options.value);
-        else if (this.#isAddableMode())
+        if (options.nullCondition) {
+            this.#clearSingle();
+            if (this.#input)
+                this.#input.placeholder = "nulo";
+        } else if (options.value !== undefined && options.value !== null && options.value !== ""
+            && !TCheckbox.isNullMarker(options.value)) {
+            this.setValue(options.value, false);
+        } else if (this.#isAddableMode())
             this.#manualValues = [];
         else
             this.#clearSingle();
@@ -682,10 +689,11 @@ export default class TDropdown {
         return TDropdown.#normalizeItem(item, this.#idField, this.#labelField);
     }
 
-    setValue(value) {
+    setValue(value, emitChange = true) {
         if (this.#mode === TDropdown.Modes.SINGLE) {
             const item = Array.isArray(value) ? value[0] : value;
-            if (item === null || item === undefined || item === "") {
+            if (item === null || item === undefined || item === ""
+                || TCheckbox.isNullMarker(item)) {
                 this.#clearSingle();
             } else {
                 const resolved = this.#resolveItem(item);
@@ -703,7 +711,8 @@ export default class TDropdown {
             this.#updateTriggerLabel();
         }
         this.#refresh();
-        this.#emitChange();
+        if (emitChange)
+            this.#emitChange();
     }
 
     getValue() {
