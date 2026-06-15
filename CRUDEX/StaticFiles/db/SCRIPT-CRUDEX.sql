@@ -7205,14 +7205,14 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
                                 ,NULL
-                                ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -9242,7 +9242,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
-                                ,NULL
+                                ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -23180,6 +23180,9 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
             IF CHARINDEX('[T].[Id]', @OrderBy) = 0
                 SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
+        IF @IsActionList = 1
+            SET @OrderBy = '[T].[Caption] ASC, [T].[Id] ASC'
+        DECLARE @PickerValue nvarchar(20) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
 
@@ -23227,7 +23230,12 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
         ELSE IF @WT_Caption IS NOT NULL BEGIN
             SET @Where = @Where + ' AND [T].[Caption] = @T_Caption'
         END
-        IF @_ IS NULL BEGIN
+        IF @IsActionList = 1 BEGIN
+            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS nvarchar(20))
+            IF @PickerValue IS NULL
+                SET @PickerValue = ''
+            SET @Where = @Where + ' AND [T].[Caption] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
             DECLARE @G_Id_op TINYINT
                    ,@G_Id_v bigint
                    ,@G_Id_vals NVARCHAR(MAX)
@@ -23389,7 +23397,14 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
-        IF @_ IS NULL BEGIN
+        IF @IsActionList = 1 BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@PickerValue nvarchar(20),@T_Id bigint,@T_SystemId bigint,@T_Caption nvarchar(20)'
+                               ,@PickerValue = @PickerValue
+                               ,@T_Id = @WT_Id
+                               ,@T_SystemId = @WT_SystemId
+                               ,@T_Caption = @WT_Caption
+        END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
                                ,N'@T_Id bigint,@T_SystemId bigint,@T_Caption nvarchar(20),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@Caption nvarchar(20),@Caption_v1 nvarchar(20),@Caption_v2 nvarchar(20),@Caption_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
@@ -23637,6 +23652,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                       ,[SystemId]
                       ,[Sequence]
                       ,[Caption]
+                      ,[Caption] AS [ListItemValue]
                       ,[Message]
                       ,[Action]
                       ,[ParentMenuId]
