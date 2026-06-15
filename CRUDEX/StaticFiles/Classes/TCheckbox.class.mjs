@@ -30,6 +30,7 @@ export default class TCheckbox {
     #button = null;
     #symbol = null;
     #hidden = null;
+    #validityInput = null;
     #onChange = null;
 
     static Initialize(styles) {
@@ -145,6 +146,16 @@ export default class TCheckbox {
             this.#hidden = hidden;
         }
 
+        if (this.#mode === TCheckbox.Modes.EDITION) {
+            this.#validityInput = document.createElement("input");
+            this.#validityInput.type = "text";
+            this.#validityInput.tabIndex = -1;
+            this.#validityInput.className = "tcheckbox-validity";
+            this.#validityInput.setAttribute("aria-hidden", "true");
+            this.#validityInput.autocomplete = "off";
+            this.#root.appendChild(this.#validityInput);
+        }
+
         this.#bindEvents();
         container.appendChild(this.#root);
 
@@ -152,6 +163,17 @@ export default class TCheckbox {
             this.setValue(options.value);
         else
             this.#applyState(this.#initialState());
+
+        this.#applyRequiredConstraints();
+    }
+
+    #applyRequiredConstraints() {
+        if (!this.#validityInput || this.#readOnly)
+            return;
+        if (this.#isRequired)
+            this.#validityInput.setAttribute("required", "required");
+        else
+            this.#validityInput.removeAttribute("required");
     }
 
     #initialState() {
@@ -238,14 +260,37 @@ export default class TCheckbox {
     }
 
     #syncFormValidity() {
-        if (!this.#hidden || this.#readOnly || this.#mode === TCheckbox.Modes.CONDITION) {
-            this.#hidden?.setCustomValidity("");
+        if (this.#readOnly || this.#mode === TCheckbox.Modes.CONDITION) {
+            this.#validityInput?.setCustomValidity("");
+            this.#root.classList.remove("invalid");
             return;
         }
-        if (this.#isRequired && this.#state === TCheckbox.States.NULL)
-            this.#hidden.setCustomValidity("Informe um valor.");
-        else
-            this.#hidden.setCustomValidity("");
+        const invalid = this.#isRequired && !this.isValid();
+        if (this.#validityInput) {
+            if (invalid)
+                this.#validityInput.setCustomValidity("Informe um valor");
+            else
+                this.#validityInput.setCustomValidity("");
+        }
+        this.#root.classList.toggle("invalid", invalid);
+    }
+
+    isValid() {
+        if (!this.#isRequired || this.#readOnly || this.#mode === TCheckbox.Modes.CONDITION)
+            return true;
+        return this.#state !== TCheckbox.States.NULL;
+    }
+
+    reportValidity() {
+        this.#syncFormValidity();
+        if (this.isValid())
+            return true;
+        const anchor = this.#validityInput;
+        if (!anchor)
+            return false;
+        anchor.focus();
+        anchor.reportValidity();
+        return false;
     }
 
     syncFormValidity() {
@@ -253,7 +298,7 @@ export default class TCheckbox {
     }
 
     get validityInput() {
-        return this.#hidden;
+        return this.#validityInput ?? this.#hidden;
     }
 
     get IsRequired() {
@@ -263,6 +308,7 @@ export default class TCheckbox {
     set IsRequired(value) {
         this.#isRequired = !!value;
         this.#root.dataset.required = this.#isRequired ? "true" : "false";
+        this.#applyRequiredConstraints();
         if (this.#mode === TCheckbox.Modes.EDITION)
             this.#applyState(this.#state);
         this.#syncFormValidity();

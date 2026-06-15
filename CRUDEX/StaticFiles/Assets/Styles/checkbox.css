@@ -4,6 +4,8 @@
 
     align-items: center;
 
+    position: relative;
+
     cursor: pointer;
 
     user-select: none;
@@ -155,6 +157,56 @@
 .tcheckbox[data-transparent="true"][data-state="empty"] .tcheckbox-button {
 
     color: transparent;
+
+}
+
+
+
+.tcheckbox-validity {
+
+    position: absolute;
+
+    left: 0;
+
+    top: 0;
+
+    width: var(--font-size-grid, 2dvmin);
+
+    height: var(--font-size-grid, 2dvmin);
+
+    min-width: 0;
+
+    min-height: 0;
+
+    margin: 0;
+
+    padding: 0;
+
+    border: 0;
+
+    opacity: 0;
+
+    background: transparent;
+
+    color: transparent;
+
+    caret-color: transparent;
+
+    z-index: 1;
+
+    overflow: hidden;
+
+    pointer-events: none;
+
+}
+
+
+
+.tcheckbox.invalid .tcheckbox-button {
+
+    border-color: #c00;
+
+    box-shadow: 0 0 0 0.1dvmin #c00;
 
 }
 

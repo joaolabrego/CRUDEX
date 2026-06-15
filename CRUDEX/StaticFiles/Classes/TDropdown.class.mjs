@@ -112,6 +112,7 @@ export default class TDropdown {
             .filter(Boolean);
 
         this.#buildDom();
+        this.#applyRequiredConstraints();
         this.#applyReadOnlyState();
         this.#bindEvents();
 
@@ -229,6 +230,15 @@ export default class TDropdown {
         }
     }
 
+    #applyRequiredConstraints() {
+        if (!this.#input || this.#readOnly)
+            return;
+        if (this.#required)
+            this.#input.setAttribute("required", "required");
+        else
+            this.#input.removeAttribute("required");
+    }
+
     #applyReadOnlyState() {
         if (!this.#readOnly)
             return;
@@ -267,6 +277,7 @@ export default class TDropdown {
             this.#input.addEventListener("blur", () => {
                 this.#revertInput();
                 this.#hideList();
+                this.#updateValidity();
             });
         }
 
@@ -710,11 +721,16 @@ export default class TDropdown {
         return this.getValue();
     }
 
+    #hasSelectedId() {
+        const id = this.#selected[0]?.id;
+        return id !== null && id !== undefined && id !== "";
+    }
+
     isValid() {
         if (this.#mode === TDropdown.Modes.SINGLE) {
             if (!this.#required)
                 return true;
-            return this.#selected.length === 1;
+            return this.#selected.length === 1 && this.#hasSelectedId();
         }
 
         const count = this.#isAddableMode() ? this.#manualValues.length : this.#selected.length;
@@ -727,14 +743,26 @@ export default class TDropdown {
     }
 
     syncFormValidity() {
-        if (!this.#input || this.#readOnly) {
+        if (this.#readOnly) {
             this.#input?.setCustomValidity("");
+            this.#input?.classList.remove("invalid");
             return;
         }
+        const target = this.#input ?? this.#trigger;
+        if (!target)
+            return;
         if (this.#required && !this.isValid())
-            this.#input.setCustomValidity("Informe um valor.");
+            target.setCustomValidity("Informe um valor");
         else
-            this.#input.setCustomValidity("");
+            target.setCustomValidity("");
+        if (this.#input)
+            this.#input.classList.toggle("invalid", this.#required && !this.isValid());
+    }
+
+    reportValidity() {
+        this.syncFormValidity();
+        const target = this.#input ?? this.#trigger;
+        return target?.reportValidity() ?? true;
     }
 
     get element() {
@@ -742,6 +770,10 @@ export default class TDropdown {
     }
 
     get input() {
+        return this.#input ?? this.#trigger;
+    }
+
+    get validityInput() {
         return this.#input ?? this.#trigger;
     }
 

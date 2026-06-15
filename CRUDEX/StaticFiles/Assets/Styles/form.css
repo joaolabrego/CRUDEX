@@ -50,7 +50,7 @@
     box-sizing: border-box;
 }
 
-.form input:not([type="checkbox"]),
+.form input:not([type="checkbox"]):not(.tcheckbox-validity),
 .form textarea,
 .form .tdropdown-input,
 .form .tdropdown-trigger {
@@ -65,7 +65,7 @@
     height: var(--font-size-grid);
 }
 
-.form input:not([type="checkbox"]) {
+.form input:not([type="checkbox"]):not(.tcheckbox-validity) {
     width: 100%;
     height: var(--field-height);
     padding: 0.5dvmin;

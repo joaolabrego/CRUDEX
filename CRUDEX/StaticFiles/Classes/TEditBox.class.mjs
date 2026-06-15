@@ -222,21 +222,30 @@ export default class TEditBox {
             && action !== TSystem.Actions.SEARCH;
     }
 
+    #nativeValueState(control) {
+        const value = control.value ?? "";
+        if (!this.#editMask)
+            return { empty: TConfig.IsEmpty(value), incomplete: false };
+        const placeholder = this.#editMask.placeholder ?? "";
+        const isNumber = this.#editMask.category === "number";
+        const empty = isNumber
+            ? !String(value).replace(/\D/g, "")
+            : TConfig.IsEmpty(value);
+        const incomplete = !isNumber && !!placeholder && value.length < placeholder.length;
+        return { empty, incomplete };
+    }
+
     #syncNativeValidity(control) {
         if (!control || this.#readOnly || !this.#isRequired) {
             control?.setCustomValidity("");
             return;
         }
-        if (!this.#editMask) {
-            control.setCustomValidity("");
-            return;
-        }
-        const value = control.value ?? "";
-        const placeholder = this.#editMask.placeholder ?? "";
-        const empty = TConfig.IsEmpty(value);
-        const incomplete = placeholder && value.length < placeholder.length;
-        if (empty || incomplete)
-            control.setCustomValidity("Informe um valor completo.");
+        const caption = this.#column.Caption;
+        const { empty, incomplete } = this.#nativeValueState(control);
+        if (empty)
+            control.setCustomValidity(`Informe ${caption}`);
+        else if (incomplete)
+            control.setCustomValidity("Informe um valor completo");
         else
             control.setCustomValidity("");
     }
@@ -255,22 +264,50 @@ export default class TEditBox {
         if (this.#readOnly)
             return true;
         if (this.#dropdown) {
-            this.#dropdown.syncFormValidity();
-            return this.#dropdown.input?.reportValidity() ?? true;
+            if (!this.#isRequired || this.#dropdown.isValid()) {
+                this.#dropdown.input?.setCustomValidity("");
+                this.#dropdown.input?.classList.remove("invalid");
+                return true;
+            }
+            const input = this.#dropdown.input;
+            if (input?.hasAttribute("readonly") && input.dataset.crudexAutofillGuard)
+                input.removeAttribute("readonly");
+            input?.setCustomValidity(`Informe ${this.#column.Caption}`);
+            input?.classList.add("invalid");
+            input?.focus();
+            input?.reportValidity();
+            return false;
         }
         if (this.#checkbox) {
-            this.#checkbox.syncFormValidity();
-            const input = this.#checkbox.validityInput;
-            if (!input)
+            if (!this.#isRequired || this.#checkbox.isValid()) {
+                this.#checkbox.validityInput?.setCustomValidity("");
+                this.#checkbox.syncFormValidity();
                 return true;
-            const valid = input.reportValidity();
-            if (!valid)
-                this.#checkbox.input?.focus();
-            return valid;
+            }
+            const anchor = this.#checkbox.validityInput;
+            if (!anchor)
+                return false;
+            anchor.setCustomValidity(`Informe ${this.#column.Caption}`);
+            anchor.focus();
+            anchor.reportValidity();
+            return false;
         }
         if (this.#control) {
             this.#syncNativeValidity(this.#control);
-            return this.#control.reportValidity();
+            if (this.#isRequired) {
+                const { empty, incomplete } = this.#nativeValueState(this.#control);
+                if (empty || incomplete) {
+                    const unlock = this.#control.hasAttribute("readonly")
+                        && this.#control.dataset.crudexAutofillGuard;
+                    if (unlock)
+                        this.#control.removeAttribute("readonly");
+                    this.#control.focus();
+                    this.#control.reportValidity();
+                    return false;
+                }
+            }
+            this.#control.setCustomValidity("");
+            return true;
         }
         return true;
     }
@@ -693,13 +730,17 @@ export default class TEditBox {
             delete this.#control.dataset.maskPlaceholder;
             delete this.#control.dataset.lastValidValue;
             if (!readOnly) {
-                this.#control.onchange = (event) => {
+                const notify = (event) => {
                     const value = event.target.value;
                     onChange(this.#column.Name, TConfig.IsEmpty(value) ? null : value);
                     this.#syncNativeValidity(this.#control);
                 };
-            } else
+                this.#control.oninput = notify;
+                this.#control.onchange = notify;
+            } else {
+                this.#control.oninput = null;
                 this.#control.onchange = null;
+            }
             this.#control.value = rawValue ?? "";
         }
 

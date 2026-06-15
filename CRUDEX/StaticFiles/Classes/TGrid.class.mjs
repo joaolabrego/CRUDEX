@@ -354,9 +354,12 @@ export default class TGrid {
         for (let index = 0; index < this.#Data.length; index++) {
             const record = this.#Data[index];
             if (columns.every(column =>
-                this.#valueMatchesSearch(column, record, this.#SearchValues[column.Name])))
+                this.#valueMatchesSearch(column, record, this.#SearchValues[column.Name]))) {
                 this.#RowNumber = index;
+                return;
+            }
         }
+        this.#RowNumber = this.#Data.length - 1;
     }
     async #ReadDataPage(pageNumber) {
         this.#RecordSet.setFilter(this.#FilterValues);

@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 import TScreen from "./TScreen.class.mjs";
 import TConfig from "./TConfig.class.mjs";
@@ -174,7 +174,9 @@ export default class TForm {
 
         const askFlag = TForm.#COLUMNS_VARIANT_ASK_FLAG[column.Name];
         const flags = this.#columnsCategoryAskFlags();
-        if (!flags || !askFlag)
+        if (!flags)
+            return false;
+        if (!askFlag)
             return true;
 
         return flags[askFlag] === true;
@@ -461,6 +463,8 @@ export default class TForm {
     }
     #validateForm() {
         for (const edit of this.#editBoxes) {
+            if (edit.element.style.display === "none")
+                continue;
             if (!edit.reportValidity())
                 return false;
         }
